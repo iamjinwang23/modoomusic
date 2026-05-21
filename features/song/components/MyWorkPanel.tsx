@@ -10,6 +10,7 @@ import { PublishModal } from './PublishModal'
 import { collectionService } from '@/services/collection.service'
 import { useGlobalPlayer } from '@/contexts/GlobalPlayerContext'
 import { useAuth } from '@/components/AuthProvider'
+import { createClient } from '@/lib/supabase/client'
 import type { Song } from '@/types/domain'
 
 const ICON_FILTER = 'invert(0.45)'
@@ -27,20 +28,32 @@ function formatDuration(seconds: number | null): string | null {
   return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`
 }
 
-function SkeletonItem() {
+interface PendingInfo { title: string; prompt: string; genre: string; mood: string; instrumental: boolean }
+
+function PendingSongItem({ info }: { info: PendingInfo }) {
+  const displayTitle = info.title || info.prompt.slice(0, 30) + (info.prompt.length > 30 ? '…' : '')
+  const tags = [info.genre, info.mood].filter(Boolean)
   return (
-    <li className="px-4 py-3 flex items-stretch gap-3">
-      <div className="w-2 h-2 rounded-full bg-white/[0.06] shrink-0 self-start mt-2" />
-      <div className="shimmer w-16 aspect-[2/3] rounded-lg bg-white/[0.08] shrink-0" />
-      <div className="flex-1 min-w-0 flex flex-col py-0.5">
-        <div className="shimmer h-4 bg-white/[0.08] rounded-full w-3/5" />
-        <div className="shimmer h-3 bg-white/[0.06] rounded-full w-4/5 mt-1.5" />
-        <div className="flex items-center gap-1 mt-3">
-          <div className="w-[35px] h-[35px] rounded-full bg-white/[0.06] shrink-0" />
-          <div className="w-[35px] h-[35px] rounded-full bg-white/[0.06] shrink-0" />
-          <div className="w-[35px] h-[35px] rounded-full bg-white/[0.06] shrink-0" />
-          <div className="h-[35px] w-20 rounded-full bg-white/[0.06] shrink-0" />
-        </div>
+    <li className="px-4 py-3 flex items-stretch gap-3 opacity-80">
+      <div className="w-2 h-2 rounded-full bg-violet-400 shrink-0 self-start mt-2 animate-pulse" />
+      {/* 썸네일 — 스피너 */}
+      <div className="w-16 aspect-[2/3] rounded-lg shrink-0 bg-white/[0.08] flex items-center justify-center">
+        <div className="w-5 h-5 border-2 border-white/20 border-t-white/70 rounded-full animate-spin" />
+      </div>
+      <div className="flex-1 min-w-0 flex flex-col py-0.5 gap-1">
+        <p className="text-sm font-semibold text-white truncate">{displayTitle}</p>
+        <p className="text-xs text-zinc-500 truncate">{info.prompt}</p>
+        {tags.length > 0 && (
+          <div className="flex gap-1 mt-0.5 flex-wrap">
+            {tags.map((t) => (
+              <span key={t} className="text-[10px] px-2 py-0.5 rounded-full bg-white/[0.06] text-zinc-400">{t}</span>
+            ))}
+            {info.instrumental && (
+              <span className="text-[10px] px-2 py-0.5 rounded-full bg-white/[0.06] text-zinc-400">instrumental</span>
+            )}
+          </div>
+        )}
+        <p className="text-[11px] text-violet-400/80 mt-1">음악 생성 중…</p>
       </div>
     </li>
   )
@@ -95,20 +108,31 @@ export function MyWorkPanel({ showCollections = false }: { showCollections?: boo
   const [songs, setSongs] = useState<Song[]>([])
   const [editing, setEditing] = useState<Song | null>(null)
   const [deleting, setDeleting] = useState<Song | null>(null)
-  const [generating, setGenerating] = useState(false)
+  const [pendingSong, setPendingSong] = useState<PendingInfo | null>(null)
+  const [ownerAvatarUrl, setOwnerAvatarUrl] = useState<string | null>(null)
+  const ownerName = user?.user_metadata?.full_name ?? user?.email?.split('@')[0] ?? null
   const [collecting, setCollecting] = useState<Song | null>(null)
   const [publishing, setPublishing] = useState<Song | null>(null)
   const [unpublishing, setUnpublishing] = useState<Song | null>(null)
 
   useEffect(() => {
     setSongs(user ? songService.getAll() : [])
-    const onGenerating = () => setGenerating(true)
-    const onUpdated = () => { setGenerating(false); setSongs(user ? songService.getAll() : []) }
+    if (user) {
+      createClient().from('profiles').select('avatar_url').eq('id', user.id).single()
+        .then(({ data }) => { if (data?.avatar_url) setOwnerAvatarUrl(data.avatar_url) })
+    } else {
+      setOwnerAvatarUrl(null)
+    }
+    const onGenerating = (e: Event) => setPendingSong((e as CustomEvent<PendingInfo>).detail)
+    const onUpdated = () => { setPendingSong(null); setSongs(user ? songService.getAll() : []) }
+    const onAvatarUpdated = (e: Event) => setOwnerAvatarUrl((e as CustomEvent<string | null>).detail)
     window.addEventListener('song-generating', onGenerating)
     window.addEventListener('song-updated', onUpdated)
+    window.addEventListener('profile-avatar-updated', onAvatarUpdated)
     return () => {
       window.removeEventListener('song-generating', onGenerating)
       window.removeEventListener('song-updated', onUpdated)
+      window.removeEventListener('profile-avatar-updated', onAvatarUpdated)
     }
   }, [user])
 
@@ -129,14 +153,14 @@ export function MyWorkPanel({ showCollections = false }: { showCollections?: boo
   function handleOpen(song: Song) {
     const idx = songs.findIndex((s) => s.id === song.id)
     window.dispatchEvent(new CustomEvent('view-song', {
-      detail: { feed: songs, idx, isOwner: true },
+      detail: { feed: songs, idx, isOwner: true, ownerAvatarUrl, ownerName },
     }))
   }
 
   function handleThumbPlay(song: Song) {
     const idx = songs.findIndex((s) => s.id === song.id)
     window.dispatchEvent(new CustomEvent('play-song', {
-      detail: { feed: songs, idx, isOwner: true },
+      detail: { feed: songs, idx, isOwner: true, ownerAvatarUrl, ownerName },
     }))
   }
 
@@ -169,14 +193,14 @@ export function MyWorkPanel({ showCollections = false }: { showCollections?: boo
         </div>
       ) : (
       <div className="flex-1 overflow-y-auto">
-        {songs.length === 0 && !generating ? (
+        {songs.length === 0 && !pendingSong ? (
           <div className="pt-32 pb-16 text-center px-6">
             <Image src="/Confused.svg" alt="" width={48} height={48} className="mx-auto mb-3 opacity-40" style={{ filter: 'invert(1)' }} />
             <p className="text-xs text-zinc-400">아직 만든 음악이 없어요</p>
           </div>
         ) : (
           <ul>
-              {generating && <SkeletonItem />}
+              {pendingSong && <PendingSongItem info={pendingSong} />}
               {songs.map((song) => (
                 <SongWorkItem
                   key={song.id}

@@ -21,14 +21,14 @@ function coverGradient(song: Song) {
 }
 
 export function GlobalMiniBar() {
-  const { song, feed, idx, isOwner, hasPrev, hasNext, isPlaying, currentTime, duration, togglePlay, next, prev, seekTo, patchSong } = useGlobalPlayer()
+  const { song, feed, idx, isOwner, ownerName, hasPrev, hasNext, isPlaying, currentTime, duration, togglePlay, next, prev, seekTo, patchSong } = useGlobalPlayer()
   const [collectOpen, setCollectOpen] = useState(false)
 
   if (!song) return null
 
   function openDetail() {
     if (!song) return
-    window.dispatchEvent(new CustomEvent('view-song', { detail: { feed, idx, isOwner } }))
+    window.dispatchEvent(new CustomEvent('view-song', { detail: { feed, idx, isOwner, ownerName } }))
   }
 
   function handleLike() {
@@ -69,7 +69,8 @@ export function GlobalMiniBar() {
               )}
             </div>
             <div className="min-w-0">
-              <p className="text-sm font-medium text-white truncate">{song.title || 'Untitled'}</p>
+              <p className="text-sm font-medium text-white truncate leading-tight">{song.title || 'Untitled'}</p>
+              {ownerName && <p className="text-xs text-zinc-500 truncate mt-0.5">{ownerName}</p>}
             </div>
           </div>
 

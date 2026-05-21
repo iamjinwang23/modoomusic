@@ -16,6 +16,15 @@ import { createClient } from '@/lib/supabase/client'
 
 type Section = 'create' | 'archive' | 'explore' | 'notifications' | 'profile' | 'song'
 
+const PROFILE_PALETTE = [
+  { bg: 'hsl(87,57%,73%)',  text: 'hsl(87,45%,32%)'  },
+  { bg: 'hsl(261,76%,75%)', text: 'hsl(261,55%,35%)' },
+  { bg: 'hsl(40,60%,82%)',  text: 'hsl(40,50%,35%)'  },
+  { bg: 'hsl(129,33%,77%)', text: 'hsl(129,30%,30%)' },
+  { bg: 'hsl(0,49%,80%)',   text: 'hsl(0,40%,35%)'   },
+  { bg: 'hsl(22,73%,75%)',  text: 'hsl(22,55%,35%)'  },
+]
+
 function sectionToPath(section: Section, username?: string | null): string | null {
   switch (section) {
     case 'create':        return '/'
@@ -150,13 +159,13 @@ export function HomeLayout({ initialSection = 'create', initialProfileUsername }
             <div className="relative">
               <button
                 onClick={() => setUserMenuOpen((v) => !v)}
-                className="w-8 h-8 rounded-full overflow-hidden flex items-center justify-center text-xs font-bold text-white transition-opacity hover:opacity-80"
-                style={headerAvatarUrl ? undefined : { background: `hsl(${(user.id.charCodeAt(0) * 137) % 360},60%,45%)` }}
+                className="w-8 h-8 rounded-full overflow-hidden flex items-center justify-center text-xs font-bold transition-opacity hover:opacity-80"
+                style={headerAvatarUrl ? undefined : { background: PROFILE_PALETTE[(user.id.charCodeAt(0) * 137) % PROFILE_PALETTE.length].bg, color: PROFILE_PALETTE[(user.id.charCodeAt(0) * 137) % PROFILE_PALETTE.length].text }}
               >
                 {headerAvatarUrl ? (
                   <Image src={headerAvatarUrl} alt="" width={32} height={32} className="object-cover w-full h-full" unoptimized />
                 ) : (
-                  (headerDisplayName ?? user.user_metadata?.full_name ?? user.email ?? '?').slice(0, 2).toUpperCase()
+                  (headerDisplayName ?? user.user_metadata?.full_name ?? user.email ?? '?').slice(0, 1).toUpperCase()
                 )}
               </button>
               {userMenuOpen && (

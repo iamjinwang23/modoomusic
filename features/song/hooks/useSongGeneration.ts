@@ -26,7 +26,9 @@ export function useSongGeneration() {
     setError('')
     setResult(null)
     setElapsed(0)
-    window.dispatchEvent(new Event('song-generating'))
+    window.dispatchEvent(new CustomEvent('song-generating', {
+      detail: { title: params.title.trim(), prompt: params.prompt, genre: params.genre, mood: params.mood, instrumental: params.instrumental },
+    }))
 
     timerRef.current = setInterval(() => setElapsed((s) => s + 1), 1000)
 

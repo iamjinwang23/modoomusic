@@ -9,10 +9,16 @@ import { createClient } from '@/lib/supabase/client'
 import { PublicSongCard } from './PublicSongCard'
 import type { PublicSong, Song, UserProfile } from '@/types/domain'
 
-function avatarGradient(hue: number) {
-  const h2 = (hue + 55) % 360
-  return `linear-gradient(135deg, hsl(${hue},65%,48%) 0%, hsl(${h2},55%,32%) 100%)`
-}
+
+const PALETTE = [
+  { bg: 'hsl(87,57%,73%)',  text: 'hsl(87,45%,32%)'  },
+  { bg: 'hsl(261,76%,75%)', text: 'hsl(261,55%,35%)' },
+  { bg: 'hsl(40,60%,82%)',  text: 'hsl(40,50%,35%)'  },
+  { bg: 'hsl(129,33%,77%)', text: 'hsl(129,30%,30%)' },
+  { bg: 'hsl(0,49%,80%)',   text: 'hsl(0,40%,35%)'   },
+  { bg: 'hsl(22,73%,75%)',  text: 'hsl(22,55%,35%)'  },
+]
+function profileColor(hue: number) { return PALETTE[hue % PALETTE.length] }
 
 function toSong(pub: PublicSong): Song {
   return {
@@ -145,6 +151,7 @@ export function ProfilePanel({ username }: Props) {
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null)
   const [coverUrl, setCoverUrl] = useState<string | null>(null)
   const [uploading, setUploading] = useState<'avatar' | 'cover' | null>(null)
+  const [avatarHovered, setAvatarHovered] = useState(false)
 
   useEffect(() => {
     if (!isSelf || !user) return
@@ -216,14 +223,14 @@ export function ProfilePanel({ username }: Props) {
     )
   }
 
-  const initials = (profile.displayName ?? profile.username).slice(0, 2).toUpperCase()
+  const initials = (profile.displayName ?? profile.username).slice(0, 1).toUpperCase()
   const displayAvatarUrl = isSelf ? avatarUrl : (profile.avatarImage ?? null)
   const displayCoverUrl  = isSelf ? coverUrl  : (profile.coverImage  ?? null)
 
   function handlePlay(pub: PublicSong) {
     const feed = songs.map(toSong)
     const idx  = songs.findIndex((s) => s.id === pub.id)
-    window.dispatchEvent(new CustomEvent('view-song', { detail: { feed, idx, isOwner: isSelf, ownerAvatarUrl: displayAvatarUrl } }))
+    window.dispatchEvent(new CustomEvent('view-song', { detail: { feed, idx, isOwner: isSelf, ownerAvatarUrl: displayAvatarUrl, ownerName: profile?.displayName ?? profile?.username ?? null } }))
   }
 
   return (
@@ -231,66 +238,82 @@ export function ProfilePanel({ username }: Props) {
       <div className="flex-1 overflow-y-auto">
         <div className="max-w-[1064px] mx-auto pt-4">
 
-          {/* ── 커버 이미지 ── */}
+          {/* ── 커버 + 아바타 (통합) ── */}
           <div
-            className={`relative w-full rounded-2xl overflow-hidden ${isSelf ? 'group' : ''}`}
-            style={{ background: avatarGradient(profile.avatarHue), aspectRatio: '1064 / 368' }}
+            className={`relative w-full rounded-2xl overflow-hidden ${isSelf ? 'group/cover' : ''}`}
+            style={{ background: profileColor(profile.avatarHue).bg, aspectRatio: '1064 / 368' }}
           >
             {displayCoverUrl && (
               <Image src={displayCoverUrl} alt="" fill className="object-cover" sizes="100vw" unoptimized />
             )}
+
+            {/* 하단 그라데이션 */}
+            <div className="absolute inset-x-0 bottom-0 h-1/2 bg-gradient-to-t from-black/60 to-transparent pointer-events-none" />
+
+            {/* 아바타 + 이름 — 커버 좌하단 */}
+            <div className="absolute left-5 bottom-4 z-10 flex items-center gap-4">
+              <div
+                className={`relative w-[100px] h-[100px] shrink-0 ${isSelf ? 'group/avatar' : ''}`}
+                onMouseEnter={isSelf ? () => setAvatarHovered(true) : undefined}
+                onMouseLeave={isSelf ? () => setAvatarHovered(false) : undefined}
+              >
+                {displayAvatarUrl ? (
+                  <div className="relative w-full h-full rounded-full overflow-hidden">
+                    <Image src={displayAvatarUrl} alt={profile.displayName ?? ''} fill className="object-cover" sizes="100px" unoptimized />
+                  </div>
+                ) : (
+                  <div
+                    className="w-full h-full rounded-full flex items-center justify-center text-4xl font-bold"
+                    style={{ background: profileColor(profile.avatarHue).bg, color: profileColor(profile.avatarHue).text }}
+                  >
+                    {initials}
+                  </div>
+                )}
+                {uploading === 'avatar' && (
+                  <div className="absolute inset-0 rounded-full flex items-center justify-center bg-black/50">
+                    <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                  </div>
+                )}
+                {isSelf && uploading !== 'avatar' && (
+                  <div className="absolute inset-0 rounded-full overflow-hidden [&>div]:opacity-0 [&>div]:group-hover/avatar:opacity-100">
+                    <ImageEditOverlay
+                      hasImage={!!displayAvatarUrl}
+                      onUpload={handleAvatarUpload}
+                      onDelete={displayAvatarUrl ? handleAvatarDelete : undefined}
+                    />
+                  </div>
+                )}
+              </div>
+
+              {/* 이름 + 아이디 */}
+              <div>
+                <p className="text-3xl font-bold text-white leading-tight">{profile.displayName}</p>
+                <p className="text-sm text-white/60 mt-1">@{profile.username}</p>
+              </div>
+            </div>
+
             {uploading === 'cover' && (
               <div className="absolute inset-0 flex items-center justify-center bg-black/50">
                 <div className="w-6 h-6 border-2 border-white/30 border-t-white rounded-full animate-spin" />
               </div>
             )}
-            {isSelf && uploading !== 'cover' && (
-              <ImageEditOverlay
-                hasImage={!!displayCoverUrl}
-                onUpload={handleCoverUpload}
-                onDelete={displayCoverUrl ? handleCoverDelete : undefined}
-              />
+            {isSelf && uploading !== 'cover' && !avatarHovered && (
+              <div className="absolute inset-0 [&>div]:opacity-0 [&>div]:group-hover/cover:opacity-100">
+                <ImageEditOverlay
+                  hasImage={!!displayCoverUrl}
+                  onUpload={handleCoverUpload}
+                  onDelete={displayCoverUrl ? handleCoverDelete : undefined}
+                />
+              </div>
             )}
           </div>
 
           {/* ── 프로필 헤더 ── */}
           <div className="relative px-5 pb-5">
-            {/* 아바타 */}
-            <div className={`relative w-24 h-24 -mt-12 ${isSelf ? 'group' : ''}`}>
-              {displayAvatarUrl ? (
-                <div className="relative w-full h-full rounded-full overflow-hidden border-4 border-[#111111]">
-                  <Image src={displayAvatarUrl} alt={profile.displayName ?? ''} fill className="object-cover" sizes="96px" unoptimized />
-                </div>
-              ) : (
-                <div
-                  className="w-full h-full rounded-full flex items-center justify-center text-2xl font-bold text-white border-4 border-[#111111]"
-                  style={{ background: avatarGradient(profile.avatarHue) }}
-                >
-                  {initials}
-                </div>
-              )}
-              {uploading === 'avatar' && (
-                <div className="absolute inset-0 rounded-full flex items-center justify-center bg-black/50">
-                  <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                </div>
-              )}
-              {isSelf && uploading !== 'avatar' && (
-                <div className="absolute inset-0 rounded-full overflow-hidden">
-                  <ImageEditOverlay
-                    hasImage={!!displayAvatarUrl}
-                    onUpload={handleAvatarUpload}
-                    onDelete={displayAvatarUrl ? handleAvatarDelete : undefined}
-                  />
-                </div>
-              )}
-            </div>
-
-            <div className="mt-3 flex items-start justify-between">
+            <div className="mt-6 flex items-start justify-between">
               <div>
-                <p className="text-base font-semibold">{profile.displayName}</p>
-                <p className="text-xs text-zinc-500 mt-0.5">@{profile.username}</p>
-                {profile.bio && <p className="text-xs text-zinc-400 mt-1">{profile.bio}</p>}
-                <div className="flex gap-4 mt-2 text-xs text-zinc-500">
+                {profile.bio && <p className="text-xs text-zinc-400 mb-2">{profile.bio}</p>}
+                <div className="flex gap-4 text-xs text-zinc-500">
                   <span><span className="text-white font-medium">{profile.followerCount.toLocaleString()}</span> 팔로워</span>
                   <span><span className="text-white font-medium">{profile.followingCount.toLocaleString()}</span> 팔로잉</span>
                   <span><span className="text-white font-medium">{profile.songCount}</span> 곡</span>
@@ -299,7 +322,7 @@ export function ProfilePanel({ username }: Props) {
               {!isSelf && (
                 <button
                   onClick={() => setFollowing((v) => !v)}
-                  className={`mt-1 px-4 py-1.5 rounded-full text-sm font-medium transition-colors ${
+                  className={`px-4 py-1.5 rounded-full text-sm font-medium transition-colors ${
                     following
                       ? 'bg-white/[0.08] text-zinc-300 hover:bg-white/[0.12]'
                       : 'bg-violet-600 hover:bg-violet-500 text-white'
