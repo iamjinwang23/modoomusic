@@ -337,7 +337,7 @@ export function ProfilePanel({ username }: Props) {
           {/* ── 곡 목록 ── */}
           <div className="pb-8">
             <div className="px-5 mb-3">
-              <p className="text-sm font-semibold text-white">곡 목록</p>
+              <h2 className="text-xl font-semibold text-white">곡 목록</h2>
             </div>
             {songs.length === 0 ? (
               <p className="px-5 text-zinc-600 text-sm">아직 공개된 곡이 없어요</p>

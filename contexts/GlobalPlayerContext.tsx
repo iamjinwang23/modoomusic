@@ -87,11 +87,18 @@ export function GlobalPlayerProvider({ children }: { children: React.ReactNode }
       if (newId && newId === curId) return
       dispatch({ type: 'LOAD', feed, idx, isOwner, ownerAvatarUrl, ownerName })
     }
+    // 다른 곳(인라인 카드)에서 재생 시작 시 글로벌 오디오 정지
+    function handleInlinePlay(e: Event) {
+      const detail = (e as CustomEvent<string>).detail
+      if (detail !== '__global__') audioRef.current?.pause()
+    }
     window.addEventListener('play-song', handler)
     window.addEventListener('view-song', handler)
+    window.addEventListener('audio-play', handleInlinePlay)
     return () => {
       window.removeEventListener('play-song', handler)
       window.removeEventListener('view-song', handler)
+      window.removeEventListener('audio-play', handleInlinePlay)
     }
   }, [])
 
@@ -129,7 +136,11 @@ export function GlobalPlayerProvider({ children }: { children: React.ReactNode }
       {children}
       <audio
         ref={audioRef}
-        onPlay={() => dispatch({ type: 'PLAYING', v: true })}
+        onPlay={() => {
+          dispatch({ type: 'PLAYING', v: true })
+          // 인라인 카드들에게 정지 신호
+          window.dispatchEvent(new CustomEvent('audio-play', { detail: '__global__' }))
+        }}
         onPause={() => dispatch({ type: 'PLAYING', v: false })}
         onTimeUpdate={e => dispatch({ type: 'TIME', t: e.currentTarget.currentTime })}
         onLoadedMetadata={e => {
