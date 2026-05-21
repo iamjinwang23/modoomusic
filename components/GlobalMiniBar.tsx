@@ -21,14 +21,14 @@ function coverGradient(song: Song) {
 }
 
 export function GlobalMiniBar() {
-  const { song, feed, idx, isOwner, ownerName, hasPrev, hasNext, isPlaying, currentTime, duration, togglePlay, next, prev, seekTo, patchSong } = useGlobalPlayer()
+  const { song, feed, idx, isOwner, ownerName, ownerAvatarUrl, hasPrev, hasNext, isPlaying, currentTime, duration, togglePlay, next, prev, seekTo, patchSong } = useGlobalPlayer()
   const [collectOpen, setCollectOpen] = useState(false)
 
   if (!song) return null
 
   function openDetail() {
     if (!song) return
-    window.dispatchEvent(new CustomEvent('view-song', { detail: { feed, idx, isOwner, ownerName } }))
+    window.dispatchEvent(new CustomEvent('view-song', { detail: { feed, idx, isOwner, ownerName, ownerAvatarUrl } }))
   }
 
   function handleLike() {
