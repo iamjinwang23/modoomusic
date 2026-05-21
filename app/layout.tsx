@@ -10,8 +10,8 @@ const pretendard = localFont({
 });
 
 export const metadata: Metadata = {
-  title: "오늘의 노래",
-  description: "오늘 하루를 나만의 노래로",
+  title: "모두의 노래",
+  description: "오늘 하루를 나만의 음악으로",
 };
 
 export default function RootLayout({

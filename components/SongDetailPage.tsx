@@ -4,6 +4,8 @@ import { useRef, useState, useEffect, useCallback } from 'react'
 import Image from 'next/image'
 import { songService } from '@/services/song.service'
 import { SongEditModal } from '@/components/SongEditModal'
+import { CollectionPickerModal } from '@/features/song/components/CollectionPickerModal'
+import { collectionService } from '@/services/collection.service'
 import { useAuth } from '@/components/AuthProvider'
 import type { Song } from '@/types/domain'
 
@@ -55,6 +57,8 @@ function coverGradient(song: Song) {
 export function SongDetailPage({ song, isOwner, onBack, onPrev, onNext, profile }: Props) {
   const { user } = useAuth()
   const [following, setFollowing] = useState(false)
+  const [collectOpen, setCollectOpen] = useState(false)
+  const [inCollection, setInCollection] = useState(() => collectionService.getSongCollectionIds(song.id).length > 0)
   const audioRef = useRef<HTMLAudioElement>(null)
   const [playing, setPlaying] = useState(false)
   const [currentTime, setCurrentTime] = useState(0)
@@ -82,6 +86,12 @@ export function SongDetailPage({ song, isOwner, onBack, onPrev, onNext, profile 
     }
     window.addEventListener('audio-play', handler)
     return () => window.removeEventListener('audio-play', handler)
+  }, [song.id])
+
+  useEffect(() => {
+    function handler() { setInCollection(collectionService.getSongCollectionIds(song.id).length > 0) }
+    window.addEventListener('collection-updated', handler)
+    return () => window.removeEventListener('collection-updated', handler)
   }, [song.id])
 
   function togglePlay() {
@@ -152,7 +162,7 @@ export function SongDetailPage({ song, isOwner, onBack, onPrev, onNext, profile 
           <div
             onClick={togglePlay}
             className="relative w-full rounded-2xl overflow-hidden cursor-pointer group"
-            style={{ background: coverGradient(songData), aspectRatio: '200 / 262' }}
+            style={{ background: coverGradient(songData), aspectRatio: '2 / 3' }}
           >
             <div className={`absolute inset-0 flex items-center justify-center transition-opacity duration-150 bg-black/20 ${playing ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`}>
               <Image
@@ -196,6 +206,7 @@ export function SongDetailPage({ song, isOwner, onBack, onPrev, onNext, profile 
           <p className="text-xs text-zinc-500">{relativeTime(song.createdAt)}</p>
           <div className="flex items-center gap-2 flex-wrap">
             <ActionBtn title="좋아요" icon="/Thumb-Up.svg" active={!!songData.liked} onClick={handleLike} />
+            <ActionBtn title="컬렉션" icon="/Collection.svg" active={inCollection} onClick={() => setCollectOpen(true)} />
             <ActionBtn title="공유" icon="/Share.svg" onClick={handleShare} />
             <ActionBtn title="저장" icon="/Arrow-To-Down.svg" />
             {isOwner && (
@@ -221,7 +232,11 @@ export function SongDetailPage({ song, isOwner, onBack, onPrev, onNext, profile 
             <p className="text-xs text-zinc-500 uppercase tracking-wider">스타일</p>
             <CopyBtn text={songData.prompt} />
           </div>
-          <p className="text-sm text-zinc-400 leading-relaxed mb-8">{songData.prompt}</p>
+          <p className="text-sm text-zinc-400 leading-relaxed mb-4">{songData.prompt}</p>
+
+          {songData.publishComment && (
+            <p className="text-sm text-white leading-relaxed mb-8 whitespace-pre-wrap">{songData.publishComment}</p>
+          )}
 
           {songData.mood && (
             <div className="flex flex-wrap gap-1.5 mb-5">
@@ -285,6 +300,10 @@ export function SongDetailPage({ song, isOwner, onBack, onPrev, onNext, profile 
           <span className="text-xs text-zinc-500 w-8 tabular-nums">{formatTime(duration)}</span>
         </div>
       </div>
+
+      {collectOpen && (
+        <CollectionPickerModal song={songData} onClose={() => setCollectOpen(false)} />
+      )}
 
       {editOpen && (
         <SongEditModal

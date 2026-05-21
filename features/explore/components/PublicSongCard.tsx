@@ -63,13 +63,17 @@ export function PublicSongCard({ song, onPlay }: Props) {
     <div onClick={handleCardClick} className="group cursor-pointer">
       {/* 썸네일 — 독립 블록 */}
       <div
-        className="relative aspect-[200/262] w-full rounded-xl overflow-hidden"
-        style={{ background: coverGradient(song.coverHue) }}
+        className="relative aspect-[2/3] w-full rounded-xl overflow-hidden"
         onClick={handleThumbClick}
       >
-        {song.coverImage && (
-          <Image src={song.coverImage} alt={displayTitle} fill className="object-cover" sizes="200px" />
-        )}
+        <div
+          className="absolute inset-0 transition-transform duration-300 ease-out group-hover:scale-[1.05]"
+          style={{ background: coverGradient(song.coverHue) }}
+        >
+          {song.coverImage && (
+            <Image src={song.coverImage} alt={displayTitle} fill className="object-cover" sizes="200px" />
+          )}
+        </div>
         <div className={`absolute inset-0 flex items-center justify-center transition-opacity duration-150 ${playing ? 'opacity-100' : 'opacity-0 group-hover:opacity-80'}`}>
           <Image
             src={playing ? '/Pause.svg' : '/Play.svg'}

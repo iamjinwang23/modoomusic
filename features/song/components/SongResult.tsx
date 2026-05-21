@@ -46,7 +46,7 @@ export function SongResult({ song, elapsed, onReset }: Props) {
   async function handleShare() {
     try {
       if (navigator.share) {
-        await navigator.share({ title: song.title ?? '오늘의 노래', url: window.location.href })
+        await navigator.share({ title: song.title ?? '모두의 노래', url: window.location.href })
       } else {
         await navigator.clipboard.writeText(window.location.href)
       }

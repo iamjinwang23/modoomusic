@@ -13,6 +13,10 @@ export interface Song {
   liked?: boolean
   coverHue?: number
   isNew?: boolean
+  published?: boolean
+  publishedAt?: string
+  publishComment?: string
+  publishCoverImage?: string
 }
 
 export type Genre = '발라드' | '팝' | 'R&B' | '포크' | '힙합' | '재즈'
@@ -53,6 +57,14 @@ export interface UserProfile {
   followingCount: number
   songCount: number
   isFollowing?: boolean
+}
+
+export interface Collection {
+  id: string
+  name: string
+  songIds: string[]
+  coverImage?: string
+  createdAt: string
 }
 
 export const EXAMPLE_PROMPTS = [

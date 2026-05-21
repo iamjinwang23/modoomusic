@@ -43,10 +43,10 @@ export function LoginModal({ onClose }: Props) {
         {/* ── Left: Login panel ── */}
         <div className="flex-1 flex flex-col px-9 py-10">
           {/* Logo */}
-          <Image src="/logo.svg" alt="오늘의 노래" width={72} height={16} style={{ filter: 'invert(1)' }} className="mb-8" />
+          <Image src="/logo.svg" alt="모두의 노래" width={72} height={16} style={{ filter: 'invert(1)' }} className="mb-8" />
 
           <h2 className="text-2xl font-bold text-white mb-1 font-mono">오신 걸 환영해요</h2>
-          <p className="text-zinc-400 text-sm mb-8">가입하고 무료로 노래를 만들어보세요</p>
+          <p className="text-zinc-400 text-sm mb-8">가입하고 무료로 음악을 만들어보세요</p>
 
           <div className="space-y-3">
             {/* Google */}
@@ -123,7 +123,7 @@ export function LoginModal({ onClose }: Props) {
           />
           <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/10 to-transparent" />
           <div className="absolute bottom-7 left-6 right-6">
-            <p className="text-white font-bold text-lg leading-snug">오늘의 감정을<br />노래로 담아보세요</p>
+            <p className="text-white font-bold text-lg leading-snug">오늘의 감정을<br />음악으로 담아보세요</p>
           </div>
         </div>
 

@@ -4,6 +4,10 @@ import { useState, useEffect, useRef } from 'react'
 import Image from 'next/image'
 import { songService } from '@/services/song.service'
 import { SongEditModal } from '@/components/SongEditModal'
+import { CollectionPickerModal } from './CollectionPickerModal'
+import { MyCollectionPanel } from './MyCollectionPanel'
+import { PublishModal } from './PublishModal'
+import { collectionService } from '@/services/collection.service'
 import type { Song } from '@/types/domain'
 
 const ICON_FILTER = 'invert(0.45)'
@@ -16,14 +20,36 @@ function thumbGradient(song: Song) {
 
 function SkeletonItem() {
   return (
-    <li className="px-4 py-3.5 flex items-center gap-3">
-      <div className="w-2 h-2 rounded-full bg-white/[0.06] shrink-0" />
-      <div className="shimmer w-14 h-[72px] rounded-lg bg-white/[0.08] shrink-0" />
-      <div className="flex-1 space-y-2 min-w-0">
-        <div className="shimmer h-3.5 bg-white/[0.08] rounded-full w-3/5" />
-        <div className="shimmer h-3 bg-white/[0.06] rounded-full w-4/5" />
+    <li className="px-4 py-3 flex items-stretch gap-3">
+      <div className="w-2 h-2 rounded-full bg-white/[0.06] shrink-0 self-start mt-2" />
+      <div className="shimmer w-16 aspect-[2/3] rounded-lg bg-white/[0.08] shrink-0" />
+      <div className="flex-1 min-w-0 flex flex-col py-0.5">
+        <div className="shimmer h-4 bg-white/[0.08] rounded-full w-3/5" />
+        <div className="shimmer h-3 bg-white/[0.06] rounded-full w-4/5 mt-1.5" />
+        <div className="flex items-center gap-1 mt-3">
+          <div className="w-[35px] h-[35px] rounded-full bg-white/[0.06] shrink-0" />
+          <div className="w-[35px] h-[35px] rounded-full bg-white/[0.06] shrink-0" />
+          <div className="w-[35px] h-[35px] rounded-full bg-white/[0.06] shrink-0" />
+          <div className="h-[35px] w-20 rounded-full bg-white/[0.06] shrink-0" />
+        </div>
       </div>
     </li>
+  )
+}
+
+function ConfirmUnpublishModal({ onConfirm, onCancel }: { onConfirm: () => void; onCancel: () => void }) {
+  return (
+    <div className="fixed inset-0 z-[70] flex items-center justify-center p-6">
+      <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={onCancel} />
+      <div className="relative bg-[#1c1c1e] border border-white/[0.08] rounded-2xl p-5 w-full max-w-[320px] shadow-2xl">
+        <p className="text-sm font-semibold text-white mb-1">게시물을 정말 게시 취소를 하시겠어요?</p>
+        <p className="text-xs text-zinc-400 mb-5">게시 취소하면 더이상 탐색과 프로필, 검색에서 노출되지 않아요.</p>
+        <div className="flex gap-2 justify-end">
+          <button onClick={onCancel} className="px-4 py-2 rounded-xl text-sm text-zinc-400 hover:text-zinc-200 hover:bg-white/[0.06] transition-colors">취소</button>
+          <button onClick={onConfirm} className="px-5 py-2 rounded-xl text-sm font-semibold bg-red-600 hover:bg-red-500 text-white transition-colors">삭제할게요</button>
+        </div>
+      </div>
+    </div>
   )
 }
 
@@ -54,11 +80,15 @@ function ConfirmDeleteModal({ song, onConfirm, onCancel }: { song: Song; onConfi
   )
 }
 
-export function MyWorkPanel() {
+export function MyWorkPanel({ showCollections = false }: { showCollections?: boolean }) {
+  const [tab, setTab] = useState<'songs' | 'collections'>('songs')
   const [songs, setSongs] = useState<Song[]>([])
   const [editing, setEditing] = useState<Song | null>(null)
   const [deleting, setDeleting] = useState<Song | null>(null)
   const [generating, setGenerating] = useState(false)
+  const [collecting, setCollecting] = useState<Song | null>(null)
+  const [publishing, setPublishing] = useState<Song | null>(null)
+  const [unpublishing, setUnpublishing] = useState<Song | null>(null)
 
   useEffect(() => {
     setSongs(songService.getAll())
@@ -79,6 +109,13 @@ export function MyWorkPanel() {
     window.dispatchEvent(new CustomEvent('song-updated'))
   }
 
+  function confirmUnpublish() {
+    if (!unpublishing) return
+    songService.update(unpublishing.id, { published: false, publishedAt: undefined })
+    setUnpublishing(null)
+    window.dispatchEvent(new CustomEvent('song-updated'))
+  }
+
   function handleOpen(song: Song) {
     const idx = songs.findIndex((s) => s.id === song.id)
     window.dispatchEvent(new CustomEvent('view-song', {
@@ -89,37 +126,71 @@ export function MyWorkPanel() {
   return (
     <div className="flex flex-col h-full">
       <div className="px-6 py-6">
-        <div className="flex gap-6 text-base font-bold">
-          <button className="text-zinc-200 border-b-2 border-zinc-200 pb-1.5">
-            내 노래
-          </button>
-          <button className="text-zinc-400 hover:text-zinc-200 transition-colors pb-1.5">
-            내 컬렉션
-          </button>
-        </div>
+        {showCollections ? (
+          <div className="flex gap-6 text-xl font-semibold">
+            <button
+              onClick={() => setTab('songs')}
+              className={`pb-1.5 transition-colors ${tab === 'songs' ? 'text-zinc-200 border-b-2 border-zinc-200' : 'text-zinc-400 hover:text-zinc-200'}`}
+            >
+              내 음악
+            </button>
+            <button
+              onClick={() => setTab('collections')}
+              className={`pb-1.5 transition-colors ${tab === 'collections' ? 'text-zinc-200 border-b-2 border-zinc-200' : 'text-zinc-400 hover:text-zinc-200'}`}
+            >
+              내 컬렉션
+            </button>
+          </div>
+        ) : (
+          <h2 className="text-xl font-semibold text-zinc-200">내 음악</h2>
+        )}
       </div>
 
+      {showCollections && tab === 'collections' ? (
+        <div className="flex-1 overflow-hidden">
+          <MyCollectionPanel />
+        </div>
+      ) : (
       <div className="flex-1 overflow-y-auto">
         {songs.length === 0 && !generating ? (
           <div className="pt-32 pb-16 text-center px-6">
             <Image src="/Confused.svg" alt="" width={48} height={48} className="mx-auto mb-3 opacity-40" style={{ filter: 'invert(1)' }} />
-            <p className="text-xs text-zinc-400">아직 만든 노래가 없어요</p>
+            <p className="text-xs text-zinc-400">아직 만든 음악이 없어요</p>
           </div>
         ) : (
           <ul>
-            {generating && <SkeletonItem />}
-            {songs.map((song) => (
-              <SongWorkItem
-                key={song.id}
-                song={song}
-                onOpen={() => handleOpen(song)}
-                onEdit={() => setEditing(song)}
-                onDelete={() => setDeleting(song)}
-              />
-            ))}
-          </ul>
-        )}
-      </div>
+              {generating && <SkeletonItem />}
+              {songs.map((song) => (
+                <SongWorkItem
+                  key={song.id}
+                  song={song}
+                  onOpen={() => handleOpen(song)}
+                  onEdit={() => setEditing(song)}
+                  onDelete={() => setDeleting(song)}
+                  onCollect={() => setCollecting(song)}
+                  onPublish={() => setPublishing(song)}
+                  onUnpublish={() => setUnpublishing(song)}
+                />
+              ))}
+            </ul>
+          )}
+        </div>
+      )}
+
+      {collecting && (
+        <CollectionPickerModal song={collecting} onClose={() => setCollecting(null)} />
+      )}
+
+      {publishing && (
+        <PublishModal song={publishing} onClose={() => setPublishing(null)} />
+      )}
+
+      {unpublishing && (
+        <ConfirmUnpublishModal
+          onConfirm={confirmUnpublish}
+          onCancel={() => setUnpublishing(null)}
+        />
+      )}
 
       {editing && (
         <SongEditModal song={editing} onClose={() => setEditing(null)} />
@@ -136,17 +207,19 @@ export function MyWorkPanel() {
   )
 }
 
-function IconBtn({ src, title, filter, active, onClick }: { src: string; title: string; filter: string; active?: boolean; onClick?: () => void }) {
+function IconBtn({ src, title, filter, active, onClick, size = 'md' }: { src: string; title: string; filter: string; active?: boolean; onClick?: () => void; size?: 'sm' | 'md' }) {
+  const sz = size === 'sm' ? 'w-[35px] h-[35px]' : 'w-10 h-10'
+  const iconSz = size === 'sm' ? 15 : 18
   return (
     <button
       type="button"
       title={title}
       onMouseDown={(e) => { e.stopPropagation(); onClick?.() }}
-      className={`w-10 h-10 rounded-full flex items-center justify-center transition-colors ${
+      className={`${sz} rounded-full flex items-center justify-center transition-colors ${
         active ? 'bg-white hover:bg-zinc-100' : 'hover:bg-white/[0.08]'
       }`}
     >
-      <Image src={src} alt={title} width={18} height={18} style={{ filter: active ? 'invert(0)' : filter }} />
+      <Image src={src} alt={title} width={iconSz} height={iconSz} style={{ filter: active ? 'invert(0)' : filter }} />
     </button>
   )
 }
@@ -207,11 +280,18 @@ function MoreMenu({ onEdit, onDelete }: { onEdit: () => void; onDelete: () => vo
   )
 }
 
-function SongWorkItem({ song, onOpen, onEdit, onDelete }: { song: Song; onOpen: () => void; onEdit: () => void; onDelete: () => void }) {
+function SongWorkItem({ song, onOpen, onEdit, onDelete, onCollect, onPublish, onUnpublish }: { song: Song; onOpen: () => void; onEdit: () => void; onDelete: () => void; onCollect: () => void; onPublish: () => void; onUnpublish: () => void }) {
   const [playing, setPlaying] = useState(false)
   const [liked, setLiked] = useState(song.liked ?? false)
   const [isNew, setIsNew] = useState(song.isNew ?? false)
+  const [inCollection, setInCollection] = useState(() => collectionService.getSongCollectionIds(song.id).length > 0)
   const audioRef = useRef<HTMLAudioElement>(null)
+
+  useEffect(() => {
+    function handler() { setInCollection(collectionService.getSongCollectionIds(song.id).length > 0) }
+    window.addEventListener('collection-updated', handler)
+    return () => window.removeEventListener('collection-updated', handler)
+  }, [song.id])
 
   const displayTitle = song.title || 'Untitled'
   const tags = [song.genre, song.mood].filter(Boolean).join(', ')
@@ -255,23 +335,30 @@ function SongWorkItem({ song, onOpen, onEdit, onDelete }: { song: Song; onOpen: 
 
   return (
     <li className="hover:bg-white/[0.02] group">
-      <div className="px-4 py-3.5 flex items-center gap-3">
+      <div className="px-4 py-3 flex items-stretch gap-3">
+        {/* 신규 인디케이터 */}
         <div
-          className={`w-2 h-2 rounded-full bg-red-500 shrink-0 transition-opacity ${isNew ? 'opacity-100' : 'opacity-0'}`}
+          className={`w-2 h-2 rounded-full bg-red-500 shrink-0 transition-opacity self-start mt-2 ${isNew ? 'opacity-100' : 'opacity-0'}`}
         />
+
+        {/* 썸네일 — 우측 컬럼 높이에 맞게 늘어남 */}
         <div
           onClick={handleThumbClick}
-          className="w-14 h-[72px] rounded-lg flex items-center justify-center shrink-0 cursor-pointer relative overflow-hidden"
-          style={{ background: thumbGradient(song) }}
+          className="w-16 aspect-[2/3] rounded-lg shrink-0 cursor-pointer overflow-hidden relative"
         >
-          <Image
-            src={playing ? '/Pause.svg' : '/Play.svg'}
-            alt={playing ? '일시정지' : '재생'}
-            width={18}
-            height={18}
-            style={{ filter: 'invert(1)', opacity: playing ? 0.85 : undefined, transition: 'opacity 0.15s' }}
-            className={playing ? '' : 'opacity-0 group-hover:opacity-75'}
-          />
+          <div
+            className="absolute inset-0 flex items-center justify-center transition-transform duration-300 ease-out group-hover:scale-[1.05]"
+            style={{ background: thumbGradient(song) }}
+          >
+            <Image
+              src={playing ? '/Pause.svg' : '/Play.svg'}
+              alt={playing ? '일시정지' : '재생'}
+              width={18}
+              height={18}
+              style={{ filter: 'invert(1)', opacity: playing ? 0.85 : undefined, transition: 'opacity 0.15s' }}
+              className={playing ? '' : 'opacity-0 group-hover:opacity-75'}
+            />
+          </div>
           <audio
             ref={audioRef}
             src={song.audioUrl}
@@ -282,22 +369,53 @@ function SongWorkItem({ song, onOpen, onEdit, onDelete }: { song: Song; onOpen: 
           />
         </div>
 
-        <button type="button" onClick={() => { clearNew(); onOpen() }} className="flex-1 min-w-0 text-left">
-          <div className="flex items-center gap-1.5 min-w-0">
-            <p className="text-sm font-medium text-zinc-200 truncate">{displayTitle}</p>
-            {song.instrumental && (
-              <span className="shrink-0 text-[10px] text-zinc-400 bg-zinc-800 px-1.5 py-0.5 rounded border border-white/[0.06] leading-none">
-                Instrumental
-              </span>
-            )}
+        {/* 우측 컬럼 */}
+        <div className="flex-1 min-w-0 flex flex-col py-0.5">
+          {/* 제목 행 + 더보기 */}
+          <div className="flex items-start gap-2 mb-1">
+            <button type="button" onClick={() => { clearNew(); onOpen() }} className="flex-1 min-w-0 text-left">
+              <div className="flex items-center gap-1.5 min-w-0">
+                <p className="text-base font-medium text-zinc-200 truncate">{displayTitle}</p>
+                {song.instrumental && (
+                  <span className="shrink-0 text-[10px] text-zinc-400 bg-zinc-800 px-1.5 py-0.5 rounded border border-white/[0.06] leading-none">
+                    Instrumental
+                  </span>
+                )}
+              </div>
+              <p className="text-xs text-zinc-400 mt-1 truncate">{tags || song.prompt}</p>
+            </button>
+            <MoreMenu onEdit={onEdit} onDelete={onDelete} />
           </div>
-          <p className="text-xs text-zinc-400 mt-1 truncate">{tags || song.prompt}</p>
-        </button>
 
-        <div className="flex items-center gap-1.5 shrink-0">
-          <IconBtn src="/Thumb-Up.svg" title="좋아요" filter={ICON_FILTER} active={liked} onClick={handleLike} />
-          <IconBtn src="/Share.svg" title="공유" filter={ICON_FILTER} onClick={handleShare} />
-          <MoreMenu onEdit={onEdit} onDelete={onDelete} />
+          {/* 액션 아이콘 행 */}
+          <div className="flex items-center gap-1 mt-3">
+            <IconBtn src="/Thumb-Up.svg" title="좋아요" filter={ICON_FILTER} active={liked} onClick={handleLike} size="sm" />
+            <IconBtn src="/Collection.svg" title="컬렉션" filter={ICON_FILTER} active={inCollection} onClick={onCollect} size="sm" />
+            <IconBtn src="/Share.svg" title="공유" filter={ICON_FILTER} onClick={handleShare} size="sm" />
+            <button
+              type="button"
+              onMouseDown={(e) => { e.stopPropagation(); song.published ? onUnpublish() : onPublish() }}
+              className={`h-[35px] px-3.5 text-xs rounded-full border transition-all flex items-center gap-1.5 group/pub ${
+                song.published
+                  ? 'bg-white border-white text-zinc-900 hover:bg-zinc-100 opacity-100'
+                  : 'border-white/20 text-zinc-400 hover:text-white hover:border-white/40 opacity-0 group-hover:opacity-100'
+              }`}
+            >
+              <Image
+                src="/Publish.svg"
+                alt=""
+                width={18}
+                height={18}
+                style={{ filter: song.published ? 'invert(0)' : ICON_FILTER }}
+              />
+              {song.published ? (
+                <>
+                  <span className="group-hover/pub:hidden">게시됨</span>
+                  <span className="hidden group-hover/pub:inline text-red-500">게시 삭제</span>
+                </>
+              ) : '게시하기'}
+            </button>
+          </div>
         </div>
       </div>
     </li>

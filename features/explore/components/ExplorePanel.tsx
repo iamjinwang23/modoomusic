@@ -1,6 +1,7 @@
 'use client'
 
-import { useState, useRef, useEffect } from 'react'
+import { useState, useRef, useEffect, useCallback } from 'react'
+import Image from 'next/image'
 import { exploreService, type FeedTab } from '@/services/explore.service'
 import { PublicSongCard } from './PublicSongCard'
 import { ExploreFeedFilter } from './ExploreFeedFilter'
@@ -52,6 +53,9 @@ function SectionCarousel({
   const scrollRef = useRef<HTMLDivElement>(null)
   const [fadeLeft, setFadeLeft] = useState(false)
   const [fadeRight, setFadeRight] = useState(false)
+  const [hovered, setHovered] = useState(false)
+
+  const STEP = 200 + 12 // card width + gap
 
   useEffect(() => {
     const el = scrollRef.current
@@ -59,18 +63,22 @@ function SectionCarousel({
     setFadeRight(el.scrollWidth > el.clientWidth)
   }, [feed])
 
-  function handleScroll() {
+  const handleScroll = useCallback(() => {
     const el = scrollRef.current
     if (!el) return
     setFadeLeft(el.scrollLeft > 4)
     setFadeRight(el.scrollLeft + el.clientWidth < el.scrollWidth - 4)
+  }, [])
+
+  function scrollBy(dir: 1 | -1) {
+    scrollRef.current?.scrollBy({ left: dir * STEP * 3, behavior: 'smooth' })
   }
 
   return (
     <div>
       {/* 섹션 헤더 */}
       <div className="flex items-center justify-between mb-3">
-        <h2 className="text-base font-semibold text-zinc-200">{label}</h2>
+        <h2 className="text-xl font-semibold text-zinc-200">{label}</h2>
         <button
           onClick={onViewAll}
           className="text-xs text-zinc-500 hover:text-violet-400 transition-colors"
@@ -79,11 +87,25 @@ function SectionCarousel({
         </button>
       </div>
 
-      {/* 수평 스크롤 + 그라데이션 */}
-      <div className="relative">
+      {/* 수평 스크롤 + 그라데이션 + 화살표 */}
+      <div
+        className="relative"
+        onMouseEnter={() => setHovered(true)}
+        onMouseLeave={() => setHovered(false)}
+      >
+        {/* 좌측 그라데이션 + 화살표 */}
         {fadeLeft && (
-          <div className="absolute left-0 top-0 bottom-0 w-28 bg-gradient-to-r from-[#111111] via-[#111111]/80 to-transparent z-10 pointer-events-none" />
+          <div className="absolute left-0 top-0 bottom-0 w-14 bg-gradient-to-r from-[#111111] via-[#111111]/60 to-transparent z-10 pointer-events-none" />
         )}
+        {fadeLeft && hovered && (
+          <button
+            onClick={() => scrollBy(-1)}
+            className="absolute left-2 top-[150px] -translate-y-1/2 z-20 w-10 h-10 rounded-full bg-white/20 hover:bg-white/35 flex items-center justify-center transition-all duration-200"
+          >
+            <Image src="/Left-Small.svg" alt="이전" width={24} height={24} style={{ filter: 'invert(1)' }} />
+          </button>
+        )}
+
         <div
           ref={scrollRef}
           onScroll={handleScroll}
@@ -95,8 +117,18 @@ function SectionCarousel({
             </div>
           ))}
         </div>
+
+        {/* 우측 그라데이션 + 화살표 */}
         {fadeRight && (
-          <div className="absolute right-0 top-0 bottom-0 w-28 bg-gradient-to-l from-[#111111] via-[#111111]/80 to-transparent z-10 pointer-events-none" />
+          <div className="absolute right-0 top-0 bottom-0 w-14 bg-gradient-to-l from-[#111111] via-[#111111]/60 to-transparent z-10 pointer-events-none" />
+        )}
+        {fadeRight && hovered && (
+          <button
+            onClick={() => scrollBy(1)}
+            className="absolute right-2 top-[150px] -translate-y-1/2 z-20 w-10 h-10 rounded-full bg-white/20 hover:bg-white/35 flex items-center justify-center transition-all duration-200"
+          >
+            <Image src="/Right-Small.svg" alt="다음" width={24} height={24} style={{ filter: 'invert(1)' }} />
+          </button>
         )}
       </div>
     </div>

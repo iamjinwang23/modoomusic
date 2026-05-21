@@ -19,7 +19,7 @@ const VIOLET_FILTER = 'brightness(0) saturate(100%) invert(44%) sepia(51%) satur
 
 const NAV_ITEMS: { id: Section; label: string; icon: string }[] = [
   { id: 'create',        label: '음악 만들기', icon: '/Music-Create.svg' },
-  { id: 'archive',       label: '내 음악',     icon: '/Music-Library.svg' },
+  { id: 'archive',       label: '라이브러리',   icon: '/Music-Library.svg' },
   { id: 'explore',       label: '탐색',        icon: '/Compass.svg' },
   { id: 'notifications', label: '알림',        icon: '/Notification.svg' },
 ]
@@ -72,7 +72,7 @@ export function HomeLayout() {
   function renderCenter() {
     switch (activeSection) {
       case 'create':        return <div className="px-6 py-6"><h1 className="text-xl font-semibold mb-6">음악 만들기</h1><SongForm /></div>
-      case 'archive':       return <MyWorkPanel />
+      case 'archive':       return <MyWorkPanel showCollections />
       case 'explore':       return <ExplorePanel />
       case 'profile':       return profileUsername ? <ProfilePanel username={profileUsername} /> : null
       case 'notifications': return <EmptyPanel title="알림" />
@@ -99,7 +99,7 @@ export function HomeLayout() {
       {/* ── Header ── */}
       <header className="shrink-0 h-14 flex items-center px-5 border-b border-white/[0.06] bg-[#0d0d0d] z-20">
         <button onClick={() => setActiveSection('create')}>
-          <Image src="/logo.svg" alt="오늘의 노래" width={72} height={16} style={{ filter: 'invert(1)' }} />
+          <Image src="/logo.svg" alt="모두의 노래" width={72} height={16} style={{ filter: 'invert(1)' }} />
         </button>
 
         <div className="ml-auto flex items-center gap-2">
@@ -108,7 +108,7 @@ export function HomeLayout() {
             onClick={() => setDrawerOpen(true)}
             className="flex items-center gap-1.5 text-xs text-zinc-400 border border-white/10 px-3 py-1.5 rounded-full hover:border-white/20 transition-colors md:hidden"
           >
-            <span>🎵</span> 내 음악
+            <span>🎵</span> 라이브러리
           </button>
 
           {/* 로그인 / 아바타 */}
@@ -185,6 +185,12 @@ export function HomeLayout() {
                 </button>
               )
             })}
+            {/* 혜택 — 준비 중 */}
+            <div className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-base text-zinc-600 cursor-default select-none">
+              <Image src="/Gift-Card.svg" alt="" width={18} height={18} style={{ filter: 'invert(0.25)' }} />
+              혜택
+              <span className="ml-auto text-[10px] px-1.5 py-0.5 rounded bg-zinc-800 text-zinc-500 leading-none">준비 중</span>
+            </div>
           </nav>
           <div className="p-3 space-y-2">
             <button className="relative w-full py-2.5 rounded-xl border border-violet-600 text-violet-400 text-sm font-medium overflow-hidden group hover:text-white transition-colors duration-300">
@@ -227,7 +233,7 @@ export function HomeLayout() {
           <div className="fixed inset-0 bg-black/60 z-40 md:hidden" onClick={() => setDrawerOpen(false)} />
           <div className="fixed right-0 top-0 h-full w-[300px] bg-[#161616] border-l border-white/[0.08] z-50 flex flex-col md:hidden">
             <div className="flex items-center justify-between px-4 py-4 border-b border-white/[0.06]">
-              <span className="text-sm font-medium">내 음악</span>
+              <span className="text-sm font-medium">라이브러리</span>
               <button onClick={() => setDrawerOpen(false)} className="text-zinc-500 hover:text-zinc-200 transition-colors p-1">✕</button>
             </div>
             <div className="flex-1 overflow-hidden">
