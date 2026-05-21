@@ -49,6 +49,7 @@ export function SongDetailPage({ onBack, profile }: Props) {
   const {
     song,
     isOwner,
+    ownerAvatarUrl,
     hasPrev,
     hasNext,
     isPlaying: playing,
@@ -155,15 +156,22 @@ export function SongDetailPage({ onBack, profile }: Props) {
           {(() => {
             const name = profile?.displayName ?? user?.user_metadata?.full_name ?? user?.email?.split('@')[0] ?? null
             const hue = profile?.avatarHue ?? (user ? (user.id.charCodeAt(0) * 137) % 360 : 0)
+            const avatarUrl = ownerAvatarUrl
             if (!name) return null
             return (
               <div className="flex items-center gap-2">
-                <div
-                  className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold text-white shrink-0"
-                  style={{ background: `hsl(${hue},60%,45%)` }}
-                >
-                  {name.slice(0, 1).toUpperCase()}
-                </div>
+                {avatarUrl ? (
+                  <div className="relative w-8 h-8 rounded-full overflow-hidden shrink-0">
+                    <Image src={avatarUrl} alt={name} fill className="object-cover" sizes="32px" unoptimized />
+                  </div>
+                ) : (
+                  <div
+                    className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold text-white shrink-0"
+                    style={{ background: `hsl(${hue},60%,45%)` }}
+                  >
+                    {name.slice(0, 1).toUpperCase()}
+                  </div>
+                )}
                 <span className="text-sm text-zinc-300 truncate">{name}</span>
                 {!isOwner && (
                   <button

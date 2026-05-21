@@ -49,7 +49,22 @@ export function LoginModal({ onClose }: Props) {
       {/* Modal */}
       <div className="relative z-10 flex rounded-2xl overflow-hidden w-full max-w-[740px] bg-[#181B22] shadow-2xl">
 
-        {/* ── Left: Login panel ── */}
+        {/* ── Left: Image panel ── */}
+        <div className="hidden md:block w-[300px] shrink-0 relative">
+          <Image
+            src="https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?w=800&q=85"
+            alt="music"
+            fill
+            className="object-cover"
+            unoptimized
+          />
+          <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
+          <div className="absolute bottom-7 left-6 right-6">
+            <p className="text-white font-bold text-lg leading-snug">모두가 만드는<br />세상의 모든 노래, MONO</p>
+          </div>
+        </div>
+
+        {/* ── Right: Login panel ── */}
         <div className="flex-1 flex flex-col px-9 py-10">
           {/* Logo */}
           <Image src="/logo.svg" alt="모두의 노래" width={72} height={16} style={{ filter: 'invert(1)' }} className="mb-8" />
@@ -121,20 +136,6 @@ export function LoginModal({ onClose }: Props) {
           </p>
         </div>
 
-        {/* ── Right: Image panel ── */}
-        <div className="w-[320px] shrink-0 relative min-h-[480px]">
-          <Image
-            src="https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?w=800&q=85"
-            alt="music"
-            fill
-            className="object-cover"
-            unoptimized
-          />
-          <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/10 to-transparent" />
-          <div className="absolute bottom-7 left-6 right-6">
-            <p className="text-white font-bold text-lg leading-snug">오늘의 감정을<br />음악으로 담아보세요</p>
-          </div>
-        </div>
 
         {/* Close — thicker X */}
         <button

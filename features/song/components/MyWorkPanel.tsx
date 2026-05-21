@@ -9,6 +9,7 @@ import { MyCollectionPanel } from './MyCollectionPanel'
 import { PublishModal } from './PublishModal'
 import { collectionService } from '@/services/collection.service'
 import { useGlobalPlayer } from '@/contexts/GlobalPlayerContext'
+import { useAuth } from '@/components/AuthProvider'
 import type { Song } from '@/types/domain'
 
 const ICON_FILTER = 'invert(0.45)'
@@ -89,6 +90,7 @@ function ConfirmDeleteModal({ song, onConfirm, onCancel }: { song: Song; onConfi
 }
 
 export function MyWorkPanel({ showCollections = false }: { showCollections?: boolean }) {
+  const { user } = useAuth()
   const [tab, setTab] = useState<'songs' | 'collections'>('songs')
   const [songs, setSongs] = useState<Song[]>([])
   const [editing, setEditing] = useState<Song | null>(null)
@@ -99,16 +101,16 @@ export function MyWorkPanel({ showCollections = false }: { showCollections?: boo
   const [unpublishing, setUnpublishing] = useState<Song | null>(null)
 
   useEffect(() => {
-    setSongs(songService.getAll())
+    setSongs(user ? songService.getAll() : [])
     const onGenerating = () => setGenerating(true)
-    const onUpdated = () => { setGenerating(false); setSongs(songService.getAll()) }
+    const onUpdated = () => { setGenerating(false); setSongs(user ? songService.getAll() : []) }
     window.addEventListener('song-generating', onGenerating)
     window.addEventListener('song-updated', onUpdated)
     return () => {
       window.removeEventListener('song-generating', onGenerating)
       window.removeEventListener('song-updated', onUpdated)
     }
-  }, [])
+  }, [user])
 
   function confirmDelete() {
     if (!deleting) return

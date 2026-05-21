@@ -8,13 +8,14 @@ interface State {
   feed: Song[]
   idx: number
   isOwner: boolean
+  ownerAvatarUrl: string | null
   isPlaying: boolean
   currentTime: number
   duration: number
 }
 
 type Action =
-  | { type: 'LOAD'; feed: Song[]; idx: number; isOwner: boolean }
+  | { type: 'LOAD'; feed: Song[]; idx: number; isOwner: boolean; ownerAvatarUrl?: string | null }
   | { type: 'PLAYING'; v: boolean }
   | { type: 'TIME'; t: number }
   | { type: 'DURATION'; d: number }
@@ -22,11 +23,11 @@ type Action =
   | { type: 'PREV' }
   | { type: 'PATCH'; patch: Partial<Song> }
 
-const INIT: State = { feed: [], idx: 0, isOwner: false, isPlaying: false, currentTime: 0, duration: 0 }
+const INIT: State = { feed: [], idx: 0, isOwner: false, ownerAvatarUrl: null, isPlaying: false, currentTime: 0, duration: 0 }
 
 function reducer(s: State, a: Action): State {
   switch (a.type) {
-    case 'LOAD':    return { ...s, feed: a.feed, idx: a.idx, isOwner: a.isOwner, currentTime: 0, duration: 0 }
+    case 'LOAD':    return { ...s, feed: a.feed, idx: a.idx, isOwner: a.isOwner, ownerAvatarUrl: a.ownerAvatarUrl ?? null, currentTime: 0, duration: 0 }
     case 'PLAYING': return { ...s, isPlaying: a.v }
     case 'TIME':    return { ...s, currentTime: a.t }
     case 'DURATION':return { ...s, duration: a.d }
@@ -42,6 +43,7 @@ interface PlayerCtx {
   feed: Song[]
   idx: number
   isOwner: boolean
+  ownerAvatarUrl: string | null
   hasPrev: boolean
   hasNext: boolean
   isPlaying: boolean
@@ -77,11 +79,11 @@ export function GlobalPlayerProvider({ children }: { children: React.ReactNode }
 
   useEffect(() => {
     function handler(e: Event) {
-      const { feed, idx, isOwner } = (e as CustomEvent).detail
+      const { feed, idx, isOwner, ownerAvatarUrl } = (e as CustomEvent).detail
       const newId = (feed as Song[])[idx]?.id
       const curId = stateRef.current.feed[stateRef.current.idx]?.id
       if (newId && newId === curId) return
-      dispatch({ type: 'LOAD', feed, idx, isOwner })
+      dispatch({ type: 'LOAD', feed, idx, isOwner, ownerAvatarUrl })
     }
     window.addEventListener('play-song', handler)
     window.addEventListener('view-song', handler)
@@ -117,7 +119,7 @@ export function GlobalPlayerProvider({ children }: { children: React.ReactNode }
 
   return (
     <Ctx.Provider value={{
-      song, feed: state.feed, idx: state.idx, isOwner: state.isOwner,
+      song, feed: state.feed, idx: state.idx, isOwner: state.isOwner, ownerAvatarUrl: state.ownerAvatarUrl,
       hasPrev: state.idx > 0, hasNext: state.idx < state.feed.length - 1,
       isPlaying: state.isPlaying, currentTime: state.currentTime, duration: state.duration,
       togglePlay, next, prev, seekTo, patchSong,

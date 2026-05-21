@@ -2,16 +2,30 @@
 
 import { useState, useEffect } from 'react'
 import Image from 'next/image'
+import { useRouter } from 'next/navigation'
 import { SongForm } from '@/features/song/components/SongForm'
 import { MyWorkPanel } from '@/features/song/components/MyWorkPanel'
 import { ExplorePanel } from '@/features/explore/components/ExplorePanel'
 import { ProfilePanel } from '@/features/explore/components/ProfilePanel'
 import { SongDetailPage } from '@/components/SongDetailPage'
 import { LoginModal } from '@/components/LoginModal'
+import { OnboardingModal } from '@/components/OnboardingModal'
 import { GlobalMiniBar } from '@/components/GlobalMiniBar'
 import { useAuth } from '@/components/AuthProvider'
+import { createClient } from '@/lib/supabase/client'
 
 type Section = 'create' | 'archive' | 'explore' | 'notifications' | 'profile' | 'song'
+
+function sectionToPath(section: Section, username?: string | null): string | null {
+  switch (section) {
+    case 'create':        return '/'
+    case 'archive':       return '/library'
+    case 'explore':       return '/explore'
+    case 'notifications': return '/notifications'
+    case 'profile':       return username ? `/profile/${username}` : null
+    case 'song':          return null  // overlay — URL 변경 없음
+  }
+}
 
 const VIOLET_FILTER = 'brightness(0) saturate(100%) invert(44%) sepia(51%) saturate(1569%) hue-rotate(221deg) brightness(101%) contrast(96%)'
 
@@ -32,33 +46,69 @@ function EmptyPanel({ title }: { title: string }) {
 }
 
 
-export function HomeLayout() {
-  const [activeSection, setActiveSection] = useState<Section>('create')
-  const [prevSection, setPrevSection] = useState<Section>('create')
-  const [profileUsername, setProfileUsername] = useState<string | null>(null)
+interface Props {
+  initialSection?: Section
+  initialProfileUsername?: string
+}
+
+export function HomeLayout({ initialSection = 'create', initialProfileUsername }: Props) {
+  const router = useRouter()
+  const [activeSection, setActiveSection] = useState<Section>(initialSection)
+  const [prevSection, setPrevSection] = useState<Section>(initialSection)
+  const [profileUsername, setProfileUsername] = useState<string | null>(initialProfileUsername ?? null)
+
+  function navigate(section: Section, username?: string) {
+    if (section === 'profile' && username) setProfileUsername(username)
+    setActiveSection(section)
+    const path = sectionToPath(section, username ?? profileUsername)
+    if (path) router.push(path)
+  }
   const [drawerOpen, setDrawerOpen] = useState(false)
   const [loginOpen, setLoginOpen] = useState(false)
   const [userMenuOpen, setUserMenuOpen] = useState(false)
+  const [onboardingOpen, setOnboardingOpen] = useState(false)
+  const [headerAvatarUrl, setHeaderAvatarUrl] = useState<string | null>(null)
+  const [headerDisplayName, setHeaderDisplayName] = useState<string | null>(null)
   const { user, signOut } = useAuth()
+
+  // 로그인 후 프로필 로드 (온보딩 + 아바타 + 이름)
+  useEffect(() => {
+    if (!user) { setHeaderAvatarUrl(null); setHeaderDisplayName(null); return }
+    const supabase = createClient()
+    supabase
+      .from('profiles')
+      .select('onboarding_done, avatar_url, display_name')
+      .eq('id', user.id)
+      .maybeSingle()
+      .then(({ data }) => {
+        if (!data || !data.onboarding_done) setOnboardingOpen(true)
+        if (data?.avatar_url) setHeaderAvatarUrl(data.avatar_url)
+        if (data?.display_name) setHeaderDisplayName(data.display_name)
+      })
+  }, [user?.id])
 
   useEffect(() => {
     function handleViewProfile(e: Event) {
       const username = (e as CustomEvent<string>).detail
-      setProfileUsername(username)
-      setActiveSection('profile')
+      navigate('profile', username)
     }
     function handleViewSong() {
       setPrevSection((prev) => prev === 'song' ? prev : activeSection as Section)
-      setActiveSection('song')
+      setActiveSection('song')  // song은 URL 변경 없음
     }
     function handleOpenLogin() { setLoginOpen(true) }
+    function handleAvatarUpdated(e: Event) {
+      setHeaderAvatarUrl((e as CustomEvent<string | null>).detail)
+    }
     window.addEventListener('view-profile', handleViewProfile)
     window.addEventListener('view-song', handleViewSong)
     window.addEventListener('open-login', handleOpenLogin)
+    window.addEventListener('profile-avatar-updated', handleAvatarUpdated)
     return () => {
       window.removeEventListener('view-profile', handleViewProfile)
       window.removeEventListener('view-song', handleViewSong)
       window.removeEventListener('open-login', handleOpenLogin)
+      window.removeEventListener('profile-avatar-updated', handleAvatarUpdated)
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeSection])
@@ -73,7 +123,7 @@ export function HomeLayout() {
       case 'profile':       return profileUsername ? <ProfilePanel username={profileUsername} /> : null
       case 'notifications': return <EmptyPanel title="알림" />
       case 'song':
-        return <SongDetailPage onBack={() => setActiveSection(prevSection)} />
+        return <SongDetailPage onBack={() => navigate(prevSection)} />
     }
   }
 
@@ -82,7 +132,7 @@ export function HomeLayout() {
 
       {/* ── Header ── */}
       <header className="shrink-0 h-14 flex items-center px-5 border-b border-white/[0.06] bg-[#111318] z-20">
-        <button onClick={() => setActiveSection('create')}>
+        <button onClick={() => navigate('create')}>
           <Image src="/logo.svg" alt="모두의 노래" width={72} height={16} style={{ filter: 'invert(1)' }} />
         </button>
 
@@ -100,10 +150,14 @@ export function HomeLayout() {
             <div className="relative">
               <button
                 onClick={() => setUserMenuOpen((v) => !v)}
-                className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold text-white transition-opacity hover:opacity-80"
-                style={{ background: `hsl(${(user.id.charCodeAt(0) * 137) % 360},60%,45%)` }}
+                className="w-8 h-8 rounded-full overflow-hidden flex items-center justify-center text-xs font-bold text-white transition-opacity hover:opacity-80"
+                style={headerAvatarUrl ? undefined : { background: `hsl(${(user.id.charCodeAt(0) * 137) % 360},60%,45%)` }}
               >
-                {(user.user_metadata?.full_name ?? user.email ?? '?').slice(0, 2).toUpperCase()}
+                {headerAvatarUrl ? (
+                  <Image src={headerAvatarUrl} alt="" width={32} height={32} className="object-cover w-full h-full" unoptimized />
+                ) : (
+                  (headerDisplayName ?? user.user_metadata?.full_name ?? user.email ?? '?').slice(0, 2).toUpperCase()
+                )}
               </button>
               {userMenuOpen && (
                 <>
@@ -111,7 +165,7 @@ export function HomeLayout() {
                   <div className="absolute right-0 top-10 z-[55] w-44 bg-[#21252E] border border-white/[0.08] rounded-xl shadow-xl overflow-hidden">
                     <div className="px-4 py-3 border-b border-white/[0.06]">
                       <p className="text-xs font-medium text-white truncate">
-                        {user.user_metadata?.full_name ?? '사용자'}
+                        {headerDisplayName ?? user.user_metadata?.full_name ?? '사용자'}
                       </p>
                       <p className="text-[11px] text-zinc-500 truncate mt-0.5">{user.email}</p>
                     </div>
@@ -126,7 +180,17 @@ export function HomeLayout() {
                       내 프로필
                     </button>
                     <button
-                      onClick={() => { setUserMenuOpen(false); signOut() }}
+                      onClick={() => {
+                        setUserMenuOpen(false)
+                        localStorage.removeItem('today-songs')
+                        localStorage.removeItem('today-collections')
+                        window.dispatchEvent(new Event('song-updated'))
+                        window.dispatchEvent(new Event('collection-updated'))
+                        setHeaderAvatarUrl(null)
+                        setHeaderDisplayName(null)
+                        navigate('create')
+                        signOut()
+                      }}
                       className="w-full text-left px-4 py-2.5 text-sm text-zinc-400 hover:text-white hover:bg-white/[0.04] transition-colors"
                     >
                       로그아웃
@@ -157,7 +221,7 @@ export function HomeLayout() {
               return (
                 <button
                   key={id}
-                  onClick={() => setActiveSection(id)}
+                  onClick={() => navigate(id)}
                   className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-base transition-colors text-left ${
                     active
                       ? 'font-bold text-white bg-white/[0.06]'
@@ -235,6 +299,12 @@ export function HomeLayout() {
 
       {/* Login Modal */}
       {loginOpen && <LoginModal onClose={() => setLoginOpen(false)} />}
+      {onboardingOpen && user && (
+        <OnboardingModal
+          user={user}
+          onDone={() => { setOnboardingOpen(false); setLoginOpen(false) }}
+        />
+      )}
 
     </div>
   )
