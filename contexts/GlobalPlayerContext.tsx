@@ -80,11 +80,23 @@ export function GlobalPlayerProvider({ children }: { children: React.ReactNode }
   }, [song?.id])
 
   useEffect(() => {
-    function handler(e: Event) {
+    function handleViewSong(e: Event) {
       const { feed, idx, isOwner, ownerAvatarUrl, ownerName } = (e as CustomEvent).detail
       const newId = (feed as Song[])[idx]?.id
       const curId = stateRef.current.feed[stateRef.current.idx]?.id
-      if (newId && newId === curId) return
+      if (newId && newId === curId) return  // 상세 보기는 같은 곡이면 재로드 불필요
+      dispatch({ type: 'LOAD', feed, idx, isOwner, ownerAvatarUrl, ownerName })
+    }
+    function handlePlaySong(e: Event) {
+      const { feed, idx, isOwner, ownerAvatarUrl, ownerName } = (e as CustomEvent).detail
+      const newId = (feed as Song[])[idx]?.id
+      const curId = stateRef.current.feed[stateRef.current.idx]?.id
+      if (newId && newId === curId) {
+        // 같은 곡 → 재생 토글 (정지 상태면 재개, 재생 중이면 그대로 두기보다 일시정지)
+        const a = audioRef.current
+        if (a) a.paused ? a.play().catch(() => {}) : a.pause()
+        return
+      }
       dispatch({ type: 'LOAD', feed, idx, isOwner, ownerAvatarUrl, ownerName })
     }
     // 다른 곳(인라인 카드)에서 재생 시작 시 글로벌 오디오 정지
@@ -92,12 +104,12 @@ export function GlobalPlayerProvider({ children }: { children: React.ReactNode }
       const detail = (e as CustomEvent<string>).detail
       if (detail !== '__global__') audioRef.current?.pause()
     }
-    window.addEventListener('play-song', handler)
-    window.addEventListener('view-song', handler)
+    window.addEventListener('play-song', handlePlaySong)
+    window.addEventListener('view-song', handleViewSong)
     window.addEventListener('audio-play', handleInlinePlay)
     return () => {
-      window.removeEventListener('play-song', handler)
-      window.removeEventListener('view-song', handler)
+      window.removeEventListener('play-song', handlePlaySong)
+      window.removeEventListener('view-song', handleViewSong)
       window.removeEventListener('audio-play', handleInlinePlay)
     }
   }, [])

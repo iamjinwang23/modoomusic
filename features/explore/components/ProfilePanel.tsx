@@ -233,6 +233,12 @@ export function ProfilePanel({ username }: Props) {
     window.dispatchEvent(new CustomEvent('view-song', { detail: { feed, idx, isOwner: isSelf, ownerAvatarUrl: displayAvatarUrl, ownerName: profile?.displayName ?? profile?.username ?? null } }))
   }
 
+  function handleThumbPlay(pub: PublicSong) {
+    const feed = songs.map(toSong)
+    const idx  = songs.findIndex((s) => s.id === pub.id)
+    window.dispatchEvent(new CustomEvent('play-song', { detail: { feed, idx, isOwner: isSelf, ownerAvatarUrl: displayAvatarUrl, ownerName: profile?.displayName ?? profile?.username ?? null } }))
+  }
+
   return (
     <div className="flex flex-col h-full overflow-hidden">
       <div className="flex-1 overflow-y-auto">
@@ -313,10 +319,10 @@ export function ProfilePanel({ username }: Props) {
             <div className="mt-6 flex items-start justify-between">
               <div>
                 {profile.bio && <p className="text-xs text-zinc-400 mb-2">{profile.bio}</p>}
-                <div className="flex gap-4 text-xs text-zinc-500">
-                  <span><span className="text-white font-medium">{profile.followerCount.toLocaleString()}</span> 팔로워</span>
-                  <span><span className="text-white font-medium">{profile.followingCount.toLocaleString()}</span> 팔로잉</span>
-                  <span><span className="text-white font-medium">{profile.songCount}</span> 곡</span>
+                <div className="flex gap-5 text-sm text-zinc-500">
+                  <span><span className="text-white font-semibold">{profile.songCount}</span> 곡</span>
+                  <span><span className="text-white font-semibold">{profile.followerCount.toLocaleString()}</span> 팔로워</span>
+                  <span><span className="text-white font-semibold">{profile.followingCount.toLocaleString()}</span> 팔로잉</span>
                 </div>
               </div>
               {!isSelf && (
@@ -335,8 +341,8 @@ export function ProfilePanel({ username }: Props) {
           </div>
 
           {/* ── 곡 목록 ── */}
-          <div className="pb-8">
-            <div className="px-5 mb-3">
+          <div className="pt-8 pb-8">
+            <div className="px-5 mb-4">
               <h2 className="text-xl font-semibold text-white">곡 목록</h2>
             </div>
             {songs.length === 0 ? (
@@ -345,7 +351,7 @@ export function ProfilePanel({ username }: Props) {
               <div className="flex gap-3 overflow-x-auto px-5 pb-1 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
                 {songs.map((song) => (
                   <div key={song.id} className="shrink-0 w-[200px]">
-                    <PublicSongCard song={song} onPlay={handlePlay} />
+                    <PublicSongCard song={song} onPlay={handlePlay} onThumbPlay={handleThumbPlay} />
                   </div>
                 ))}
               </div>

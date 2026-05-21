@@ -18,9 +18,10 @@ function formatCount(n: number) {
 interface Props {
   song: PublicSong
   onPlay: (song: PublicSong) => void
+  onThumbPlay?: (song: PublicSong) => void
 }
 
-export function PublicSongCard({ song, onPlay }: Props) {
+export function PublicSongCard({ song, onPlay, onThumbPlay }: Props) {
   const [liked, setLiked] = useState(song.isLiked ?? false)
   const { song: currentSong, isPlaying } = useGlobalPlayer()
   const isThisPlaying = currentSong?.id === song.id && isPlaying
@@ -28,7 +29,8 @@ export function PublicSongCard({ song, onPlay }: Props) {
 
   function handleThumbClick(e: React.MouseEvent) {
     e.stopPropagation()
-    onPlay(song)
+    if (onThumbPlay) onThumbPlay(song)
+    else onPlay(song)
   }
 
   function handleCardClick() {
