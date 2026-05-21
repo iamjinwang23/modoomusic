@@ -1,7 +1,8 @@
 'use client'
 
-import { useRef, useState, useEffect } from 'react'
+import { useState } from 'react'
 import Image from 'next/image'
+import { useGlobalPlayer } from '@/contexts/GlobalPlayerContext'
 import type { PublicSong } from '@/types/domain'
 
 function coverGradient(hue: number) {
@@ -20,34 +21,14 @@ interface Props {
 }
 
 export function PublicSongCard({ song, onPlay }: Props) {
-  const [playing, setPlaying] = useState(false)
   const [liked, setLiked] = useState(song.isLiked ?? false)
-  const audioRef = useRef<HTMLAudioElement>(null)
+  const { song: currentSong, isPlaying } = useGlobalPlayer()
+  const isThisPlaying = currentSong?.id === song.id && isPlaying
   const displayTitle = song.title || '제목 없음'
 
-  useEffect(() => {
-    function handleOtherPlay(e: Event) {
-      const id = (e as CustomEvent<string>).detail
-      if (id !== song.id) audioRef.current?.pause()
-    }
-    window.addEventListener('audio-play', handleOtherPlay)
-    return () => window.removeEventListener('audio-play', handleOtherPlay)
-  }, [song.id])
-
-  async function handleThumbClick(e: React.MouseEvent) {
+  function handleThumbClick(e: React.MouseEvent) {
     e.stopPropagation()
-    const audio = audioRef.current
-    if (!audio) return
-    if (playing) {
-      audio.pause()
-    } else {
-      try {
-        window.dispatchEvent(new CustomEvent('audio-play', { detail: song.id }))
-        await audio.play()
-      } catch (err) {
-        if ((err as Error).name !== 'AbortError') console.error(err)
-      }
-    }
+    onPlay(song)
   }
 
   function handleCardClick() {
@@ -61,7 +42,7 @@ export function PublicSongCard({ song, onPlay }: Props) {
 
   return (
     <div onClick={handleCardClick} className="group cursor-pointer">
-      {/* 썸네일 — 독립 블록 */}
+      {/* 썸네일 */}
       <div
         className="relative aspect-[2/3] w-full rounded-xl overflow-hidden"
         onClick={handleThumbClick}
@@ -74,26 +55,18 @@ export function PublicSongCard({ song, onPlay }: Props) {
             <Image src={song.coverImage} alt={displayTitle} fill className="object-cover" sizes="200px" />
           )}
         </div>
-        <div className={`absolute inset-0 flex items-center justify-center transition-opacity duration-150 ${playing ? 'opacity-100' : 'opacity-0 group-hover:opacity-80'}`}>
+        <div className={`absolute inset-0 flex items-center justify-center transition-opacity duration-150 ${isThisPlaying ? 'opacity-100' : 'opacity-0 group-hover:opacity-80'}`}>
           <Image
-            src={playing ? '/Pause.svg' : '/Play.svg'}
-            alt={playing ? '일시정지' : '재생'}
+            src={isThisPlaying ? '/Pause.svg' : '/Play.svg'}
+            alt={isThisPlaying ? '일시정지' : '재생'}
             width={32}
             height={32}
             style={{ filter: 'invert(1)' }}
           />
         </div>
-        <audio
-          ref={audioRef}
-          src={song.audioUrl}
-          onPlay={() => setPlaying(true)}
-          onPause={() => setPlaying(false)}
-          onEnded={() => setPlaying(false)}
-          className="hidden"
-        />
       </div>
 
-      {/* 정보 — 썸네일 아래 배경 없이 */}
+      {/* 정보 */}
       <div className="pt-2 space-y-0.5">
         <div className="flex items-start gap-1.5 min-w-0">
           <p className="text-sm font-medium text-zinc-100 leading-snug flex-1 line-clamp-2">{displayTitle}</p>
