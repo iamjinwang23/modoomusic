@@ -3,6 +3,8 @@
 import { createContext, useContext, useEffect, useState } from 'react'
 import type { User } from '@supabase/supabase-js'
 import { createClient } from '@/lib/supabase/client'
+import { setSongOwner } from '@/services/song.service'
+import { setCollectionOwner } from '@/services/collection.service'
 
 interface AuthContextValue {
   user: User | null
@@ -24,12 +26,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const supabase = createClient()
 
     supabase.auth.getSession().then(({ data }) => {
-      setUser(data.session?.user ?? null)
+      const u = data.session?.user ?? null
+      setUser(u)
+      setSongOwner(u?.id ?? null)
+      setCollectionOwner(u?.id ?? null)
       setLoading(false)
     })
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_, session) => {
-      setUser(session?.user ?? null)
+      const u = session?.user ?? null
+      setUser(u)
+      setSongOwner(u?.id ?? null)
+      setCollectionOwner(u?.id ?? null)
     })
 
     return () => subscription.unsubscribe()

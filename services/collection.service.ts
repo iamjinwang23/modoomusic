@@ -1,15 +1,28 @@
 import type { Collection } from '@/types/domain'
 
-const KEY = 'today-collections'
+let currentUserId: string | null = null
+
+export function setCollectionOwner(userId: string | null) {
+  currentUserId = userId
+}
+
 const DEFAULT_ID = 'col-default'
+
+function key(): string | null {
+  return currentUserId ? `today-collections-${currentUserId}` : null
+}
 
 function load(): Collection[] {
   if (typeof window === 'undefined') return []
-  try { return JSON.parse(localStorage.getItem(KEY) ?? '[]') } catch { return [] }
+  const k = key()
+  if (!k) return []
+  try { return JSON.parse(localStorage.getItem(k) ?? '[]') } catch { return [] }
 }
 
 function persist(cols: Collection[]) {
-  localStorage.setItem(KEY, JSON.stringify(cols))
+  const k = key()
+  if (!k) return
+  localStorage.setItem(k, JSON.stringify(cols))
 }
 
 export const collectionService = {

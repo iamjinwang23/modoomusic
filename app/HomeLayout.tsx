@@ -191,8 +191,6 @@ export function HomeLayout({ initialSection = 'create', initialProfileUsername }
                     <button
                       onClick={() => {
                         setUserMenuOpen(false)
-                        localStorage.removeItem('today-songs')
-                        localStorage.removeItem('today-collections')
                         window.dispatchEvent(new Event('song-updated'))
                         window.dispatchEvent(new Event('collection-updated'))
                         setHeaderAvatarUrl(null)

@@ -1,18 +1,30 @@
 import type { Song } from '@/types/domain'
 
-const STORAGE_KEY = 'today-songs'
+let currentUserId: string | null = null
+
+export function setSongOwner(userId: string | null) {
+  currentUserId = userId
+}
+
+function storageKey(): string | null {
+  return currentUserId ? `today-songs-${currentUserId}` : null
+}
 
 function loadSongs(): Song[] {
   if (typeof window === 'undefined') return []
+  const key = storageKey()
+  if (!key) return []
   try {
-    return JSON.parse(localStorage.getItem(STORAGE_KEY) ?? '[]')
+    return JSON.parse(localStorage.getItem(key) ?? '[]')
   } catch {
     return []
   }
 }
 
 function saveSongs(songs: Song[]) {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(songs))
+  const key = storageKey()
+  if (!key) return
+  localStorage.setItem(key, JSON.stringify(songs))
 }
 
 export const songService = {
