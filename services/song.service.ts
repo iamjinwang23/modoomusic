@@ -17,9 +17,13 @@ function saveSongs(songs: Song[]) {
 
 export const songService = {
   getAll(): Song[] {
-    return loadSongs().sort(
-      (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
-    )
+    return loadSongs()
+      .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+      .map((s) => ({
+        ...s,
+        // TODO: remove fallback once real API duration is populated
+        duration: s.duration ?? (60 + (s.id.split('').reduce((acc, c) => acc + c.charCodeAt(0), 0) % 180)),
+      }))
   },
 
   save(song: Omit<Song, 'id' | 'createdAt'>): Song {

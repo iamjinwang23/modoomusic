@@ -18,6 +18,13 @@ function thumbGradient(song: Song) {
   return `linear-gradient(135deg, hsl(${hue},65%,48%) 0%, hsl(${h2},55%,32%) 100%)`
 }
 
+function formatDuration(seconds: number | null): string | null {
+  if (!seconds) return null
+  const m = Math.floor(seconds / 60)
+  const s = Math.floor(seconds % 60)
+  return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`
+}
+
 function SkeletonItem() {
   return (
     <li className="px-4 py-3 flex items-stretch gap-3">
@@ -359,6 +366,15 @@ function SongWorkItem({ song, onOpen, onEdit, onDelete, onCollect, onPublish, on
               className={playing ? '' : 'opacity-0 group-hover:opacity-75'}
             />
           </div>
+          {/* 하단 그라데이션 + 재생시간 */}
+          {formatDuration(song.duration) && (
+            <>
+              <div className="absolute bottom-0 left-0 right-0 h-8 bg-gradient-to-t from-black/60 to-transparent pointer-events-none" />
+              <span className="absolute bottom-2 left-1.5 text-[10px] font-medium text-white leading-none pointer-events-none">
+                {formatDuration(song.duration)}
+              </span>
+            </>
+          )}
           <audio
             ref={audioRef}
             src={song.audioUrl}

@@ -278,17 +278,52 @@ export function SongDetailPage({ song, isOwner, onBack, onPrev, onNext, profile 
           }}
           onEnded={() => setPlaying(false)}
         />
-        <div className="flex items-center justify-center gap-6 mb-3">
-          <button onClick={handlePrev} disabled={!onPrev} className={`transition-opacity ${onPrev ? 'hover:opacity-70' : 'opacity-25 cursor-default'}`}>
-            <Image src="/Skip-Previous.svg" alt="이전" width={24} height={24} style={{ filter: 'invert(0.55)' }} />
-          </button>
-          <button onClick={togglePlay} className="w-12 h-12 rounded-full bg-white hover:bg-zinc-100 flex items-center justify-center transition-colors">
-            <Image src={playing ? '/Pause.svg' : '/Play.svg'} alt={playing ? '일시정지' : '재생'} width={26} height={26} />
-          </button>
-          <button onClick={handleNext} disabled={!onNext} className={`transition-opacity ${onNext ? 'hover:opacity-70' : 'opacity-25 cursor-default'}`}>
-            <Image src="/Skip-Forward.svg" alt="다음" width={24} height={24} style={{ filter: 'invert(0.55)' }} />
-          </button>
+
+        {/* 컨트롤 행: 곡 정보 | 재생 버튼 | 여백 */}
+        <div className="flex items-center mb-3">
+          {/* 좌: 썸네일 + 타이틀/사용자 */}
+          <div className="flex items-center gap-2.5 flex-1 min-w-0">
+            <div
+              className="w-10 aspect-[2/3] rounded-md shrink-0 overflow-hidden relative"
+              style={{ background: coverGradient(songData) }}
+            >
+              {(songData as Song & { coverImage?: string }).coverImage && (
+                /* eslint-disable-next-line @next/next/no-img-element */
+                <img src={(songData as Song & { coverImage?: string }).coverImage} alt="" className="w-full h-full object-cover" />
+              )}
+            </div>
+            {(() => {
+              const miniName = profile?.displayName ?? user?.user_metadata?.full_name ?? null
+              const miniUsername = profile?.username ?? null
+              const miniHue = profile?.avatarHue ?? (user ? (user.id.charCodeAt(0) * 137) % 360 : 260)
+              return (
+                <div className="min-w-0">
+                  <p className="text-sm font-medium text-zinc-200 truncate">{songData.title || 'Untitled'}</p>
+                  {miniName && (
+                    <p className="text-xs text-zinc-500 truncate mt-0.5">{miniName}</p>
+                  )}
+                </div>
+              )
+            })()}
+          </div>
+
+          {/* 중앙: 재생 컨트롤 */}
+          <div className="flex items-center gap-6 shrink-0">
+            <button onClick={handlePrev} disabled={!onPrev} className={`transition-opacity ${onPrev ? 'hover:opacity-70' : 'opacity-25 cursor-default'}`}>
+              <Image src="/Skip-Previous.svg" alt="이전" width={24} height={24} style={{ filter: 'invert(0.55)' }} />
+            </button>
+            <button onClick={togglePlay} className="w-12 h-12 rounded-full bg-white hover:bg-zinc-100 flex items-center justify-center transition-colors">
+              <Image src={playing ? '/Pause.svg' : '/Play.svg'} alt={playing ? '일시정지' : '재생'} width={26} height={26} />
+            </button>
+            <button onClick={handleNext} disabled={!onNext} className={`transition-opacity ${onNext ? 'hover:opacity-70' : 'opacity-25 cursor-default'}`}>
+              <Image src="/Skip-Forward.svg" alt="다음" width={24} height={24} style={{ filter: 'invert(0.55)' }} />
+            </button>
+          </div>
+
+          {/* 우: 균형용 여백 */}
+          <div className="flex-1" />
         </div>
+
         <div className="flex items-center gap-3">
           <span className="text-xs text-zinc-500 w-8 text-right tabular-nums">{formatTime(currentTime)}</span>
           <input
