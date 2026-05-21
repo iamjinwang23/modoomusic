@@ -3,6 +3,8 @@
 import { useState, useRef, useEffect } from 'react'
 import Image from 'next/image'
 import { useSongGeneration } from '../hooks/useSongGeneration'
+import { MODELS, type MusicModelId } from '@/services/minimax.service'
+import { useAuth } from '@/components/AuthProvider'
 
 const ALL_CHIPS = [
   // 장르
@@ -76,9 +78,24 @@ export function SongForm() {
   const [title, setTitle] = useState('')
   const [refAudio, setRefAudio] = useState<File | null>(null)
   const [isDragOver, setIsDragOver] = useState(false)
+  const [styleRefNotice, setStyleRefNotice] = useState(false)
+  const [styleRefDontShow, setStyleRefDontShow] = useState(false)
   const [vocalGender, setVocalGender] = useState<'male' | 'female' | null>(null)
+  const [model, setModel] = useState<MusicModelId>('music-2.6-free')
+  const [modelDropOpen, setModelDropOpen] = useState(false)
+  const modelDropRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    if (!modelDropOpen) return
+    function handler(e: MouseEvent) {
+      if (modelDropRef.current && !modelDropRef.current.contains(e.target as Node)) setModelDropOpen(false)
+    }
+    document.addEventListener('mousedown', handler)
+    return () => document.removeEventListener('mousedown', handler)
+  }, [modelDropOpen])
   const refAudioInputRef = useRef<HTMLInputElement>(null)
   const { status, elapsed, error, generate, reset } = useSongGeneration()
+  const { user } = useAuth()
   const chipScrollRef = useRef<HTMLDivElement>(null)
   const [canScrollLeft, setCanScrollLeft] = useState(false)
   const [canScrollRight, setCanScrollRight] = useState(true)
@@ -87,6 +104,7 @@ export function SongForm() {
   const styleResize = useDragResize(96)
 
   const isGenerating = status === 'generating'
+  const isCoverModel = MODELS.find((m) => m.id === model)?.cover ?? false
 
   useEffect(() => {
     setChips(shuffle(ALL_CHIPS).slice(0, 16))
@@ -137,22 +155,53 @@ export function SongForm() {
     setStylePrompt((prev) => (prev ? `${prev}, ${chip}` : chip))
   }
 
+  function buildPrompt() {
+    const vocalTag = vocalGender === 'female' ? 'female vocals' : vocalGender === 'male' ? 'male vocals' : null
+    return [stylePrompt.trim(), vocalTag].filter(Boolean).join(', ')
+  }
+
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
+    if (!user) {
+      window.dispatchEvent(new Event('open-login'))
+      return
+    }
     if (!stylePrompt.trim() || isGenerating) return
+    if (isCoverModel && !refAudio) return
+
+    if (isCoverModel && refAudio) {
+      const reader = new FileReader()
+      reader.onload = () => {
+        const base64 = (reader.result as string).split(',')[1]
+        generate({
+          prompt: buildPrompt(),
+          genre: '',
+          mood: '',
+          title,
+          customLyrics: lyrics,
+          instrumental: false,
+          model,
+          audioBase64: base64,
+        })
+      }
+      reader.readAsDataURL(refAudio)
+      return
+    }
+
     generate({
-      prompt: stylePrompt.trim(),
+      prompt: buildPrompt(),
       genre: '',
       mood: '',
       title,
       customLyrics: instrumental ? '' : lyrics,
       instrumental,
+      model,
     })
   }
 
   return (
     <form onSubmit={handleSubmit} className="space-y-3">
-      {/* 참고 음원 */}
+      {/* 스타일 참조 — cover 모델 선택 시에만 표시 */}
       <input
         ref={refAudioInputRef}
         type="file"
@@ -160,53 +209,59 @@ export function SongForm() {
         className="hidden"
         onChange={(e) => { const f = e.target.files?.[0]; if (f) handleRefAudioFile(f) }}
       />
-      <section
-        onClick={() => !isGenerating && refAudioInputRef.current?.click()}
-        onDragOver={(e) => { e.preventDefault(); setIsDragOver(true) }}
-        onDragLeave={() => setIsDragOver(false)}
-        onDrop={handleRefDrop}
-        className={`rounded-xl border bg-[#1E2129] overflow-hidden transition-colors ${
-          isGenerating ? 'cursor-default opacity-60' : 'cursor-pointer'
-        } ${
-          isDragOver
-            ? 'border-violet-400 bg-violet-500/10'
-            : refAudio
-            ? 'border-violet-500/60'
-            : 'border-violet-500/40 hover:border-violet-500/60'
-        }`}
-      >
-        <div className="px-4 py-4 flex items-center gap-3">
-          <Image
-            src="/File-Music.svg"
-            alt=""
-            width={36}
-            height={36}
-            style={{ filter: 'brightness(0) saturate(100%) invert(44%) sepia(51%) saturate(1569%) hue-rotate(221deg) brightness(101%) contrast(96%)', flexShrink: 0 }}
-          />
-          <div className="flex-1 min-w-0">
-            <span className="text-sm font-semibold text-white">참고 음원</span>
-            {refAudio ? (
-              <p className="text-xs text-violet-400 mt-0.5 truncate">{refAudio.name}</p>
-            ) : (
-              <p className="text-xs text-zinc-400 mt-0.5">커버할 음원을 클릭하거나 드래그해서 추가하세요</p>
+      {isCoverModel && (
+        <section
+          onClick={() => {
+            if (isGenerating) return
+            const hidden = localStorage.getItem('styleRefNoticeHidden') === 'true'
+            if (hidden) { refAudioInputRef.current?.click() } else { setStyleRefNotice(true) }
+          }}
+          onDragOver={(e) => { e.preventDefault(); setIsDragOver(true) }}
+          onDragLeave={() => setIsDragOver(false)}
+          onDrop={handleRefDrop}
+          className={`rounded-xl border bg-[#1E2129] overflow-hidden transition-colors ${
+            isGenerating ? 'cursor-default opacity-60' : 'cursor-pointer'
+          } ${
+            isDragOver
+              ? 'border-violet-400 bg-violet-500/10'
+              : refAudio
+              ? 'border-violet-500/60'
+              : 'border-violet-500/40 hover:border-violet-500/60'
+          }`}
+        >
+          <div className="px-4 py-4 flex items-center gap-3">
+            <Image
+              src="/File-Music.svg"
+              alt=""
+              width={36}
+              height={36}
+              style={{ filter: 'brightness(0) saturate(100%) invert(44%) sepia(51%) saturate(1569%) hue-rotate(221deg) brightness(101%) contrast(96%)', flexShrink: 0 }}
+            />
+            <div className="flex-1 min-w-0">
+              <span className="text-sm font-semibold text-white">스타일 참조</span>
+              {refAudio ? (
+                <p className="text-xs text-violet-400 mt-0.5 truncate">{refAudio.name}</p>
+              ) : (
+                <p className="text-xs text-zinc-400 mt-0.5">영감을 얻기 위해 음원을 클릭하거나 드래그해서 추가하세요</p>
+              )}
+            </div>
+            {refAudio && (
+              <button
+                type="button"
+                onClick={(e) => { e.stopPropagation(); setRefAudio(null); if (refAudioInputRef.current) refAudioInputRef.current.value = '' }}
+                className="shrink-0 text-zinc-500 hover:text-white transition-colors p-1"
+              >
+                <svg width="14" height="14" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+                  <path d="M1 1l10 10M11 1L1 11"/>
+                </svg>
+              </button>
             )}
           </div>
-          {refAudio && (
-            <button
-              type="button"
-              onClick={(e) => { e.stopPropagation(); setRefAudio(null); if (refAudioInputRef.current) refAudioInputRef.current.value = '' }}
-              className="shrink-0 text-zinc-500 hover:text-white transition-colors p-1"
-            >
-              <svg width="14" height="14" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
-                <path d="M1 1l10 10M11 1L1 11"/>
-              </svg>
-            </button>
-          )}
-        </div>
-      </section>
+        </section>
+      )}
 
-      {/* 곡 제목 */}
-      <section className="rounded-xl border border-white/[0.08] bg-[#1E2129] overflow-hidden">
+      {/* 곡 제목 + 모델 선택 */}
+      <section className="rounded-xl border border-white/[0.08] bg-[#1E2129]">
         <input
           type="text"
           className="w-full bg-transparent px-4 py-3.5 text-sm text-white focus:outline-none placeholder:text-zinc-500"
@@ -216,6 +271,74 @@ export function SongForm() {
           maxLength={80}
           disabled={isGenerating}
         />
+        <div className="h-1" />
+        <div className="px-3 pb-3 flex items-center gap-2">
+          <div ref={modelDropRef} className="relative">
+            <button
+              type="button"
+              onClick={() => setModelDropOpen((v) => !v)}
+              disabled={isGenerating}
+              className={`flex items-center gap-1.5 text-sm font-semibold text-white border rounded-full px-3 py-1.5 transition-colors disabled:opacity-40 ${modelDropOpen ? 'border-white/30' : 'border-white/[0.10] hover:border-white/20'}`}
+            >
+              {(() => {
+                const label = MODELS.find((m) => m.id === model)?.label ?? ''
+                const base = label.replace(' (beta)', '')
+                const isBeta = label.includes('(beta)')
+                return (
+                  <>
+                    <span>{base}</span>
+                    {isBeta && <span className="text-[10px] font-medium text-teal-400 bg-teal-500/15 px-1.5 py-0.5 rounded-full leading-none">beta</span>}
+                  </>
+                )
+              })()}
+              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className={`transition-transform ${modelDropOpen ? 'rotate-180' : ''}`}>
+                <path d="M6 9l6 6 6-6"/>
+              </svg>
+            </button>
+
+            {modelDropOpen && (
+              <div className="absolute left-0 top-full mt-1.5 w-[300px] bg-[#1C1F27] border border-white/30 rounded-2xl shadow-2xl overflow-hidden z-30">
+                {/* 드롭다운 헤더 */}
+                <div className="px-3.5 pt-3 pb-2">
+                  <p className="text-sm font-semibold text-white">모델 선택</p>
+                </div>
+                <div className="pb-1.5">
+                {MODELS.map((m) => {
+                  const active = model === m.id
+                  const labelBase = m.label.replace(' (beta)', '')
+                  const labelIsBeta = m.label.includes('(beta)')
+                  return (
+                    <button
+                      key={m.id}
+                      type="button"
+                      disabled={m.locked}
+                      onClick={() => { if (!m.locked) { setModel(m.id); setModelDropOpen(false) } }}
+                      className={`w-full flex items-start gap-3 px-3.5 py-3 transition-colors text-left ${
+                        m.locked ? 'opacity-35 cursor-not-allowed' : active ? 'bg-white/[0.06]' : 'hover:bg-white/[0.04] cursor-pointer'
+                      }`}
+                    >
+                      {/* 로고 */}
+                      <Image src="/minimax.webp" alt="MiniMax" width={36} height={36} className="w-9 h-9 rounded-lg object-cover shrink-0 mt-0.5" />
+                      {/* 텍스트 */}
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2">
+                          <p className={`text-sm font-medium ${active ? 'text-white' : 'text-zinc-200'}`}>{labelBase}</p>
+                          {labelIsBeta && <span className="text-[10px] font-medium text-teal-400 bg-teal-500/15 px-1.5 py-0.5 rounded-full leading-none">beta</span>}
+                        </div>
+                        <p className="text-xs text-zinc-500 mt-0.5 leading-relaxed">{m.desc}</p>
+                      </div>
+                      {/* 선택 체크 */}
+                      <div className="w-5 shrink-0 flex items-center justify-center self-center">
+                        {active && <Image src="/Check.svg" alt="" width={16} height={16} style={{ filter: 'invert(1)' }} />}
+                      </div>
+                    </button>
+                  )
+                })}
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
       </section>
 
       {/* 가사 */}
@@ -249,7 +372,7 @@ export function SongForm() {
             <textarea
               className="w-full bg-transparent text-sm text-white resize-none focus:outline-none placeholder:text-zinc-500 leading-relaxed"
               style={{ height: lyricsResize.height }}
-              placeholder={`직접 가사를 입력하세요\n비워두면 AI가 자동으로 한국어 가사를 작성해요\n\n[Verse] [Chorus] [Bridge] 태그로 구조를 지정할 수 있어요`}
+              placeholder={`직접 가사를 입력하세요\n비워두면 인스트루멘탈로 생성돼요\n\n[Verse] [Chorus] [Bridge] 태그로 구조를 지정할 수 있어요`}
               value={lyrics}
               onChange={(e) => setLyrics(e.target.value)}
               maxLength={3500}
@@ -371,11 +494,11 @@ export function SongForm() {
       {/* 생성 버튼 */}
       <button
         type="submit"
-        disabled={!stylePrompt.trim() || isGenerating}
+        disabled={!stylePrompt.trim() || isGenerating || (isCoverModel && !refAudio)}
         className={`w-full rounded-xl py-4 font-semibold text-sm transition-colors ${
           isGenerating
             ? 'shimmer bg-violet-600 text-white cursor-not-allowed'
-            : !stylePrompt.trim()
+            : !stylePrompt.trim() || (isCoverModel && !refAudio)
             ? 'bg-[#393C41] text-zinc-500'
             : 'bg-violet-600 hover:bg-violet-500 text-white'
         }`}
@@ -401,6 +524,44 @@ export function SongForm() {
       {/* Error */}
       {error && (
         <p className="text-red-400 text-sm bg-red-950/50 border border-red-900/50 rounded-xl p-3">{error}</p>
+      )}
+
+      {/* 스타일 참조 안내 팝업 */}
+      {styleRefNotice && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center p-6">
+          <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setStyleRefNotice(false)} />
+          <div className="relative bg-[#21252E] border border-white/[0.10] rounded-2xl p-6 w-full max-w-[340px] shadow-2xl">
+            <h3 className="text-base font-semibold text-white mb-3">업로드 전 확인해주세요</h3>
+            <p className="text-sm text-zinc-300 leading-relaxed mb-1">
+              업로드하는 음원이 <span className="text-white font-medium">본인 소유</span>이거나{' '}
+              <span className="text-white font-medium">사용 허가를 받은 음원</span>인지 확인해주세요.
+            </p>
+            <p className="text-xs text-zinc-500 leading-relaxed mt-2">
+              저작권이 있는 음원을 무단으로 업로드하면 법적 책임이 발생할 수 있습니다.
+            </p>
+            <label className="flex items-center gap-2 mt-5 cursor-pointer select-none">
+              <input
+                type="checkbox"
+                checked={styleRefDontShow}
+                onChange={(e) => setStyleRefDontShow(e.target.checked)}
+                className="w-4 h-4 rounded accent-violet-500"
+              />
+              <span className="text-sm text-zinc-400">다시 보지 않기</span>
+            </label>
+            <button
+              type="button"
+              onClick={() => {
+                if (styleRefDontShow) localStorage.setItem('styleRefNoticeHidden', 'true')
+                setStyleRefNotice(false)
+                setStyleRefDontShow(false)
+                refAudioInputRef.current?.click()
+              }}
+              className="mt-4 w-full py-3 rounded-xl bg-violet-600 hover:bg-violet-500 text-white text-sm font-semibold transition-colors"
+            >
+              확인했어요
+            </button>
+          </div>
+        </div>
       )}
     </form>
   )

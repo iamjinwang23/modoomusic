@@ -11,6 +11,7 @@ export interface Song {
   audioUrl: string
   duration: number | null
   liked?: boolean
+  coverImage?: string
   coverHue?: number
   isNew?: boolean
   published?: boolean
@@ -35,6 +36,7 @@ export interface PublicSong {
   audioUrl: string
   coverHue: number
   coverImage?: string
+  duration?: number | null
   lyrics: string | null
   createdAt: string
   username: string

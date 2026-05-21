@@ -1,6 +1,7 @@
 'use client'
 
 import { createContext, useContext, useReducer, useRef, useEffect, useCallback } from 'react'
+import { songService } from '@/services/song.service'
 import type { Song } from '@/types/domain'
 
 interface State {
@@ -127,7 +128,15 @@ export function GlobalPlayerProvider({ children }: { children: React.ReactNode }
         onPlay={() => dispatch({ type: 'PLAYING', v: true })}
         onPause={() => dispatch({ type: 'PLAYING', v: false })}
         onTimeUpdate={e => dispatch({ type: 'TIME', t: e.currentTarget.currentTime })}
-        onLoadedMetadata={e => dispatch({ type: 'DURATION', d: e.currentTarget.duration })}
+        onLoadedMetadata={e => {
+          const realDuration = e.currentTarget.duration
+          dispatch({ type: 'DURATION', d: realDuration })
+          const cur = stateRef.current.feed[stateRef.current.idx]
+          if (cur && Math.round(realDuration) !== cur.duration) {
+            songService.update(cur.id, { duration: Math.round(realDuration) })
+            window.dispatchEvent(new Event('song-updated'))
+          }
+        }}
         onEnded={() => {
           const s = stateRef.current
           s.idx < s.feed.length - 1 ? dispatch({ type: 'NEXT' }) : dispatch({ type: 'PLAYING', v: false })

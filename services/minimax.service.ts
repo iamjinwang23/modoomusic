@@ -20,12 +20,23 @@ const MOCK_LYRICS = `[Verse]
 선율에 실어서 너에게 전해
 오늘의 내 하루를`
 
+export const MODELS = [
+  { id: 'music-2.6-free',   label: 'Music 2.6 (beta)', desc: '최신 MiniMax 모델, 풍부한 사운드',  locked: false, cover: false },
+  { id: 'music-2.0',        label: 'Music 2.0',         desc: '안정적인 기본 모델, 저렴한 비용',   locked: false, cover: false },
+  { id: 'music-cover-free', label: 'Music Cover',       desc: '참조 음원 스타일로 커버 생성',      locked: false, cover: true  },
+  { id: 'music-2.6',        label: 'Music 2.6 Pro',     desc: '준비 중',                          locked: true,  cover: false },
+] as const
+
+export type MusicModelId = typeof MODELS[number]['id']
+
 interface GenerateParams {
   prompt: string
   genre?: string
   mood?: string
   customLyrics?: string
   instrumental?: boolean
+  model?: MusicModelId
+  audioBase64?: string
 }
 
 interface GenerateResult {
@@ -34,13 +45,17 @@ interface GenerateResult {
 }
 
 export async function generateSong(params: GenerateParams): Promise<GenerateResult> {
-  const { prompt, genre, mood, customLyrics, instrumental = false } = params
+  const { prompt, genre, mood, customLyrics, instrumental = false, model = 'music-2.6-free', audioBase64 } = params
+
+  const isCoverModel = MODELS.find((m) => m.id === model)?.cover ?? false
+  const hasLyrics = !!customLyrics?.trim()
+  const isInstrumental = !isCoverModel && (instrumental || !hasLyrics)
 
   if (MOCK_MODE) {
     await new Promise((r) => setTimeout(r, 3000))
     return {
       audioUrl: MOCK_AUDIO_URL,
-      lyrics: instrumental ? '' : (customLyrics || MOCK_LYRICS),
+      lyrics: isInstrumental ? '' : (customLyrics ?? ''),
     }
   }
 
@@ -48,19 +63,18 @@ export async function generateSong(params: GenerateParams): Promise<GenerateResu
   const fullPrompt = styleTag ? `${styleTag}. ${prompt}` : prompt
 
   const body: Record<string, unknown> = {
-    model: 'music-2.6-free',
+    model,
     prompt: fullPrompt,
-    is_instrumental: instrumental,
     output_format: 'url',
     audio_setting: { sample_rate: 44100, bitrate: 256000, format: 'mp3' },
   }
 
-  if (!instrumental) {
-    if (customLyrics?.trim()) {
-      body.lyrics = customLyrics.trim()
-    } else {
-      body.lyrics_optimizer = true
-    }
+  if (isCoverModel) {
+    if (audioBase64) body.audio_base64 = audioBase64
+    if (hasLyrics) body.lyrics = customLyrics!.trim()
+  } else {
+    body.is_instrumental = isInstrumental
+    if (!isInstrumental && hasLyrics) body.lyrics = customLyrics!.trim()
   }
 
   const res = await fetch('https://api.minimax.io/v1/music_generation', {
@@ -72,12 +86,48 @@ export async function generateSong(params: GenerateParams): Promise<GenerateResu
     body: JSON.stringify(body),
   })
 
+  if (res.status === 429) {
+    throw new Error('요청이 너무 많습니다. 잠시 후 다시 시도하거나 Music 2.0 모델을 사용해보세요.')
+  }
+
   const data = await res.json()
   if (data.base_resp?.status_code !== 0) {
     throw new Error(data.base_resp?.status_msg ?? 'MiniMax API 오류')
   }
 
-  return { audioUrl: data.data.audio, lyrics: customLyrics || '' }
+  return { audioUrl: data.data.audio, lyrics: isInstrumental ? '' : (customLyrics || '') }
+}
+
+const MOCK_COVER_URL = 'https://picsum.photos/seed/minimax/512/512'
+
+export async function generateCoverImage(stylePrompt: string): Promise<string | null> {
+  if (MOCK_MODE) {
+    await new Promise((r) => setTimeout(r, 1000))
+    return MOCK_COVER_URL
+  }
+
+  const imagePrompt = `Album cover art. ${stylePrompt}. Digital art, high quality, music album artwork, cinematic, atmospheric.`
+
+  const res = await fetch('https://api.minimax.io/v1/image_generation', {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${process.env.MINIMAX_API_KEY}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      model: 'image-01',
+      prompt: imagePrompt.slice(0, 1500),
+      aspect_ratio: '1:1',
+      response_format: 'url',
+      n: 1,
+      prompt_optimizer: true,
+    }),
+  })
+
+  if (!res.ok) return null
+  const data = await res.json()
+  if (data.base_resp?.status_code !== 0) return null
+  return data.data?.image_urls?.[0] ?? null
 }
 
 export { MOCK_MODE }

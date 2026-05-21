@@ -19,6 +19,8 @@ export function useSongGeneration() {
     title: string
     customLyrics: string
     instrumental: boolean
+    model: string
+    audioBase64?: string
   }) {
     setStatus('generating')
     setError('')
@@ -46,6 +48,7 @@ export function useSongGeneration() {
         instrumental: params.instrumental,
         lyrics: data.lyrics ?? null,
         audioUrl: data.audioUrl,
+        coverImage: data.coverUrl ?? undefined,
         duration: null,
       })
 

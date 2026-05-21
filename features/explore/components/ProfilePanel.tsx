@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import Image from 'next/image'
 import { exploreService } from '@/services/explore.service'
+import { songService } from '@/services/song.service'
 import { useAuth } from '@/components/AuthProvider'
 import { PublicSongCard } from './PublicSongCard'
 import type { PublicSong, Song, UserProfile } from '@/types/domain'
@@ -24,9 +25,10 @@ function toSong(pub: PublicSong): Song {
     lyrics: pub.lyrics,
     instrumental: pub.instrumental,
     audioUrl: pub.audioUrl,
-    duration: null,
+    duration: pub.duration ?? null,
     liked: pub.isLiked,
     coverHue: pub.coverHue,
+    coverImage: pub.coverImage,
   }
 }
 
@@ -54,10 +56,36 @@ export function ProfilePanel({ username }: Props) {
   })() : null
 
   const profile = mockProfile ?? selfProfile
-  const songs = exploreService.getUserSongs(username)
+  const isSelf = !!user && (mockProfile === null && selfProfile !== null)
+
+  const mockSongs = exploreService.getUserSongs(username)
+  const selfSongs: PublicSong[] = isSelf
+    ? songService.getAll()
+        .filter((s) => s.published)
+        .map((s) => ({
+          id: s.id,
+          createdAt: s.createdAt,
+          title: s.title,
+          prompt: s.prompt,
+          genre: s.genre,
+          mood: s.mood,
+          lyrics: s.lyrics,
+          instrumental: s.instrumental,
+          audioUrl: s.audioUrl,
+          duration: s.duration,
+          coverHue: s.coverHue ?? 0,
+          coverImage: s.coverImage,
+          username,
+          displayName: profile?.displayName ?? username,
+          userId: user!.id,
+          likeCount: 0,
+          playCount: 0,
+          isLiked: false,
+        }))
+    : []
+  const songs = isSelf ? selfSongs : mockSongs
 
   const [following, setFollowing] = useState(profile?.isFollowing ?? false)
-  const isSelf = !!user && (mockProfile === null && selfProfile !== null)
 
   if (!profile) {
     return (
@@ -73,7 +101,7 @@ export function ProfilePanel({ username }: Props) {
     const feed = songs.map(toSong)
     const idx = songs.findIndex((s) => s.id === pub.id)
     window.dispatchEvent(new CustomEvent('view-song', {
-      detail: { feed, idx, isOwner: false },
+      detail: { feed, idx, isOwner: isSelf },
     }))
   }
 

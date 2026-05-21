@@ -53,40 +53,44 @@ export function GlobalMiniBar() {
 
   return (
     <>
-      <div className="shrink-0 bg-[#111318] border-t border-white/[0.06] select-none px-4 pt-3 pb-2">
-        <div className="flex items-center gap-3 mb-2">
+      <div className="shrink-0 bg-[#111318] border-t border-white/[0.06] select-none px-4 pt-3 pb-4">
+        <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-2 mb-1">
           {/* Left: thumbnail + title — click opens detail */}
           <div
-            className="flex items-center gap-2.5 flex-1 min-w-0 cursor-pointer"
+            className="flex items-center gap-2.5 min-w-0 cursor-pointer"
             onClick={openDetail}
           >
             <div
-              className="w-10 aspect-[2/3] rounded-md shrink-0 overflow-hidden"
-              style={{ background: coverGradient(song) }}
-            />
+              className="w-10 aspect-[2/3] rounded-md shrink-0 overflow-hidden relative"
+              style={song.coverImage ? undefined : { background: coverGradient(song) }}
+            >
+              {song.coverImage && (
+                <Image src={song.coverImage} alt="" fill className="object-cover" unoptimized />
+              )}
+            </div>
             <div className="min-w-0">
               <p className="text-sm font-medium text-white truncate">{song.title || 'Untitled'}</p>
             </div>
           </div>
 
-          {/* Center: playback controls */}
-          <div className="flex items-center gap-3 shrink-0">
+          {/* Center: playback controls — truly centered */}
+          <div className="flex items-center gap-5">
             <button
               onClick={prev}
               disabled={!hasPrev}
               className={`transition-opacity ${hasPrev ? 'hover:opacity-70' : 'opacity-30 cursor-default'}`}
             >
-              <Image src="/Skip-Previous.svg" alt="이전" width={28} height={28} style={{ filter: 'invert(0.7)' }} />
+              <Image src="/Skip-Previous.svg" alt="이전" width={22} height={22} style={{ filter: 'invert(1)' }} />
             </button>
             <button
               onClick={togglePlay}
-              className="w-9 h-9 rounded-full bg-white hover:bg-zinc-100 flex items-center justify-center transition-colors shrink-0"
+              className="w-[38px] h-[38px] rounded-full bg-white hover:bg-zinc-100 flex items-center justify-center transition-colors shrink-0"
             >
               <Image
                 src={isPlaying ? '/Pause.svg' : '/Play.svg'}
                 alt={isPlaying ? '일시정지' : '재생'}
-                width={20}
-                height={20}
+                width={22}
+                height={22}
               />
             </button>
             <button
@@ -94,12 +98,12 @@ export function GlobalMiniBar() {
               disabled={!hasNext}
               className={`transition-opacity ${hasNext ? 'hover:opacity-70' : 'opacity-30 cursor-default'}`}
             >
-              <Image src="/Skip-Forward.svg" alt="다음" width={28} height={28} style={{ filter: 'invert(0.7)' }} />
+              <Image src="/Skip-Forward.svg" alt="다음" width={22} height={22} style={{ filter: 'invert(1)' }} />
             </button>
           </div>
 
-          {/* Right: action buttons */}
-          <div className="flex items-center gap-1 shrink-0">
+          {/* Right: action buttons — right-aligned */}
+          <div className="flex items-center gap-1 justify-end">
             {/* Like */}
             <button
               onClick={handleLike}
@@ -166,9 +170,9 @@ export function GlobalMiniBar() {
           </div>
         </div>
 
-        {/* 프로그레스 바 — 음악 형식 */}
-        <div className="flex items-center gap-2">
-          <span className="text-[10px] text-zinc-500 w-7 text-right tabular-nums shrink-0">{formatTime(currentTime)}</span>
+        {/* 프로그레스 바 — 중앙 정렬, 너비 제한 */}
+        <div className="flex items-center gap-2 max-w-[560px] mx-auto">
+          <span className="text-xs text-zinc-500 w-7 text-right tabular-nums shrink-0">{formatTime(currentTime)}</span>
           <input
             type="range"
             min={0}
@@ -179,7 +183,7 @@ export function GlobalMiniBar() {
             className="flex-1 h-1 accent-violet-500 cursor-pointer"
             style={{ accentColor: '#7c3aed' }}
           />
-          <span className="text-[10px] text-zinc-500 w-7 tabular-nums shrink-0">{formatTime(duration)}</span>
+          <span className="text-xs text-zinc-500 w-7 tabular-nums shrink-0">{formatTime(duration)}</span>
         </div>
       </div>
 

@@ -3,6 +3,7 @@
 import { useState, useRef } from 'react'
 import Image from 'next/image'
 import { songService } from '@/services/song.service'
+import { useAuth } from '@/components/AuthProvider'
 import type { Song } from '@/types/domain'
 
 interface Props {
@@ -11,11 +12,12 @@ interface Props {
 }
 
 export function PublishModal({ song, onClose }: Props) {
+  const { user } = useAuth()
   const hue = song.coverHue ?? (song.id.split('').reduce((acc, c) => acc + c.charCodeAt(0), 0) * 137) % 360
   const h2 = (hue + 55) % 360
   const defaultGradient = `linear-gradient(160deg, hsl(${hue},70%,50%) 0%, hsl(${h2},60%,35%) 60%, hsl(${(h2 + 40) % 360},50%,24%) 100%)`
 
-  const [coverPreview, setCoverPreview] = useState<string | null>(song.publishCoverImage ?? null)
+  const [coverPreview, setCoverPreview] = useState<string | null>(song.publishCoverImage ?? song.coverImage ?? null)
   const [comment, setComment] = useState(song.publishComment ?? '')
   const fileRef = useRef<HTMLInputElement>(null)
 
@@ -40,6 +42,10 @@ export function PublishModal({ song, onClose }: Props) {
     })
     window.dispatchEvent(new CustomEvent('song-updated'))
     onClose()
+    if (user) {
+      const username = user.user_metadata?.username ?? user.email?.split('@')[0] ?? user.id.slice(0, 8)
+      setTimeout(() => window.dispatchEvent(new CustomEvent('view-profile', { detail: username })), 0)
+    }
   }
 
   return (

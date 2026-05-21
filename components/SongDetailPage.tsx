@@ -137,8 +137,11 @@ export function SongDetailPage({ onBack, profile }: Props) {
           <div
             onClick={togglePlay}
             className="relative w-full rounded-2xl overflow-hidden cursor-pointer group"
-            style={{ background: coverGradient(song), aspectRatio: '2 / 3' }}
+            style={{ background: song.coverImage ? undefined : coverGradient(song), aspectRatio: '2 / 3' }}
           >
+            {song.coverImage && (
+              <Image src={song.coverImage} alt="" fill className="object-cover" unoptimized />
+            )}
             <div className={`absolute inset-0 flex items-center justify-center transition-opacity duration-150 bg-black/20 ${playing ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`}>
               <Image
                 src={playing ? '/Pause.svg' : '/Play.svg'}

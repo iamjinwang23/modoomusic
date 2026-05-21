@@ -359,16 +359,21 @@ function SongWorkItem({ song, onOpen, onEdit, onDelete, onCollect, onPublish, on
         >
           <div
             className="absolute inset-0 flex items-center justify-center transition-transform duration-300 ease-out group-hover:scale-[1.05]"
-            style={{ background: thumbGradient(song) }}
+            style={song.coverImage ? undefined : { background: thumbGradient(song) }}
           >
-            <Image
-              src={playing ? '/Pause.svg' : '/Play.svg'}
-              alt={playing ? '일시정지' : '재생'}
-              width={18}
-              height={18}
-              style={{ filter: 'invert(1)', opacity: playing ? 0.85 : undefined, transition: 'opacity 0.15s' }}
-              className={playing ? '' : 'opacity-0 group-hover:opacity-75'}
-            />
+            {song.coverImage && (
+              <Image src={song.coverImage} alt="" fill className="object-cover" unoptimized />
+            )}
+            <div className="absolute inset-0 flex items-center justify-center">
+              <Image
+                src={playing ? '/Pause.svg' : '/Play.svg'}
+                alt={playing ? '일시정지' : '재생'}
+                width={18}
+                height={18}
+                style={{ filter: 'invert(1)', opacity: playing ? 0.85 : undefined, transition: 'opacity 0.15s' }}
+                className={playing ? '' : 'opacity-0 group-hover:opacity-75'}
+              />
+            </div>
           </div>
           {/* 하단 그라데이션 + 재생시간 */}
           {formatDuration(song.duration) && (

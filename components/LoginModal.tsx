@@ -32,6 +32,15 @@ export function LoginModal({ onClose }: Props) {
     })
   }
 
+  async function handleKakaoLogin() {
+    setLoading(true)
+    const supabase = createClient()
+    await supabase.auth.signInWithOAuth({
+      provider: 'kakao',
+      options: { redirectTo: `${window.location.origin}/auth/callback` },
+    })
+  }
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       {/* Backdrop */}
@@ -74,7 +83,7 @@ export function LoginModal({ onClose }: Props) {
             </SocialButton>
 
             {/* Kakao */}
-            <SocialButton onClick={() => alert('[껍데기] 카카오 로그인')} className="bg-[#FEE500] hover:bg-[#fdd800] text-[#191919]">
+            <SocialButton onClick={handleKakaoLogin} className={`bg-[#FEE500] hover:bg-[#fdd800] text-[#191919] ${loading ? 'opacity-70 pointer-events-none' : ''}`}>
               <span className="absolute left-4 flex items-center">
                 <svg width="18" height="18" viewBox="0 0 18 18" xmlns="http://www.w3.org/2000/svg">
                   <path d="M9 1.5C4.86 1.5 1.5 4.16 1.5 7.44c0 2.09 1.32 3.93 3.32 4.99l-.84 3.12a.25.25 0 0 0 .37.28L8.1 13.7c.29.03.59.05.9.05 4.14 0 7.5-2.66 7.5-5.94S13.14 1.5 9 1.5z" fill="#191919"/>

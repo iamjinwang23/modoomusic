@@ -51,11 +51,14 @@ export function HomeLayout() {
       setPrevSection((prev) => prev === 'song' ? prev : activeSection as Section)
       setActiveSection('song')
     }
+    function handleOpenLogin() { setLoginOpen(true) }
     window.addEventListener('view-profile', handleViewProfile)
     window.addEventListener('view-song', handleViewSong)
+    window.addEventListener('open-login', handleOpenLogin)
     return () => {
       window.removeEventListener('view-profile', handleViewProfile)
       window.removeEventListener('view-song', handleViewSong)
+      window.removeEventListener('open-login', handleOpenLogin)
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeSection])
@@ -176,12 +179,13 @@ export function HomeLayout() {
           <div className="p-3 space-y-2">
             <button className="relative w-full py-2.5 rounded-xl border border-violet-600 text-violet-400 text-sm font-medium overflow-hidden group hover:text-white transition-colors duration-300">
               <span className="absolute inset-0 bg-violet-600 scale-x-0 group-hover:scale-x-100 transition-transform duration-300 origin-center" />
-              <span className="relative">구독하기</span>
+              <span className="relative">플랜 업그레이드</span>
             </button>
             <div className="flex justify-center gap-3 px-1">
-              <a href="#" className="text-[11px] text-zinc-600 hover:text-zinc-400 transition-colors">Agreement</a>
-              <a href="#" className="text-[11px] text-zinc-600 hover:text-zinc-400 transition-colors">Privacy</a>
+              <a href="#" className="text-[11px] text-zinc-600 hover:text-zinc-400 transition-colors">이용약관</a>
+              <a href="#" className="text-[11px] text-zinc-600 hover:text-zinc-400 transition-colors">개인정보처리방침</a>
             </div>
+            <p className="text-center text-[10px] text-zinc-700 font-mono">© 2026 mono</p>
           </div>
         </aside>
 
