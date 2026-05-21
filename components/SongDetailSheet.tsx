@@ -159,7 +159,7 @@ function handleLike() {
 
       {/* Modal */}
       <div
-        className={`relative w-full max-w-[720px] bg-[#1c1c1e] rounded-3xl overflow-hidden flex flex-col transition-all duration-300 ease-out`}
+        className={`relative w-full max-w-[720px] bg-[#21252E] rounded-3xl overflow-hidden flex flex-col transition-all duration-300 ease-out`}
         style={{
           maxHeight: '82vh',
           opacity: visible ? 1 : 0,
@@ -236,7 +236,7 @@ function handleLike() {
         </div>
 
         {/* ── Player ── */}
-        <div className="shrink-0 border-t border-white/[0.06] bg-[#141416] px-6 pt-4 pb-5">
+        <div className="shrink-0 border-t border-white/[0.06] bg-[#1C1F27] px-6 pt-4 pb-5">
           <audio
             ref={audioRef}
             src={song.audioUrl}
@@ -312,13 +312,13 @@ function handleLike() {
       {confirmDelete && (
         <div className="fixed inset-0 z-[70] flex items-center justify-center p-6">
           <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={() => setConfirmDelete(false)} />
-          <div className="relative bg-[#1c1c1e] border border-white/[0.08] rounded-2xl p-5 w-full max-w-[320px] shadow-2xl">
+          <div className="relative bg-[#21252E] border border-white/[0.08] rounded-2xl p-5 w-full max-w-[320px] shadow-2xl">
             <p className="text-sm font-semibold text-white mb-1">삭제하시겠어요?</p>
             <p className="text-xs text-zinc-400 mb-5 truncate">"{displayTitle}"</p>
             <div className="flex gap-2 justify-end">
               <button
                 onClick={() => setConfirmDelete(false)}
-                className="px-4 py-2 rounded-xl text-sm text-zinc-400 hover:text-zinc-200 hover:bg-white/[0.06] transition-colors"
+                className="px-4 py-2 rounded-xl text-sm text-zinc-400 hover:text-white hover:bg-white/[0.06] transition-colors"
               >
                 아니요
               </button>
@@ -361,10 +361,10 @@ function DetailMoreMenu({ onEdit, onDelete }: { onEdit: () => void; onDelete: ()
       </button>
 
       {open && (
-        <div className="absolute left-0 bottom-full mb-2 bg-[#2a2a2c] border border-white/[0.08] rounded-xl py-1 min-w-[110px] shadow-xl z-20">
+        <div className="absolute left-0 bottom-full mb-2 bg-[#282D38] border border-white/[0.08] rounded-xl py-1 min-w-[110px] shadow-xl z-20">
           <button
             onClick={() => { setOpen(false); onEdit() }}
-            className="w-full flex items-center gap-2.5 px-3 py-2.5 text-sm text-zinc-200 hover:bg-white/[0.06] transition-colors"
+            className="w-full flex items-center gap-2.5 px-3 py-2.5 text-sm text-white hover:bg-white/[0.06] transition-colors"
           >
             <Image src="/Edit.svg" alt="" width={14} height={14} style={{ filter: 'invert(0.55)' }} />
             편집

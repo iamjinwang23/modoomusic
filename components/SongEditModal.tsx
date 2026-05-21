@@ -54,7 +54,7 @@ export function SongEditModal({ song, onClose }: Props) {
 
       {/* Modal */}
       <div
-        className="relative w-full max-w-[440px] bg-[#1c1c1e] rounded-3xl overflow-hidden transition-all duration-280 ease-out"
+        className="relative w-full max-w-[440px] bg-[#21252E] rounded-3xl overflow-hidden transition-all duration-280 ease-out"
         style={{
           opacity: visible ? 1 : 0,
           transform: visible ? 'translateY(0) scale(1)' : 'translateY(24px) scale(0.97)',
@@ -115,7 +115,7 @@ export function SongEditModal({ song, onClose }: Props) {
                   type="button"
                   onClick={() => { setHue(h); setShowPicker(false) }}
                   className={`w-9 h-9 rounded-full transition-transform hover:scale-110 ${
-                    hue === h ? 'ring-2 ring-white/60 ring-offset-2 ring-offset-[#1c1c1e]' : ''
+                    hue === h ? 'ring-2 ring-white/60 ring-offset-2 ring-offset-[#21252E]' : ''
                   }`}
                   style={{ background: previewGradient(h) }}
                 />
@@ -128,7 +128,7 @@ export function SongEditModal({ song, onClose }: Props) {
             <button
               type="button"
               onClick={handleClose}
-              className="px-4 py-2 rounded-xl text-sm text-zinc-400 hover:text-zinc-200 hover:bg-white/[0.06] transition-colors"
+              className="px-4 py-2 rounded-xl text-sm text-zinc-400 hover:text-white hover:bg-white/[0.06] transition-colors"
             >
               취소
             </button>

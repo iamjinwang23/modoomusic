@@ -38,7 +38,7 @@ export function LoginModal({ onClose }: Props) {
       <div className="absolute inset-0 bg-black/10 backdrop-blur-sm" onClick={onClose} />
 
       {/* Modal */}
-      <div className="relative z-10 flex rounded-2xl overflow-hidden w-full max-w-[740px] bg-[#141414] shadow-2xl">
+      <div className="relative z-10 flex rounded-2xl overflow-hidden w-full max-w-[740px] bg-[#181B22] shadow-2xl">
 
         {/* ── Left: Login panel ── */}
         <div className="flex-1 flex flex-col px-9 py-10">
@@ -63,7 +63,7 @@ export function LoginModal({ onClose }: Props) {
             </SocialButton>
 
             {/* Apple */}
-            <SocialButton onClick={() => alert('[껍데기] Apple 로그인')} className="bg-[#1c1c1e] hover:bg-[#2c2c2e] border border-white/10 text-white">
+            <SocialButton onClick={() => alert('[껍데기] Apple 로그인')} className="bg-[#21252E] hover:bg-[#2D323E] border border-white/10 text-white">
               <span className="absolute left-4 flex items-center">
                 <svg width="16" height="18" viewBox="0 0 16 18" xmlns="http://www.w3.org/2000/svg" fill="white">
                   <path d="M13.23 9.36c-.02-1.9 1.56-2.82 1.63-2.87-1.12-1.63-2.85-1.86-3.47-1.88-1.48-.15-2.9.87-3.65.87-.76 0-1.93-.85-3.17-.83C2.89 4.68 1.31 5.72.5 7.3c-1.63 2.82-.42 7 1.15 9.29.78 1.12 1.7 2.38 2.91 2.33 1.17-.05 1.61-.75 3.03-.75 1.41 0 1.81.75 3.05.72 1.26-.02 2.05-1.14 2.82-2.27.9-1.3 1.26-2.57 1.28-2.63-.03-.01-2.44-.93-2.46-3.67-.02-2.3 1.88-3.4 1.96-3.46z"/>
@@ -89,7 +89,7 @@ export function LoginModal({ onClose }: Props) {
               <div className="w-full border-t border-white/[0.08]" />
             </div>
             <div className="relative flex justify-center text-xs text-zinc-600">
-              <span className="bg-[#141414] px-2">또는</span>
+              <span className="bg-[#181B22] px-2">또는</span>
             </div>
           </div>
 

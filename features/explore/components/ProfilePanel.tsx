@@ -114,9 +114,9 @@ export function ProfilePanel({ username }: Props) {
                   <p className="text-xs text-zinc-400 mt-1">{profile.bio}</p>
                 )}
                 <div className="flex gap-4 mt-2 text-xs text-zinc-500">
-                  <span><span className="text-zinc-200 font-medium">{profile.followerCount.toLocaleString()}</span> 팔로워</span>
-                  <span><span className="text-zinc-200 font-medium">{profile.followingCount.toLocaleString()}</span> 팔로잉</span>
-                  <span><span className="text-zinc-200 font-medium">{profile.songCount}</span> 곡</span>
+                  <span><span className="text-white font-medium">{profile.followerCount.toLocaleString()}</span> 팔로워</span>
+                  <span><span className="text-white font-medium">{profile.followingCount.toLocaleString()}</span> 팔로잉</span>
+                  <span><span className="text-white font-medium">{profile.songCount}</span> 곡</span>
                 </div>
               </div>
 
@@ -138,7 +138,7 @@ export function ProfilePanel({ username }: Props) {
           {/* 곡 목록 */}
           <div className="pb-8">
             <div className="px-5 mb-3">
-              <p className="text-sm font-semibold text-zinc-200">곡 목록</p>
+              <p className="text-sm font-semibold text-white">곡 목록</p>
             </div>
             {songs.length === 0 ? (
               <p className="px-5 text-zinc-600 text-sm">아직 공개된 곡이 없어요</p>

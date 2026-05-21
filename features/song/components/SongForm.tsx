@@ -165,7 +165,7 @@ export function SongForm() {
         onDragOver={(e) => { e.preventDefault(); setIsDragOver(true) }}
         onDragLeave={() => setIsDragOver(false)}
         onDrop={handleRefDrop}
-        className={`rounded-xl border bg-[#1a1a1a] overflow-hidden transition-colors ${
+        className={`rounded-xl border bg-[#1E2129] overflow-hidden transition-colors ${
           isGenerating ? 'cursor-default opacity-60' : 'cursor-pointer'
         } ${
           isDragOver
@@ -195,7 +195,7 @@ export function SongForm() {
             <button
               type="button"
               onClick={(e) => { e.stopPropagation(); setRefAudio(null); if (refAudioInputRef.current) refAudioInputRef.current.value = '' }}
-              className="shrink-0 text-zinc-500 hover:text-zinc-200 transition-colors p-1"
+              className="shrink-0 text-zinc-500 hover:text-white transition-colors p-1"
             >
               <svg width="14" height="14" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
                 <path d="M1 1l10 10M11 1L1 11"/>
@@ -206,10 +206,10 @@ export function SongForm() {
       </section>
 
       {/* 곡 제목 */}
-      <section className="rounded-xl border border-white/[0.08] bg-[#1a1a1a] overflow-hidden">
+      <section className="rounded-xl border border-white/[0.08] bg-[#1E2129] overflow-hidden">
         <input
           type="text"
-          className="w-full bg-transparent px-4 py-3.5 text-sm text-zinc-200 focus:outline-none placeholder:text-zinc-500"
+          className="w-full bg-transparent px-4 py-3.5 text-sm text-white focus:outline-none placeholder:text-zinc-500"
           placeholder="곡 제목"
           value={title}
           onChange={(e) => setTitle(e.target.value)}
@@ -219,7 +219,7 @@ export function SongForm() {
       </section>
 
       {/* 가사 */}
-      <section className="rounded-xl border border-white/[0.08] bg-[#1a1a1a] overflow-hidden group">
+      <section className="rounded-xl border border-white/[0.08] bg-[#1E2129] overflow-hidden group">
         <div className="px-4 py-3 flex items-center justify-between">
           <span className="text-sm font-semibold text-white">가사</span>
           <div className="flex items-center gap-2">
@@ -247,7 +247,7 @@ export function SongForm() {
         >
           <div className="px-4">
             <textarea
-              className="w-full bg-transparent text-sm text-zinc-200 resize-none focus:outline-none placeholder:text-zinc-500 leading-relaxed"
+              className="w-full bg-transparent text-sm text-white resize-none focus:outline-none placeholder:text-zinc-500 leading-relaxed"
               style={{ height: lyricsResize.height }}
               placeholder={`직접 가사를 입력하세요\n비워두면 AI가 자동으로 한국어 가사를 작성해요\n\n[Verse] [Chorus] [Bridge] 태그로 구조를 지정할 수 있어요`}
               value={lyrics}
@@ -264,14 +264,14 @@ export function SongForm() {
       </section>
 
       {/* 스타일 */}
-      <section className="rounded-xl border border-white/[0.08] bg-[#1a1a1a] overflow-hidden group">
+      <section className="rounded-xl border border-white/[0.08] bg-[#1E2129] overflow-hidden group">
         <div className="px-4 py-3 flex items-center gap-1">
           <span className="text-sm font-semibold text-white">스타일</span>
           <span className="text-red-400 text-xs">*</span>
         </div>
         <div className="px-4 space-y-3">
           <textarea
-            className="w-full bg-transparent text-sm text-zinc-200 resize-none focus:outline-none placeholder:text-zinc-500 leading-relaxed"
+            className="w-full bg-transparent text-sm text-white resize-none focus:outline-none placeholder:text-zinc-500 leading-relaxed"
             style={{ height: styleResize.height }}
             placeholder="장르, 분위기, 템포, 악기, 보컬 타입 등을 자유롭게 묘사하세요"
             value={stylePrompt}
@@ -289,7 +289,7 @@ export function SongForm() {
               onClick={reshuffleChips}
               disabled={isGenerating}
               title="다시 섞기"
-              className="shrink-0 w-8 h-8 rounded-full bg-[#252525] border border-white/[0.10] hover:border-white/40 flex items-center justify-center transition-colors disabled:opacity-40"
+              className="shrink-0 w-8 h-8 rounded-full bg-[#252A35] border border-white/[0.10] hover:border-white/40 flex items-center justify-center transition-colors disabled:opacity-40"
             >
               <Image src="/Refresh.svg" alt="다시 섞기" width={16} height={16} style={{ filter: 'invert(1)' }} />
             </button>
@@ -297,14 +297,14 @@ export function SongForm() {
               <button
                 type="button"
                 onClick={() => scrollChips('left')}
-                className="shrink-0 w-8 h-8 rounded-full bg-[#252525] border border-white/[0.10] hover:border-white/40 flex items-center justify-center transition-colors"
+                className="shrink-0 w-8 h-8 rounded-full bg-[#252A35] border border-white/[0.10] hover:border-white/40 flex items-center justify-center transition-colors"
               >
                 <Image src="/Left-Small.svg" alt="왼쪽" width={16} height={16} style={{ filter: 'invert(1)' }} />
               </button>
             )}
             <div className="relative flex-1 min-w-0">
               {canScrollLeft && (
-                <div className="absolute left-0 inset-y-0 w-6 bg-gradient-to-r from-[#1a1a1a] to-transparent pointer-events-none z-10" />
+                <div className="absolute left-0 inset-y-0 w-6 bg-gradient-to-r from-[#1E2129] to-transparent pointer-events-none z-10" />
               )}
               <div
                 ref={chipScrollRef}
@@ -324,14 +324,14 @@ export function SongForm() {
                 ))}
               </div>
               {canScrollRight && (
-                <div className="absolute right-0 inset-y-0 w-6 bg-gradient-to-l from-[#1a1a1a] to-transparent pointer-events-none z-10" />
+                <div className="absolute right-0 inset-y-0 w-6 bg-gradient-to-l from-[#1E2129] to-transparent pointer-events-none z-10" />
               )}
             </div>
             {canScrollRight && (
               <button
                 type="button"
                 onClick={() => scrollChips('right')}
-                className="shrink-0 w-8 h-8 rounded-full bg-[#252525] border border-white/[0.10] hover:border-white/40 flex items-center justify-center transition-colors"
+                className="shrink-0 w-8 h-8 rounded-full bg-[#252A35] border border-white/[0.10] hover:border-white/40 flex items-center justify-center transition-colors"
               >
                 <Image src="/Right-Small.svg" alt="오른쪽" width={16} height={16} style={{ filter: 'invert(1)' }} />
               </button>
@@ -342,7 +342,7 @@ export function SongForm() {
       </section>
 
       {/* 보컬 성별 */}
-      <section className="rounded-xl border border-white/[0.08] bg-[#1a1a1a] overflow-hidden">
+      <section className="rounded-xl border border-white/[0.08] bg-[#1E2129] overflow-hidden">
         <div className="px-4 py-3 flex items-center justify-between">
           <span className="text-sm font-semibold text-white">보컬 성별</span>
           <div className="flex gap-1.5">
@@ -376,7 +376,7 @@ export function SongForm() {
           isGenerating
             ? 'shimmer bg-violet-600 text-white cursor-not-allowed'
             : !stylePrompt.trim()
-            ? 'bg-zinc-800 text-zinc-500'
+            ? 'bg-[#393C41] text-zinc-500'
             : 'bg-violet-600 hover:bg-violet-500 text-white'
         }`}
       >

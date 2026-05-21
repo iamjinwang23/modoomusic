@@ -99,7 +99,7 @@ export function SongResult({ song, elapsed, onReset }: Props) {
       </div>
 
       {/* Audio player */}
-      <div className="bg-[#1a1a1a] rounded-2xl border border-white/[0.06] p-5">
+      <div className="bg-[#1E2129] rounded-2xl border border-white/[0.06] p-5">
         <audio
           ref={audioRef}
           src={song.audioUrl}
@@ -151,13 +151,13 @@ export function SongResult({ song, elapsed, onReset }: Props) {
 
       {/* Lyrics */}
       {song.lyrics && (
-        <div className="bg-[#1a1a1a] rounded-2xl border border-white/[0.06] overflow-hidden">
+        <div className="bg-[#1E2129] rounded-2xl border border-white/[0.06] overflow-hidden">
           <button
             type="button"
             onClick={() => setLyricsOpen(!lyricsOpen)}
             className="w-full flex items-center justify-between px-5 py-4 text-sm hover:bg-white/[0.02] transition-colors"
           >
-            <span className="font-medium text-zinc-200">가사</span>
+            <span className="font-medium text-white">가사</span>
             <svg
               width="14" height="14" viewBox="0 0 24 24" fill="none"
               stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"
@@ -182,7 +182,7 @@ export function SongResult({ song, elapsed, onReset }: Props) {
         <button
           type="button"
           onClick={handleShare}
-          className="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-white/[0.08] hover:border-white/20 text-sm text-zinc-400 hover:text-zinc-200 transition-colors"
+          className="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-white/[0.08] hover:border-white/20 text-sm text-zinc-400 hover:text-white transition-colors"
         >
           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             <path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/>

@@ -78,7 +78,7 @@ function SectionCarousel({
     <div>
       {/* 섹션 헤더 */}
       <div className="flex items-center justify-between mb-3">
-        <h2 className="text-xl font-semibold text-zinc-200">{label}</h2>
+        <h2 className="text-xl font-semibold text-white">{label}</h2>
         <button
           onClick={onViewAll}
           className="text-xs text-zinc-500 hover:text-violet-400 transition-colors"
@@ -95,7 +95,7 @@ function SectionCarousel({
       >
         {/* 좌측 그라데이션 + 화살표 */}
         {fadeLeft && (
-          <div className="absolute left-0 top-0 bottom-0 w-14 bg-gradient-to-r from-[#111111] via-[#111111]/60 to-transparent z-10 pointer-events-none" />
+          <div className="absolute left-0 top-0 bottom-0 w-14 bg-gradient-to-r from-[#171A20] via-[#171A20]/60 to-transparent z-10 pointer-events-none" />
         )}
         {fadeLeft && hovered && (
           <button
@@ -120,7 +120,7 @@ function SectionCarousel({
 
         {/* 우측 그라데이션 + 화살표 */}
         {fadeRight && (
-          <div className="absolute right-0 top-0 bottom-0 w-14 bg-gradient-to-l from-[#111111] via-[#111111]/60 to-transparent z-10 pointer-events-none" />
+          <div className="absolute right-0 top-0 bottom-0 w-14 bg-gradient-to-l from-[#171A20] via-[#171A20]/60 to-transparent z-10 pointer-events-none" />
         )}
         {fadeRight && hovered && (
           <button

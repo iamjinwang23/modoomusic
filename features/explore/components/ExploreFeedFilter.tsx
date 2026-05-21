@@ -36,7 +36,7 @@ export function ExploreFeedFilter({ selected, onChange }: Props) {
             className={`shrink-0 text-xs px-3 py-1.5 rounded-full border transition-colors ${
               active
                 ? 'bg-violet-600 border-violet-600 text-white'
-                : 'border-white/[0.08] text-zinc-400 hover:text-zinc-200 hover:border-white/20'
+                : 'border-white/[0.08] text-zinc-400 hover:text-white hover:border-white/20'
             }`}
           >
             {chip}

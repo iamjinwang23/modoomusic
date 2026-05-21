@@ -45,7 +45,7 @@ export function PublishModal({ song, onClose }: Props) {
   return (
     <div className="fixed inset-0 z-[70] flex items-center justify-center p-6">
       <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={onClose} />
-      <div className="relative bg-[#1c1c1e] border border-white/[0.08] rounded-2xl w-full max-w-[520px] p-5 shadow-2xl">
+      <div className="relative bg-[#21252E] border border-white/[0.08] rounded-2xl w-full max-w-[520px] p-5 shadow-2xl">
 
         {/* 헤더 */}
         <div className="flex items-center justify-between mb-5">
@@ -83,7 +83,7 @@ export function PublishModal({ song, onClose }: Props) {
           <div className="flex-1 flex flex-col gap-3 min-w-0">
             {/* 타이틀 + 인스트루멘탈 뱃지 */}
             <div className="flex items-center gap-2 min-w-0">
-              <p className="text-base font-semibold text-zinc-200 truncate">{song.title || 'Untitled'}</p>
+              <p className="text-base font-semibold text-white truncate">{song.title || 'Untitled'}</p>
               {song.instrumental && (
                 <span className="shrink-0 text-[10px] text-zinc-400 bg-zinc-800 px-1.5 py-0.5 rounded border border-white/[0.06] leading-none">Instrumental</span>
               )}

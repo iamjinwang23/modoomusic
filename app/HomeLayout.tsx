@@ -8,12 +8,10 @@ import { ExplorePanel } from '@/features/explore/components/ExplorePanel'
 import { ProfilePanel } from '@/features/explore/components/ProfilePanel'
 import { SongDetailPage } from '@/components/SongDetailPage'
 import { LoginModal } from '@/components/LoginModal'
+import { GlobalMiniBar } from '@/components/GlobalMiniBar'
 import { useAuth } from '@/components/AuthProvider'
-import type { Song } from '@/types/domain'
 
 type Section = 'create' | 'archive' | 'explore' | 'notifications' | 'profile' | 'song'
-
-type SongPageState = { feed: Song[]; idx: number; isOwner: boolean }
 
 const VIOLET_FILTER = 'brightness(0) saturate(100%) invert(44%) sepia(51%) saturate(1569%) hue-rotate(221deg) brightness(101%) contrast(96%)'
 
@@ -37,9 +35,7 @@ function EmptyPanel({ title }: { title: string }) {
 export function HomeLayout() {
   const [activeSection, setActiveSection] = useState<Section>('create')
   const [prevSection, setPrevSection] = useState<Section>('create')
-  const [profilePrevSection, setProfilePrevSection] = useState<Section>('explore')
   const [profileUsername, setProfileUsername] = useState<string | null>(null)
-  const [songPage, setSongPage] = useState<SongPageState | null>(null)
   const [drawerOpen, setDrawerOpen] = useState(false)
   const [loginOpen, setLoginOpen] = useState(false)
   const [userMenuOpen, setUserMenuOpen] = useState(false)
@@ -49,12 +45,9 @@ export function HomeLayout() {
     function handleViewProfile(e: Event) {
       const username = (e as CustomEvent<string>).detail
       setProfileUsername(username)
-      setProfilePrevSection(activeSection as Section)
       setActiveSection('profile')
     }
-    function handleViewSong(e: Event) {
-      const { feed, idx, isOwner } = (e as CustomEvent<SongPageState>).detail
-      setSongPage({ feed, idx, isOwner })
+    function handleViewSong() {
       setPrevSection((prev) => prev === 'song' ? prev : activeSection as Section)
       setActiveSection('song')
     }
@@ -76,28 +69,16 @@ export function HomeLayout() {
       case 'explore':       return <ExplorePanel />
       case 'profile':       return profileUsername ? <ProfilePanel username={profileUsername} /> : null
       case 'notifications': return <EmptyPanel title="알림" />
-      case 'song': {
-        if (!songPage) return null
-        const { feed, idx, isOwner } = songPage
-        const song = feed[idx]
-        return (
-          <SongDetailPage
-            song={song}
-            isOwner={isOwner}
-            onBack={() => setActiveSection(prevSection)}
-            onPrev={idx > 0 ? () => setSongPage((s) => s ? { ...s, idx: s.idx - 1 } : null) : undefined}
-            onNext={idx < feed.length - 1 ? () => setSongPage((s) => s ? { ...s, idx: s.idx + 1 } : null) : undefined}
-          />
-        )
-      }
+      case 'song':
+        return <SongDetailPage onBack={() => setActiveSection(prevSection)} />
     }
   }
 
   return (
-    <div className="flex flex-col h-screen bg-[#111111] text-white overflow-hidden select-none">
+    <div className="flex flex-col h-screen bg-[#171A20] text-white overflow-hidden select-none">
 
       {/* ── Header ── */}
-      <header className="shrink-0 h-14 flex items-center px-5 border-b border-white/[0.06] bg-[#0d0d0d] z-20">
+      <header className="shrink-0 h-14 flex items-center px-5 border-b border-white/[0.06] bg-[#111318] z-20">
         <button onClick={() => setActiveSection('create')}>
           <Image src="/logo.svg" alt="모두의 노래" width={72} height={16} style={{ filter: 'invert(1)' }} />
         </button>
@@ -124,9 +105,9 @@ export function HomeLayout() {
               {userMenuOpen && (
                 <>
                   <div className="fixed inset-0 z-[54]" onClick={() => setUserMenuOpen(false)} />
-                  <div className="absolute right-0 top-10 z-[55] w-44 bg-[#1c1c1e] border border-white/[0.08] rounded-xl shadow-xl overflow-hidden">
+                  <div className="absolute right-0 top-10 z-[55] w-44 bg-[#21252E] border border-white/[0.08] rounded-xl shadow-xl overflow-hidden">
                     <div className="px-4 py-3 border-b border-white/[0.06]">
-                      <p className="text-xs font-medium text-zinc-200 truncate">
+                      <p className="text-xs font-medium text-white truncate">
                         {user.user_metadata?.full_name ?? '사용자'}
                       </p>
                       <p className="text-[11px] text-zinc-500 truncate mt-0.5">{user.email}</p>
@@ -137,7 +118,7 @@ export function HomeLayout() {
                         const username = user.user_metadata?.username ?? user.email?.split('@')[0] ?? user.id.slice(0, 8)
                         window.dispatchEvent(new CustomEvent('view-profile', { detail: username }))
                       }}
-                      className="w-full text-left px-4 py-2.5 text-sm text-zinc-200 hover:text-white hover:bg-white/[0.04] transition-colors"
+                      className="w-full text-left px-4 py-2.5 text-sm text-white hover:text-white hover:bg-white/[0.04] transition-colors"
                     >
                       내 프로필
                     </button>
@@ -166,7 +147,7 @@ export function HomeLayout() {
       <div className="flex flex-1 min-h-0 overflow-hidden">
 
         {/* Left sidebar */}
-        <aside className="hidden md:flex w-60 shrink-0 flex-col border-r border-white/[0.06] bg-gradient-to-b from-[#0d0d0d] from-50% to-[#0c0d16]">
+        <aside className="hidden md:flex w-60 shrink-0 flex-col border-r border-white/[0.06] bg-gradient-to-b from-[#111318] from-50% to-[#12151E]">
           <nav className="flex-1 px-3 py-3 space-y-0.5">
             {NAV_ITEMS.map(({ id, label, icon }) => {
               const active = activeSection === id
@@ -205,24 +186,29 @@ export function HomeLayout() {
         </aside>
 
         {/* Main content */}
-        <main className="flex-1 flex min-w-0 overflow-hidden">
-          {/* Center panel */}
-          <div className={
-            isCreate
-              ? 'overflow-y-auto w-full md:w-[560px] md:shrink-0 border-r border-white/[0.06]'
-              : (activeSection === 'archive' || activeSection === 'explore' || activeSection === 'profile' || activeSection === 'song')
-                ? 'flex-1 flex flex-col overflow-hidden'
-                : 'flex-1 overflow-y-auto'
-          }>
-            {renderCenter()}
+        <main className="flex-1 flex flex-col min-w-0 overflow-hidden">
+          <div className="flex flex-1 min-h-0 overflow-hidden">
+            {/* Center panel */}
+            <div className={
+              isCreate
+                ? 'overflow-y-auto w-full md:w-[560px] md:shrink-0 border-r border-white/[0.06]'
+                : (activeSection === 'archive' || activeSection === 'explore' || activeSection === 'profile' || activeSection === 'song')
+                  ? 'flex-1 flex flex-col overflow-hidden'
+                  : 'flex-1 overflow-y-auto'
+            }>
+              {renderCenter()}
+            </div>
+
+            {/* Right My Work panel — 음악 만들기에서만 */}
+            {isCreate && (
+              <aside className="hidden md:flex flex-1 min-w-[260px] flex-col overflow-hidden">
+                <MyWorkPanel />
+              </aside>
+            )}
           </div>
 
-          {/* Right My Work panel — 음악 만들기에서만 */}
-          {isCreate && (
-            <aside className="hidden md:flex flex-1 min-w-[260px] flex-col overflow-hidden">
-              <MyWorkPanel />
-            </aside>
-          )}
+          {/* Global Mini Player — 본문 영역 하단 */}
+          <GlobalMiniBar />
         </main>
 
       </div>
@@ -231,10 +217,10 @@ export function HomeLayout() {
       {drawerOpen && (
         <>
           <div className="fixed inset-0 bg-black/60 z-40 md:hidden" onClick={() => setDrawerOpen(false)} />
-          <div className="fixed right-0 top-0 h-full w-[300px] bg-[#161616] border-l border-white/[0.08] z-50 flex flex-col md:hidden">
+          <div className="fixed right-0 top-0 h-full w-[300px] bg-[#1A1D24] border-l border-white/[0.08] z-50 flex flex-col md:hidden">
             <div className="flex items-center justify-between px-4 py-4 border-b border-white/[0.06]">
               <span className="text-sm font-medium">라이브러리</span>
-              <button onClick={() => setDrawerOpen(false)} className="text-zinc-500 hover:text-zinc-200 transition-colors p-1">✕</button>
+              <button onClick={() => setDrawerOpen(false)} className="text-zinc-500 hover:text-white transition-colors p-1">✕</button>
             </div>
             <div className="flex-1 overflow-hidden">
               <MyWorkPanel />
@@ -245,7 +231,6 @@ export function HomeLayout() {
 
       {/* Login Modal */}
       {loginOpen && <LoginModal onClose={() => setLoginOpen(false)} />}
-
 
     </div>
   )

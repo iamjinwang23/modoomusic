@@ -22,7 +22,7 @@ export function SongCard({ song, onDelete }: Props) {
       <div className="flex items-start justify-between gap-2">
         <div className="flex-1 min-w-0">
           <p className="text-xs text-zinc-500">{date}</p>
-          <p className="text-sm text-zinc-200 mt-0.5 line-clamp-2">{song.prompt}</p>
+          <p className="text-sm text-white mt-0.5 line-clamp-2">{song.prompt}</p>
         </div>
         <div className="flex gap-1">
           {song.genre && (

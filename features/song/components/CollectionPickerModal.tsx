@@ -75,7 +75,7 @@ export function CollectionPickerModal({ song, onClose }: Props) {
   return (
     <div className="fixed inset-0 z-[70] flex items-center justify-center p-6">
       <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={onClose} />
-      <div className="relative bg-[#1c1c1e] border border-white/[0.08] rounded-2xl w-full max-w-[360px] overflow-hidden shadow-2xl">
+      <div className="relative bg-[#21252E] border border-white/[0.08] rounded-2xl w-full max-w-[360px] overflow-hidden shadow-2xl">
 
         {/* 헤더 */}
         <div className="flex items-center gap-3 px-4 py-4 border-b border-white/[0.06]">
@@ -98,7 +98,7 @@ export function CollectionPickerModal({ song, onClose }: Props) {
                 >
                   <CollectionCover collection={col} />
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm text-zinc-200 truncate">{col.name}</p>
+                    <p className="text-sm text-white truncate">{col.name}</p>
                     <p className="text-xs text-zinc-500">{col.songIds.length}곡</p>
                   </div>
                   <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center shrink-0 transition-colors ${active ? 'bg-violet-600 border-violet-600' : 'border-zinc-600'}`}>

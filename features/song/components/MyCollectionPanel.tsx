@@ -81,7 +81,7 @@ function CreateCollectionModal({ onClose, onCreate }: { onClose: () => void; onC
   return (
     <div className="fixed inset-0 z-[70] flex items-center justify-center p-6">
       <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={onClose} />
-      <div className="relative bg-[#1c1c1e] border border-white/[0.08] rounded-2xl w-full max-w-[320px] p-5 shadow-2xl">
+      <div className="relative bg-[#21252E] border border-white/[0.08] rounded-2xl w-full max-w-[320px] p-5 shadow-2xl">
         <div className="flex items-center justify-between mb-5">
           <p className="text-sm font-semibold text-white">새 컬렉션</p>
           <button onClick={onClose} className="w-7 h-7 rounded-full hover:bg-white/[0.08] flex items-center justify-center transition-colors">
@@ -144,11 +144,11 @@ function ConfirmDeleteModal({ name, onConfirm, onCancel }: { name: string; onCon
   return (
     <div className="fixed inset-0 z-[75] flex items-center justify-center p-6">
       <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={onCancel} />
-      <div className="relative bg-[#1c1c1e] border border-white/[0.08] rounded-2xl p-5 w-full max-w-[320px] shadow-2xl">
+      <div className="relative bg-[#21252E] border border-white/[0.08] rounded-2xl p-5 w-full max-w-[320px] shadow-2xl">
         <p className="text-sm font-semibold text-white mb-1">컬렉션을 삭제할까요?</p>
         <p className="text-xs text-zinc-400 mb-5 truncate">"{name}"의 모든 곡이 컬렉션에서 제거돼요</p>
         <div className="flex gap-2 justify-end">
-          <button onClick={onCancel} className="px-4 py-2 rounded-xl text-sm text-zinc-400 hover:text-zinc-200 hover:bg-white/[0.06] transition-colors">아니요</button>
+          <button onClick={onCancel} className="px-4 py-2 rounded-xl text-sm text-zinc-400 hover:text-white hover:bg-white/[0.06] transition-colors">아니요</button>
           <button onClick={onConfirm} className="px-5 py-2 rounded-xl text-sm font-semibold bg-red-600 hover:bg-red-500 text-white transition-colors">삭제</button>
         </div>
       </div>
@@ -183,7 +183,7 @@ function CollectionDetailView({ collection, onBack, onUpdated }: { collection: C
           </svg>
         </button>
         <div className="min-w-0">
-          <p className="text-sm font-bold text-zinc-200 truncate">{col.name}</p>
+          <p className="text-sm font-bold text-white truncate">{col.name}</p>
           <p className="text-xs text-zinc-500">{col.songIds.length}곡</p>
         </div>
       </div>
@@ -200,7 +200,7 @@ function CollectionDetailView({ collection, onBack, onUpdated }: { collection: C
                 <li key={song.id} className="flex items-center gap-3 px-4 py-3 hover:bg-white/[0.02] group">
                   <div className="w-14 aspect-[2/3] rounded-lg shrink-0" style={{ background: `linear-gradient(135deg, hsl(${hue},65%,48%) 0%, hsl(${h2},55%,32%) 100%)` }} />
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-zinc-200 truncate">{song.title || 'Untitled'}</p>
+                    <p className="text-sm font-medium text-white truncate">{song.title || 'Untitled'}</p>
                     <p className="text-xs text-zinc-400 mt-1 truncate">{tags || song.prompt}</p>
                   </div>
                   <button
@@ -267,7 +267,7 @@ export function MyCollectionPanel() {
                 <path d="M12 5v14M5 12h14" />
               </svg>
             </div>
-            <p className="text-sm font-medium text-zinc-400 group-hover:text-zinc-200 transition-colors mt-2">컬렉션 만들기</p>
+            <p className="text-sm font-medium text-zinc-400 group-hover:text-white transition-colors mt-2">컬렉션 만들기</p>
           </div>
 
           {/* 컬렉션 폴더들 */}
@@ -286,7 +286,7 @@ export function MyCollectionPanel() {
                   </button>
                 )}
               </div>
-              <p className="text-sm font-medium text-zinc-200 mt-2 truncate">{col.name}</p>
+              <p className="text-sm font-medium text-white mt-2 truncate">{col.name}</p>
               <p className="text-xs text-zinc-500">{col.songIds.length}곡</p>
             </div>
           ))}

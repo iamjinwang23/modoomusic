@@ -40,7 +40,7 @@ export default function ProfilePage() {
 
   if (!profile) {
     return (
-      <div className="flex items-center justify-center h-screen bg-[#111111] text-zinc-500 text-sm">
+      <div className="flex items-center justify-center h-screen bg-[#171A20] text-zinc-500 text-sm">
         사용자를 찾을 수 없어요
       </div>
     )
@@ -50,7 +50,7 @@ export default function ProfilePage() {
   const selectedIdx = selected ? songs.findIndex((s) => s.id === selected.id) : -1
 
   return (
-    <div className="min-h-screen bg-[#111111] text-white">
+    <div className="min-h-screen bg-[#171A20] text-white">
       {/* Cover */}
       <div
         className="h-32 w-full"
@@ -61,7 +61,7 @@ export default function ProfilePage() {
       <div className="px-5 pb-6">
         {/* Avatar */}
         <div
-          className="w-20 h-20 rounded-full flex items-center justify-center text-2xl font-bold text-white -mt-10 border-4 border-[#111111]"
+          className="w-20 h-20 rounded-full flex items-center justify-center text-2xl font-bold text-white -mt-10 border-4 border-[#171A20]"
           style={{ background: avatarGradient(profile.avatarHue) }}
         >
           {initials}
@@ -74,9 +74,9 @@ export default function ProfilePage() {
               <p className="text-sm text-zinc-400 mt-0.5">{profile.bio}</p>
             )}
             <div className="flex gap-4 mt-2 text-xs text-zinc-500">
-              <span><span className="text-zinc-200 font-medium">{profile.followerCount.toLocaleString()}</span> 팔로워</span>
-              <span><span className="text-zinc-200 font-medium">{profile.followingCount.toLocaleString()}</span> 팔로잉</span>
-              <span><span className="text-zinc-200 font-medium">{profile.songCount}</span> 곡</span>
+              <span><span className="text-white font-medium">{profile.followerCount.toLocaleString()}</span> 팔로워</span>
+              <span><span className="text-white font-medium">{profile.followingCount.toLocaleString()}</span> 팔로잉</span>
+              <span><span className="text-white font-medium">{profile.songCount}</span> 곡</span>
             </div>
           </div>
 

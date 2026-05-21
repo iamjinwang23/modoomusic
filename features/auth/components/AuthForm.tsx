@@ -22,7 +22,7 @@ export function AuthForm() {
             type="button"
             onClick={() => setTab(t)}
             className={`flex-1 py-2 rounded-lg text-sm font-medium transition-colors ${
-              tab === t ? 'bg-violet-600 text-white' : 'text-zinc-400 hover:text-zinc-200'
+              tab === t ? 'bg-violet-600 text-white' : 'text-zinc-400 hover:text-white'
             }`}
           >
             {t === 'login' ? '로그인' : '가입'}

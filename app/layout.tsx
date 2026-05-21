@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import localFont from "next/font/local";
 import "./globals.css";
 import { AuthProvider } from "@/components/AuthProvider";
+import { GlobalPlayerProvider } from "@/contexts/GlobalPlayerContext";
 
 const pretendard = localFont({
   src: "../node_modules/pretendard/dist/web/variable/woff2/PretendardVariable.woff2",
@@ -22,7 +23,11 @@ export default function RootLayout({
   return (
     <html lang="ko" className={`h-full ${pretendard.variable}`}>
       <body className="min-h-full font-[family-name:var(--font-pretendard)]">
-        <AuthProvider>{children}</AuthProvider>
+        <AuthProvider>
+          <GlobalPlayerProvider>
+            {children}
+          </GlobalPlayerProvider>
+        </AuthProvider>
       </body>
     </html>
   );
