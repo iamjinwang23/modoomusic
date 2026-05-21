@@ -1,71 +1,201 @@
+// Design Ref: §3.4 songs 테이블 + §10 Forward Compatibility — 동기 인터페이스 유지 + 내부 Supabase 백엔드
 import type { Song } from '@/types/domain'
+import { createClient } from '@/lib/supabase/client'
 
 let currentUserId: string | null = null
+let cache: Song[] = []
+let loaded = false
+let inflightLoad: Promise<void> | null = null
 
-export function setSongOwner(userId: string | null) {
-  currentUserId = userId
+interface DbSong {
+  id: string
+  user_id: string
+  title: string | null
+  prompt: string
+  genre: string | null
+  mood: string | null
+  custom_lyrics: string | null
+  lyrics: string | null
+  instrumental: boolean
+  audio_url: string
+  duration: number | null
+  liked: boolean
+  cover_image: string | null
+  cover_hue: number | null
+  is_new: boolean
+  is_public: boolean
+  published_at: string | null
+  publish_comment: string | null
+  created_at: string
 }
 
-function storageKey(): string | null {
-  return currentUserId ? `today-songs-${currentUserId}` : null
-}
-
-function loadSongs(): Song[] {
-  if (typeof window === 'undefined') return []
-  const key = storageKey()
-  if (!key) return []
-  try {
-    return JSON.parse(localStorage.getItem(key) ?? '[]')
-  } catch {
-    return []
+function rowToSong(r: DbSong): Song {
+  return {
+    id: r.id,
+    createdAt: r.created_at,
+    title: r.title,
+    prompt: r.prompt,
+    genre: r.genre,
+    mood: r.mood,
+    customLyrics: r.custom_lyrics,
+    lyrics: r.lyrics,
+    instrumental: r.instrumental,
+    audioUrl: r.audio_url,
+    duration: r.duration,
+    liked: r.liked,
+    coverImage: r.cover_image ?? undefined,
+    coverHue: r.cover_hue ?? undefined,
+    isNew: r.is_new,
+    published: r.is_public,
+    publishedAt: r.published_at ?? undefined,
+    publishComment: r.publish_comment ?? undefined,
   }
 }
 
-function saveSongs(songs: Song[]) {
-  const key = storageKey()
-  if (!key) return
-  localStorage.setItem(key, JSON.stringify(songs))
+function songToRow(s: Song, userId: string): Partial<DbSong> {
+  return {
+    id: s.id,
+    user_id: userId,
+    title: s.title,
+    prompt: s.prompt,
+    genre: s.genre,
+    mood: s.mood,
+    custom_lyrics: s.customLyrics,
+    lyrics: s.lyrics,
+    instrumental: s.instrumental,
+    audio_url: s.audioUrl,
+    duration: s.duration,
+    liked: s.liked ?? false,
+    cover_image: s.coverImage ?? null,
+    cover_hue: s.coverHue ?? 0,
+    is_new: s.isNew ?? true,
+    is_public: s.published ?? false,
+    published_at: s.publishedAt ?? null,
+    publish_comment: s.publishComment ?? null,
+    created_at: s.createdAt,
+  }
+}
+
+function patchToRow(p: Partial<Omit<Song, 'id' | 'createdAt'>>): Record<string, unknown> {
+  const out: Record<string, unknown> = {}
+  if ('title' in p) out.title = p.title
+  if ('prompt' in p) out.prompt = p.prompt
+  if ('genre' in p) out.genre = p.genre
+  if ('mood' in p) out.mood = p.mood
+  if ('customLyrics' in p) out.custom_lyrics = p.customLyrics
+  if ('lyrics' in p) out.lyrics = p.lyrics
+  if ('instrumental' in p) out.instrumental = p.instrumental
+  if ('audioUrl' in p) out.audio_url = p.audioUrl
+  if ('duration' in p) out.duration = p.duration
+  if ('liked' in p) out.liked = p.liked
+  if ('coverImage' in p) out.cover_image = p.coverImage ?? null
+  if ('coverHue' in p) out.cover_hue = p.coverHue
+  if ('isNew' in p) out.is_new = p.isNew
+  if ('published' in p) out.is_public = p.published
+  if ('publishedAt' in p) out.published_at = p.publishedAt ?? null
+  if ('publishComment' in p) out.publish_comment = p.publishComment ?? null
+  return out
+}
+
+async function loadFromSupabase(): Promise<void> {
+  if (!currentUserId) return
+  const supabase = createClient()
+  const { data, error } = await supabase
+    .from('songs')
+    .select('*')
+    .eq('user_id', currentUserId)
+    .order('created_at', { ascending: false })
+  if (error) {
+    console.error('[songService.load]', error.message)
+    return
+  }
+  cache = (data ?? []).map(rowToSong as (r: unknown) => Song)
+  loaded = true
+  window.dispatchEvent(new Event('song-updated'))
+}
+
+async function migrateLocalIfAny(): Promise<void> {
+  if (!currentUserId || typeof window === 'undefined') return
+  const key = `today-songs-${currentUserId}`
+  const raw = localStorage.getItem(key)
+  if (!raw) return
+  let local: Song[]
+  try { local = JSON.parse(raw) } catch { localStorage.removeItem(key); return }
+  if (!Array.isArray(local) || local.length === 0) { localStorage.removeItem(key); return }
+
+  const supabase = createClient()
+  const rows = local.map((s) => songToRow(s, currentUserId!))
+  const { error } = await supabase.from('songs').upsert(rows, { onConflict: 'id' })
+  if (error) {
+    console.error('[songService.migrate]', error.message)
+    return
+  }
+  localStorage.removeItem(key)
+  console.log(`[songService] migrated ${local.length} local songs to Supabase`)
+}
+
+export function setSongOwner(userId: string | null) {
+  if (currentUserId === userId) return
+  currentUserId = userId
+  cache = []
+  loaded = false
+  inflightLoad = null
+  if (userId && typeof window !== 'undefined') {
+    inflightLoad = (async () => {
+      await migrateLocalIfAny()
+      await loadFromSupabase()
+    })()
+  }
 }
 
 export const songService = {
   getAll(): Song[] {
-    return loadSongs()
-      .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
-      .map((s) => ({
-        ...s,
-        // TODO: remove fallback once real API duration is populated
-        duration: s.duration ?? (60 + (s.id.split('').reduce((acc, c) => acc + c.charCodeAt(0), 0) % 180)),
-      }))
+    if (currentUserId && !loaded && !inflightLoad) {
+      inflightLoad = loadFromSupabase()
+    }
+    return cache.map((s) => ({
+      ...s,
+      duration: s.duration ?? (60 + (s.id.split('').reduce((acc, c) => acc + c.charCodeAt(0), 0) % 180)),
+    }))
   },
 
   save(song: Omit<Song, 'id' | 'createdAt'>): Song {
-    const songs = loadSongs()
+    if (!currentUserId) throw new Error('songService.save: user not set')
     const newSong: Song = {
       ...song,
       id: crypto.randomUUID(),
       createdAt: new Date().toISOString(),
       isNew: true,
     }
-    saveSongs([newSong, ...songs])
+    cache = [newSong, ...cache]
     window.dispatchEvent(new Event('song-updated'))
+    const supabase = createClient()
+    supabase.from('songs').insert(songToRow(newSong, currentUserId))
+      .then(({ error }) => { if (error) console.error('[songService.save]', error.message) })
     return newSong
   },
 
   update(id: string, patch: Partial<Omit<Song, 'id' | 'createdAt'>>) {
-    const songs = loadSongs()
-    const idx = songs.findIndex((s) => s.id === id)
+    if (!currentUserId) return
+    const idx = cache.findIndex((s) => s.id === id)
     if (idx === -1) return
-    songs[idx] = { ...songs[idx], ...patch }
-    saveSongs(songs)
+    cache[idx] = { ...cache[idx], ...patch }
     window.dispatchEvent(new Event('song-updated'))
+    const supabase = createClient()
+    supabase.from('songs').update(patchToRow(patch)).eq('id', id).eq('user_id', currentUserId)
+      .then(({ error }) => { if (error) console.error('[songService.update]', error.message) })
   },
 
   getById(id: string): Song | undefined {
-    return loadSongs().find((s) => s.id === id)
+    return cache.find((s) => s.id === id)
   },
 
   delete(id: string) {
-    saveSongs(loadSongs().filter((s) => s.id !== id))
+    if (!currentUserId) return
+    cache = cache.filter((s) => s.id !== id)
     window.dispatchEvent(new Event('song-updated'))
+    const supabase = createClient()
+    supabase.from('songs').delete().eq('id', id).eq('user_id', currentUserId)
+      .then(({ error }) => { if (error) console.error('[songService.delete]', error.message) })
   },
 }
