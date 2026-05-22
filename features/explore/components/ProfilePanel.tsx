@@ -323,11 +323,11 @@ export function ProfilePanel({ username }: Props) {
   return (
     <div className="flex flex-col h-full overflow-hidden">
       <div className="flex-1 overflow-y-auto">
-        <div className="max-w-[1064px] mx-auto pt-4">
+        <div className="max-w-[1064px] mx-auto md:pt-4">
 
-          {/* ── 커버 + 아바타 (통합) — 모바일 16:9, 데스크톱 1064:368 ── */}
+          {/* ── 커버 + 아바타 (통합) — 모바일 풀폭·radius 0·헤더 밀착, 데스크톱 1064:368 + rounded ── */}
           <div
-            className={`relative w-full rounded-2xl overflow-hidden aspect-video md:aspect-[1064/368] ${isSelf ? 'group/cover' : ''}`}
+            className={`relative w-full rounded-none md:rounded-2xl overflow-hidden aspect-video md:aspect-[1064/368] ${isSelf ? 'group/cover' : ''}`}
             style={{ background: profileColor(profile.avatarHue).bg }}
           >
             {displayCoverUrl && (
