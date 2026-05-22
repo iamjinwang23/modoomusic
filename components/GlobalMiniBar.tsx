@@ -54,8 +54,9 @@ export function GlobalMiniBar() {
       if (ok) toast.success('링크가 복사되었어요')
       else toast.error('링크 복사에 실패했어요')
     }
-    const progressPct = duration > 0 ? (currentTime / duration) * 100 : 0
   }
+  
+      const progressPct = duration > 0 ? (currentTime / duration) * 100 : 0
 
   function seekFromPointer(e: React.PointerEvent) {
     const track = trackRef.current
