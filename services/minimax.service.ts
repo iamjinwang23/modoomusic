@@ -73,11 +73,17 @@ export async function generateSong(params: GenerateParams): Promise<GenerateResu
     audio_setting: { sample_rate: 44100, bitrate: 256000, format: 'mp3' },
   }
 
+  // is_instrumental은 Music 2.5+/2.6 계열에서만 지원. Music 2.0은 lyrics 유무로 판정
+  const supportsInstrumentalFlag = model.startsWith('music-2.5') || model.startsWith('music-2.6')
+
   if (isCoverModel) {
     if (audioBase64) body.audio_base64 = audioBase64
     if (hasLyrics) body.lyrics = customLyrics!.trim()
-  } else {
+  } else if (supportsInstrumentalFlag) {
     body.is_instrumental = isInstrumental
+    if (!isInstrumental && hasLyrics) body.lyrics = customLyrics!.trim()
+  } else {
+    // Music 2.0 등: 가사가 있으면 보컬, 없으면 instrumental
     if (!isInstrumental && hasLyrics) body.lyrics = customLyrics!.trim()
   }
 
