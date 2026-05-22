@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import Image from 'next/image'
+import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
 import { toast } from '@/components/toast/toast'
 
@@ -98,6 +99,16 @@ export function LoginModal({ onClose }: Props) {
               Apple로 계속하기
             </SocialButton>
 
+            {/* Naver */}
+            <SocialButton onClick={() => toast.info('네이버 로그인은 곧 지원될 예정이에요')} className="bg-[#03C75A] hover:bg-[#02b350] text-white">
+              <span className="absolute left-4 flex items-center">
+                <svg width="16" height="16" viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg" fill="white">
+                  <path d="M10.846 8.563L5.077 0H0v16h5.154V7.435L10.923 16H16V0h-5.154v8.563z"/>
+                </svg>
+              </span>
+              네이버로 계속하기
+            </SocialButton>
+
             {/* Kakao */}
             <SocialButton onClick={handleKakaoLogin} className={`bg-[#FEE500] hover:bg-[#fdd800] text-[#191919] ${loading ? 'opacity-70 pointer-events-none' : ''}`}>
               <span className="absolute left-4 flex items-center">
@@ -130,9 +141,9 @@ export function LoginModal({ onClose }: Props) {
 
           <p className="text-xs text-zinc-600 mt-8 text-center leading-relaxed">
             계속하면{' '}
-            <a href="#" className="underline hover:text-zinc-400">이용약관</a>
+            <Link href="/terms" target="_blank" className="underline hover:text-zinc-400">이용약관</Link>
             {' '}과{' '}
-            <a href="#" className="underline hover:text-zinc-400">개인정보처리방침</a>
+            <Link href="/privacy" target="_blank" className="underline hover:text-zinc-400">개인정보처리방침</Link>
             에 동의합니다
           </p>
         </div>
