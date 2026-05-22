@@ -153,7 +153,7 @@ export default function MainShellLayout({ children }: { children: React.ReactNod
           ) : (
             <button
               onClick={() => setLoginOpen(true)}
-              className="text-sm text-white border border-white px-3 py-1.5 rounded-full hover:bg-white/[0.08] transition-colors"
+              className="text-sm text-white border border-white/25 hover:border-white/40 px-3 py-1.5 rounded-full hover:bg-white/[0.08] transition-colors"
             >
               로그인
             </button>
