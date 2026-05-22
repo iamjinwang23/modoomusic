@@ -8,6 +8,8 @@ import { CollectionPickerModal } from '@/features/song/components/CollectionPick
 import { collectionService } from '@/services/collection.service'
 import { useAuth } from '@/components/AuthProvider'
 import { useGlobalPlayer } from '@/contexts/GlobalPlayerContext'
+import { toast } from '@/components/toast/toast'
+import { SoundWaveIcon } from '@/components/SoundWaveIcon'
 import type { Song } from '@/types/domain'
 
 interface SongProfile {
@@ -50,6 +52,7 @@ export function SongDetailPage({ onBack, profile }: Props) {
     song,
     isOwner,
     ownerAvatarUrl,
+    ownerName,
     hasPrev,
     hasNext,
     isPlaying: playing,
@@ -103,23 +106,53 @@ export function SongDetailPage({ onBack, profile }: Props) {
 
   async function handleShare() {
     const title = song!.title || song!.prompt.slice(0, 40)
-    if (navigator.share) await navigator.share({ title, url: song!.audioUrl }).catch(() => {})
-    else await navigator.clipboard.writeText(song!.audioUrl).catch(() => {})
+    if (navigator.share) {
+      await navigator.share({ title, url: song!.audioUrl }).catch(() => {})
+    } else {
+      const ok = await navigator.clipboard.writeText(song!.audioUrl).then(() => true).catch(() => false)
+      if (ok) toast.success('링크가 복사되었어요')
+      else toast.error('링크 복사에 실패했어요')
+    }
   }
 
   function handleDelete() {
     if (isOwner) {
-      songService.delete(song!.id)
+      const snapshot = songService.delete(song!.id)
       window.dispatchEvent(new CustomEvent('song-updated'))
+      if (snapshot) {
+        toast.info('곡이 삭제되었어요', {
+          duration: 5000,
+          action: {
+            label: '실행 취소',
+            onClick: () => {
+              songService.restore(snapshot)
+              toast.success('곡이 복원되었어요')
+            },
+          },
+        })
+      }
     }
     setConfirmDelete(false)
     onBack()
   }
 
   return (
-    <div className="flex flex-col h-full overflow-hidden">
+    <div className="relative isolate flex flex-col h-full overflow-hidden">
+      {/* 커버 색감을 흐릿하게 깔아주는 배경 레이어 */}
+      <div
+        aria-hidden
+        className="absolute inset-0 z-0 scale-125 blur-3xl opacity-40 pointer-events-none"
+        style={song.coverImage ? undefined : { background: coverGradient(song) }}
+      >
+        {song.coverImage && (
+          <Image src={song.coverImage} alt="" fill className="object-cover" unoptimized priority={false} />
+        )}
+      </div>
+      {/* 가독성용 스크림 */}
+      <div aria-hidden className="absolute inset-0 z-0 bg-[#171A20]/75 pointer-events-none" />
+
       {/* 헤더 */}
-      <div className="shrink-0 flex items-center gap-3 px-5 h-14 border-b border-white/[0.06]">
+      <div className="relative z-10 shrink-0 flex items-center gap-3 px-5 h-14 border-b border-white/[0.06]">
         <button
           onClick={onBack}
           className="w-8 h-8 rounded-full bg-white/[0.06] hover:bg-white/[0.12] flex items-center justify-center transition-colors"
@@ -132,7 +165,7 @@ export function SongDetailPage({ onBack, profile }: Props) {
       </div>
 
       {/* 본문 */}
-      <div className="flex flex-1 min-h-0 overflow-hidden">
+      <div className="relative z-10 flex flex-1 min-h-0 overflow-hidden">
         {/* 좌측 — 커버 + 액션 */}
         <div className="w-[240px] shrink-0 flex flex-col p-5 gap-4">
           <div
@@ -143,18 +176,22 @@ export function SongDetailPage({ onBack, profile }: Props) {
             {song.coverImage && (
               <Image src={song.coverImage} alt="" fill className="object-cover" unoptimized />
             )}
-            <div className={`absolute inset-0 flex items-center justify-center transition-opacity duration-150 bg-black/20 ${playing ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`}>
-              <Image
-                src={playing ? '/Pause.svg' : '/Play.svg'}
-                alt={playing ? '일시정지' : '재생'}
-                width={36}
-                height={36}
-                style={{ filter: 'invert(1)' }}
-              />
-            </div>
+            {/* 재생 중: 은은한 dim + 사운드 웨이브 / 정지: hover 시 play */}
+            {playing ? (
+              <>
+                <div className="absolute inset-0 bg-black/30 pointer-events-none" />
+                <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                  <SoundWaveIcon size={40} />
+                </div>
+              </>
+            ) : (
+              <div className="absolute inset-0 flex items-center justify-center transition-opacity duration-150 bg-black/20 opacity-0 group-hover:opacity-100">
+                <Image src="/Play.svg" alt="재생" width={36} height={36} style={{ filter: 'invert(1)' }} />
+              </div>
+            )}
           </div>
           {(() => {
-            const name = profile?.displayName ?? user?.user_metadata?.full_name ?? user?.email?.split('@')[0] ?? null
+            const name = profile?.displayName ?? ownerName ?? user?.user_metadata?.full_name ?? user?.email?.split('@')[0] ?? null
             const hue = profile?.avatarHue ?? (user ? (user.id.charCodeAt(0) * 137) % 360 : 0)
             const avatarUrl = ownerAvatarUrl
             if (!name) return null
@@ -279,8 +316,9 @@ function CopyBtn({ text }: { text: string }) {
   function handleCopy() {
     navigator.clipboard.writeText(text).then(() => {
       setCopied(true)
+      toast.success('복사되었어요')
       setTimeout(() => setCopied(false), 1500)
-    })
+    }).catch(() => toast.error('복사에 실패했어요'))
   }
   return (
     <button

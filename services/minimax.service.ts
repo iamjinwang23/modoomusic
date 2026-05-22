@@ -21,13 +21,17 @@ const MOCK_LYRICS = `[Verse]
 오늘의 내 하루를`
 
 export const MODELS = [
-  { id: 'music-2.6-free',   label: 'Music 2.6 (beta)', desc: '최신 MiniMax 모델, 풍부한 사운드',  locked: false, cover: false },
-  { id: 'music-2.0',        label: 'Music 2.0',         desc: '안정적인 기본 모델, 저렴한 비용',   locked: false, cover: false },
-  { id: 'music-cover-free', label: 'Music Cover',       desc: '참조 음원 스타일로 커버 생성',      locked: false, cover: true  },
-  { id: 'music-2.6',        label: 'Music 2.6 Pro',     desc: '준비 중',                          locked: true,  cover: false },
+  { id: 'music-2.0',        label: 'Music 2.0',         desc: '안정적인 기본 모델, 저렴한 비용',   locked: false, cover: false, credits: 2  },
+  { id: 'music-2.6-free',   label: 'Music 2.6 (beta)', desc: '최신 MiniMax 모델, 풍부한 사운드',  locked: true,  cover: false, credits: 10 },
+  { id: 'music-cover-free', label: 'Music Cover',       desc: '참조 음원 스타일로 커버 생성',      locked: true,  cover: true,  credits: 10 },
+  { id: 'music-2.6',        label: 'Music 2.6 Pro',     desc: '준비 중',                          locked: true,  cover: false, credits: 10 },
 ] as const
 
 export type MusicModelId = typeof MODELS[number]['id']
+
+export function creditsForModel(modelId: MusicModelId): number {
+  return MODELS.find((m) => m.id === modelId)?.credits ?? 2
+}
 
 interface GenerateParams {
   prompt: string

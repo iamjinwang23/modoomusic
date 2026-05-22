@@ -190,12 +190,25 @@ export const songService = {
     return cache.find((s) => s.id === id)
   },
 
-  delete(id: string) {
-    if (!currentUserId) return
+  delete(id: string): Song | null {
+    if (!currentUserId) return null
+    const snapshot = cache.find((s) => s.id === id) ?? null
     cache = cache.filter((s) => s.id !== id)
     window.dispatchEvent(new Event('song-updated'))
     const supabase = createClient()
     supabase.from('songs').delete().eq('id', id).eq('user_id', currentUserId)
       .then(({ error }) => { if (error) console.error('[songService.delete]', error.message) })
+    return snapshot
+  },
+
+  // 삭제된 곡 복원 (실행 취소)
+  restore(snapshot: Song) {
+    if (!currentUserId) return
+    if (cache.some((s) => s.id === snapshot.id)) return
+    cache = [snapshot, ...cache]
+    window.dispatchEvent(new Event('song-updated'))
+    const supabase = createClient()
+    supabase.from('songs').insert(songToRow(snapshot, currentUserId))
+      .then(({ error }) => { if (error) console.error('[songService.restore]', error.message) })
   },
 }

@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import Image from 'next/image'
 import { useGlobalPlayer } from '@/contexts/GlobalPlayerContext'
+import { SoundWaveIcon } from '@/components/SoundWaveIcon'
 import type { PublicSong } from '@/types/domain'
 
 function coverGradient(hue: number) {
@@ -19,9 +20,11 @@ interface Props {
   song: PublicSong
   onPlay: (song: PublicSong) => void
   onThumbPlay?: (song: PublicSong) => void
+  // 프로필 페이지처럼 작성자가 이미 명확한 화면에선 artist 라인 숨김
+  hideArtist?: boolean
 }
 
-export function PublicSongCard({ song, onPlay, onThumbPlay }: Props) {
+export function PublicSongCard({ song, onPlay, onThumbPlay, hideArtist = false }: Props) {
   const [liked, setLiked] = useState(song.isLiked ?? false)
   const { song: currentSong, isPlaying } = useGlobalPlayer()
   const isThisPlaying = currentSong?.id === song.id && isPlaying
@@ -57,19 +60,22 @@ export function PublicSongCard({ song, onPlay, onThumbPlay }: Props) {
             <Image src={song.coverImage} alt={displayTitle} fill className="object-cover" sizes="200px" />
           )}
         </div>
-        <div className={`absolute inset-0 flex items-center justify-center transition-opacity duration-150 ${isThisPlaying ? 'opacity-100' : 'opacity-0 group-hover:opacity-80'}`}>
-          <Image
-            src={isThisPlaying ? '/Pause.svg' : '/Play.svg'}
-            alt={isThisPlaying ? '일시정지' : '재생'}
-            width={32}
-            height={32}
-            style={{ filter: 'invert(1)' }}
-          />
-        </div>
+        {isThisPlaying ? (
+          <>
+            <div className="absolute inset-0 bg-black/30 pointer-events-none" />
+            <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+              <SoundWaveIcon size={32} />
+            </div>
+          </>
+        ) : (
+          <div className="absolute inset-0 flex items-center justify-center transition-opacity duration-150 opacity-0 group-hover:opacity-80">
+            <Image src="/Play.svg" alt="재생" width={32} height={32} style={{ filter: 'invert(1)' }} />
+          </div>
+        )}
       </div>
 
       {/* 정보 */}
-      <div className="pt-2 space-y-0.5">
+      <div className="pt-2 space-y-1">
         <div className="flex items-start gap-1.5 min-w-0">
           <p className="text-sm font-medium text-zinc-100 leading-snug flex-1 line-clamp-2">{displayTitle}</p>
           {song.instrumental && (
@@ -78,31 +84,33 @@ export function PublicSongCard({ song, onPlay, onThumbPlay }: Props) {
             </span>
           )}
         </div>
-        <button
-          onClick={(e) => {
-            e.stopPropagation()
-            window.dispatchEvent(new CustomEvent('view-profile', { detail: song.username }))
-          }}
-          className="text-xs text-zinc-500 hover:text-violet-400 transition-colors truncate block text-left"
-        >
-          {song.displayName}
-        </button>
-        <div className="flex items-center gap-3 pt-0.5 text-xs text-zinc-500">
+        {!hideArtist && (
+          <button
+            onClick={(e) => {
+              e.stopPropagation()
+              window.dispatchEvent(new CustomEvent('view-profile', { detail: song.username }))
+            }}
+            className="text-sm text-zinc-400 hover:text-white transition-colors truncate block text-left"
+          >
+            {song.displayName}
+          </button>
+        )}
+        <div className="flex items-center gap-3 pt-1 text-sm text-zinc-500">
           <button
             onClick={handleLike}
-            className={`flex items-center gap-1 transition-colors ${liked ? 'text-violet-400' : 'hover:text-zinc-300'}`}
+            className={`flex items-center gap-1.5 transition-colors ${liked ? 'text-violet-400' : 'hover:text-zinc-300'}`}
           >
             <Image
               src="/Thumb-Up.svg"
               alt="좋아요"
-              width={11}
-              height={11}
+              width={14}
+              height={14}
               style={{ filter: liked ? 'brightness(0) saturate(100%) invert(44%) sepia(51%) saturate(1569%) hue-rotate(221deg) brightness(101%) contrast(96%)' : 'invert(0.45)' }}
             />
             {formatCount(song.likeCount + (liked ? 1 : 0))}
           </button>
-          <span className="flex items-center gap-1">
-            <Image src="/Play.svg" alt="" width={11} height={11} style={{ filter: 'invert(0.45)' }} />
+          <span className="flex items-center gap-1.5">
+            <Image src="/Play.svg" alt="" width={14} height={14} style={{ filter: 'invert(0.45)' }} />
             {formatCount(song.playCount)}
           </span>
         </div>

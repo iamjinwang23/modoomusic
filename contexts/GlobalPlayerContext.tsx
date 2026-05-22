@@ -65,6 +65,8 @@ export function GlobalPlayerProvider({ children }: { children: React.ReactNode }
   const audioRef = useRef<HTMLAudioElement | null>(null)
   const stateRef = useRef(state)
   stateRef.current = state
+  // 같은 세션 안에서 같은 곡 중복 카운트 방지 (pause/resume 시 재증가 X)
+  const countedRef = useRef<Set<string>>(new Set())
 
   const song = state.feed[state.idx] ?? null
 
@@ -152,6 +154,12 @@ export function GlobalPlayerProvider({ children }: { children: React.ReactNode }
           dispatch({ type: 'PLAYING', v: true })
           // 인라인 카드들에게 정지 신호
           window.dispatchEvent(new CustomEvent('audio-play', { detail: '__global__' }))
+          // 재생수 증가 — 세션 내 곡당 1회만
+          const cur = stateRef.current.feed[stateRef.current.idx]
+          if (cur && !countedRef.current.has(cur.id)) {
+            countedRef.current.add(cur.id)
+            fetch(`/api/songs/${cur.id}/play`, { method: 'POST' }).catch(() => {})
+          }
         }}
         onPause={() => dispatch({ type: 'PLAYING', v: false })}
         onTimeUpdate={e => dispatch({ type: 'TIME', t: e.currentTarget.currentTime })}

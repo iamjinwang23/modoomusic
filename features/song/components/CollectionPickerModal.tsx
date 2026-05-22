@@ -1,7 +1,11 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import Image from 'next/image'
 import { collectionService } from '@/services/collection.service'
+import { songService } from '@/services/song.service'
+import { useAuth } from '@/components/AuthProvider'
+import { toast } from '@/components/toast/toast'
 import type { Collection, Song } from '@/types/domain'
 
 function hueGradient(id: string) {
@@ -10,12 +14,28 @@ function hueGradient(id: string) {
   return `linear-gradient(135deg, hsl(${hue},65%,48%) 0%, hsl(${h2},55%,32%) 100%)`
 }
 
+// 컬렉션 커버 — 정방형
 function CollectionCover({ collection }: { collection: Collection }) {
+  if (collection.coverImage) {
+    return (
+      <div className="w-11 aspect-square rounded-lg overflow-hidden shrink-0 relative">
+        <Image src={collection.coverImage} alt="" fill className="object-cover" sizes="44px" unoptimized />
+      </div>
+    )
+  }
   const ids = collection.songIds.slice(0, 4)
-  if (ids.length === 0) return <div className="w-12 h-12 rounded-lg bg-zinc-800 shrink-0" />
-  if (ids.length === 1) return <div className="w-12 h-12 rounded-lg shrink-0" style={{ background: hueGradient(ids[0]) }} />
+  if (ids.length === 0) return <div className="w-11 aspect-square rounded-lg bg-zinc-800 shrink-0" />
+  const firstWithCover = collection.songIds.map(songService.getById).find((s) => s?.coverImage)
+  if (firstWithCover?.coverImage) {
+    return (
+      <div className="w-11 aspect-square rounded-lg overflow-hidden shrink-0 relative">
+        <Image src={firstWithCover.coverImage} alt="" fill className="object-cover" sizes="44px" unoptimized />
+      </div>
+    )
+  }
+  if (ids.length === 1) return <div className="w-11 aspect-square rounded-lg shrink-0" style={{ background: hueGradient(ids[0]) }} />
   return (
-    <div className="w-12 h-12 rounded-lg shrink-0 overflow-hidden grid grid-cols-2 gap-[1px] bg-zinc-900">
+    <div className="w-11 aspect-square rounded-lg shrink-0 overflow-hidden grid grid-cols-2 gap-[1px] bg-zinc-900">
       {Array.from({ length: 4 }).map((_, i) => {
         const id = ids[i] ?? ids[ids.length - 1]
         return <div key={i} style={{ background: hueGradient(id) }} />
@@ -30,27 +50,44 @@ interface Props {
 }
 
 export function CollectionPickerModal({ song, onClose }: Props) {
+  const { profile } = useAuth()
+  const ownerName = profile?.displayName ?? profile?.username ?? '내 음악'
   const [collections, setCollections] = useState<Collection[]>([])
   const [inIds, setInIds] = useState<Set<string>>(new Set())
   const [creating, setCreating] = useState(false)
   const [newName, setNewName] = useState('')
+  const [visible, setVisible] = useState(false)
 
   useEffect(() => {
     setCollections(collectionService.ensureDefault())
     setInIds(new Set(collectionService.getSongCollectionIds(song.id)))
   }, [song.id])
 
+  useEffect(() => {
+    const t = setTimeout(() => setVisible(true), 10)
+    return () => clearTimeout(t)
+  }, [])
+
+  function handleClose() {
+    setVisible(false)
+    setTimeout(onClose, 280)
+  }
+
   function refresh() {
     setCollections(collectionService.getAll())
   }
 
   function toggle(collectionId: string) {
+    const col = collections.find((c) => c.id === collectionId)
+    const colName = col?.name ?? '컬렉션'
     if (inIds.has(collectionId)) {
       collectionService.removeSong(collectionId, song.id)
       setInIds((prev) => { const s = new Set(prev); s.delete(collectionId); return s })
+      toast.info(`'${colName}'에서 제거되었어요`)
     } else {
       collectionService.addSong(collectionId, song.id)
       setInIds((prev) => new Set([...prev, collectionId]))
+      toast.success(`'${colName}'에 담았어요`)
     }
     refresh()
     window.dispatchEvent(new CustomEvent('collection-updated'))
@@ -64,6 +101,7 @@ export function CollectionPickerModal({ song, onClose }: Props) {
     setInIds((prev) => new Set([...prev, col.id]))
     refresh()
     window.dispatchEvent(new CustomEvent('collection-updated'))
+    toast.success(`'${name}' 컬렉션이 만들어졌어요`)
     setNewName('')
     setCreating(false)
   }
@@ -71,20 +109,47 @@ export function CollectionPickerModal({ song, onClose }: Props) {
   const songHue = song.coverHue ?? (song.id.split('').reduce((acc, c) => acc + c.charCodeAt(0), 0) * 137) % 360
   const songH2 = (songHue + 55) % 360
   const songGradient = `linear-gradient(135deg, hsl(${songHue},65%,48%) 0%, hsl(${songH2},55%,32%) 100%)`
+  const songTitle = song.title || song.prompt.slice(0, 30)
 
   return (
     <div className="fixed inset-0 z-[70] flex items-center justify-center p-6">
-      <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={onClose} />
-      <div className="relative bg-[#21252E] border border-white/[0.08] rounded-2xl w-full max-w-[360px] overflow-hidden shadow-2xl">
+      <div
+        className={`absolute inset-0 bg-black/70 backdrop-blur-sm transition-opacity duration-280 ${visible ? 'opacity-100' : 'opacity-0'}`}
+        onClick={handleClose}
+      />
+      <div
+        className="relative bg-[#21252E] border border-white/[0.08] rounded-2xl w-full max-w-[420px] overflow-hidden shadow-2xl transition-all duration-280 ease-out"
+        style={{
+          opacity: visible ? 1 : 0,
+          transform: visible ? 'translateY(0) scale(1)' : 'translateY(24px) scale(0.97)',
+        }}
+      >
+        {/* 헤더 — SongEditModal과 동일한 패턴 */}
+        <div className="flex items-center justify-between px-5 pt-5 pb-4">
+          <p className="text-xl font-semibold text-white">컬렉션에 담기</p>
+          <button onClick={handleClose} className="w-7 h-7 rounded-full hover:bg-white/[0.08] flex items-center justify-center transition-colors">
+            <Image src="/Close-Fill.svg" alt="닫기" width={14} height={14} style={{ filter: 'invert(0.5)' }} />
+          </button>
+        </div>
 
-        {/* 헤더 */}
-        <div className="flex items-center gap-3 px-4 py-4 border-b border-white/[0.06]">
-          <div className="w-10 h-10 rounded-lg shrink-0" style={{ background: songGradient }} />
-          <div className="min-w-0">
-            <p className="text-sm font-semibold text-white truncate">{song.title || song.prompt.slice(0, 30)}</p>
-            <p className="text-xs text-zinc-500 mt-0.5">컬렉션에 담기</p>
+        {/* 곡 정보 */}
+        <div className="flex items-center gap-3 px-5 pb-4">
+          <div
+            className="w-12 aspect-[2/3] rounded-lg shrink-0 overflow-hidden relative"
+            style={song.coverImage ? undefined : { background: songGradient }}
+          >
+            {song.coverImage && (
+              <Image src={song.coverImage} alt="" fill className="object-cover" sizes="48px" unoptimized />
+            )}
+          </div>
+          <div className="min-w-0 flex-1">
+            <p className="text-sm font-medium text-white truncate">{songTitle}</p>
+            <p className="text-xs text-zinc-500 mt-0.5 truncate">{ownerName}</p>
           </div>
         </div>
+
+        {/* 구분선 */}
+        <div className="border-t border-white/[0.06]" />
 
         {/* 컬렉션 목록 */}
         <ul className="max-h-64 overflow-y-auto py-1">
@@ -94,7 +159,7 @@ export function CollectionPickerModal({ song, onClose }: Props) {
               <li key={col.id}>
                 <button
                   onClick={() => toggle(col.id)}
-                  className="w-full flex items-center gap-3 px-4 py-3 hover:bg-white/[0.04] transition-colors text-left"
+                  className="w-full flex items-center gap-3 px-5 py-2.5 hover:bg-white/[0.04] transition-colors text-left"
                 >
                   <CollectionCover collection={col} />
                   <div className="flex-1 min-w-0">
@@ -115,7 +180,7 @@ export function CollectionPickerModal({ song, onClose }: Props) {
         </ul>
 
         {/* 새 컬렉션 */}
-        <div className="border-t border-white/[0.06] px-4 py-3">
+        <div className="border-t border-white/[0.06] px-5 py-3">
           {creating ? (
             <div className="flex gap-2">
               <input

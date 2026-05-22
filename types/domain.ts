@@ -59,6 +59,15 @@ export interface UserProfile {
   followingCount: number
   songCount: number
   isFollowing?: boolean
+  links?: SocialLinks
+}
+
+export interface SocialLinks {
+  instagram?: string | null
+  tiktok?: string | null
+  youtube?: string | null
+  facebook?: string | null
+  x?: string | null
 }
 
 export interface Collection {

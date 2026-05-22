@@ -7,7 +7,10 @@ import { songService } from '@/services/song.service'
 import { useAuth } from '@/components/AuthProvider'
 import { createClient } from '@/lib/supabase/client'
 import { PublicSongCard } from './PublicSongCard'
-import type { PublicSong, Song, UserProfile } from '@/types/domain'
+import { ProfileEditModal } from '@/components/ProfileEditModal'
+import { SocialLinksRow } from '@/components/SocialLinksRow'
+import { toast } from '@/components/toast/toast'
+import type { PublicSong, Song, UserProfile, SocialLinks } from '@/types/domain'
 
 
 const PALETTE = [
@@ -123,35 +126,98 @@ function ImageEditOverlay({ onUpload, onDelete, hasImage }: {
 interface Props { username: string }
 
 export function ProfilePanel({ username }: Props) {
-  const { user } = useAuth()
-  const mockProfile = exploreService.getProfile(username)
+  const { user, profile: authProfile } = useAuth()
+  // 본인인지 판별: 내 username과 prop username 비교
+  const isSelf = !!user && authProfile?.username === username
 
-  const publishedCount = !mockProfile && user
+  const publishedCount = isSelf
     ? songService.getAll().filter((s) => s.published).length
     : 0
 
-  const selfProfile: UserProfile | null = !mockProfile && user ? (() => {
-    const derivedUsername = user.user_metadata?.username ?? user.email?.split('@')[0] ?? user.id.slice(0, 8)
-    if (derivedUsername !== username && user.id.slice(0, 8) !== username) return null
-    return {
-      username,
-      displayName: user.user_metadata?.full_name ?? username,
-      userId: user.id,
-      bio: null,
-      avatarHue: (user.id.charCodeAt(0) * 137) % 360,
-      followerCount: 0,
-      followingCount: 0,
-      songCount: publishedCount,
-    }
-  })() : null
+  // 본인 프로필: 추가 컬럼(bio·links·변경 정책) 로드
+  const [dbProfile, setDbProfile] = useState<{
+    username: string
+    displayName: string | null
+    bio: string | null
+    avatarHue: number
+    links: SocialLinks
+    usernameChangedAt: string | null
+    nameChangeLog: string[]
+  } | null>(null)
 
-  const isSelf = !!user && mockProfile === null && selfProfile !== null
+  // 다른 사용자 프로필 + 그 사용자의 공개 곡 (Supabase에서 fetch)
+  const [otherProfile, setOtherProfile] = useState<UserProfile | null>(null)
+  const [otherSongs, setOtherSongs] = useState<PublicSong[]>([])
+  const [loadingOther, setLoadingOther] = useState(!isSelf)
+
+  useEffect(() => {
+    if (!isSelf || !user) { setDbProfile(null); return }
+    const supabase = createClient()
+    supabase
+      .from('profiles')
+      .select('username, display_name, bio, avatar_hue, link_instagram, link_tiktok, link_youtube, link_facebook, link_x, username_changed_at, name_change_log')
+      .eq('id', user.id)
+      .maybeSingle()
+      .then(({ data }) => {
+        if (!data) { setDbProfile(null); return }
+        setDbProfile({
+          username: data.username,
+          displayName: data.display_name,
+          bio: data.bio,
+          avatarHue: data.avatar_hue ?? 0,
+          links: {
+            instagram: data.link_instagram,
+            tiktok:    data.link_tiktok,
+            youtube:   data.link_youtube,
+            facebook:  data.link_facebook,
+            x:         data.link_x,
+          },
+          usernameChangedAt: data.username_changed_at ?? null,
+          nameChangeLog: (data.name_change_log ?? []) as string[],
+        })
+      })
+  }, [isSelf, user?.id])
+
+  useEffect(() => {
+    if (isSelf) { setOtherProfile(null); setOtherSongs([]); setLoadingOther(false); return }
+    let cancelled = false
+    setLoadingOther(true)
+    Promise.all([
+      exploreService.getProfile(username),
+      exploreService.getUserSongs(username),
+    ]).then(([p, songs]) => {
+      if (cancelled) return
+      setOtherProfile(p)
+      setOtherSongs(songs)
+      setLoadingOther(false)
+    })
+    return () => { cancelled = true }
+  }, [isSelf, username])
+
+  const selfProfile: UserProfile | null = isSelf && user && dbProfile && dbProfile.username === username
+    ? {
+        username: dbProfile.username,
+        displayName: dbProfile.displayName ?? dbProfile.username,
+        userId: user.id,
+        bio: dbProfile.bio,
+        avatarHue: dbProfile.avatarHue,
+        followerCount: 0,
+        followingCount: 0,
+        songCount: publishedCount,
+        links: dbProfile.links,
+      }
+    : null
+
+  function patchDbProfile(patch: Partial<NonNullable<typeof dbProfile>>) {
+    setDbProfile((prev) => prev ? { ...prev, ...patch } : prev)
+  }
 
   // DB에서 실제 이미지 URL 로드
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null)
   const [coverUrl, setCoverUrl] = useState<string | null>(null)
   const [uploading, setUploading] = useState<'avatar' | 'cover' | null>(null)
   const [avatarHovered, setAvatarHovered] = useState(false)
+  const [editOpen, setEditOpen] = useState(false)
 
   useEffect(() => {
     if (!isSelf || !user) return
@@ -170,6 +236,9 @@ export function ProfilePanel({ username }: Props) {
       setAvatarUrl(url)
       await createClient().from('profiles').update({ avatar_url: url }).eq('id', user.id)
       window.dispatchEvent(new CustomEvent('profile-avatar-updated', { detail: url }))
+      toast.success('프로필 사진이 변경되었어요')
+    } else {
+      toast.error('사진 업로드에 실패했어요')
     }
     setUploading(null)
   }
@@ -180,6 +249,7 @@ export function ProfilePanel({ username }: Props) {
     setAvatarUrl(null)
     await createClient().from('profiles').update({ avatar_url: null }).eq('id', user.id)
     window.dispatchEvent(new CustomEvent('profile-avatar-updated', { detail: null }))
+    toast.info('프로필 사진이 제거되었어요')
   }
 
   async function handleCoverUpload(file: File) {
@@ -189,6 +259,9 @@ export function ProfilePanel({ username }: Props) {
     if (url) {
       setCoverUrl(url)
       await createClient().from('profiles').update({ cover_url: url }).eq('id', user.id)
+      toast.success('커버 이미지가 변경되었어요')
+    } else {
+      toast.error('커버 업로드에 실패했어요')
     }
     setUploading(null)
   }
@@ -198,12 +271,12 @@ export function ProfilePanel({ username }: Props) {
     await deleteProfileImage(user.id, 'cover')
     setCoverUrl(null)
     await createClient().from('profiles').update({ cover_url: null }).eq('id', user.id)
+    toast.info('커버 이미지가 제거되었어요')
   }
 
-  const profile = mockProfile ?? selfProfile
+  const profile = isSelf ? selfProfile : otherProfile
   const [following, setFollowing] = useState(profile?.isFollowing ?? false)
 
-  const mockSongs = exploreService.getUserSongs(username)
   const selfSongs: PublicSong[] = isSelf
     ? songService.getAll().filter((s) => s.published).map((s) => ({
         id: s.id, createdAt: s.createdAt, title: s.title, prompt: s.prompt,
@@ -213,7 +286,15 @@ export function ProfilePanel({ username }: Props) {
         userId: user!.id, likeCount: 0, playCount: 0, isLiked: false,
       }))
     : []
-  const songs = isSelf ? selfSongs : mockSongs
+  const songs = isSelf ? selfSongs : otherSongs
+
+  if (loadingOther) {
+    return (
+      <div className="flex items-center justify-center h-full text-zinc-500 text-sm">
+        불러오는 중…
+      </div>
+    )
+  }
 
   if (!profile) {
     return (
@@ -316,19 +397,27 @@ export function ProfilePanel({ username }: Props) {
 
           {/* ── 프로필 헤더 ── */}
           <div className="relative px-5 pb-5">
-            <div className="mt-6 flex items-start justify-between">
-              <div>
-                {profile.bio && <p className="text-xs text-zinc-400 mb-2">{profile.bio}</p>}
-                <div className="flex gap-5 text-sm text-zinc-500">
+            <div className="mt-6 flex items-start justify-between gap-4">
+              <div className="min-w-0 flex-1 space-y-5">
+                <div className="flex gap-6 text-sm text-zinc-500">
                   <span><span className="text-white font-semibold">{profile.songCount}</span> 곡</span>
                   <span><span className="text-white font-semibold">{profile.followerCount.toLocaleString()}</span> 팔로워</span>
                   <span><span className="text-white font-semibold">{profile.followingCount.toLocaleString()}</span> 팔로잉</span>
                 </div>
+                {profile.bio && <p className="text-sm text-zinc-300 whitespace-pre-line">{profile.bio}</p>}
+                {profile.links && <SocialLinksRow links={profile.links} />}
               </div>
-              {!isSelf && (
+              {isSelf ? (
+                <button
+                  onClick={() => setEditOpen(true)}
+                  className="px-4 py-1.5 rounded-full text-sm font-medium bg-white/[0.08] text-zinc-200 hover:bg-white/[0.12] transition-colors shrink-0"
+                >
+                  프로필 수정
+                </button>
+              ) : (
                 <button
                   onClick={() => setFollowing((v) => !v)}
-                  className={`px-4 py-1.5 rounded-full text-sm font-medium transition-colors ${
+                  className={`px-4 py-1.5 rounded-full text-sm font-medium transition-colors shrink-0 ${
                     following
                       ? 'bg-white/[0.08] text-zinc-300 hover:bg-white/[0.12]'
                       : 'bg-violet-600 hover:bg-violet-500 text-white'
@@ -351,7 +440,7 @@ export function ProfilePanel({ username }: Props) {
               <div className="flex gap-3 overflow-x-auto px-5 pb-1 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
                 {songs.map((song) => (
                   <div key={song.id} className="shrink-0 w-[200px]">
-                    <PublicSongCard song={song} onPlay={handlePlay} onThumbPlay={handleThumbPlay} />
+                    <PublicSongCard song={song} onPlay={handlePlay} onThumbPlay={handleThumbPlay} hideArtist />
                   </div>
                 ))}
               </div>
@@ -359,6 +448,35 @@ export function ProfilePanel({ username }: Props) {
           </div>
         </div>
       </div>
+
+      {isSelf && editOpen && user && dbProfile && (
+        <ProfileEditModal
+          userId={user.id}
+          initial={{
+            username: dbProfile.username,
+            displayName: dbProfile.displayName ?? '',
+            bio: dbProfile.bio ?? '',
+            links: dbProfile.links,
+            usernameChangedAt: dbProfile.usernameChangedAt,
+            nameChangeLog: dbProfile.nameChangeLog,
+          }}
+          onClose={() => setEditOpen(false)}
+          onSaved={(next) => {
+            patchDbProfile({
+              username: next.username,
+              displayName: next.displayName,
+              bio: next.bio,
+              links: next.links,
+              usernameChangedAt: next.usernameChangedAt,
+              nameChangeLog: next.nameChangeLog,
+            })
+            setEditOpen(false)
+            window.dispatchEvent(new CustomEvent('profile-updated', {
+              detail: { username: next.username, displayName: next.displayName },
+            }))
+          }}
+        />
+      )}
     </div>
   )
 }

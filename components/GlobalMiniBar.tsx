@@ -5,6 +5,7 @@ import Image from 'next/image'
 import { useGlobalPlayer } from '@/contexts/GlobalPlayerContext'
 import { CollectionPickerModal } from '@/features/song/components/CollectionPickerModal'
 import { songService } from '@/services/song.service'
+import { toast } from '@/components/toast/toast'
 import type { Song } from '@/types/domain'
 
 function formatTime(s: number) {
@@ -47,7 +48,9 @@ export function GlobalMiniBar() {
     if (navigator.share) {
       await navigator.share({ title, url: song.audioUrl }).catch(() => {})
     } else {
-      await navigator.clipboard.writeText(song.audioUrl).catch(() => {})
+      const ok = await navigator.clipboard.writeText(song.audioUrl).then(() => true).catch(() => false)
+      if (ok) toast.success('링크가 복사되었어요')
+      else toast.error('링크 복사에 실패했어요')
     }
   }
 
@@ -104,13 +107,13 @@ export function GlobalMiniBar() {
           </div>
 
           {/* Right: action buttons — right-aligned */}
-          <div className="flex items-center gap-1 justify-end">
+          <div className="flex items-center gap-2 justify-end">
             {/* Like */}
             <button
               onClick={handleLike}
               title="좋아요"
               className={`w-8 h-8 rounded-full flex items-center justify-center transition-colors ${
-                song.liked ? 'bg-white hover:bg-zinc-100' : 'hover:bg-white/[0.08]'
+                song.liked ? 'bg-white hover:bg-zinc-100' : 'bg-white/[0.06] hover:bg-white/[0.12]'
               }`}
             >
               <Image
@@ -126,7 +129,7 @@ export function GlobalMiniBar() {
             <button
               onClick={() => setCollectOpen(true)}
               title="컬렉션"
-              className="w-8 h-8 rounded-full flex items-center justify-center hover:bg-white/[0.08] transition-colors"
+              className="w-8 h-8 rounded-full flex items-center justify-center bg-white/[0.06] hover:bg-white/[0.12] transition-colors"
             >
               <Image
                 src="/Collection.svg"
@@ -141,7 +144,7 @@ export function GlobalMiniBar() {
             <button
               onClick={handleShare}
               title="공유"
-              className="w-8 h-8 rounded-full flex items-center justify-center hover:bg-white/[0.08] transition-colors"
+              className="w-8 h-8 rounded-full flex items-center justify-center bg-white/[0.06] hover:bg-white/[0.12] transition-colors"
             >
               <Image
                 src="/Share.svg"
@@ -157,7 +160,7 @@ export function GlobalMiniBar() {
               <button
                 title="더보기"
                 onClick={openDetail}
-                className="w-8 h-8 rounded-full flex items-center justify-center hover:bg-white/[0.08] transition-colors"
+                className="w-8 h-8 rounded-full flex items-center justify-center bg-white/[0.06] hover:bg-white/[0.12] transition-colors"
               >
                 <Image
                   src="/More.svg"

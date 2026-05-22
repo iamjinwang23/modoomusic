@@ -4,6 +4,10 @@ import { useState, useEffect, useRef } from 'react'
 import Image from 'next/image'
 import { collectionService } from '@/services/collection.service'
 import { songService } from '@/services/song.service'
+import { useAuth } from '@/components/AuthProvider'
+import { useGlobalPlayer } from '@/contexts/GlobalPlayerContext'
+import { toast } from '@/components/toast/toast'
+import { SoundWaveIcon } from '@/components/SoundWaveIcon'
 import type { Collection, Song } from '@/types/domain'
 
 function hueGradient(id: string) {
@@ -74,6 +78,7 @@ function CreateCollectionModal({ onClose, onCreate }: { onClose: () => void; onC
     if (!name.trim()) return
     const col = collectionService.create(name.trim(), coverPreview ?? undefined)
     window.dispatchEvent(new CustomEvent('collection-updated'))
+    toast.success('컬렉션이 만들어졌어요')
     onCreate(col)
     onClose()
   }
@@ -159,17 +164,58 @@ function ConfirmDeleteModal({ name, onConfirm, onCancel }: { name: string; onCon
 /* ── 컬렉션 상세 (곡 목록) ── */
 function CollectionDetailView({ collection, onBack, onUpdated }: { collection: Collection; onBack: () => void; onUpdated: () => void }) {
   const [col, setCol] = useState(collection)
+  const { profile } = useAuth()
+  const ownerAvatarUrl = profile?.avatarUrl ?? null
+  const ownerName = profile?.displayName ?? profile?.username ?? null
+  const player = useGlobalPlayer()
 
   useEffect(() => { setCol(collection) }, [collection])
 
   function removeSong(songId: string) {
+    const index = col.songIds.indexOf(songId)
+    if (index === -1) return
     collectionService.removeSong(col.id, songId)
     setCol((prev) => ({ ...prev, songIds: prev.songIds.filter((id) => id !== songId) }))
     window.dispatchEvent(new CustomEvent('collection-updated'))
     onUpdated()
+    toast.info('컬렉션에서 제거되었어요', {
+      duration: 5000,
+      action: {
+        label: '실행 취소',
+        onClick: () => {
+          collectionService.addSongRestore(col.id, songId, index)
+          setCol((prev) => {
+            const next = [...prev.songIds]
+            next.splice(Math.min(index, next.length), 0, songId)
+            return { ...prev, songIds: next }
+          })
+          window.dispatchEvent(new CustomEvent('collection-updated'))
+          onUpdated()
+          toast.success('컬렉션에 복원되었어요')
+        },
+      },
+    })
   }
 
   const songs = col.songIds.map((id) => songService.getById(id)).filter(Boolean) as Song[]
+
+  function handleThumbClick(song: Song) {
+    const idx = songs.findIndex((s) => s.id === song.id)
+    if (player.song?.id === song.id) {
+      player.togglePlay()
+    } else {
+      window.dispatchEvent(new CustomEvent('play-song', {
+        detail: { feed: songs, idx, isOwner: true, ownerAvatarUrl, ownerName },
+      }))
+    }
+  }
+
+  function handleOpen(song: Song) {
+    const idx = songs.findIndex((s) => s.id === song.id)
+    window.dispatchEvent(new CustomEvent('view-song', {
+      detail: { feed: songs, idx, isOwner: true, ownerAvatarUrl, ownerName },
+    }))
+  }
 
   return (
     <div className="flex flex-col h-full">
@@ -196,16 +242,52 @@ function CollectionDetailView({ collection, onBack, onUpdated }: { collection: C
               const hue = song.coverHue ?? (song.id.split('').reduce((acc, c) => acc + c.charCodeAt(0), 0) * 137) % 360
               const h2 = (hue + 55) % 360
               const tags = [song.genre, song.mood].filter(Boolean).join(', ')
+              const isCurrentSong = player.song?.id === song.id
+              const playing = isCurrentSong && player.isPlaying
               return (
                 <li key={song.id} className="flex items-center gap-3 px-4 py-3 hover:bg-white/[0.02] group">
-                  <div className="w-14 aspect-[2/3] rounded-lg shrink-0" style={{ background: `linear-gradient(135deg, hsl(${hue},65%,48%) 0%, hsl(${h2},55%,32%) 100%)` }} />
-                  <div className="flex-1 min-w-0">
+                  {/* 썸네일 — 클릭으로 재생 */}
+                  <div
+                    onClick={() => handleThumbClick(song)}
+                    className="w-14 aspect-[2/3] rounded-lg shrink-0 cursor-pointer overflow-hidden relative"
+                    style={song.coverImage ? undefined : { background: `linear-gradient(135deg, hsl(${hue},65%,48%) 0%, hsl(${h2},55%,32%) 100%)` }}
+                  >
+                    {song.coverImage && (
+                      <Image src={song.coverImage} alt="" fill className="object-cover" unoptimized />
+                    )}
+                    {playing ? (
+                      <>
+                        <div className="absolute inset-0 bg-black/30 pointer-events-none" />
+                        <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                          <SoundWaveIcon size={18} />
+                        </div>
+                      </>
+                    ) : (
+                      <div className="absolute inset-0 flex items-center justify-center">
+                        <Image
+                          src="/Play.svg"
+                          alt="재생"
+                          width={18}
+                          height={18}
+                          style={{ filter: 'invert(1)' }}
+                          className="opacity-0 group-hover:opacity-75"
+                        />
+                      </div>
+                    )}
+                  </div>
+                  {/* 정보 — 클릭으로 상세 진입 */}
+                  <button
+                    type="button"
+                    onClick={() => handleOpen(song)}
+                    className="flex-1 min-w-0 text-left"
+                  >
                     <p className="text-sm font-medium text-white truncate">{song.title || 'Untitled'}</p>
                     <p className="text-xs text-zinc-400 mt-1 truncate">{tags || song.prompt}</p>
-                  </div>
+                  </button>
                   <button
                     type="button"
                     onClick={() => removeSong(song.id)}
+                    title="컬렉션에서 제거"
                     className="opacity-0 group-hover:opacity-100 w-8 h-8 rounded-full hover:bg-white/[0.08] flex items-center justify-center transition-all shrink-0"
                   >
                     <Image src="/Close-Fill.svg" alt="제거" width={14} height={14} style={{ filter: 'invert(0.4)' }} />
@@ -239,11 +321,25 @@ export function MyCollectionPanel() {
   }, [])
 
   function handleDelete(col: Collection) {
-    collectionService.delete(col.id)
+    const snapshot = collectionService.delete(col.id)
     setDeletingId(null)
     if (selected?.id === col.id) setSelected(null)
     load()
     window.dispatchEvent(new CustomEvent('collection-updated'))
+    if (snapshot) {
+      toast.info('컬렉션이 삭제되었어요', {
+        duration: 5000,
+        action: {
+          label: '실행 취소',
+          onClick: () => {
+            collectionService.restore(snapshot)
+            load()
+            window.dispatchEvent(new CustomEvent('collection-updated'))
+            toast.success('컬렉션이 복원되었어요')
+          },
+        },
+      })
+    }
   }
 
   const deletingCol = collections.find((c) => c.id === deletingId)

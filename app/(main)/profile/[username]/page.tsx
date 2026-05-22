@@ -1,4 +1,4 @@
-import { HomeLayout } from '../../HomeLayout'
+import { ProfilePanel } from '@/features/explore/components/ProfilePanel'
 
 interface Props {
   params: Promise<{ username: string }>
@@ -6,5 +6,5 @@ interface Props {
 
 export default async function ProfilePage({ params }: Props) {
   const { username } = await params
-  return <HomeLayout initialSection="profile" initialProfileUsername={username} />
+  return <ProfilePanel username={username} />
 }

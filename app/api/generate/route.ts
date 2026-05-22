@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { generateSong, generateCoverImage, MOCK_MODE } from '@/services/minimax.service'
+import { generateSong, generateCoverImage, MOCK_MODE, MODELS, creditsForModel, type MusicModelId } from '@/services/minimax.service'
 import { uploadFromUrl } from '@/services/storage.service'
+import { createUserClient } from '@/lib/supabase/server'
+import { tryConsumeCredits, refundCredits } from '@/services/credit.service'
 
 export async function POST(req: NextRequest) {
   const { prompt, genre, mood, customLyrics, instrumental, model, audioBase64 } = await req.json()
@@ -9,6 +11,33 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: '스타일을 입력해주세요' }, { status: 400 })
   }
 
+  // ── 1) 인증 확인 (쿠키 세션 기반)
+  const userClient = await createUserClient()
+  const { data: { user } } = await userClient.auth.getUser()
+  if (!user) {
+    return NextResponse.json({ error: '로그인이 필요해요' }, { status: 401 })
+  }
+
+  // ── 2) 모델 잠금 확인 (1차 출시: Music 2.0만 허용)
+  const modelDef = MODELS.find((m) => m.id === model)
+  if (!modelDef) {
+    return NextResponse.json({ error: '알 수 없는 모델이에요' }, { status: 400 })
+  }
+  if (modelDef.locked) {
+    return NextResponse.json({ error: '이 모델은 곧 출시될 Plus 플랜에서 이용할 수 있어요', code: 'MODEL_LOCKED' }, { status: 403 })
+  }
+
+  // ── 3) 크레딧 차감 (선차감, 실패 시 환불)
+  const cost = creditsForModel(model as MusicModelId)
+  const consume = await tryConsumeCredits(user.id, cost)
+  if (!consume.ok) {
+    return NextResponse.json(
+      { error: '오늘의 크레딧을 모두 사용했어요. 내일 자정에 리셋돼요', code: 'DAILY_LIMIT', credits: consume.state },
+      { status: 429 },
+    )
+  }
+
+  // ── 4) MiniMax 호출
   try {
     const [songResult, coverUrl] = await Promise.all([
       generateSong({ prompt: prompt.trim(), genre, mood, customLyrics, instrumental, model, audioBase64 }),
@@ -30,8 +59,15 @@ export async function POST(req: NextRequest) {
       if (permanentCoverUrl) finalCoverUrl = permanentCoverUrl
     }
 
-    return NextResponse.json({ ...songResult, audioUrl: finalAudioUrl, coverUrl: finalCoverUrl })
+    return NextResponse.json({
+      ...songResult,
+      audioUrl: finalAudioUrl,
+      coverUrl: finalCoverUrl,
+      credits: consume.state,
+    })
   } catch (e) {
+    // 실패 시 차감했던 크레딧 복원
+    await refundCredits(user.id, cost)
     const message = e instanceof Error ? e.message : 'API 오류'
     return NextResponse.json({ error: message }, { status: 502 })
   }

@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { toast } from '@/components/toast/toast'
 
 export function AuthForm() {
   const [tab, setTab] = useState<'login' | 'signup'>('login')
@@ -9,7 +10,7 @@ export function AuthForm() {
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
-    alert(`[껍데기] ${tab === 'login' ? '로그인' : '가입'} — Supabase 연동 전`)
+    toast.info('이메일 로그인은 곧 지원될 예정이에요')
   }
 
   return (
@@ -66,7 +67,7 @@ export function AuthForm() {
 
       <button
         type="button"
-        onClick={() => alert('[껍데기] 카카오 로그인 — 연동 전')}
+        onClick={() => toast.info('카카오 로그인은 곧 지원될 예정이에요')}
         className="w-full bg-yellow-400 hover:bg-yellow-300 text-zinc-900 rounded-xl py-3 text-sm font-semibold transition-colors"
       >
         카카오로 시작하기

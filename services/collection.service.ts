@@ -64,8 +64,29 @@ export const collectionService = {
     return col
   },
 
-  delete(collectionId: string): void {
-    persist(load().filter((c) => c.id !== collectionId))
+  delete(collectionId: string): Collection | null {
+    const cols = load()
+    const snapshot = cols.find((c) => c.id === collectionId) ?? null
+    persist(cols.filter((c) => c.id !== collectionId))
+    return snapshot
+  },
+
+  // 삭제된 컬렉션 복원 (실행 취소)
+  restore(snapshot: Collection): void {
+    const cols = load()
+    if (cols.some((c) => c.id === snapshot.id)) return
+    persist([...cols, snapshot])
+  },
+
+  // 컬렉션에서 곡 제거를 되돌리기 (실행 취소)
+  addSongRestore(collectionId: string, songId: string, index: number): void {
+    const cols = load()
+    const col = cols.find((c) => c.id === collectionId)
+    if (col && !col.songIds.includes(songId)) {
+      const insertAt = Math.max(0, Math.min(index, col.songIds.length))
+      col.songIds = [...col.songIds.slice(0, insertAt), songId, ...col.songIds.slice(insertAt)]
+      persist(cols)
+    }
   },
 
   rename(collectionId: string, name: string): void {

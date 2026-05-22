@@ -4,6 +4,7 @@ import { useState, useRef } from 'react'
 import Image from 'next/image'
 import { songService } from '@/services/song.service'
 import { useAuth } from '@/components/AuthProvider'
+import { toast } from '@/components/toast/toast'
 import type { Song } from '@/types/domain'
 
 interface Props {
@@ -12,7 +13,7 @@ interface Props {
 }
 
 export function PublishModal({ song, onClose }: Props) {
-  const { user } = useAuth()
+  const { user, profile } = useAuth()
   const hue = song.coverHue ?? (song.id.split('').reduce((acc, c) => acc + c.charCodeAt(0), 0) * 137) % 360
   const h2 = (hue + 55) % 360
   const defaultGradient = `linear-gradient(160deg, hsl(${hue},70%,50%) 0%, hsl(${h2},60%,35%) 60%, hsl(${(h2 + 40) % 360},50%,24%) 100%)`
@@ -41,9 +42,10 @@ export function PublishModal({ song, onClose }: Props) {
       publishCoverImage: coverPreview ?? undefined,
     })
     window.dispatchEvent(new CustomEvent('song-updated'))
+    toast.success('곡이 게시되었어요')
     onClose()
     if (user) {
-      const username = user.user_metadata?.username ?? user.email?.split('@')[0] ?? user.id.slice(0, 8)
+      const username = profile?.username ?? user.user_metadata?.username ?? user.email?.split('@')[0] ?? user.id.slice(0, 8)
       setTimeout(() => window.dispatchEvent(new CustomEvent('view-profile', { detail: username })), 0)
     }
   }

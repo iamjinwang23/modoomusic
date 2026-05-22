@@ -3,7 +3,7 @@
 import { useState, useRef, useEffect } from 'react'
 import Image from 'next/image'
 import { useSongGeneration } from '../hooks/useSongGeneration'
-import { MODELS, type MusicModelId } from '@/services/minimax.service'
+import { MODELS, creditsForModel, type MusicModelId } from '@/services/minimax.service'
 import { useAuth } from '@/components/AuthProvider'
 
 const ALL_CHIPS = [
@@ -81,7 +81,7 @@ export function SongForm() {
   const [styleRefNotice, setStyleRefNotice] = useState(false)
   const [styleRefDontShow, setStyleRefDontShow] = useState(false)
   const [vocalGender, setVocalGender] = useState<'male' | 'female' | null>(null)
-  const [model, setModel] = useState<MusicModelId>('music-2.6-free')
+  const [model, setModel] = useState<MusicModelId>('music-2.0')
   const [modelDropOpen, setModelDropOpen] = useState(false)
   const modelDropRef = useRef<HTMLDivElement>(null)
 
@@ -311,25 +311,39 @@ export function SongForm() {
                     <button
                       key={m.id}
                       type="button"
-                      disabled={m.locked}
-                      onClick={() => { if (!m.locked) { setModel(m.id); setModelDropOpen(false) } }}
+                      onClick={() => {
+                        setModelDropOpen(false)
+                        if (m.locked) {
+                          window.dispatchEvent(new CustomEvent('open-coming-soon', { detail: 'locked-model' }))
+                        } else {
+                          setModel(m.id)
+                        }
+                      }}
                       className={`w-full flex items-start gap-3 px-3.5 py-3 transition-colors text-left ${
-                        m.locked ? 'opacity-35 cursor-not-allowed' : active ? 'bg-white/[0.06]' : 'hover:bg-white/[0.04] cursor-pointer'
+                        m.locked ? 'cursor-pointer hover:bg-white/[0.03]' : active ? 'bg-white/[0.06]' : 'hover:bg-white/[0.04] cursor-pointer'
                       }`}
                     >
                       {/* 로고 */}
-                      <Image src="/minimax.webp" alt="MiniMax" width={36} height={36} className="w-9 h-9 rounded-lg object-cover shrink-0 mt-0.5" />
+                      <Image src="/minimax.webp" alt="MiniMax" width={36} height={36} className={`w-9 h-9 rounded-lg object-cover shrink-0 mt-0.5 ${m.locked ? 'opacity-40' : ''}`} />
                       {/* 텍스트 */}
                       <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2">
-                          <p className={`text-sm font-medium ${active ? 'text-white' : 'text-zinc-200'}`}>{labelBase}</p>
-                          {labelIsBeta && <span className="text-[10px] font-medium text-teal-400 bg-teal-500/15 px-1.5 py-0.5 rounded-full leading-none">beta</span>}
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <p className={`text-sm font-medium ${m.locked ? 'text-zinc-500' : active ? 'text-white' : 'text-zinc-200'}`}>{labelBase}</p>
+                          {labelIsBeta && !m.locked && <span className="text-[10px] font-medium text-teal-400 bg-teal-500/15 px-1.5 py-0.5 rounded-full leading-none">beta</span>}
+                          {m.locked && <span className="text-[10px] font-medium text-violet-300 bg-violet-500/15 px-1.5 py-0.5 rounded-full leading-none">곧 소개 예정</span>}
                         </div>
-                        <p className="text-xs text-zinc-500 mt-0.5 leading-relaxed">{m.desc}</p>
+                        <p className={`text-xs mt-0.5 leading-relaxed ${m.locked ? 'text-zinc-600' : 'text-zinc-500'}`}>{m.desc}</p>
                       </div>
-                      {/* 선택 체크 */}
+                      {/* 선택 체크 / 자물쇠 */}
                       <div className="w-5 shrink-0 flex items-center justify-center self-center">
-                        {active && <Image src="/Check.svg" alt="" width={16} height={16} style={{ filter: 'invert(1)' }} />}
+                        {m.locked ? (
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-zinc-500">
+                            <rect x="4" y="11" width="16" height="10" rx="2"/>
+                            <path d="M8 11V7a4 4 0 1 1 8 0v4"/>
+                          </svg>
+                        ) : active ? (
+                          <Image src="/Check.svg" alt="" width={16} height={16} style={{ filter: 'invert(1)' }} />
+                        ) : null}
                       </div>
                     </button>
                   )
@@ -499,7 +513,7 @@ export function SongForm() {
           isGenerating
             ? 'shimmer bg-violet-600 text-white cursor-not-allowed'
             : !stylePrompt.trim() || (isCoverModel && !refAudio)
-            ? 'bg-[#393C41] text-zinc-500'
+            ? 'bg-[#393C41] text-white'
             : 'bg-violet-600 hover:bg-violet-500 text-white'
         }`}
       >
@@ -513,10 +527,11 @@ export function SongForm() {
           </span>
         ) : (
           <span className="flex items-center justify-center gap-2">
-            <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor">
-              <path fillRule="evenodd" d="M9 4.5a.75.75 0 0 1 .721.544l.813 2.846a3.75 3.75 0 0 0 2.576 2.576l2.846.813a.75.75 0 0 1 0 1.442l-2.846.813a3.75 3.75 0 0 0-2.576 2.576l-.813 2.846a.75.75 0 0 1-1.442 0l-.813-2.846a3.75 3.75 0 0 0-2.576-2.576l-2.846-.813a.75.75 0 0 1 0-1.442l2.846-.813A3.75 3.75 0 0 0 7.466 7.89l.813-2.846A.75.75 0 0 1 9 4.5ZM18 1.5a.75.75 0 0 1 .728.568l.258 1.036c.236.94.97 1.674 1.91 1.91l1.036.258a.75.75 0 0 1 0 1.456l-1.036.258c-.94.236-1.674.97-1.91 1.91l-.258 1.036a.75.75 0 0 1-1.456 0l-.258-1.036a3.375 3.375 0 0 0-1.91-1.91l-1.036-.258a.75.75 0 0 1 0-1.456l1.036-.258a3.375 3.375 0 0 0 1.91-1.91l.258-1.036A.75.75 0 0 1 18 1.5ZM16.5 15a.75.75 0 0 1 .712.513l.394 1.183c.15.447.5.799.948.948l1.183.395a.75.75 0 0 1 0 1.422l-1.183.395c-.447.15-.799.5-.948.948l-.395 1.183a.75.75 0 0 1-1.422 0l-.395-1.183a1.5 1.5 0 0 0-.948-.948l-1.183-.395a.75.75 0 0 1 0-1.422l1.183-.395c.447-.15.799-.5.948-.948l.395-1.183A.75.75 0 0 1 16.5 15Z" clipRule="evenodd" />
-            </svg>
-            음악 만들기
+            <span>음악 만들기</span>
+            <span className="inline-flex items-center gap-1">
+              <Image src="/Sparkles.svg" alt="" width={16} height={16} style={{ filter: 'invert(1)' }} />
+              <span className="font-extrabold tabular-nums">{creditsForModel(model)}</span>
+            </span>
           </span>
         )}
       </button>

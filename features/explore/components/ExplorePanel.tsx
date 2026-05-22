@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect, useCallback } from 'react'
 import Image from 'next/image'
 import { exploreService, type FeedTab } from '@/services/explore.service'
+import { useAuth } from '@/components/AuthProvider'
 import { PublicSongCard } from './PublicSongCard'
 import { ExploreFeedFilter } from './ExploreFeedFilter'
 import type { PublicSong, Song } from '@/types/domain'
@@ -29,14 +30,27 @@ function toSong(pub: PublicSong): Song {
     duration: null,
     liked: pub.isLiked,
     coverHue: pub.coverHue,
+    coverImage: pub.coverImage,
   }
 }
 
-function dispatchPlay(pub: PublicSong, feed: PublicSong[]) {
+// 카드(제목/사용자 영역) 클릭 → 곡 상세 진입
+function dispatchView(pub: PublicSong, feed: PublicSong[], currentUserId: string | null) {
   const songs = feed.map(toSong)
   const idx = feed.findIndex((s) => s.id === pub.id)
+  const isOwner = !!currentUserId && pub.userId === currentUserId
   window.dispatchEvent(new CustomEvent('view-song', {
-    detail: { feed: songs, idx, isOwner: false },
+    detail: { feed: songs, idx, isOwner, ownerName: pub.displayName },
+  }))
+}
+
+// 썸네일 플레이 버튼 클릭 → 재생만 (페이지 전환 X)
+function dispatchPlayOnly(pub: PublicSong, feed: PublicSong[], currentUserId: string | null) {
+  const songs = feed.map(toSong)
+  const idx = feed.findIndex((s) => s.id === pub.id)
+  const isOwner = !!currentUserId && pub.userId === currentUserId
+  window.dispatchEvent(new CustomEvent('play-song', {
+    detail: { feed: songs, idx, isOwner, ownerName: pub.displayName },
   }))
 }
 
@@ -45,10 +59,12 @@ function SectionCarousel({
   label,
   feed,
   onViewAll,
+  currentUserId,
 }: {
   label: string
   feed: PublicSong[]
   onViewAll: () => void
+  currentUserId: string | null
 }) {
   const scrollRef = useRef<HTMLDivElement>(null)
   const [fadeLeft, setFadeLeft] = useState(false)
@@ -74,6 +90,8 @@ function SectionCarousel({
     scrollRef.current?.scrollBy({ left: dir * STEP * 3, behavior: 'smooth' })
   }
 
+  if (feed.length === 0) return null
+
   return (
     <div>
       {/* 섹션 헤더 */}
@@ -93,7 +111,6 @@ function SectionCarousel({
         onMouseEnter={() => setHovered(true)}
         onMouseLeave={() => setHovered(false)}
       >
-        {/* 좌측 그라데이션 + 화살표 */}
         {fadeLeft && (
           <div className="absolute left-0 top-0 bottom-0 w-14 bg-gradient-to-r from-[#171A20] via-[#171A20]/60 to-transparent z-10 pointer-events-none" />
         )}
@@ -113,12 +130,11 @@ function SectionCarousel({
         >
           {feed.map((song) => (
             <div key={song.id} className="shrink-0 w-[200px]">
-              <PublicSongCard song={song} onPlay={(p) => dispatchPlay(p, feed)} />
+              <PublicSongCard song={song} onPlay={(p) => dispatchView(p, feed, currentUserId)} onThumbPlay={(p) => dispatchPlayOnly(p, feed, currentUserId)} />
             </div>
           ))}
         </div>
 
-        {/* 우측 그라데이션 + 화살표 */}
         {fadeRight && (
           <div className="absolute right-0 top-0 bottom-0 w-14 bg-gradient-to-l from-[#171A20] via-[#171A20]/60 to-transparent z-10 pointer-events-none" />
         )}
@@ -140,22 +156,32 @@ function SectionAllView({
   tab,
   label,
   onBack,
+  currentUserId,
 }: {
   tab: FeedTab
   label: string
   onBack: () => void
+  currentUserId: string | null
 }) {
   const [filters, setFilters] = useState<string[]>([])
+  const [feed, setFeed] = useState<PublicSong[]>([])
+  const [loading, setLoading] = useState(true)
 
-  const feed = (() => {
+  useEffect(() => {
+    let cancelled = false
+    setLoading(true)
     const genres = filters.filter((f) => GENRE_SET.has(f))
     const moods = filters.filter((f) => !GENRE_SET.has(f))
-    return exploreService.getByFilter(tab, genres, moods)
-  })()
+    exploreService.getByFilter(tab, genres, moods).then((data) => {
+      if (cancelled) return
+      setFeed(data)
+      setLoading(false)
+    })
+    return () => { cancelled = true }
+  }, [tab, filters])
 
   return (
     <div className="flex flex-col h-full overflow-hidden">
-      {/* 헤더 */}
       <div className="shrink-0 flex items-center gap-3 px-5 h-14 border-b border-white/[0.06]">
         <button
           onClick={onBack}
@@ -168,16 +194,16 @@ function SectionAllView({
         <p className="text-sm font-semibold">{label}</p>
       </div>
 
-      {/* 필터 */}
       <div className="shrink-0 px-5 py-3 border-b border-white/[0.06]">
         <ExploreFeedFilter selected={filters} onChange={setFilters} />
       </div>
 
-      {/* 그리드 */}
       <div className="flex-1 overflow-y-auto px-5 py-5">
-        {feed.length === 0 ? (
-          <div className="flex items-center justify-center h-full text-zinc-500 text-sm">
-            해당 조건의 곡이 없어요
+        {loading ? (
+          <div className="flex items-center justify-center h-full text-zinc-500 text-sm">불러오는 중…</div>
+        ) : feed.length === 0 ? (
+          <div className="flex flex-col items-center justify-center h-full text-zinc-500 text-sm gap-1">
+            <p>{filters.length > 0 ? '해당 조건의 곡이 없어요' : '아직 공개된 곡이 없어요'}</p>
           </div>
         ) : (
           <div className="flex flex-wrap gap-3">
@@ -185,7 +211,8 @@ function SectionAllView({
               <div key={song.id} className="w-[200px]">
                 <PublicSongCard
                   song={song}
-                  onPlay={(p) => dispatchPlay(p, feed)}
+                  onPlay={(p) => dispatchView(p, feed, currentUserId)}
+                  onThumbPlay={(p) => dispatchPlayOnly(p, feed, currentUserId)}
                 />
               </div>
             ))}
@@ -198,7 +225,25 @@ function SectionAllView({
 
 /* ── 메인 ── */
 export function ExplorePanel() {
+  const { user } = useAuth()
+  const currentUserId = user?.id ?? null
   const [allView, setAllView] = useState<{ tab: FeedTab; label: string } | null>(null)
+  const [sections, setSections] = useState<Record<FeedTab, PublicSong[]>>({ recommended: [], latest: [], popular: [] })
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    let cancelled = false
+    setLoading(true)
+    Promise.all(HOME_SECTIONS.map((s) => exploreService.getFeed(s.id, 15)))
+      .then((results) => {
+        if (cancelled) return
+        const next: Record<FeedTab, PublicSong[]> = { recommended: [], latest: [], popular: [] }
+        HOME_SECTIONS.forEach((s, i) => { next[s.id] = results[i] })
+        setSections(next)
+        setLoading(false)
+      })
+    return () => { cancelled = true }
+  }, [])
 
   if (allView) {
     return (
@@ -206,23 +251,40 @@ export function ExplorePanel() {
         tab={allView.tab}
         label={allView.label}
         onBack={() => setAllView(null)}
+        currentUserId={currentUserId}
       />
+    )
+  }
+
+  if (loading) {
+    return (
+      <div className="flex-1 flex items-center justify-center text-zinc-500 text-sm">
+        불러오는 중…
+      </div>
+    )
+  }
+
+  const hasAny = HOME_SECTIONS.some((s) => sections[s.id].length > 0)
+  if (!hasAny) {
+    return (
+      <div className="flex-1 flex flex-col items-center justify-center text-zinc-500 text-sm gap-2 px-6">
+        <p className="text-base text-zinc-300">아직 공개된 곡이 없어요</p>
+        <p className="text-xs">첫 번째로 곡을 게시해보세요 ✨</p>
+      </div>
     )
   }
 
   return (
     <div className="flex-1 overflow-y-auto px-5 py-6 space-y-8">
-      {HOME_SECTIONS.map(({ id, label }) => {
-        const feed = exploreService.getFeed(id).slice(0, 15)
-        return (
-          <SectionCarousel
-            key={id}
-            label={label}
-            feed={feed}
-            onViewAll={() => setAllView({ tab: id, label })}
-          />
-        )
-      })}
+      {HOME_SECTIONS.map(({ id, label }) => (
+        <SectionCarousel
+          key={id}
+          label={label}
+          feed={sections[id]}
+          onViewAll={() => setAllView({ tab: id, label })}
+          currentUserId={currentUserId}
+        />
+      ))}
     </div>
   )
 }

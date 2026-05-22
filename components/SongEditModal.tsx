@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from 'react'
 import Image from 'next/image'
 import { songService } from '@/services/song.service'
+import { toast } from '@/components/toast/toast'
 import type { Song } from '@/types/domain'
 
 const COVER_HUES = [0, 30, 60, 120, 180, 210, 260, 300]
@@ -46,6 +47,7 @@ export function SongEditModal({ song, onClose }: Props) {
       coverImage: coverImage ?? undefined,
     })
     window.dispatchEvent(new CustomEvent('song-updated'))
+    toast.success('곡 정보가 저장되었어요')
     handleClose()
   }
 

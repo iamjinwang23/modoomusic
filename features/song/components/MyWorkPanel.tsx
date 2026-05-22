@@ -10,7 +10,9 @@ import { PublishModal } from './PublishModal'
 import { collectionService } from '@/services/collection.service'
 import { useGlobalPlayer } from '@/contexts/GlobalPlayerContext'
 import { useAuth } from '@/components/AuthProvider'
-import { createClient } from '@/lib/supabase/client'
+import { toast } from '@/components/toast/toast'
+import { SoundWaveIcon } from '@/components/SoundWaveIcon'
+import { getPending as getPendingGen, type PendingInfo as GenPendingInfo } from '@/services/generation.store'
 import type { Song } from '@/types/domain'
 
 const ICON_FILTER = 'invert(0.45)'
@@ -108,39 +110,48 @@ export function MyWorkPanel({ showCollections = false }: { showCollections?: boo
   const [songs, setSongs] = useState<Song[]>([])
   const [editing, setEditing] = useState<Song | null>(null)
   const [deleting, setDeleting] = useState<Song | null>(null)
-  const [pendingSong, setPendingSong] = useState<PendingInfo | null>(null)
-  const [ownerAvatarUrl, setOwnerAvatarUrl] = useState<string | null>(null)
-  const ownerName = user?.user_metadata?.full_name ?? user?.email?.split('@')[0] ?? null
+  // 진행 중인 생성은 페이지 이동에도 살아남게 store 기반으로 초기화
+  const [pendingSong, setPendingSong] = useState<PendingInfo | null>(() => getPendingGen() as GenPendingInfo | null)
+  // AuthProvider의 캐시된 profile 사용 — 중복 fetch 방지
+  const { profile } = useAuth()
+  const ownerAvatarUrl = profile?.avatarUrl ?? null
+  const ownerName = profile?.displayName ?? profile?.username ?? null
   const [collecting, setCollecting] = useState<Song | null>(null)
   const [publishing, setPublishing] = useState<Song | null>(null)
   const [unpublishing, setUnpublishing] = useState<Song | null>(null)
 
   useEffect(() => {
     setSongs(user ? songService.getAll() : [])
-    if (user) {
-      createClient().from('profiles').select('avatar_url').eq('id', user.id).single()
-        .then(({ data }) => { if (data?.avatar_url) setOwnerAvatarUrl(data.avatar_url) })
-    } else {
-      setOwnerAvatarUrl(null)
-    }
     const onGenerating = (e: Event) => setPendingSong((e as CustomEvent<PendingInfo>).detail)
+    const onGenState = () => setPendingSong(getPendingGen() as GenPendingInfo | null)
     const onUpdated = () => { setPendingSong(null); setSongs(user ? songService.getAll() : []) }
-    const onAvatarUpdated = (e: Event) => setOwnerAvatarUrl((e as CustomEvent<string | null>).detail)
     window.addEventListener('song-generating', onGenerating)
+    window.addEventListener('generation-state', onGenState)
     window.addEventListener('song-updated', onUpdated)
-    window.addEventListener('profile-avatar-updated', onAvatarUpdated)
     return () => {
       window.removeEventListener('song-generating', onGenerating)
+      window.removeEventListener('generation-state', onGenState)
       window.removeEventListener('song-updated', onUpdated)
-      window.removeEventListener('profile-avatar-updated', onAvatarUpdated)
     }
   }, [user])
 
   function confirmDelete() {
     if (!deleting) return
-    songService.delete(deleting.id)
+    const snapshot = songService.delete(deleting.id)
     setDeleting(null)
     window.dispatchEvent(new CustomEvent('song-updated'))
+    if (snapshot) {
+      toast.info('곡이 삭제되었어요', {
+        duration: 5000,
+        action: {
+          label: '실행 취소',
+          onClick: () => {
+            songService.restore(snapshot)
+            toast.success('곡이 복원되었어요')
+          },
+        },
+      })
+    }
   }
 
   function confirmUnpublish() {
@@ -148,6 +159,7 @@ export function MyWorkPanel({ showCollections = false }: { showCollections?: boo
     songService.update(unpublishing.id, { published: false, publishedAt: undefined })
     setUnpublishing(null)
     window.dispatchEvent(new CustomEvent('song-updated'))
+    toast.info('게시가 취소되었어요')
   }
 
   function handleOpen(song: Song) {
@@ -168,7 +180,7 @@ export function MyWorkPanel({ showCollections = false }: { showCollections?: boo
     <div className="flex flex-col h-full">
       <div className="px-6 py-6">
         {showCollections ? (
-          <div className="flex gap-6 text-xl font-semibold">
+          <div className="flex gap-6 text-xl font-semibold items-center">
             <button
               onClick={() => setTab('songs')}
               className={`pb-1.5 transition-colors ${tab === 'songs' ? 'text-white border-b-2 border-zinc-200' : 'text-zinc-400 hover:text-white'}`}
@@ -180,6 +192,15 @@ export function MyWorkPanel({ showCollections = false }: { showCollections?: boo
               className={`pb-1.5 transition-colors ${tab === 'collections' ? 'text-white border-b-2 border-zinc-200' : 'text-zinc-400 hover:text-white'}`}
             >
               내 컬렉션
+            </button>
+            <button
+              type="button"
+              onClick={() => window.dispatchEvent(new CustomEvent('open-coming-soon', { detail: 'sidebar' }))}
+              className="pb-1.5 flex items-center gap-1.5 text-zinc-600 cursor-not-allowed hover:text-zinc-500 transition-colors"
+              title="곧 출시될 기능이에요"
+            >
+              내 뮤직비디오
+              <span className="text-[10px] font-medium text-violet-300 bg-violet-500/15 px-1.5 py-0.5 rounded-full leading-none">곧 출시</span>
             </button>
           </div>
         ) : (
@@ -258,7 +279,7 @@ function IconBtn({ src, title, filter, active, onClick, size = 'md' }: { src: st
       title={title}
       onMouseDown={(e) => { e.stopPropagation(); onClick?.() }}
       className={`${sz} rounded-full flex items-center justify-center transition-colors ${
-        active ? 'bg-white hover:bg-zinc-100' : 'hover:bg-white/[0.08]'
+        active ? 'bg-white hover:bg-zinc-100' : 'bg-white/[0.06] hover:bg-white/[0.12]'
       }`}
     >
       <Image src={src} alt={title} width={iconSz} height={iconSz} style={{ filter: active ? 'invert(0)' : filter }} />
@@ -366,7 +387,9 @@ function SongWorkItem({ song, onOpen, onEdit, onDelete, onCollect, onPublish, on
     if (navigator.share) {
       await navigator.share({ title, url: song.audioUrl }).catch(() => {})
     } else {
-      await navigator.clipboard.writeText(song.audioUrl).catch(() => {})
+      const ok = await navigator.clipboard.writeText(song.audioUrl).then(() => true).catch(() => false)
+      if (ok) toast.success('링크가 복사되었어요')
+      else toast.error('링크 복사에 실패했어요')
     }
   }
 
@@ -390,16 +413,25 @@ function SongWorkItem({ song, onOpen, onEdit, onDelete, onCollect, onPublish, on
             {song.coverImage && (
               <Image src={song.coverImage} alt="" fill className="object-cover" unoptimized />
             )}
-            <div className="absolute inset-0 flex items-center justify-center">
-              <Image
-                src={playing ? '/Pause.svg' : '/Play.svg'}
-                alt={playing ? '일시정지' : '재생'}
-                width={18}
-                height={18}
-                style={{ filter: 'invert(1)', opacity: playing ? 0.85 : undefined, transition: 'opacity 0.15s' }}
-                className={playing ? '' : 'opacity-0 group-hover:opacity-75'}
-              />
-            </div>
+            {playing ? (
+              <>
+                <div className="absolute inset-0 bg-black/30 pointer-events-none" />
+                <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                  <SoundWaveIcon size={18} />
+                </div>
+              </>
+            ) : (
+              <div className="absolute inset-0 flex items-center justify-center">
+                <Image
+                  src="/Play.svg"
+                  alt="재생"
+                  width={18}
+                  height={18}
+                  style={{ filter: 'invert(1)', transition: 'opacity 0.15s' }}
+                  className="opacity-0 group-hover:opacity-75"
+                />
+              </div>
+            )}
           </div>
           {/* 하단 그라데이션 + 재생시간 */}
           {formatDuration(song.duration) && (
@@ -431,7 +463,7 @@ function SongWorkItem({ song, onOpen, onEdit, onDelete, onCollect, onPublish, on
           </div>
 
           {/* 액션 아이콘 행 */}
-          <div className="flex items-center gap-1 mt-3">
+          <div className="flex items-center gap-2 mt-3">
             <IconBtn src="/Thumb-Up.svg" title="좋아요" filter={ICON_FILTER} active={liked} onClick={handleLike} size="sm" />
             <IconBtn src="/Collection.svg" title="컬렉션" filter={ICON_FILTER} active={inCollection} onClick={onCollect} size="sm" />
             <IconBtn src="/Share.svg" title="공유" filter={ICON_FILTER} onClick={handleShare} size="sm" />

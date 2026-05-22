@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from 'react'
 import Image from 'next/image'
 import { createClient } from '@/lib/supabase/client'
+import { toast } from '@/components/toast/toast'
 import type { User } from '@supabase/supabase-js'
 
 // ── 랜덤 이름 생성 ──────────────────────────────────────────────
@@ -133,6 +134,7 @@ export function OnboardingModal({ user, onDone }: Props) {
         data: { username: finalUsername, full_name: finalName },
       }),
     ])
+    toast.success('회원가입이 완료되었어요')
     onDone()
   }
 

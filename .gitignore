@@ -40,3 +40,7 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 .gstack/
+
+# bkit PDCA state (local)
+.bkit/
+.bkit-memory.json
