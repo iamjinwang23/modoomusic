@@ -23,6 +23,8 @@ function coverGradient(song: Song) {
 
 export function GlobalMiniBar() {
   const { song, feed, idx, isOwner, ownerName, ownerAvatarUrl, hasPrev, hasNext, isPlaying, currentTime, duration, togglePlay, next, prev, seekTo, patchSong } = useGlobalPlayer()
+    const trackRef = useRef<HTMLDivElement>(null)
+    const [dragging, setDragging] = useState(false)
   const [collectOpen, setCollectOpen] = useState(false)
 
   if (!song) return null
@@ -52,11 +54,8 @@ export function GlobalMiniBar() {
       if (ok) toast.success('링크가 복사되었어요')
       else toast.error('링크 복사에 실패했어요')
     }
+    const progressPct = duration > 0 ? (currentTime / duration) * 100 : 0
   }
-
-  const progressPct = duration > 0 ? (currentTime / duration) * 100 : 0
-  const trackRef = useRef<HTMLDivElement>(null)
-  const [dragging, setDragging] = useState(false)
 
   function seekFromPointer(e: React.PointerEvent) {
     const track = trackRef.current
