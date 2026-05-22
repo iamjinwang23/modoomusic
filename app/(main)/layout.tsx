@@ -12,6 +12,7 @@ import { ComingSoonModal } from '@/components/ComingSoonModal'
 import { CreditIndicator } from '@/components/CreditIndicator'
 import { GenerationChip } from '@/components/GenerationChip'
 import { GlobalMiniBar } from '@/components/GlobalMiniBar'
+import { BottomNav } from '@/components/BottomNav'
 import { useAuth } from '@/components/AuthProvider'
 
 const PROFILE_PALETTE = [
@@ -42,7 +43,6 @@ export default function MainShellLayout({ children }: { children: React.ReactNod
   const pathname = usePathname()
   const { user, profile, signOut } = useAuth()
 
-  const [drawerOpen, setDrawerOpen] = useState(false)
   const [loginOpen, setLoginOpen] = useState(false)
   const [userMenuOpen, setUserMenuOpen] = useState(false)
   const [onboardingOpen, setOnboardingOpen] = useState(false)
@@ -89,7 +89,9 @@ export default function MainShellLayout({ children }: { children: React.ReactNod
   const paletteIdx = user ? (user.id.charCodeAt(0) * 137) % PROFILE_PALETTE.length : 0
 
   return (
-    <div className="flex flex-col h-screen bg-[#171A20] text-white overflow-hidden select-none">
+    <div
+      className="flex flex-col bg-[#171A20] text-white overflow-hidden select-none h-[calc(100dvh-56px-env(safe-area-inset-bottom,0px))] md:h-screen"
+    >
 
       {/* ── Header ── */}
       <header className="shrink-0 h-14 flex items-center px-5 border-b border-white/[0.06] bg-[#111318] z-20">
@@ -98,13 +100,6 @@ export default function MainShellLayout({ children }: { children: React.ReactNod
         </Link>
 
         <div className="ml-auto flex items-center gap-2">
-          <button
-            onClick={() => setDrawerOpen(true)}
-            className="flex items-center gap-1.5 text-xs text-zinc-400 border border-white/10 px-3 py-1.5 rounded-full hover:border-white/20 transition-colors md:hidden"
-          >
-            <span>🎵</span> 라이브러리
-          </button>
-
           {user && <GenerationChip />}
           {user && <CreditIndicator />}
 
@@ -221,7 +216,7 @@ export default function MainShellLayout({ children }: { children: React.ReactNod
                 songOverlayOpen
                   ? 'flex-1 flex flex-col overflow-hidden'
                   : isCreate
-                    ? 'overflow-y-auto w-full md:w-[560px] md:shrink-0 border-r border-white/[0.06]'
+                    ? 'w-full md:w-[560px] md:shrink-0 md:overflow-y-auto md:border-r md:border-white/[0.06] flex flex-col min-h-0'
                     : 'flex-1 flex flex-col overflow-hidden'
               }
             >
@@ -246,21 +241,8 @@ export default function MainShellLayout({ children }: { children: React.ReactNod
 
       </div>
 
-      {/* Mobile drawer */}
-      {drawerOpen && (
-        <>
-          <div className="fixed inset-0 bg-black/60 z-40 md:hidden" onClick={() => setDrawerOpen(false)} />
-          <div className="fixed right-0 top-0 h-full w-[300px] bg-[#1A1D24] border-l border-white/[0.08] z-50 flex flex-col md:hidden">
-            <div className="flex items-center justify-between px-4 py-4 border-b border-white/[0.06]">
-              <span className="text-sm font-medium">라이브러리</span>
-              <button onClick={() => setDrawerOpen(false)} className="text-zinc-500 hover:text-white transition-colors p-1">✕</button>
-            </div>
-            <div className="flex-1 overflow-hidden">
-              <MyWorkPanel />
-            </div>
-          </div>
-        </>
-      )}
+      {/* Bottom nav — mobile only */}
+      <BottomNav />
 
       {/* Modals */}
       {loginOpen && <LoginModal onClose={() => setLoginOpen(false)} />}

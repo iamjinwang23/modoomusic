@@ -112,16 +112,17 @@ export function CollectionPickerModal({ song, onClose }: Props) {
   const songTitle = song.title || song.prompt.slice(0, 30)
 
   return (
-    <div className="fixed inset-0 z-[70] flex items-center justify-center p-6">
+    <div className="fixed inset-0 z-[70] flex items-end md:items-center justify-center md:p-6">
       <div
         className={`absolute inset-0 bg-black/70 backdrop-blur-sm transition-opacity duration-280 ${visible ? 'opacity-100' : 'opacity-0'}`}
         onClick={handleClose}
       />
       <div
-        className="relative bg-[#21252E] border border-white/[0.08] rounded-2xl w-full max-w-[420px] overflow-hidden shadow-2xl transition-all duration-280 ease-out"
+        className="relative bg-[#21252E] border border-white/[0.08] rounded-t-2xl md:rounded-2xl w-full max-w-full md:max-w-[420px] max-h-[90vh] overflow-hidden shadow-2xl transition-all duration-280 ease-out flex flex-col"
         style={{
           opacity: visible ? 1 : 0,
           transform: visible ? 'translateY(0) scale(1)' : 'translateY(24px) scale(0.97)',
+          paddingBottom: 'env(safe-area-inset-bottom, 0px)',
         }}
       >
         {/* 헤더 — SongEditModal과 동일한 패턴 */}

@@ -181,10 +181,10 @@ export function ProfileEditModal({ userId, initial, onClose, onSaved }: Props) {
   }
 
   return (
-    <div className="fixed inset-0 z-[80] flex items-center justify-center">
+    <div className="fixed inset-0 z-[80] flex items-end md:items-center justify-center">
       <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={onClose} />
 
-      <div className="relative z-10 w-full max-w-[480px] max-h-[85vh] mx-4 bg-[#181B22] rounded-2xl shadow-2xl flex flex-col">
+      <div className="relative z-10 w-full max-w-full md:max-w-[480px] max-h-[90vh] md:max-h-[85vh] md:mx-4 bg-[#181B22] rounded-t-2xl md:rounded-2xl shadow-2xl flex flex-col" style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}>
         <div className="flex items-center justify-between px-6 py-4 border-b border-white/[0.06]">
           <h2 className="text-base font-semibold text-white">프로필 수정</h2>
           <button

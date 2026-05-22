@@ -34,11 +34,13 @@ export function ToastHost() {
 
   if (items.length === 0) return null
 
+  // 모바일은 BottomNav(56px) + safe-area 추가로 더 위에 위치
+  const bottomClass = hasMiniBar
+    ? 'bottom-[calc(152px+env(safe-area-inset-bottom,0px))] md:bottom-[calc(96px+env(safe-area-inset-bottom,0px))]'
+    : 'bottom-[calc(80px+env(safe-area-inset-bottom,0px))] md:bottom-[calc(24px+env(safe-area-inset-bottom,0px))]'
+
   return (
-    <div
-      className="fixed left-1/2 -translate-x-1/2 z-[90] w-full max-w-[440px] px-4 flex flex-col gap-2 pointer-events-none"
-      style={{ bottom: hasMiniBar ? 'calc(96px + env(safe-area-inset-bottom, 0px))' : 'calc(24px + env(safe-area-inset-bottom, 0px))' }}
-    >
+    <div className={`fixed left-1/2 -translate-x-1/2 z-[90] w-full max-w-[440px] px-4 flex flex-col gap-2 pointer-events-none ${bottomClass}`}>
       {items.map((it) => (
         <div key={it.id} className="pointer-events-auto">
           <ToastItem toast={it.payload} duration={it.duration} onDismiss={() => dismiss(it.id)} />
