@@ -151,8 +151,8 @@ export function SongDetailPage({ onBack, profile }: Props) {
       {/* 가독성용 스크림 */}
       <div aria-hidden className="absolute inset-0 z-0 bg-[#171A20]/75 pointer-events-none" />
 
-      {/* 헤더 */}
-      <div className="relative z-10 shrink-0 flex items-center gap-3 px-5 h-14 border-b border-white/[0.06]">
+      {/* 데스크톱 헤더 — 모바일은 우상단 닫기 X만 표시 */}
+      <div className="hidden md:flex relative z-10 shrink-0 items-center gap-3 px-5 h-14 border-b border-white/[0.06]">
         <button
           onClick={onBack}
           className="w-8 h-8 rounded-full bg-white/[0.06] hover:bg-white/[0.12] flex items-center justify-center transition-colors"
@@ -164,19 +164,30 @@ export function SongDetailPage({ onBack, profile }: Props) {
         <p className="text-sm font-medium text-white truncate">{displayTitle}</p>
       </div>
 
-      {/* 본문 */}
-      <div className="relative z-10 flex flex-1 min-h-0 overflow-hidden">
-        {/* 좌측 — 커버 + 액션 */}
-        <div className="w-[240px] shrink-0 flex flex-col p-5 gap-4">
+      {/* 모바일 닫기 X — 우상단 플로팅 */}
+      <button
+        onClick={onBack}
+        title="닫기"
+        className="md:hidden absolute top-3 right-3 z-20 w-9 h-9 rounded-full bg-black/40 hover:bg-black/60 backdrop-blur text-white flex items-center justify-center transition-colors"
+        style={{ marginTop: 'env(safe-area-inset-top, 0px)' }}
+      >
+        <svg width="14" height="14" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+          <path d="M1 1l10 10M11 1L1 11"/>
+        </svg>
+      </button>
+
+      {/* 본문 — 모바일 컬럼, 데스크톱 로우 */}
+      <div className="relative z-10 flex-1 min-h-0 flex flex-col md:flex-row overflow-y-auto md:overflow-hidden">
+        {/* 좌측(데스크톱) / 상단(모바일) — 커버 + 메타 + 액션 */}
+        <div className="shrink-0 md:w-[240px] flex flex-col items-center md:items-stretch p-5 pt-12 md:pt-5 gap-4">
           <div
             onClick={togglePlay}
-            className="relative w-full rounded-2xl overflow-hidden cursor-pointer group"
+            className="relative w-[200px] md:w-full rounded-2xl overflow-hidden cursor-pointer group"
             style={{ background: song.coverImage ? undefined : coverGradient(song), aspectRatio: '2 / 3' }}
           >
             {song.coverImage && (
               <Image src={song.coverImage} alt="" fill className="object-cover" unoptimized />
             )}
-            {/* 재생 중: 은은한 dim + 사운드 웨이브 / 정지: hover 시 play */}
             {playing ? (
               <>
                 <div className="absolute inset-0 bg-black/30 pointer-events-none" />
@@ -227,7 +238,7 @@ export function SongDetailPage({ onBack, profile }: Props) {
             )
           })()}
           <p className="text-xs text-zinc-500">{relativeTime(song.createdAt)}</p>
-          <div className="flex items-center gap-2 flex-wrap">
+          <div className="flex items-center gap-2 flex-wrap justify-center md:justify-start">
             <ActionBtn title="좋아요" icon="/Thumb-Up.svg" active={liked} onClick={handleLike} />
             <ActionBtn title="컬렉션" icon="/Collection.svg" active={inCollection} onClick={() => setCollectOpen(true)} />
             <ActionBtn title="공유" icon="/Share.svg" onClick={handleShare} />
@@ -241,8 +252,8 @@ export function SongDetailPage({ onBack, profile }: Props) {
           </div>
         </div>
 
-        {/* 우측 — 스크롤 영역 */}
-        <div className="flex-1 overflow-y-auto py-5 pr-6 pl-1">
+        {/* 우측(데스크톱) / 하단(모바일) — 제목·스타일·가사 */}
+        <div className="flex-1 md:overflow-y-auto px-5 md:py-5 md:pr-6 md:pl-1 pb-8">
           <div className="flex items-center gap-2 mb-6">
             <h2 className="text-2xl font-bold text-white leading-snug">{displayTitle}</h2>
             {song.instrumental && (

@@ -106,8 +106,8 @@ export function GlobalMiniBar() {
             </button>
           </div>
 
-          {/* Right: action buttons — right-aligned */}
-          <div className="flex items-center gap-2 justify-end">
+          {/* Right: action buttons — 모바일에선 숨김 (곡 상세 페이지에서 사용 가능) */}
+          <div className="hidden md:flex items-center gap-2 justify-end">
             {/* Like */}
             <button
               onClick={handleLike}
