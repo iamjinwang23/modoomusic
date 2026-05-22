@@ -149,7 +149,7 @@ export default function PrivacyPage() {
         </p>
         <div className="mt-3 p-4 rounded-lg border border-white/[0.08] bg-white/[0.03] text-sm space-y-1">
           <p><span className="text-zinc-500">소속</span> &nbsp; 주식회사 비누컴퍼니</p>
-          <p><span className="text-zinc-500">이메일</span> &nbsp; (책임자 이메일 — 추후 공지)</p>
+          <p><span className="text-zinc-500">이메일</span> &nbsp; <a href="mailto:bee202408@gmail.com" className="text-violet-400 hover:text-violet-300 transition-colors">bee202408@gmail.com</a></p>
         </div>
       </Section>
 
