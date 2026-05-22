@@ -71,7 +71,7 @@ function SectionCarousel({
   const [fadeRight, setFadeRight] = useState(false)
   const [hovered, setHovered] = useState(false)
 
-  const STEP = 200 + 12 // card width + gap
+  const STEP = 160 + 12 // card width + gap
 
   useEffect(() => {
     const el = scrollRef.current
@@ -129,7 +129,7 @@ function SectionCarousel({
           className="flex gap-3 overflow-x-auto pb-1 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]"
         >
           {feed.map((song) => (
-            <div key={song.id} className="shrink-0 w-[200px]">
+            <div key={song.id} className="shrink-0 w-[160px]">
               <PublicSongCard song={song} onPlay={(p) => dispatchView(p, feed, currentUserId)} onThumbPlay={(p) => dispatchPlayOnly(p, feed, currentUserId)} />
             </div>
           ))}
@@ -208,7 +208,7 @@ function SectionAllView({
         ) : (
           <div className="flex flex-wrap gap-3">
             {feed.map((song) => (
-              <div key={song.id} className="w-[200px]">
+              <div key={song.id} className="w-[160px]">
                 <PublicSongCard
                   song={song}
                   onPlay={(p) => dispatchView(p, feed, currentUserId)}

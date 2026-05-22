@@ -442,7 +442,7 @@ export function ProfilePanel({ username }: Props) {
             ) : (
               <div className="flex gap-3 overflow-x-auto px-5 pb-1 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
                 {songs.map((song) => (
-                  <div key={song.id} className="shrink-0 w-[200px]">
+                  <div key={song.id} className="shrink-0 w-[160px]">
                     <PublicSongCard song={song} onPlay={handlePlay} onThumbPlay={handleThumbPlay} hideArtist />
                   </div>
                 ))}

@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import Image from 'next/image'
 import { useGlobalPlayer } from '@/contexts/GlobalPlayerContext'
 import { CollectionPickerModal } from '@/features/song/components/CollectionPickerModal'
@@ -54,10 +54,53 @@ export function GlobalMiniBar() {
     }
   }
 
+  const progressPct = duration > 0 ? (currentTime / duration) * 100 : 0
+  const trackRef = useRef<HTMLDivElement>(null)
+  const [dragging, setDragging] = useState(false)
+
+  function seekFromPointer(e: React.PointerEvent) {
+    const track = trackRef.current
+    if (!track || !duration) return
+    const rect = track.getBoundingClientRect()
+    const x = Math.max(0, Math.min(rect.width, e.clientX - rect.left))
+    seekTo((x / rect.width) * duration)
+  }
+
   return (
     <>
-      <div className="shrink-0 bg-[#111318] border-t border-white/[0.06] select-none px-4 pt-3 pb-4">
-        <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-2 mb-1">
+      <div className="relative shrink-0 bg-[#111318] border-t border-white/[0.06] select-none px-4 py-3">
+        {/* 모바일 상단 프로그레스 — 탭/드래그로 시크 */}
+        <div
+          ref={trackRef}
+          onPointerDown={(e) => {
+            setDragging(true)
+            ;(e.currentTarget as HTMLElement).setPointerCapture(e.pointerId)
+            seekFromPointer(e)
+          }}
+          onPointerMove={(e) => { if (dragging) seekFromPointer(e) }}
+          onPointerUp={(e) => {
+            setDragging(false)
+            try { (e.currentTarget as HTMLElement).releasePointerCapture(e.pointerId) } catch {}
+          }}
+          onPointerCancel={() => setDragging(false)}
+          className="md:hidden absolute top-0 left-0 right-0 h-3 cursor-pointer touch-none"
+          style={{ touchAction: 'none' }}
+        >
+          {/* 라인 — 드래그 중이면 두꺼워짐 */}
+          <div className={`absolute top-0 left-0 right-0 bg-white/[0.08] transition-all ${dragging ? 'h-1' : 'h-[2px]'}`}>
+            <div
+              className="h-full bg-violet-500"
+              style={{ width: `${progressPct}%`, transition: dragging ? 'none' : 'width 0.15s linear' }}
+            />
+          </div>
+          {/* 핸들 — 드래그 중에만 표시 */}
+          <div
+            className={`absolute top-0 w-3 h-3 -ml-1.5 rounded-full bg-violet-500 shadow-lg shadow-violet-500/40 transition-opacity ${dragging ? 'opacity-100' : 'opacity-0'}`}
+            style={{ left: `${progressPct}%` }}
+          />
+        </div>
+
+        <div className="grid grid-cols-[1fr_auto] md:grid-cols-[1fr_auto_1fr] items-center gap-2 mb-1">
           {/* Left: thumbnail + title — click opens detail */}
           <div
             className="flex items-center gap-2.5 min-w-0 cursor-pointer"
@@ -174,8 +217,8 @@ export function GlobalMiniBar() {
           </div>
         </div>
 
-        {/* 프로그레스 바 — 중앙 정렬, 너비 제한 */}
-        <div className="flex items-center gap-2 max-w-[560px] mx-auto">
+        {/* 프로그레스 바 (데스크톱) — 모바일은 상단 라인이 대체 */}
+        <div className="hidden md:flex items-center gap-2 max-w-[560px] mx-auto">
           <span className="text-xs text-zinc-500 w-7 text-right tabular-nums shrink-0">{formatTime(currentTime)}</span>
           <input
             type="range"

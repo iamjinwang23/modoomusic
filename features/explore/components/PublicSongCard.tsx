@@ -57,7 +57,7 @@ export function PublicSongCard({ song, onPlay, onThumbPlay, hideArtist = false }
           style={{ background: coverGradient(song.coverHue) }}
         >
           {song.coverImage && (
-            <Image src={song.coverImage} alt={displayTitle} fill className="object-cover" sizes="200px" />
+            <Image src={song.coverImage} alt={displayTitle} fill className="object-cover" sizes="160px" />
           )}
         </div>
         {isThisPlaying ? (

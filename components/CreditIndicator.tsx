@@ -39,7 +39,7 @@ export function CreditIndicator() {
     <button
       type="button"
       onClick={() => window.dispatchEvent(new CustomEvent('open-coming-soon', { detail: isEmpty ? 'daily-limit' : 'sidebar' }))}
-      className="h-8 flex items-center gap-2 px-3 rounded-full border border-white bg-white/[0.04] hover:bg-white/[0.10] transition-colors"
+      className="h-8 flex items-center gap-2 px-3 rounded-full border border-white/25 bg-white/[0.04] hover:bg-white/[0.10] hover:border-white/40 transition-colors"
       title={isEmpty ? '오늘의 크레딧을 모두 사용했어요' : `오늘 ${state.remaining}크레딧 남음`}
     >
       <span className="text-xs font-semibold tracking-wide text-white">FREE</span>
