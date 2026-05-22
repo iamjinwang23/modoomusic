@@ -5,6 +5,9 @@ import Image from 'next/image'
 import { useSongGeneration } from '../hooks/useSongGeneration'
 import { MODELS, creditsForModel, type MusicModelId } from '@/services/minimax.service'
 import { useAuth } from '@/components/AuthProvider'
+import { toast } from '@/components/toast/toast'
+
+const MIN_LYRICS_LENGTH = 10  // MiniMax 최소 가사 길이
 
 const ALL_CHIPS = [
   // 장르
@@ -168,6 +171,15 @@ export function SongForm() {
     }
     if (!stylePrompt.trim() || isGenerating) return
     if (isCoverModel && !refAudio) return
+
+    // 가사 검증: 입력은 있는데 너무 짧으면 MiniMax가 거부 → 사전 차단
+    const lyricsLen = lyrics.trim().length
+    if (!isCoverModel && !instrumental && lyricsLen > 0 && lyricsLen < MIN_LYRICS_LENGTH) {
+      toast.error('가사가 너무 짧아요', {
+        description: `최소 ${MIN_LYRICS_LENGTH}자 이상 입력하거나, 가사를 비우면 자동으로 인스트루멘탈로 만들어요`,
+      })
+      return
+    }
 
     if (isCoverModel && refAudio) {
       const reader = new FileReader()
@@ -386,7 +398,7 @@ export function SongForm() {
             <textarea
               className="w-full bg-transparent text-sm text-white resize-none focus:outline-none placeholder:text-zinc-500 leading-relaxed"
               style={{ height: lyricsResize.height }}
-              placeholder={`직접 가사를 입력하세요\n비워두면 인스트루멘탈로 생성돼요\n\n[Verse] [Chorus] [Bridge] 태그로 구조를 지정할 수 있어요`}
+              placeholder={`직접 가사를 입력하세요 (최소 ${MIN_LYRICS_LENGTH}자 이상)\n비워두면 자동으로 인스트루멘탈로 생성돼요\n\n[Verse] [Chorus] [Bridge] 태그로 구조를 지정할 수 있어요`}
               value={lyrics}
               onChange={(e) => setLyrics(e.target.value)}
               maxLength={3500}

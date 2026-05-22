@@ -11,6 +11,15 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: '스타일을 입력해주세요' }, { status: 400 })
   }
 
+  // MiniMax는 가사 모드에서 너무 짧은 가사를 거부 → 사전 차단
+  const trimmedLyrics = typeof customLyrics === 'string' ? customLyrics.trim() : ''
+  if (!instrumental && trimmedLyrics.length > 0 && trimmedLyrics.length < 10) {
+    return NextResponse.json(
+      { error: '가사가 너무 짧아요. 최소 10자 이상 입력하거나 비워두면 인스트루멘탈로 만들어져요' },
+      { status: 400 },
+    )
+  }
+
   // ── 1) 인증 확인 (쿠키 세션 기반)
   const userClient = await createUserClient()
   const { data: { user } } = await userClient.auth.getUser()
