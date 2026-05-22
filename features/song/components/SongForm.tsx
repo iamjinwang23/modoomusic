@@ -329,6 +329,11 @@ export function SongForm() {
                           window.dispatchEvent(new CustomEvent('open-coming-soon', { detail: 'locked-model' }))
                         } else {
                           setModel(m.id)
+                          // Music 2.0은 인스트루멘탈 미지원 → 토글 꺼주고 안내
+                          if (m.id === 'music-2.0' && instrumental) {
+                            setInstrumental(false)
+                            toast.info('Music 2.0은 인스트루멘탈을 지원하지 않아 가사 모드로 전환했어요')
+                          }
                         }
                       }}
                       className={`w-full flex items-start gap-3 px-3.5 py-3 transition-colors text-left ${
@@ -377,7 +382,18 @@ export function SongForm() {
             </span>
             <button
               type="button"
-              onClick={() => { setInstrumental(!instrumental); if (!instrumental) setLyrics('') }}
+              onClick={() => {
+                const next = !instrumental
+                setInstrumental(next)
+                if (next) {
+                  setLyrics('')
+                  // Music 2.0은 인스트루멘탈 미지원 → 자동으로 Music 2.6으로 전환
+                  if (model === 'music-2.0') {
+                    setModel('music-2.6-free')
+                    toast.info('인스트루멘탈을 위해 Music 2.6로 변경했어요')
+                  }
+                }
+              }}
               className={`relative w-9 h-5 rounded-full transition-colors duration-200 ${
                 instrumental ? 'bg-violet-600' : 'bg-zinc-700'
               }`}

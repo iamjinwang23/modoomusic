@@ -22,7 +22,7 @@ const MOCK_LYRICS = `[Verse]
 
 export const MODELS = [
   { id: 'music-2.0',        label: 'Music 2.0',         desc: '안정적인 기본 모델, 저렴한 비용',   locked: false, cover: false, credits: 2  },
-  { id: 'music-2.6-free',   label: 'Music 2.6 (beta)', desc: '최신 MiniMax 모델, 풍부한 사운드',  locked: true,  cover: false, credits: 10 },
+  { id: 'music-2.6-free',   label: 'Music 2.6 (beta)', desc: '인스트루멘탈 가능, 풍부한 사운드',  locked: false, cover: false, credits: 10 },
   { id: 'music-cover-free', label: 'Music Cover',       desc: '참조 음원 스타일로 커버 생성',      locked: true,  cover: true,  credits: 10 },
   { id: 'music-2.6',        label: 'Music 2.6 Pro',     desc: '준비 중',                          locked: true,  cover: false, credits: 10 },
 ] as const
@@ -97,12 +97,14 @@ export async function generateSong(params: GenerateParams): Promise<GenerateResu
   })
 
   if (res.status === 429) {
-    throw new Error('요청이 너무 많습니다. 잠시 후 다시 시도하거나 Music 2.0 모델을 사용해보세요.')
+    const err: Error & { code?: string } = new Error('지금 너무 많은 사람이 만들고 있어요. 잠시 후 다시 시도해 주세요')
+    err.code = 'RATE_LIMITED'
+    throw err
   }
 
   const data = await res.json()
   if (data.base_resp?.status_code !== 0) {
-    throw new Error(data.base_resp?.status_msg ?? 'MiniMax API 오류')
+    throw new Error(translateMinimaxError(data.base_resp?.status_msg))
   }
 
   return { audioUrl: data.data.audio, lyrics: isInstrumental ? '' : (customLyrics || '') }
@@ -141,3 +143,18 @@ export async function generateCoverImage(stylePrompt: string): Promise<string | 
 }
 
 export { MOCK_MODE }
+
+// MiniMax 영문 에러 메시지 → 한국어 친화 메시지
+function translateMinimaxError(raw: string | undefined): string {
+  if (!raw) return '음악을 만드는 중 문제가 생겼어요'
+  const s = raw.toLowerCase()
+  if (s.includes('lyrics is too short')) return '가사가 너무 짧아요 (최소 10자 이상)'
+  if (s.includes('lyrics is required')) return '이 모델은 가사가 꼭 필요해요. 가사를 입력하거나 Music 2.6을 사용해 주세요'
+  if (s.includes('is_instrumental only supported')) return '이 모델은 인스트루멘탈을 지원하지 않아요'
+  if (s.includes('rate limit') || s.includes('too many requests')) return '지금 너무 많은 사람이 만들고 있어요. 잠시 후 다시 시도해 주세요'
+  if (s.includes('insufficient balance') || s.includes('credit')) return '서비스 크레딧이 부족해요. 관리자에게 문의해 주세요'
+  if (s.includes('unauthorized') || s.includes('invalid api key')) return '서버 인증 문제가 생겼어요. 잠시 후 다시 시도해 주세요'
+  if (s.includes('content policy') || s.includes('sensitive')) return '입력한 내용이 콘텐츠 정책에 맞지 않아요. 다른 표현으로 시도해 주세요'
+  if (s.includes('timeout')) return '응답이 너무 늦어요. 잠시 후 다시 시도해 주세요'
+  return raw  // 매핑 안 된 건 원문 그대로 (디버깅용)
+}
