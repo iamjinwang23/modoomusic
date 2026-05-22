@@ -34,10 +34,10 @@ export function ToastHost() {
 
   if (items.length === 0) return null
 
-  // 모바일은 BottomNav(56px) + safe-area 추가로 더 위에 위치
+  // 모바일은 BottomNav(68px) + safe-area 추가로 더 위에 위치
   const bottomClass = hasMiniBar
-    ? 'bottom-[calc(152px+env(safe-area-inset-bottom,0px))] md:bottom-[calc(96px+env(safe-area-inset-bottom,0px))]'
-    : 'bottom-[calc(80px+env(safe-area-inset-bottom,0px))] md:bottom-[calc(24px+env(safe-area-inset-bottom,0px))]'
+    ? 'bottom-[calc(164px+env(safe-area-inset-bottom,0px))] md:bottom-[calc(96px+env(safe-area-inset-bottom,0px))]'
+    : 'bottom-[calc(92px+env(safe-area-inset-bottom,0px))] md:bottom-[calc(24px+env(safe-area-inset-bottom,0px))]'
 
   return (
     <div className={`fixed left-1/2 -translate-x-1/2 z-[90] w-full max-w-[440px] px-4 flex flex-col gap-2 pointer-events-none ${bottomClass}`}>

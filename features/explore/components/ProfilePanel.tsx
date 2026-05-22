@@ -408,12 +408,15 @@ export function ProfilePanel({ username }: Props) {
                 {profile.links && <SocialLinksRow links={profile.links} />}
               </div>
               {isSelf ? (
-                <button
-                  onClick={() => setEditOpen(true)}
-                  className="px-4 py-1.5 rounded-full text-sm font-medium bg-white/[0.08] text-zinc-200 hover:bg-white/[0.12] transition-colors shrink-0"
-                >
-                  프로필 수정
-                </button>
+                <div className="flex items-center gap-2 shrink-0">
+                  <button
+                    onClick={() => setEditOpen(true)}
+                    className="px-4 py-1.5 rounded-full text-sm font-medium bg-white/[0.08] text-zinc-200 hover:bg-white/[0.12] transition-colors"
+                  >
+                    프로필 수정
+                  </button>
+                  <SelfSettingsMenu />
+                </div>
               ) : (
                 <button
                   onClick={() => setFollowing((v) => !v)}
@@ -476,6 +479,48 @@ export function ProfilePanel({ username }: Props) {
             }))
           }}
         />
+      )}
+    </div>
+  )
+}
+
+// 본인 프로필 우상단 설정 아이콘 → 이메일·로그아웃 드롭다운
+function SelfSettingsMenu() {
+  const [open, setOpen] = useState(false)
+  const { user, signOut } = useAuth()
+  return (
+    <div className="relative">
+      <button
+        onClick={() => setOpen((v) => !v)}
+        className="w-9 h-9 rounded-full bg-white/[0.08] text-zinc-200 hover:bg-white/[0.12] flex items-center justify-center transition-colors"
+        title="설정"
+      >
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <circle cx="12" cy="12" r="3" />
+          <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z" />
+        </svg>
+      </button>
+      {open && (
+        <>
+          <div className="fixed inset-0 z-[54]" onClick={() => setOpen(false)} />
+          <div className="absolute right-0 top-11 z-[55] w-52 bg-[#21252E] border border-white/[0.08] rounded-xl shadow-xl overflow-hidden">
+            <div className="px-4 py-3 border-b border-white/[0.06]">
+              <p className="text-[11px] text-zinc-500">로그인 계정</p>
+              <p className="text-xs text-white truncate mt-1">{user?.email}</p>
+            </div>
+            <button
+              onClick={() => {
+                setOpen(false)
+                window.dispatchEvent(new Event('song-updated'))
+                window.dispatchEvent(new Event('collection-updated'))
+                signOut()
+              }}
+              className="w-full text-left px-4 py-2.5 text-sm text-zinc-300 hover:text-white hover:bg-white/[0.04] transition-colors"
+            >
+              로그아웃
+            </button>
+          </div>
+        </>
       )}
     </div>
   )

@@ -90,7 +90,7 @@ export default function MainShellLayout({ children }: { children: React.ReactNod
 
   return (
     <div
-      className="flex flex-col bg-[#171A20] text-white overflow-hidden select-none h-[calc(100dvh-56px-env(safe-area-inset-bottom,0px))] md:h-screen"
+      className="flex flex-col bg-[#171A20] text-white overflow-hidden select-none h-[calc(100dvh-68px-env(safe-area-inset-bottom,0px))] md:h-screen"
     >
 
       {/* ── Header ── */}
@@ -104,7 +104,7 @@ export default function MainShellLayout({ children }: { children: React.ReactNod
           {user && <CreditIndicator />}
 
           {user ? (
-            <div className="relative">
+            <div className="relative hidden md:block">
               <button
                 onClick={() => setUserMenuOpen((v) => !v)}
                 className="w-8 h-8 rounded-full overflow-hidden flex items-center justify-center text-xs font-bold transition-opacity hover:opacity-80"
@@ -216,7 +216,7 @@ export default function MainShellLayout({ children }: { children: React.ReactNod
                 songOverlayOpen
                   ? 'flex-1 flex flex-col overflow-hidden'
                   : isCreate
-                    ? 'w-full md:w-[560px] md:shrink-0 md:overflow-y-auto md:border-r md:border-white/[0.06] flex flex-col min-h-0'
+                    ? 'overflow-y-auto w-full md:w-[560px] md:shrink-0 md:border-r md:border-white/[0.06]'
                     : 'flex-1 flex flex-col overflow-hidden'
               }
             >
