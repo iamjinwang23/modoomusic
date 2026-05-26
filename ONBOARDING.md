@@ -90,7 +90,24 @@ function X() {
 
 ### 4. 곡 메타는 이벤트 detail로 전달
 
-`view-song` / `play-song` 디스패치 시 `ownerName` / `ownerAvatarUrl` / `ownerAvatarHue` 반드시 채울 것. 수신부(SongDetailPage)는 fallback 계산을 하지 않음 — 누락 시 색이 깨짐.
+`view-song` / `play-song` 디스패치 시 `ownerUserId` · `ownerName` · `ownerAvatarUrl` · `ownerAvatarHue` 반드시 채울 것. 수신부는 fallback 계산을 하지 않음 — 누락 시 색이 깨지거나 팔로우 버튼 깨짐. `isOwner`도 정확히 `!!user && pub.userId === user.id`로 계산.
+
+### 5. Supabase 서버 클라이언트 함정 (매우 중요)
+
+`lib/supabase/server.ts:createClient`는 이름과 달리 **user JWT(쿠키)를 우선 적용** → RLS가 user 컨텍스트로 평가됨. 트리거 함수가 호출자 권한으로 실행되어 다른 사람 row UPDATE 차단. 진짜 admin 권한 필요하면 **반드시 `lib/supabase/admin.ts:createAdminClient()`** 사용 — cookies 없는 plain createClient + service_role.
+
+```ts
+// API 라우트 패턴
+const userClient = await createUserClient()       // 인증 확인 (anon)
+const { data: { user } } = await userClient.auth.getUser()
+if (!user) return NextResponse.json({error:'unauthorized'}, {status:401})
+const admin = createAdminClient()                  // RLS 우회 INSERT/UPDATE
+await admin.from('notifications').insert(...)
+```
+
+### 6. supabase.auth.getUser() hydrate race
+
+클라이언트 service에서 `supabase.auth.getUser()` 호출 시 새로고침 직후 hydrate race로 `user = null` 반환 가능. user 의존 로직(isFollowing 등)이 false 고정. 호출자(`useAuth().user.id`)가 명시 전달.
 
 ## 주요 패턴
 
@@ -125,7 +142,29 @@ md:relative md:inset-auto md:bottom-auto md:z-auto md:h-full
 |--------|-----|------|
 | Supabase | Auth (Google·Kakao), DB (RLS), Storage, RPC | Free 플랜 |
 | MiniMax | 곡 생성 (music-2.0, music-2.6-free), 가사, 이미지 | PAYG |
-| Vercel | 배포 | Hobby — function timeout 60s (곡 생성 30~100s에 빠듯) |
+| Vercel | 배포 + Cron Jobs (daily) | Hobby — function timeout 60s, Cron UI 메뉴 없을 수 있음 |
+
+## Vercel Cron 작업 (자동 운영)
+
+`vercel.json`에 등록된 nightly cron 2개. 매일 새벽 자동 호출 — 사용자 손 불필요.
+
+| Cron | 스케줄 (KST) | 라우트 | 역할 |
+|------|------|--------|------|
+| `cleanup-notifications` | 03:00 | `/api/cron/cleanup-notifications` | 90일 이상 알림 일괄 DELETE |
+| `backfill-tags` | 03:30 | `/api/cron/backfill-tags` | `songs.genre/mood IS NULL` → `inferTags()`로 채움 |
+
+**환경 변수 필수** (Vercel Dashboard → Settings → Environment Variables):
+- `CRON_SECRET`: 강력한 랜덤 문자열 (`openssl rand -hex 32`). 미설정 시 누구나 호출 가능
+
+**동작 확인** (Cron Jobs UI 메뉴 없을 때):
+```bash
+curl https://modoomusic.vercel.app/api/cron/backfill-tags
+# 기대: {"ok":true,"scanned":N,"updated":M}
+```
+
+## 탐색 칩 — 콘텐츠 기반 추출
+
+`utils/extractTags.ts`의 키워드 사전(12 장르 + 11 무드, 한·영)으로 prompt/title/lyrics에서 genre/mood 추출. 신규 곡은 `songService.save`에서 자동, 기존 곡은 백필 cron이 처리. 탐색 칩은 DB 집계 + inferTags 합집합으로 0건 칩 회피.
 
 ## 작업 시작 전 체크리스트
 

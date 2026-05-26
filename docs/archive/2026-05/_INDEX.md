@@ -16,9 +16,23 @@
 - **곡 소유자 메타 전파** — `view-song`/`play-song` 이벤트 detail에 `ownerUserId`, `ownerAvatarHue`, `ownerAvatarUrl`, `ownerName` 포함
 - **모달 border 통일** — `border-white/[0.10]`로 배경(#171A20)과 시각 구분
 
+## Archive 이후 추가 폴리시 (PDCA 외 작업)
+
+archive 후 같은 세션에서 정리된 항목들 (별도 PDCA 사이클 없이 진행):
+
+| 영역 | 변경 |
+|------|------|
+| 좋아요 안전성 | SongDetailPage·GlobalMiniBar inflight + 롤백 + isOwner 의미 명확화 주석 (deferred #8 해소) |
+| 탐색 칩 | `utils/extractTags.ts` 신규 (12 장르 + 11 무드 사전) + `getAvailableTags` + `getByFilter` inferTags 후처리 |
+| 백필 Cron | `/api/cron/backfill-tags` 추가 — nightly NULL 곡 inferTags 채움 (vercel.json crons 2개) |
+| 폴리시 | 모달 border 통일 / 곡 상세 스크림 75% / 팔로우 버튼 흰바탕+검정 / 게시하기 상시 노출 / 미니바 padding 2px / 탐색 아이콘 Publish.svg / 크레딧 부족·소진 분기 메시지 / 알림 "모두 읽음" / 90일 자동 정리 Cron |
+
 ## Deferred (다음 사이클 후보)
 
-- SongDetailPage·GlobalMiniBar 좋아요 헬퍼 통합 (책갈피/공개 좋아요 두 의미 정리)
 - Realtime 알림 (Supabase Realtime subscribe)
 - 알림 UI 그룹핑 ("X님 외 N명")
 - 운영자용 시스템 공지 발송 admin UI
+- useOptimisticToggle prop 동기화 race (ref 기반 전환)
+- 가사 자동생성 UI (`lyrics-autogen` 후보)
+- 검색·댓글·신고·차단 등 소셜 2차
+- 결제 인프라 (Plus/Pro)
