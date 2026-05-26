@@ -76,23 +76,17 @@ export function NotificationPanel({ mode, onClose }: Props) {
     if (mode === 'overlay') onClose?.()
   }
 
-  // 컨테이너 스타일은 모드별
+  // overlay 모드: main 본문 좌측에서 고정 폭(400px)으로 슬라이드인. 우측은 본문 보임
   const containerClass = mode === 'overlay'
-    ? 'fixed left-[240px] top-[64px] bottom-[156px] w-[360px] z-[58] bg-[#1c1c1e] border-r border-white/[0.08] flex flex-col shadow-2xl animate-[slideInLeft_200ms_ease-out]'
+    ? 'absolute inset-y-0 left-0 w-[400px] z-[58] bg-gradient-to-b from-[#111318] from-50% to-[#12151E] border-r border-white/[0.06] flex flex-col shadow-2xl animate-[slideInLeft_200ms_ease-out]'
     : 'flex flex-col h-full'
 
   return (
     <>
-      {mode === 'overlay' && (
-        <button
-          aria-label="알림 닫기"
-          onClick={onClose}
-          className="fixed inset-0 left-[240px] z-[57] bg-transparent cursor-default"
-        />
-      )}
       <div className={containerClass} role={mode === 'overlay' ? 'dialog' : undefined} aria-label="알림">
-        <div className="px-4 py-4 border-b border-white/[0.06] shrink-0">
-          <h2 className="text-base font-semibold text-white">알림</h2>
+        {/* 헤더 — 페이지 헤더 톤 (text-xl), 하단 border 없음 */}
+        <div className="px-6 py-5 shrink-0">
+          <h2 className="text-xl font-semibold text-white">알림</h2>
         </div>
         <div className="flex-1 overflow-y-auto">
           {items === null ? (

@@ -32,7 +32,7 @@ function renderText(n: Notification): React.ReactNode {
       return (
         <>
           <span className="text-white font-medium">{p.title || '공지'}</span>
-          {p.body && <span className="block text-zinc-400 text-xs mt-0.5 line-clamp-2">{p.body}</span>}
+          {p.body && <span className="block text-zinc-400 text-xs mt-1 leading-relaxed break-words">{p.body}</span>}
         </>
       )
     }
@@ -68,16 +68,19 @@ export function NotificationItem({ notif, onClick }: Props) {
   return (
     <button
       onClick={onClick}
-      className={`w-full text-left px-4 py-3 flex items-center gap-3 hover:bg-white/[0.04] transition-colors border-b border-white/[0.06] ${
+      className={`w-full text-left border-b border-white/[0.06] hover:bg-white/[0.04] transition-colors ${
         unread ? 'bg-violet-500/[0.06]' : ''
       }`}
     >
-      {visual}
-      <div className="min-w-0 flex-1">
-        <p className="text-sm text-zinc-200 leading-snug truncate">{renderText(notif)}</p>
-        <p className="text-xs text-zinc-500 mt-0.5">{relativeTime(notif.createdAt)}</p>
+      <div className="px-6 py-3 flex items-start gap-3">
+        {visual}
+        <div className="min-w-0 flex-1">
+          {/* 길면 두 줄까지 자동 줄바꿈 (truncate X) — 노래 리스트 폰트 톤과 통일 */}
+          <p className="text-sm font-medium text-zinc-200 leading-snug break-words">{renderText(notif)}</p>
+          <p className="text-xs text-zinc-500 mt-1">{relativeTime(notif.createdAt)}</p>
+        </div>
+        {unread && <span className="w-1.5 h-1.5 rounded-full bg-red-500 shrink-0 mt-2" />}
       </div>
-      {unread && <span className="w-1.5 h-1.5 rounded-full bg-violet-500 shrink-0" />}
     </button>
   )
 }

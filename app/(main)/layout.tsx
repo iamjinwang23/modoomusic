@@ -273,7 +273,8 @@ export default function MainShellLayout({ children }: { children: React.ReactNod
 
         {/* Main content */}
         <main className="flex-1 flex flex-col min-w-0 overflow-hidden">
-          <div className="flex flex-1 min-h-0 overflow-hidden">
+          {/* relative — 알림 오버레이 패널이 본문 영역만 absolute로 덮도록 (미니바는 외부) */}
+          <div className="flex flex-1 min-h-0 overflow-hidden relative">
             {/* Center panel — 페이지가 직접 렌더 */}
             <div
               className={
@@ -297,6 +298,13 @@ export default function MainShellLayout({ children }: { children: React.ReactNod
                 <MyWorkPanel />
               </aside>
             )}
+
+            {/* notifications §5.1 — 데스크톱 오버레이 알림 패널 (본문 좌측 영역 덮음, 미니바 영향 X) */}
+            {notifPanelOpen && (
+              <div className="hidden md:block">
+                <NotificationPanel mode="overlay" onClose={() => setNotifPanelOpen(false)} />
+              </div>
+            )}
           </div>
 
           {/* Global Mini Player */}
@@ -307,13 +315,6 @@ export default function MainShellLayout({ children }: { children: React.ReactNod
 
       {/* Bottom nav — mobile only */}
       <BottomNav />
-
-      {/* notifications §5.1 — 데스크톱 오버레이 알림 패널 */}
-      {notifPanelOpen && (
-        <div className="hidden md:block">
-          <NotificationPanel mode="overlay" onClose={() => setNotifPanelOpen(false)} />
-        </div>
-      )}
 
       {/* Modals */}
       {loginOpen && <LoginModal onClose={() => setLoginOpen(false)} />}
