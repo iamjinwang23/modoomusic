@@ -10,6 +10,7 @@ import { PublicSongCard } from './PublicSongCard'
 import { ProfileEditModal } from '@/components/ProfileEditModal'
 import { SocialLinksRow } from '@/components/SocialLinksRow'
 import { toast } from '@/components/toast/toast'
+import { useShellScroll } from '@/hooks/useShellScroll'
 import type { PublicSong, Song, UserProfile, SocialLinks } from '@/types/domain'
 
 
@@ -129,6 +130,8 @@ export function ProfilePanel({ username }: Props) {
   const { user, profile: authProfile } = useAuth()
   // 본인인지 판별: 내 username과 prop username 비교
   const isSelf = !!user && authProfile?.username === username
+  const profileScrollRef = useRef<HTMLDivElement>(null)
+  useShellScroll(profileScrollRef)
 
   const publishedCount = isSelf
     ? songService.getAll().filter((s) => s.published).length
@@ -322,7 +325,7 @@ export function ProfilePanel({ username }: Props) {
 
   return (
     <div className="flex flex-col h-full overflow-hidden">
-      <div className="flex-1 overflow-y-auto">
+      <div ref={profileScrollRef} className="flex-1 overflow-y-auto">
         <div className="max-w-[1064px] mx-auto md:pt-4">
 
           {/* ── 커버 + 아바타 (통합) — 모바일 풀폭·radius 0·헤더 밀착, 데스크톱 1064:368 + rounded ── */}

@@ -11,6 +11,7 @@ import { collectionService } from '@/services/collection.service'
 import { useGlobalPlayer } from '@/contexts/GlobalPlayerContext'
 import { useAuth } from '@/components/AuthProvider'
 import { toast } from '@/components/toast/toast'
+import { useShellScroll } from '@/hooks/useShellScroll'
 import { SoundWaveIcon } from '@/components/SoundWaveIcon'
 import { getPending as getPendingGen, type PendingInfo as GenPendingInfo } from '@/services/generation.store'
 import type { Song } from '@/types/domain'
@@ -116,6 +117,8 @@ export function MyWorkPanel({ showCollections = false }: { showCollections?: boo
   const { profile } = useAuth()
   const ownerAvatarUrl = profile?.avatarUrl ?? null
   const ownerName = profile?.displayName ?? profile?.username ?? null
+  const scrollRef = useRef<HTMLDivElement>(null)
+  useShellScroll(scrollRef)
   const [collecting, setCollecting] = useState<Song | null>(null)
   const [publishing, setPublishing] = useState<Song | null>(null)
   const [unpublishing, setUnpublishing] = useState<Song | null>(null)
@@ -213,7 +216,7 @@ export function MyWorkPanel({ showCollections = false }: { showCollections?: boo
           <MyCollectionPanel />
         </div>
       ) : (
-      <div className="flex-1 overflow-y-auto">
+      <div ref={scrollRef} className="flex-1 overflow-y-auto">
         {songs.length === 0 && !pendingSong ? (
           <div className="pt-32 pb-16 text-center px-6">
             <Image src="/Confused.svg" alt="" width={48} height={48} className="mx-auto mb-3 opacity-40" style={{ filter: 'invert(1)' }} />

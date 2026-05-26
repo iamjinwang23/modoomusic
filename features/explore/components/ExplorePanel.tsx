@@ -4,6 +4,7 @@ import { useState, useRef, useEffect, useCallback } from 'react'
 import Image from 'next/image'
 import { exploreService, type FeedTab } from '@/services/explore.service'
 import { useAuth } from '@/components/AuthProvider'
+import { useShellScroll } from '@/hooks/useShellScroll'
 import { PublicSongCard } from './PublicSongCard'
 import { ExploreFeedFilter } from './ExploreFeedFilter'
 import type { PublicSong, Song } from '@/types/domain'
@@ -166,6 +167,8 @@ function SectionAllView({
   const [filters, setFilters] = useState<string[]>([])
   const [feed, setFeed] = useState<PublicSong[]>([])
   const [loading, setLoading] = useState(true)
+  const scrollRef = useRef<HTMLDivElement>(null)
+  useShellScroll(scrollRef)
 
   useEffect(() => {
     let cancelled = false
@@ -198,7 +201,7 @@ function SectionAllView({
         <ExploreFeedFilter selected={filters} onChange={setFilters} />
       </div>
 
-      <div className="flex-1 overflow-y-auto px-5 py-5">
+      <div ref={scrollRef} className="flex-1 overflow-y-auto px-5 py-5">
         {loading ? (
           <div className="flex items-center justify-center h-full text-zinc-500 text-sm">불러오는 중…</div>
         ) : feed.length === 0 ? (
@@ -230,6 +233,8 @@ export function ExplorePanel() {
   const [allView, setAllView] = useState<{ tab: FeedTab; label: string } | null>(null)
   const [sections, setSections] = useState<Record<FeedTab, PublicSong[]>>({ recommended: [], latest: [], popular: [] })
   const [loading, setLoading] = useState(true)
+  const homeScrollRef = useRef<HTMLDivElement>(null)
+  useShellScroll(homeScrollRef)
 
   useEffect(() => {
     let cancelled = false
@@ -275,7 +280,7 @@ export function ExplorePanel() {
   }
 
   return (
-    <div className="flex-1 overflow-y-auto px-5 py-6 space-y-8">
+    <div ref={homeScrollRef} className="flex-1 overflow-y-auto px-5 py-6 space-y-8">
       {HOME_SECTIONS.map(({ id, label }) => (
         <SectionCarousel
           key={id}
