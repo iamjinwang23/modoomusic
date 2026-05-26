@@ -201,13 +201,25 @@ export function SongDetailPage({ onBack, profile }: Props) {
               </div>
             )}
           </div>
+          {/* 모바일 전용: 커버 바로 아래 제목 가운데 정렬 */}
+          <div className="md:hidden flex flex-col items-center gap-1.5 w-full">
+            <div className="flex items-center gap-2 flex-wrap justify-center">
+              <h2 className="text-xl font-bold text-white leading-snug text-center">{displayTitle}</h2>
+              {song.instrumental && (
+                <span className="shrink-0 text-[10px] text-zinc-400 bg-zinc-800 px-2 py-0.5 rounded border border-white/[0.06] leading-none">
+                  Instrumental
+                </span>
+              )}
+            </div>
+          </div>
+
           {(() => {
             const name = profile?.displayName ?? ownerName ?? user?.user_metadata?.full_name ?? user?.email?.split('@')[0] ?? null
             const hue = profile?.avatarHue ?? (user ? (user.id.charCodeAt(0) * 137) % 360 : 0)
             const avatarUrl = ownerAvatarUrl
             if (!name) return null
             return (
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 flex-wrap justify-center md:justify-start">
                 {avatarUrl ? (
                   <div className="relative w-8 h-8 rounded-full overflow-hidden shrink-0">
                     <Image src={avatarUrl} alt={name} fill className="object-cover" sizes="32px" unoptimized />
@@ -221,6 +233,8 @@ export function SongDetailPage({ onBack, profile }: Props) {
                   </div>
                 )}
                 <span className="text-sm text-zinc-300 truncate">{name}</span>
+                {/* 모바일: 사용자 옆에 시간 같이 (가운데 정렬 그룹) */}
+                <span className="md:hidden text-xs text-zinc-500">· {relativeTime(song.createdAt)}</span>
                 {!isOwner && (
                   <button
                     type="button"
@@ -237,7 +251,8 @@ export function SongDetailPage({ onBack, profile }: Props) {
               </div>
             )
           })()}
-          <p className="text-xs text-zinc-500">{relativeTime(song.createdAt)}</p>
+          {/* 데스크톱 전용: 시간 별도 줄 */}
+          <p className="hidden md:block text-xs text-zinc-500">{relativeTime(song.createdAt)}</p>
           <div className="flex items-center gap-2 flex-wrap justify-center md:justify-start">
             <ActionBtn title="좋아요" icon="/Thumb-Up.svg" active={liked} onClick={handleLike} />
             <ActionBtn title="컬렉션" icon="/Collection.svg" active={inCollection} onClick={() => setCollectOpen(true)} />
@@ -252,9 +267,10 @@ export function SongDetailPage({ onBack, profile }: Props) {
           </div>
         </div>
 
-        {/* 우측(데스크톱) / 하단(모바일) — 제목·스타일·가사 */}
+        {/* 우측(데스크톱) / 하단(모바일) — 제목(데스크톱만)·스타일·가사 */}
         <div className="flex-1 md:overflow-y-auto px-5 md:py-5 md:pr-6 md:pl-1 pb-8">
-          <div className="flex items-center gap-2 mb-6">
+          {/* 제목 — 데스크톱만 (모바일은 좌측 컬럼 커버 아래에) */}
+          <div className="hidden md:flex items-center gap-2 mb-6">
             <h2 className="text-2xl font-bold text-white leading-snug">{displayTitle}</h2>
             {song.instrumental && (
               <span className="shrink-0 text-xs text-zinc-400 bg-zinc-800 px-2 py-1 rounded border border-white/[0.06] leading-none">
