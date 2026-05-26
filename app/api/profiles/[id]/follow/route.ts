@@ -1,0 +1,75 @@
+// Design Ref: social-actions §4.1 — 팔로우 토글 + follow 알림 INSERT
+// 자기 자신 follow 차단, dedupe는 follows PK가 처리
+import { NextResponse } from 'next/server'
+import { createClient, createUserClient } from '@/lib/supabase/server'
+
+interface Params { id: string }
+
+export async function POST(_req: Request, { params }: { params: Promise<Params> }) {
+  const { id: targetUserId } = await params
+  if (!targetUserId) return NextResponse.json({ error: 'invalid' }, { status: 400 })
+
+  // 1) 인증
+  const userClient = await createUserClient()
+  const { data: { user } } = await userClient.auth.getUser()
+  if (!user) return NextResponse.json({ error: 'unauthorized' }, { status: 401 })
+
+  // 2) 자기 자신 차단
+  if (targetUserId === user.id) {
+    return NextResponse.json({ error: '자기 자신은 팔로우할 수 없어요' }, { status: 400 })
+  }
+
+  const admin = await createClient()
+
+  // 3) 대상 프로필 확인 + actor username 한 번에 조회
+  const [{ data: target }, { data: actor }] = await Promise.all([
+    admin.from('profiles').select('id, follower_count').eq('id', targetUserId).maybeSingle(),
+    admin.from('profiles').select('username').eq('id', user.id).maybeSingle(),
+  ])
+  if (!target) return NextResponse.json({ error: 'not found' }, { status: 404 })
+
+  // 4) 기존 follow 존재 확인
+  const { data: existing } = await admin
+    .from('follows')
+    .select('follower_id')
+    .eq('follower_id', user.id)
+    .eq('following_id', targetUserId)
+    .maybeSingle()
+
+  let following: boolean
+  if (existing) {
+    const { error } = await admin
+      .from('follows')
+      .delete()
+      .eq('follower_id', user.id)
+      .eq('following_id', targetUserId)
+    if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+    following = false
+  } else {
+    const { error } = await admin
+      .from('follows')
+      .insert({ follower_id: user.id, following_id: targetUserId })
+    if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+    following = true
+
+    // social-actions §4.1 — follow 알림 INSERT. payload에 username 포함 (NotificationPanel 라우팅용)
+    const { error: notifErr } = await admin
+      .from('notifications')
+      .insert({
+        user_id: targetUserId,
+        type: 'follow',
+        actor_id: user.id,
+        payload: { username: actor?.username ?? null },
+      })
+    if (notifErr) console.error('[follow notify]', notifErr.message)
+  }
+
+  // 5) follower_count 재조회 (트리거 갱신 반영)
+  const { data: refreshed } = await admin
+    .from('profiles')
+    .select('follower_count')
+    .eq('id', targetUserId)
+    .maybeSingle()
+
+  return NextResponse.json({ following, followerCount: refreshed?.follower_count ?? 0 })
+}

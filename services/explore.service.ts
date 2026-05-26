@@ -76,6 +76,24 @@ const SONG_SELECT = `
   profiles!songs_user_id_fkey ( username, display_name, avatar_hue, avatar_url )
 `
 
+// social-actions §4.3 — 본인 좋아요 상태 후처리 (song_ids in 쿼리 1번으로 N+1 회피)
+async function fillIsLiked(
+  supabase: ReturnType<typeof createClient>,
+  songs: PublicSong[],
+): Promise<PublicSong[]> {
+  if (songs.length === 0) return songs
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return songs
+  const songIds = songs.map((s) => s.id)
+  const { data: myLikes } = await supabase
+    .from('likes')
+    .select('song_id')
+    .eq('user_id', user.id)
+    .in('song_id', songIds)
+  const likedSet = new Set((myLikes ?? []).map((l) => l.song_id))
+  return songs.map((s) => ({ ...s, isLiked: likedSet.has(s.id) }))
+}
+
 export const exploreService = {
   async getFeed(tab: FeedTab, limit = 60): Promise<PublicSong[]> {
     const supabase = createClient()
@@ -88,7 +106,7 @@ export const exploreService = {
       .order(feedOrderColumn(tab), { ascending: false, nullsFirst: false })
       .limit(fetchLimit)
     if (error) { console.error('[exploreService.getFeed]', error.message); return [] }
-    const mapped = (data as unknown as SongRow[]).map(rowToPublicSong)
+    const mapped = await fillIsLiked(supabase, (data as unknown as SongRow[]).map(rowToPublicSong))
     return tab === 'recommended' ? sortRecommended(mapped).slice(0, limit) : mapped
   },
 
@@ -105,7 +123,7 @@ export const exploreService = {
     if (moods.length > 0)  q = q.in('mood',  moods)
     const { data, error } = await q
     if (error) { console.error('[exploreService.getByFilter]', error.message); return [] }
-    const mapped = (data as unknown as SongRow[]).map(rowToPublicSong)
+    const mapped = await fillIsLiked(supabase, (data as unknown as SongRow[]).map(rowToPublicSong))
     return tab === 'recommended' ? sortRecommended(mapped).slice(0, limit) : mapped
   },
 
@@ -131,6 +149,18 @@ export const exploreService = {
       facebook:  data.link_facebook,
       x:         data.link_x,
     }
+    // social-actions §4.3 — 본인이 이 사용자를 팔로우 중인지 확인 (로그인 시에만)
+    const { data: { user } } = await supabase.auth.getUser()
+    let isFollowing = false
+    if (user && user.id !== data.id) {
+      const { count } = await supabase
+        .from('follows')
+        .select('follower_id', { count: 'exact', head: true })
+        .eq('follower_id', user.id)
+        .eq('following_id', data.id)
+      isFollowing = (count ?? 0) > 0
+    }
+
     return {
       username: data.username,
       displayName: data.display_name ?? data.username,
@@ -142,6 +172,7 @@ export const exploreService = {
       followerCount: data.follower_count ?? 0,
       followingCount: data.following_count ?? 0,
       songCount: data.song_count ?? 0,
+      isFollowing,
       links,
     }
   },
@@ -163,7 +194,7 @@ export const exploreService = {
       .order('published_at', { ascending: false, nullsFirst: false })
       .limit(limit)
     if (error) { console.error('[exploreService.getUserSongs]', error.message); return [] }
-    return (data as unknown as SongRow[]).map(rowToPublicSong)
+    return fillIsLiked(supabase, (data as unknown as SongRow[]).map(rowToPublicSong))
   },
 
   async getPublicSongById(id: string): Promise<PublicSong | null> {
@@ -178,7 +209,8 @@ export const exploreService = {
       if (error) console.error('[exploreService.getPublicSongById]', error.message)
       return null
     }
-    return rowToPublicSong(data as unknown as SongRow)
+    const [filled] = await fillIsLiked(supabase, [rowToPublicSong(data as unknown as SongRow)])
+    return filled
   },
 
   async getPopularProfiles(limit = 12): Promise<UserProfile[]> {

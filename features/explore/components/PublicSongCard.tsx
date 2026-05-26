@@ -1,9 +1,11 @@
 'use client'
 
-import { useState } from 'react'
 import Image from 'next/image'
 import { useGlobalPlayer } from '@/contexts/GlobalPlayerContext'
 import { SoundWaveIcon } from '@/components/SoundWaveIcon'
+import { useOptimisticToggle } from '@/hooks/useOptimisticToggle'
+import { useAuth } from '@/components/AuthProvider'
+import { toast } from '@/components/toast/toast'
 import type { PublicSong } from '@/types/domain'
 
 function coverGradient(hue: number) {
@@ -25,10 +27,30 @@ interface Props {
 }
 
 export function PublicSongCard({ song, onPlay, onThumbPlay, hideArtist = false }: Props) {
-  const [liked, setLiked] = useState(song.isLiked ?? false)
+  const { user } = useAuth()
   const { song: currentSong, isPlaying } = useGlobalPlayer()
   const isThisPlaying = currentSong?.id === song.id && isPlaying
   const displayTitle = song.title || '제목 없음'
+
+  // social-actions §5.2 — 좋아요 토글: 낙관적 UI + 롤백 + inflight 차단
+  const { state: liked, count: likeCount, toggle: toggleLike } = useOptimisticToggle({
+    initialState: song.isLiked ?? false,
+    initialCount: song.likeCount,
+    guard: () => {
+      if (!user) { window.dispatchEvent(new Event('open-login')); return false }
+      return true
+    },
+    fetcher: async () => {
+      const r = await fetch(`/api/songs/${song.id}/like`, { method: 'POST' })
+      if (!r.ok) {
+        if (r.status === 401) window.dispatchEvent(new Event('open-login'))
+        throw new Error('like failed')
+      }
+      const d = await r.json()
+      return { state: d.liked, count: d.likeCount }
+    },
+    onError: () => toast.error('좋아요 처리에 실패했어요'),
+  })
 
   function handleThumbClick(e: React.MouseEvent) {
     e.stopPropagation()
@@ -42,7 +64,7 @@ export function PublicSongCard({ song, onPlay, onThumbPlay, hideArtist = false }
 
   function handleLike(e: React.MouseEvent) {
     e.stopPropagation()
-    setLiked((v) => !v)
+    toggleLike()
   }
 
   return (
@@ -107,7 +129,7 @@ export function PublicSongCard({ song, onPlay, onThumbPlay, hideArtist = false }
               height={14}
               style={{ filter: liked ? 'brightness(0) saturate(100%) invert(44%) sepia(51%) saturate(1569%) hue-rotate(221deg) brightness(101%) contrast(96%)' : 'invert(0.45)' }}
             />
-            {formatCount(song.likeCount + (liked ? 1 : 0))}
+            {formatCount(likeCount)}
           </button>
           <span className="flex items-center gap-1.5">
             <Image src="/Play.svg" alt="" width={14} height={14} style={{ filter: 'invert(0.45)' }} />

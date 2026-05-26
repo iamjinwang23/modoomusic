@@ -10,6 +10,7 @@ import { PublicSongCard } from './PublicSongCard'
 import { ProfileEditModal } from '@/components/ProfileEditModal'
 import { SocialLinksRow } from '@/components/SocialLinksRow'
 import { toast } from '@/components/toast/toast'
+import { useOptimisticToggle } from '@/hooks/useOptimisticToggle'
 import type { PublicSong, Song, UserProfile, SocialLinks } from '@/types/domain'
 
 
@@ -267,7 +268,27 @@ export function ProfilePanel({ username }: Props) {
   }
 
   const profile = isSelf ? selfProfile : otherProfile
-  const [following, setFollowing] = useState(profile?.isFollowing ?? false)
+
+  // social-actions §5.3 — 팔로우 토글: 낙관적 UI + followerCount 즉시 갱신
+  const { state: following, count: followerCount, toggle: toggleFollow } = useOptimisticToggle({
+    initialState: profile?.isFollowing ?? false,
+    initialCount: profile?.followerCount ?? 0,
+    guard: () => {
+      if (!user) { window.dispatchEvent(new Event('open-login')); return false }
+      return true
+    },
+    fetcher: async () => {
+      if (!profile) throw new Error('no profile')
+      const r = await fetch(`/api/profiles/${profile.userId}/follow`, { method: 'POST' })
+      if (!r.ok) {
+        if (r.status === 401) window.dispatchEvent(new Event('open-login'))
+        throw new Error('follow failed')
+      }
+      const d = await r.json()
+      return { state: d.following, count: d.followerCount }
+    },
+    onError: () => toast.error('팔로우에 실패했어요'),
+  })
 
   const selfSongs: PublicSong[] = isSelf
     ? songService.getAll().filter((s) => s.published).map((s) => ({
@@ -393,7 +414,7 @@ export function ProfilePanel({ username }: Props) {
               <div className="min-w-0 flex-1 space-y-5">
                 <div className="flex gap-6 text-sm text-zinc-500">
                   <span><span className="text-white font-semibold">{profile.songCount}</span> 곡</span>
-                  <span><span className="text-white font-semibold">{profile.followerCount.toLocaleString()}</span> 팔로워</span>
+                  <span><span className="text-white font-semibold">{followerCount.toLocaleString()}</span> 팔로워</span>
                   <span><span className="text-white font-semibold">{profile.followingCount.toLocaleString()}</span> 팔로잉</span>
                 </div>
                 {profile.bio && <p className="text-sm text-zinc-300 whitespace-pre-line">{profile.bio}</p>}
@@ -411,7 +432,8 @@ export function ProfilePanel({ username }: Props) {
                 </div>
               ) : (
                 <button
-                  onClick={() => setFollowing((v) => !v)}
+                  onClick={() => toggleFollow()}
+                  aria-pressed={following}
                   className={`px-4 py-1.5 rounded-full text-sm font-medium transition-colors shrink-0 ${
                     following
                       ? 'border border-white text-white bg-transparent hover:bg-white/[0.06]'

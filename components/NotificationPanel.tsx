@@ -65,9 +65,11 @@ export function NotificationPanel({ mode, onClose }: Props) {
           },
         }))
       }
-    } else if (n.type === 'follow' && n.actorName) {
-      // ProfilePanel은 username 기준. actorName이 displayName인 경우가 있어 actorId로 username 조회는 별도. 1차: actorName 사용 시도
-      window.dispatchEvent(new CustomEvent('view-profile', { detail: n.actorName }))
+    } else if (n.type === 'follow') {
+      // social-actions §5.5 — payload.username 우선 (follow API가 INSERT 시 채움). 없으면 actorName fallback
+      const payload = n.payload as { username?: string }
+      const username = payload?.username || n.actorName
+      if (username) window.dispatchEvent(new CustomEvent('view-profile', { detail: username }))
     } else if (n.type === 'system') {
       const payload = n.payload as { url?: string }
       if (payload?.url) router.push(payload.url)
