@@ -47,6 +47,16 @@ export async function POST(_req: Request, { params }: { params: Promise<Params> 
       .eq('following_id', targetUserId)
     if (error) return NextResponse.json({ error: error.message }, { status: 500 })
     following = false
+
+    // social-actions 폭주 차단 (C) — unfollow 시 아직 읽지 않은 follow 알림 자동 정리
+    // (사용자가 알림 확인 전 토글 반복하면 알림이 깔끔히 사라짐)
+    await admin
+      .from('notifications')
+      .delete()
+      .eq('user_id', targetUserId)
+      .eq('type', 'follow')
+      .eq('actor_id', user.id)
+      .is('read_at', null)
   } else {
     const { error } = await admin
       .from('follows')
@@ -54,16 +64,27 @@ export async function POST(_req: Request, { params }: { params: Promise<Params> 
     if (error) return NextResponse.json({ error: error.message }, { status: 500 })
     following = true
 
-    // social-actions §4.1 — follow 알림 INSERT. payload에 username 포함 (NotificationPanel 라우팅용)
-    const { error: notifErr } = await admin
+    // social-actions 폭주 차단 (B) — 미읽음 follow 알림이 이미 있으면 INSERT skip
+    // (사용자가 한 번 확인한 뒤 다시 팔로우하면 새 알림 OK)
+    const { count: existingUnread } = await admin
       .from('notifications')
-      .insert({
-        user_id: targetUserId,
-        type: 'follow',
-        actor_id: user.id,
-        payload: { username: actor?.username ?? null },
-      })
-    if (notifErr) console.error('[follow notify]', notifErr.message)
+      .select('id', { count: 'exact', head: true })
+      .eq('user_id', targetUserId)
+      .eq('type', 'follow')
+      .eq('actor_id', user.id)
+      .is('read_at', null)
+
+    if ((existingUnread ?? 0) === 0) {
+      const { error: notifErr } = await admin
+        .from('notifications')
+        .insert({
+          user_id: targetUserId,
+          type: 'follow',
+          actor_id: user.id,
+          payload: { username: actor?.username ?? null },
+        })
+      if (notifErr) console.error('[follow notify]', notifErr.message)
+    }
   }
 
   // 5) follower_count 재조회 (트리거 갱신 반영)

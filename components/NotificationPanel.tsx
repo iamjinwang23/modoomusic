@@ -86,9 +86,20 @@ export function NotificationPanel({ mode, onClose }: Props) {
   return (
     <>
       <div className={containerClass} role={mode === 'overlay' ? 'dialog' : undefined} aria-label="알림">
-        {/* 헤더 — 페이지 헤더 톤 (text-xl), 하단 border 없음 */}
-        <div className="px-6 py-5 shrink-0">
+        {/* 헤더 — 페이지 헤더 톤 (text-xl), 하단 border 없음 + "모두 읽음" 버튼 (미읽음 있을 때만) */}
+        <div className="px-6 py-5 shrink-0 flex items-center justify-between">
           <h2 className="text-xl font-semibold text-white">알림</h2>
+          {(items?.some((n) => !n.readAt) ?? false) && (
+            <button
+              onClick={async () => {
+                await notificationService.markAllAsRead()
+                window.dispatchEvent(new Event('notifications-changed'))
+              }}
+              className="text-xs text-zinc-400 hover:text-white transition-colors"
+            >
+              모두 읽음
+            </button>
+          )}
         </div>
         <div className="flex-1 overflow-y-auto">
           {items === null ? (

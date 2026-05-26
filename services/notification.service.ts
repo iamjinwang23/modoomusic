@@ -75,4 +75,14 @@ export const notificationService = {
       .eq('id', id)
     if (error) console.error('[notificationService.markAsRead]', error.message)
   },
+
+  // 본인의 미읽음 알림 일괄 읽음 처리 (RLS로 본인 row만 UPDATE)
+  async markAllAsRead(): Promise<void> {
+    const supabase = createClient()
+    const { error } = await supabase
+      .from('notifications')
+      .update({ read_at: new Date().toISOString() })
+      .is('read_at', null)
+    if (error) console.error('[notificationService.markAllAsRead]', error.message)
+  },
 }

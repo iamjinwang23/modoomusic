@@ -302,7 +302,7 @@ export function SongDetailPage({ onBack, profile }: Props) {
                     className={`shrink-0 text-sm font-medium px-4 py-1.5 rounded-full transition-colors ${
                       following
                         ? 'border border-white text-white bg-transparent hover:bg-white/[0.06]'
-                        : 'bg-violet-600 hover:bg-violet-500 text-white'
+                        : 'bg-white text-black hover:bg-zinc-100'
                     }`}
                   >
                     {following ? '팔로잉' : '팔로우'}

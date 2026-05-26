@@ -434,7 +434,7 @@ export function ProfilePanel({ username }: Props) {
                   className={`px-4 py-1.5 rounded-full text-sm font-medium transition-colors shrink-0 ${
                     following
                       ? 'border border-white text-white bg-transparent hover:bg-white/[0.06]'
-                      : 'bg-violet-600 hover:bg-violet-500 text-white'
+                      : 'bg-white text-black hover:bg-zinc-100'
                   }`}
                 >
                   {following ? '팔로잉' : '팔로우'}
