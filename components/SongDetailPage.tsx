@@ -141,15 +141,15 @@ export function SongDetailPage({ onBack, profile }: Props) {
       {/* 커버 색감을 흐릿하게 깔아주는 배경 레이어 */}
       <div
         aria-hidden
-        className="absolute inset-0 z-0 scale-125 blur-3xl opacity-40 pointer-events-none"
+        className="absolute inset-0 z-0 scale-125 blur-3xl opacity-70 pointer-events-none"
         style={song.coverImage ? undefined : { background: coverGradient(song) }}
       >
         {song.coverImage && (
           <Image src={song.coverImage} alt="" fill className="object-cover" unoptimized priority={false} />
         )}
       </div>
-      {/* 가독성용 스크림 */}
-      <div aria-hidden className="absolute inset-0 z-0 bg-[#171A20]/75 pointer-events-none" />
+      {/* 가독성용 스크림 — 살짝 진한 색감 보이게 약화 */}
+      <div aria-hidden className="absolute inset-0 z-0 bg-[#171A20]/55 pointer-events-none" />
 
       {/* 데스크톱 헤더 — 모바일은 우상단 닫기 X만 표시 */}
       <div className="hidden md:flex relative z-10 shrink-0 items-center gap-3 px-5 h-14 border-b border-white/[0.06]">
@@ -179,7 +179,7 @@ export function SongDetailPage({ onBack, profile }: Props) {
       {/* 본문 — 모바일 컬럼, 데스크톱 로우 */}
       <div className="relative z-10 flex-1 min-h-0 flex flex-col md:flex-row overflow-y-auto md:overflow-hidden">
         {/* 좌측(데스크톱) / 상단(모바일) — 커버 + 메타 + 액션 */}
-        <div className="shrink-0 md:w-[240px] flex flex-col items-center md:items-stretch p-5 pt-12 md:pt-5 gap-4">
+        <div className="shrink-0 md:w-[240px] flex flex-col items-center md:items-stretch p-5 pt-6 md:pt-5 gap-4">
           <div
             onClick={togglePlay}
             className="relative w-[200px] md:w-full rounded-2xl overflow-hidden cursor-pointer group"
@@ -239,9 +239,9 @@ export function SongDetailPage({ onBack, profile }: Props) {
                   <button
                     type="button"
                     onClick={() => setFollowing((v) => !v)}
-                    className={`shrink-0 text-xs px-2.5 py-1 rounded-full transition-colors ${
+                    className={`shrink-0 text-sm font-medium px-4 py-1.5 rounded-full transition-colors ${
                       following
-                        ? 'bg-white/[0.08] text-zinc-400 hover:bg-white/[0.12]'
+                        ? 'border border-white text-white bg-transparent hover:bg-white/[0.06]'
                         : 'bg-violet-600 hover:bg-violet-500 text-white'
                     }`}
                   >
@@ -371,10 +371,10 @@ function ActionBtn({ title, icon, active, onClick }: { title: string; icon: stri
       title={title}
       onClick={onClick}
       className={`w-10 h-10 rounded-full flex items-center justify-center transition-colors ${
-        active ? 'bg-white hover:bg-zinc-100' : 'bg-white/[0.06] hover:bg-white/[0.12]'
+        active ? 'bg-violet-600 hover:bg-violet-500' : 'bg-white/[0.06] hover:bg-white/[0.12]'
       }`}
     >
-      <Image src={icon} alt={title} width={18} height={18} style={{ filter: active ? 'invert(0)' : 'invert(0.55)' }} />
+      <Image src={icon} alt={title} width={18} height={18} style={{ filter: active ? 'invert(1)' : 'invert(0.55)' }} />
     </button>
   )
 }

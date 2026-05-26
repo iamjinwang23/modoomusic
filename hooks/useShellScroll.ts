@@ -1,33 +1,40 @@
 'use client'
 
-import { useEffect, useRef, type RefObject } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 
-// 스크롤 컨테이너 ref를 받아서 방향을 감지하고 shell-header-hide 이벤트를 dispatch.
-// shell layout이 이벤트를 받아 모바일 헤더를 자동으로 collapse.
+// 스크롤 컨테이너에 부착할 수 있는 callback ref를 반환.
+// 페이지에 loading 상태가 있어서 ref 부착 시점이 늦어지는 경우에도
+// element가 실제로 mount되는 순간 setEl이 발동되어 listener가 등록됨.
 //
-// 사용처: 페이지별 메인 스크롤 컨테이너에 부착
-//  - (main)/layout.tsx의 center div (create 페이지)
-//  - ExplorePanel, ProfilePanel, MyWorkPanel 등의 overflow-y-auto 컨테이너
-export function useShellScroll(targetRef: RefObject<HTMLElement | null>) {
+// 사용:
+//   const scrollRef = useShellScroll()
+//   <div ref={scrollRef} className="overflow-y-auto">...</div>
+//
+// 이벤트: 'shell-header-hide' (detail: boolean)
+//   - true:  스크롤 다운 (40px 이상에서) → 헤더 숨김
+//   - false: 스크롤 업 또는 맨 위(<40px) → 헤더 표시
+export function useShellScroll() {
+  const [el, setEl] = useState<HTMLElement | null>(null)
   const lastY = useRef(0)
 
+  const ref = useCallback((node: HTMLElement | null) => {
+    setEl(node)
+  }, [])
+
   useEffect(() => {
-    const el = targetRef.current
     if (!el) return
+    lastY.current = el.scrollTop
 
     function onScroll() {
       if (!el) return
       const y = el.scrollTop
       const delta = y - lastY.current
 
-      // 맨 위 근처: 항상 표시
       if (y <= 40) {
         window.dispatchEvent(new CustomEvent('shell-header-hide', { detail: false }))
       } else if (delta > 4) {
-        // 아래로 스크롤: 숨김
         window.dispatchEvent(new CustomEvent('shell-header-hide', { detail: true }))
       } else if (delta < -4) {
-        // 위로 스크롤: 표시
         window.dispatchEvent(new CustomEvent('shell-header-hide', { detail: false }))
       }
 
@@ -36,5 +43,7 @@ export function useShellScroll(targetRef: RefObject<HTMLElement | null>) {
 
     el.addEventListener('scroll', onScroll, { passive: true })
     return () => el.removeEventListener('scroll', onScroll)
-  }, [targetRef])
+  }, [el])
+
+  return ref
 }

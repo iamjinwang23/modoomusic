@@ -130,8 +130,7 @@ export function ProfilePanel({ username }: Props) {
   const { user, profile: authProfile } = useAuth()
   // 본인인지 판별: 내 username과 prop username 비교
   const isSelf = !!user && authProfile?.username === username
-  const profileScrollRef = useRef<HTMLDivElement>(null)
-  useShellScroll(profileScrollRef)
+  const profileScrollRef = useShellScroll()
 
   const publishedCount = isSelf
     ? songService.getAll().filter((s) => s.published).length
@@ -425,7 +424,7 @@ export function ProfilePanel({ username }: Props) {
                   onClick={() => setFollowing((v) => !v)}
                   className={`px-4 py-1.5 rounded-full text-sm font-medium transition-colors shrink-0 ${
                     following
-                      ? 'bg-white/[0.08] text-zinc-300 hover:bg-white/[0.12]'
+                      ? 'border border-white text-white bg-transparent hover:bg-white/[0.06]'
                       : 'bg-violet-600 hover:bg-violet-500 text-white'
                   }`}
                 >

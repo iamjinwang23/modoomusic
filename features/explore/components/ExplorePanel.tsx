@@ -100,7 +100,7 @@ function SectionCarousel({
         <h2 className="text-xl font-semibold text-white">{label}</h2>
         <button
           onClick={onViewAll}
-          className="text-xs text-zinc-500 hover:text-violet-400 transition-colors"
+          className="text-sm text-zinc-500 hover:text-violet-400 transition-colors"
         >
           더보기
         </button>
@@ -118,7 +118,7 @@ function SectionCarousel({
         {fadeLeft && hovered && (
           <button
             onClick={() => scrollBy(-1)}
-            className="absolute left-2 top-[150px] -translate-y-1/2 z-20 w-10 h-10 rounded-full bg-white/20 hover:bg-white/35 flex items-center justify-center transition-all duration-200"
+            className="hidden md:flex absolute left-2 top-[150px] -translate-y-1/2 z-20 w-10 h-10 rounded-full bg-white/20 hover:bg-white/35 items-center justify-center transition-all duration-200"
           >
             <Image src="/Left-Small.svg" alt="이전" width={24} height={24} style={{ filter: 'invert(1)' }} />
           </button>
@@ -142,7 +142,7 @@ function SectionCarousel({
         {fadeRight && hovered && (
           <button
             onClick={() => scrollBy(1)}
-            className="absolute right-2 top-[150px] -translate-y-1/2 z-20 w-10 h-10 rounded-full bg-white/20 hover:bg-white/35 flex items-center justify-center transition-all duration-200"
+            className="hidden md:flex absolute right-2 top-[150px] -translate-y-1/2 z-20 w-10 h-10 rounded-full bg-white/20 hover:bg-white/35 items-center justify-center transition-all duration-200"
           >
             <Image src="/Right-Small.svg" alt="다음" width={24} height={24} style={{ filter: 'invert(1)' }} />
           </button>
@@ -167,8 +167,7 @@ function SectionAllView({
   const [filters, setFilters] = useState<string[]>([])
   const [feed, setFeed] = useState<PublicSong[]>([])
   const [loading, setLoading] = useState(true)
-  const scrollRef = useRef<HTMLDivElement>(null)
-  useShellScroll(scrollRef)
+  const scrollRef = useShellScroll()
 
   useEffect(() => {
     let cancelled = false
@@ -233,8 +232,7 @@ export function ExplorePanel() {
   const [allView, setAllView] = useState<{ tab: FeedTab; label: string } | null>(null)
   const [sections, setSections] = useState<Record<FeedTab, PublicSong[]>>({ recommended: [], latest: [], popular: [] })
   const [loading, setLoading] = useState(true)
-  const homeScrollRef = useRef<HTMLDivElement>(null)
-  useShellScroll(homeScrollRef)
+  const homeScrollRef = useShellScroll()
 
   useEffect(() => {
     let cancelled = false

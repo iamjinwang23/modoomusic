@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
@@ -50,8 +50,7 @@ export default function MainShellLayout({ children }: { children: React.ReactNod
   const [comingSoon, setComingSoon] = useState<null | 'sidebar' | 'locked-model' | 'daily-limit'>(null)
   const [songOverlayOpen, setSongOverlayOpen] = useState(false)
   const [headerHidden, setHeaderHidden] = useState(false)
-  const centerScrollRef = useRef<HTMLDivElement>(null)
-  useShellScroll(centerScrollRef)
+  const centerScrollRef = useShellScroll()
 
   // 신규 가입자 온보딩
   useEffect(() => {

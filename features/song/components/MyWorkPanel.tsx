@@ -117,8 +117,7 @@ export function MyWorkPanel({ showCollections = false }: { showCollections?: boo
   const { profile } = useAuth()
   const ownerAvatarUrl = profile?.avatarUrl ?? null
   const ownerName = profile?.displayName ?? profile?.username ?? null
-  const scrollRef = useRef<HTMLDivElement>(null)
-  useShellScroll(scrollRef)
+  const scrollRef = useShellScroll()
   const [collecting, setCollecting] = useState<Song | null>(null)
   const [publishing, setPublishing] = useState<Song | null>(null)
   const [unpublishing, setUnpublishing] = useState<Song | null>(null)

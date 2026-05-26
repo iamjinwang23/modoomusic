@@ -169,8 +169,7 @@ function CollectionDetailView({ collection, onBack, onUpdated }: { collection: C
   const ownerAvatarUrl = profile?.avatarUrl ?? null
   const ownerName = profile?.displayName ?? profile?.username ?? null
   const player = useGlobalPlayer()
-  const detailScrollRef = useRef<HTMLDivElement>(null)
-  useShellScroll(detailScrollRef)
+  const detailScrollRef = useShellScroll()
 
   useEffect(() => { setCol(collection) }, [collection])
 
@@ -311,8 +310,7 @@ export function MyCollectionPanel() {
   const [selected, setSelected] = useState<Collection | null>(null)
   const [deletingId, setDeletingId] = useState<string | null>(null)
   const [creating, setCreating] = useState(false)
-  const gridScrollRef = useRef<HTMLDivElement>(null)
-  useShellScroll(gridScrollRef)
+  const gridScrollRef = useShellScroll()
 
   function load() {
     setCollections(collectionService.ensureDefault())
