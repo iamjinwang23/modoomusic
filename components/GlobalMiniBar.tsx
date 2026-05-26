@@ -23,7 +23,7 @@ function coverGradient(song: Song) {
 }
 
 export function GlobalMiniBar() {
-  const { song, feed, idx, isOwner, ownerName, ownerAvatarUrl, ownerAvatarHue, hasPrev, hasNext, isPlaying, currentTime, duration, togglePlay, next, prev, seekTo, patchSong } = useGlobalPlayer()
+  const { song, feed, idx, isOwner, ownerName, ownerUserId, ownerAvatarUrl, ownerAvatarHue, hasPrev, hasNext, isPlaying, currentTime, duration, togglePlay, next, prev, seekTo, patchSong } = useGlobalPlayer()
     const trackRef = useRef<HTMLDivElement>(null)
     const [dragging, setDragging] = useState(false)
   const [collectOpen, setCollectOpen] = useState(false)
@@ -32,7 +32,7 @@ export function GlobalMiniBar() {
 
   function openDetail() {
     if (!song) return
-    window.dispatchEvent(new CustomEvent('view-song', { detail: { feed, idx, isOwner, ownerName, ownerAvatarUrl, ownerAvatarHue } }))
+    window.dispatchEvent(new CustomEvent('view-song', { detail: { feed, idx, isOwner, ownerUserId, ownerName, ownerAvatarUrl, ownerAvatarHue } }))
   }
 
   function handleLike() {

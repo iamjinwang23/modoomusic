@@ -12,6 +12,7 @@ import { toast } from '@/components/toast/toast'
 import { SoundWaveIcon } from '@/components/SoundWaveIcon'
 import { profileColor } from '@/utils/profileColor'
 import { buildSongShareUrl } from '@/utils/shareUrl'
+import { useOptimisticToggle } from '@/hooks/useOptimisticToggle'
 import type { Song } from '@/types/domain'
 
 interface SongProfile {
@@ -53,6 +54,7 @@ export function SongDetailPage({ onBack, profile }: Props) {
   const {
     song,
     isOwner,
+    ownerUserId,
     ownerAvatarUrl,
     ownerAvatarHue,
     ownerName,
@@ -65,7 +67,26 @@ export function SongDetailPage({ onBack, profile }: Props) {
     patchSong,
   } = useGlobalPlayer()
 
-  const [following, setFollowing] = useState(false)
+  // social-actions §5.3 — 곡 소유자 팔로우 (ownerUserId 기반). 실제 API 호출
+  const { state: following, toggle: toggleFollow } = useOptimisticToggle({
+    initialState: false,
+    initialCount: 0,
+    guard: () => {
+      if (!user) { window.dispatchEvent(new Event('open-login')); return false }
+      return true
+    },
+    fetcher: async () => {
+      if (!ownerUserId) throw new Error('no owner')
+      const r = await fetch(`/api/profiles/${ownerUserId}/follow`, { method: 'POST' })
+      if (!r.ok) {
+        if (r.status === 401) window.dispatchEvent(new Event('open-login'))
+        throw new Error('follow failed')
+      }
+      const d = await r.json()
+      return { state: d.following }
+    },
+    onError: () => toast.error('팔로우에 실패했어요'),
+  })
   const [collectOpen, setCollectOpen] = useState(false)
   const [inCollection, setInCollection] = useState(false)
   const [editOpen, setEditOpen] = useState(false)
@@ -261,7 +282,8 @@ export function SongDetailPage({ onBack, profile }: Props) {
                 {!isOwner && (
                   <button
                     type="button"
-                    onClick={() => setFollowing((v) => !v)}
+                    onClick={() => toggleFollow()}
+                    aria-pressed={following}
                     className={`shrink-0 text-sm font-medium px-4 py-1.5 rounded-full transition-colors ${
                       following
                         ? 'border border-white text-white bg-transparent hover:bg-white/[0.06]'

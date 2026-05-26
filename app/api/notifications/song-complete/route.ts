@@ -1,7 +1,8 @@
 // Design Ref: notifications §4.2 — 곡 생성 완료 알림
 // useSongGeneration이 곡을 DB에 저장한 직후 songId와 함께 호출
 import { NextResponse } from 'next/server'
-import { createClient, createUserClient } from '@/lib/supabase/server'
+import { createUserClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/admin'
 
 export async function POST(req: Request) {
   const { songId } = await req.json().catch(() => ({ songId: null }))
@@ -13,7 +14,8 @@ export async function POST(req: Request) {
   const { data: { user } } = await userClient.auth.getUser()
   if (!user) return NextResponse.json({ error: 'unauthorized' }, { status: 401 })
 
-  const admin = await createClient()
+  // admin: cookies 없는 진짜 service-role — notifications RLS INSERT 정책 우회
+  const admin = createAdminClient()
 
   // 본인이 소유한 곡인지 검증 (스푸핑 방지)
   const { data: song } = await admin

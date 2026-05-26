@@ -119,6 +119,7 @@ export default function MainShellLayout({ children }: { children: React.ReactNod
             isOwner: !!user && pub.userId === user.id,
             ownerName: pub.displayName,
             ownerAvatarUrl: pub.avatarUrl ?? null,
+            ownerUserId: pub.userId,
             ownerAvatarHue: pub.avatarHue ?? null,
           },
         }))

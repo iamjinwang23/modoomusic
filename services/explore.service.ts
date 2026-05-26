@@ -77,6 +77,7 @@ const SONG_SELECT = `
 `
 
 // social-actions §4.3 — 본인 좋아요 상태 후처리 (song_ids in 쿼리 1번으로 N+1 회피)
+// supabase.auth.getUser()는 새로고침 직후 hydrate race로 null 가능 → 호출자가 user를 가져옴
 async function fillIsLiked(
   supabase: ReturnType<typeof createClient>,
   songs: PublicSong[],
@@ -127,7 +128,9 @@ export const exploreService = {
     return tab === 'recommended' ? sortRecommended(mapped).slice(0, limit) : mapped
   },
 
-  async getProfile(username: string): Promise<UserProfile | null> {
+  // social-actions §4.3 — currentUserId 명시 전달. supabase.auth.getUser()는 새로고침 직후
+  // hydrate race로 null이 올 수 있어 호출자(useAuth().user)가 알려주는 게 안전
+  async getProfile(username: string, currentUserId?: string | null): Promise<UserProfile | null> {
     const supabase = createClient()
     const { data, error } = await supabase
       .from('profiles')
@@ -149,14 +152,13 @@ export const exploreService = {
       facebook:  data.link_facebook,
       x:         data.link_x,
     }
-    // social-actions §4.3 — 본인이 이 사용자를 팔로우 중인지 확인 (로그인 시에만)
-    const { data: { user } } = await supabase.auth.getUser()
+    // 본인이 이 사용자를 팔로우 중인지 확인
     let isFollowing = false
-    if (user && user.id !== data.id) {
+    if (currentUserId && currentUserId !== data.id) {
       const { count } = await supabase
         .from('follows')
         .select('follower_id', { count: 'exact', head: true })
-        .eq('follower_id', user.id)
+        .eq('follower_id', currentUserId)
         .eq('following_id', data.id)
       isFollowing = (count ?? 0) > 0
     }

@@ -164,7 +164,7 @@ function ConfirmDeleteModal({ name, onConfirm, onCancel }: { name: string; onCon
 /* ── 컬렉션 상세 (곡 목록) ── */
 function CollectionDetailView({ collection, onBack, onUpdated }: { collection: Collection; onBack: () => void; onUpdated: () => void }) {
   const [col, setCol] = useState(collection)
-  const { profile } = useAuth()
+  const { profile, user } = useAuth()
   const ownerAvatarUrl = profile?.avatarUrl ?? null
   const ownerAvatarHue = profile?.avatarHue ?? null
   const ownerName = profile?.displayName ?? profile?.username ?? null
@@ -206,7 +206,7 @@ function CollectionDetailView({ collection, onBack, onUpdated }: { collection: C
       player.togglePlay()
     } else {
       window.dispatchEvent(new CustomEvent('play-song', {
-        detail: { feed: songs, idx, isOwner: true, ownerAvatarUrl, ownerAvatarHue, ownerName },
+        detail: { feed: songs, idx, isOwner: true, ownerUserId: user?.id ?? null, ownerAvatarUrl, ownerAvatarHue, ownerName },
       }))
     }
   }
@@ -214,7 +214,7 @@ function CollectionDetailView({ collection, onBack, onUpdated }: { collection: C
   function handleOpen(song: Song) {
     const idx = songs.findIndex((s) => s.id === song.id)
     window.dispatchEvent(new CustomEvent('view-song', {
-      detail: { feed: songs, idx, isOwner: true, ownerAvatarUrl, ownerAvatarHue, ownerName },
+      detail: { feed: songs, idx, isOwner: true, ownerUserId: user?.id ?? null, ownerAvatarUrl, ownerAvatarHue, ownerName },
     }))
   }
 

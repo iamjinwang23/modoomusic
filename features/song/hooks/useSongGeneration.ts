@@ -9,7 +9,7 @@ import type { Song } from '@/types/domain'
 import type { GenerationStatus } from '../types/song'
 
 export function useSongGeneration() {
-  const { profile } = useAuth()
+  const { profile, user } = useAuth()
   const [status, setStatus] = useState<GenerationStatus>('idle')
   const [elapsed, setElapsed] = useState(0)
   const [result, setResult] = useState<Song | null>(null)
@@ -86,6 +86,7 @@ export function useSongGeneration() {
               detail: {
                 feed: [song], idx: 0, isOwner: true,
                 ownerAvatarUrl: profile?.avatarUrl ?? null,
+                ownerUserId: user?.id ?? null,
                 ownerAvatarHue: profile?.avatarHue ?? null,
                 ownerName: profile?.displayName ?? profile?.username ?? null,
               },

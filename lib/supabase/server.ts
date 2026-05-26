@@ -1,7 +1,9 @@
 import { createServerClient } from '@supabase/ssr'
 import { cookies } from 'next/headers'
 
-// 관리자 권한 클라이언트 (RLS 무시) — 신뢰된 서버 로직에서만 사용
+// ⚠️ DEPRECATED — 이름과 달리 cookies를 받기 때문에 user JWT가 우선 적용되어
+// RLS가 user 컨텍스트로 평가됨. 진짜 admin 권한이 필요하면 `lib/supabase/admin.ts`의
+// `createAdminClient()`를 사용. 새 코드는 이 함수 호출하지 말 것.
 export async function createClient() {
   const cookieStore = await cookies()
   return createServerClient(

@@ -1,7 +1,8 @@
 // Design Ref: social-actions §4.1 — 팔로우 토글 + follow 알림 INSERT
 // 자기 자신 follow 차단, dedupe는 follows PK가 처리
 import { NextResponse } from 'next/server'
-import { createClient, createUserClient } from '@/lib/supabase/server'
+import { createUserClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/admin'
 
 interface Params { id: string }
 
@@ -19,7 +20,8 @@ export async function POST(_req: Request, { params }: { params: Promise<Params> 
     return NextResponse.json({ error: '자기 자신은 팔로우할 수 없어요' }, { status: 400 })
   }
 
-  const admin = await createClient()
+  // admin: cookies 없는 진짜 service-role — RLS 완전 우회 (트리거 follower_count UPDATE + notifications INSERT 통과)
+  const admin = createAdminClient()
 
   // 3) 대상 프로필 확인 + actor username 한 번에 조회
   const [{ data: target }, { data: actor }] = await Promise.all([

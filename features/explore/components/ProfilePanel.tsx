@@ -175,8 +175,9 @@ export function ProfilePanel({ username }: Props) {
     if (isSelf) { setOtherProfile(null); setOtherSongs([]); setLoadingOther(false); return }
     let cancelled = false
     setLoadingOther(true)
+    // user.id를 명시 전달 — supabase.auth.getUser() hydrate race로 isFollowing이 false로 굳는 문제 회피
     Promise.all([
-      exploreService.getProfile(username),
+      exploreService.getProfile(username, user?.id ?? null),
       exploreService.getUserSongs(username),
     ]).then(([p, songs]) => {
       if (cancelled) return
@@ -185,7 +186,7 @@ export function ProfilePanel({ username }: Props) {
       setLoadingOther(false)
     })
     return () => { cancelled = true }
-  }, [isSelf, username])
+  }, [isSelf, username, user?.id])
 
   const selfProfile: UserProfile | null = isSelf && user && dbProfile && dbProfile.username === username
     ? {
@@ -324,13 +325,13 @@ export function ProfilePanel({ username }: Props) {
   function handlePlay(pub: PublicSong) {
     const feed = songs.map(toSong)
     const idx  = songs.findIndex((s) => s.id === pub.id)
-    window.dispatchEvent(new CustomEvent('view-song', { detail: { feed, idx, isOwner: isSelf, ownerAvatarUrl: displayAvatarUrl, ownerAvatarHue: profile?.avatarHue ?? null, ownerName: profile?.displayName ?? profile?.username ?? null } }))
+    window.dispatchEvent(new CustomEvent('view-song', { detail: { feed, idx, isOwner: isSelf, ownerUserId: profile?.userId ?? null, ownerAvatarUrl: displayAvatarUrl, ownerAvatarHue: profile?.avatarHue ?? null, ownerName: profile?.displayName ?? profile?.username ?? null } }))
   }
 
   function handleThumbPlay(pub: PublicSong) {
     const feed = songs.map(toSong)
     const idx  = songs.findIndex((s) => s.id === pub.id)
-    window.dispatchEvent(new CustomEvent('play-song', { detail: { feed, idx, isOwner: isSelf, ownerAvatarUrl: displayAvatarUrl, ownerAvatarHue: profile?.avatarHue ?? null, ownerName: profile?.displayName ?? profile?.username ?? null } }))
+    window.dispatchEvent(new CustomEvent('play-song', { detail: { feed, idx, isOwner: isSelf, ownerUserId: profile?.userId ?? null, ownerAvatarUrl: displayAvatarUrl, ownerAvatarHue: profile?.avatarHue ?? null, ownerName: profile?.displayName ?? profile?.username ?? null } }))
   }
 
   return (

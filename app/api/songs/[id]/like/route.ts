@@ -1,7 +1,8 @@
 // Design Ref: notifications §4.1 — 좋아요 토글 + 곡 소유자에게 알림 INSERT
 // 본인 좋아요 자신이면 알림 X. INSERT 한 경우만 알림 생성. dedupe는 UNIQUE INDEX가 처리
 import { NextResponse } from 'next/server'
-import { createClient, createUserClient } from '@/lib/supabase/server'
+import { createUserClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/admin'
 
 interface Params { id: string }
 
@@ -15,7 +16,8 @@ export async function POST(_req: Request, { params }: { params: Promise<Params> 
   if (!user) return NextResponse.json({ error: 'unauthorized' }, { status: 401 })
 
   // 2) 곡 소유자 조회 (공개 곡만 좋아요 가능)
-  const admin = await createClient()
+  // admin: cookies 없는 진짜 service-role — RLS 완전 우회 (트리거 like_count UPDATE도 통과)
+  const admin = createAdminClient()
   const { data: song, error: songErr } = await admin
     .from('songs')
     .select('user_id, like_count, is_public')
