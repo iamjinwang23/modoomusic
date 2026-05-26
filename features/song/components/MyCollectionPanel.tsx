@@ -8,7 +8,6 @@ import { useAuth } from '@/components/AuthProvider'
 import { useGlobalPlayer } from '@/contexts/GlobalPlayerContext'
 import { toast } from '@/components/toast/toast'
 import { SoundWaveIcon } from '@/components/SoundWaveIcon'
-import { useShellScroll } from '@/hooks/useShellScroll'
 import type { Collection, Song } from '@/types/domain'
 
 function hueGradient(id: string) {
@@ -169,7 +168,6 @@ function CollectionDetailView({ collection, onBack, onUpdated }: { collection: C
   const ownerAvatarUrl = profile?.avatarUrl ?? null
   const ownerName = profile?.displayName ?? profile?.username ?? null
   const player = useGlobalPlayer()
-  const detailScrollRef = useShellScroll()
 
   useEffect(() => { setCol(collection) }, [collection])
 
@@ -235,7 +233,7 @@ function CollectionDetailView({ collection, onBack, onUpdated }: { collection: C
           <p className="text-xs text-zinc-500">{col.songIds.length}곡</p>
         </div>
       </div>
-      <div ref={detailScrollRef} className="flex-1 overflow-y-auto">
+      <div className="flex-1 overflow-y-auto">
         {songs.length === 0 ? (
           <p className="text-xs text-zinc-500 text-center pt-20">아직 담긴 곡이 없어요</p>
         ) : (
@@ -310,7 +308,6 @@ export function MyCollectionPanel() {
   const [selected, setSelected] = useState<Collection | null>(null)
   const [deletingId, setDeletingId] = useState<string | null>(null)
   const [creating, setCreating] = useState(false)
-  const gridScrollRef = useShellScroll()
 
   function load() {
     setCollections(collectionService.ensureDefault())
@@ -354,7 +351,7 @@ export function MyCollectionPanel() {
 
   return (
     <div className="flex flex-col h-full">
-      <div ref={gridScrollRef} className="flex-1 overflow-y-auto">
+      <div className="flex-1 overflow-y-auto">
         <div className="flex flex-wrap gap-3 p-4">
           {/* + 만들기 카드 */}
           <div

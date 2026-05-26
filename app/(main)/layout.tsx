@@ -4,7 +4,6 @@ import { useState, useEffect } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
-import { useShellScroll } from '@/hooks/useShellScroll'
 import { MyWorkPanel } from '@/features/song/components/MyWorkPanel'
 import { SongDetailPage } from '@/components/SongDetailPage'
 import { LoginModal } from '@/components/LoginModal'
@@ -49,8 +48,6 @@ export default function MainShellLayout({ children }: { children: React.ReactNod
   const [onboardingOpen, setOnboardingOpen] = useState(false)
   const [comingSoon, setComingSoon] = useState<null | 'sidebar' | 'locked-model' | 'daily-limit'>(null)
   const [songOverlayOpen, setSongOverlayOpen] = useState(false)
-  const [headerHidden, setHeaderHidden] = useState(false)
-  const centerScrollRef = useShellScroll()
 
   // 신규 가입자 온보딩
   useEffect(() => {
@@ -81,20 +78,10 @@ export default function MainShellLayout({ children }: { children: React.ReactNod
     }
   }, [router])
 
-  // 라우트 변경 시 song overlay 자동 닫기 + 헤더 다시 표시
+  // 라우트 변경 시 song overlay 자동 닫기
   useEffect(() => {
     setSongOverlayOpen(false)
-    setHeaderHidden(false)
   }, [pathname])
-
-  // 자식 스크롤 컨테이너에서 보낸 헤더 hide/show 신호
-  useEffect(() => {
-    function onHide(e: Event) {
-      setHeaderHidden(!!(e as CustomEvent<boolean>).detail)
-    }
-    window.addEventListener('shell-header-hide', onHide)
-    return () => window.removeEventListener('shell-header-hide', onHide)
-  }, [])
 
   const isCreate = pathname === '/'
 
@@ -106,8 +93,8 @@ export default function MainShellLayout({ children }: { children: React.ReactNod
       className="flex flex-col bg-[#171A20] text-white overflow-hidden select-none h-[calc(100dvh-68px-env(safe-area-inset-bottom,0px))] md:h-screen"
     >
 
-      {/* ── Header — 모바일에서 스크롤 다운 시 collapse, 데스크톱은 항상 h-14 ── */}
-      <header className={`shrink-0 overflow-hidden flex items-center px-5 border-b border-white/[0.06] bg-[#111318] z-20 transition-[height] duration-200 md:h-14 ${headerHidden ? 'h-0' : 'h-14'}`}>
+      {/* ── Header — 항상 상단 고정 ── */}
+      <header className="shrink-0 h-14 flex items-center px-5 border-b border-white/[0.06] bg-[#111318] z-20">
         <Link href="/">
           <Image src="/logo.svg" alt="모두의 노래" width={72} height={16} style={{ filter: 'invert(1)' }} />
         </Link>
@@ -225,7 +212,6 @@ export default function MainShellLayout({ children }: { children: React.ReactNod
           <div className="flex flex-1 min-h-0 overflow-hidden">
             {/* Center panel — 페이지가 직접 렌더 */}
             <div
-              ref={centerScrollRef}
               className={
                 songOverlayOpen
                   ? 'flex-1 flex flex-col overflow-hidden'
