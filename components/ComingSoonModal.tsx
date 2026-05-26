@@ -24,7 +24,7 @@ export function ComingSoonModal({ onClose, reason = 'sidebar' }: Props) {
     <div className="fixed inset-0 z-[80] flex items-center justify-center p-6">
       <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={onClose} />
 
-      <div className="relative w-full max-w-[420px] bg-[#181B22] rounded-2xl shadow-2xl overflow-hidden">
+      <div className="relative w-full max-w-[420px] bg-[#181B22] border border-white/[0.10] rounded-2xl shadow-2xl overflow-hidden">
         {/* 이미지 헤더 — 16:9 */}
         <div className="relative aspect-video overflow-hidden">
           <Image

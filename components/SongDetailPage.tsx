@@ -385,7 +385,7 @@ export function SongDetailPage({ onBack, profile }: Props) {
       {confirmDelete && (
         <div className="fixed inset-0 z-[70] flex items-center justify-center p-6">
           <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={() => setConfirmDelete(false)} />
-          <div className="relative bg-[#21252E] border border-white/[0.08] rounded-2xl p-5 w-full max-w-[320px] shadow-2xl">
+          <div className="relative bg-[#21252E] border border-white/[0.10] rounded-2xl p-5 w-full max-w-[320px] shadow-2xl">
             <p className="text-sm font-semibold text-white mb-1">삭제하시겠어요?</p>
             <p className="text-xs text-zinc-400 mb-5 truncate">"{displayTitle}"</p>
             <div className="flex gap-2 justify-end">

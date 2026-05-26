@@ -153,7 +153,7 @@ export function OnboardingModal({ user, onDone }: Props) {
       {/* Backdrop — 클릭 불가 */}
       <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" />
 
-      <div className="relative z-10 flex rounded-2xl overflow-hidden w-full max-w-[740px] h-[560px] bg-[#181B22] shadow-2xl mx-4">
+      <div className="relative z-10 flex rounded-2xl overflow-hidden w-full max-w-[740px] h-[560px] bg-[#181B22] border border-white/[0.10] shadow-2xl mx-4">
 
         {/* ── 왼쪽 이미지 패널 ── */}
         <div className="hidden md:block w-[300px] shrink-0 relative">

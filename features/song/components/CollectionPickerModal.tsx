@@ -118,7 +118,7 @@ export function CollectionPickerModal({ song, onClose }: Props) {
         onClick={handleClose}
       />
       <div
-        className="relative bg-[#21252E] border border-white/[0.08] rounded-t-2xl md:rounded-2xl w-full max-w-full md:max-w-[420px] max-h-[90vh] overflow-hidden shadow-2xl transition-all duration-280 ease-out flex flex-col"
+        className="relative bg-[#21252E] border border-white/[0.10] rounded-t-2xl md:rounded-2xl w-full max-w-full md:max-w-[420px] max-h-[90vh] overflow-hidden shadow-2xl transition-all duration-280 ease-out flex flex-col"
         style={{
           opacity: visible ? 1 : 0,
           transform: visible ? 'translateY(0) scale(1)' : 'translateY(24px) scale(0.97)',
