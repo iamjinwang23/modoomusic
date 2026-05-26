@@ -203,7 +203,7 @@ export function SongDetailPage({ onBack, profile }: Props) {
         )}
       </div>
       {/* 가독성용 스크림 — 살짝 진한 색감 보이게 약화 */}
-      <div aria-hidden className="absolute inset-0 z-0 bg-[#171A20]/55 pointer-events-none" />
+      <div aria-hidden className="absolute inset-0 z-0 bg-[#171A20]/75 pointer-events-none" />
 
       {/* 데스크톱 헤더 — 모바일은 우상단 닫기 X만 표시 */}
       <div className="hidden md:flex relative z-10 shrink-0 items-center gap-3 px-5 h-14 border-b border-white/[0.06]">

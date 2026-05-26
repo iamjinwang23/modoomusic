@@ -5,6 +5,7 @@ import { useEffect, useState, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { notificationService } from '@/services/notification.service'
 import { exploreService } from '@/services/explore.service'
+import { useAuth } from '@/components/AuthProvider'
 import { NotificationItem } from './NotificationItem'
 import type { Notification } from '@/types/domain'
 
@@ -15,6 +16,7 @@ interface Props {
 
 export function NotificationPanel({ mode, onClose }: Props) {
   const router = useRouter()
+  const { user } = useAuth()
   const [items, setItems] = useState<Notification[] | null>(null)
 
   const load = useCallback(async () => {
@@ -58,7 +60,8 @@ export function NotificationPanel({ mode, onClose }: Props) {
               liked: pub.isLiked, coverHue: pub.coverHue, coverImage: pub.coverImage,
             }],
             idx: 0,
-            isOwner: false,
+            isOwner: !!user && pub.userId === user.id,
+            ownerUserId: pub.userId,
             ownerName: pub.displayName,
             ownerAvatarUrl: pub.avatarUrl ?? null,
             ownerAvatarHue: pub.avatarHue ?? null,
