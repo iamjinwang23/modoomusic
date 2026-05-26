@@ -61,8 +61,13 @@ export async function POST(req: NextRequest) {
   const cost = creditsForModel(model as MusicModelId)
   const consume = await tryConsumeCredits(user.id, cost)
   if (!consume.ok) {
+    // 부족과 소진 구분 — UX 라이팅 정확하게
+    const isExhausted = consume.state.remaining === 0
+    const message = isExhausted
+      ? '오늘의 크레딧을 모두 사용했어요. 내일 자정에 리셋돼요'
+      : `크레딧이 부족해요. 남은 ${consume.state.remaining}크레딧 (필요 ${cost}크레딧)`
     return NextResponse.json(
-      { error: '오늘의 크레딧을 모두 사용했어요. 내일 자정에 리셋돼요', code: 'DAILY_LIMIT', credits: consume.state },
+      { error: message, code: 'DAILY_LIMIT', credits: consume.state },
       { status: 429 },
     )
   }

@@ -44,10 +44,13 @@ export function useSongGeneration() {
       })
       const data = await res.json()
       if (!res.ok) {
-        // 정책성 에러는 ComingSoonModal로 안내
+        // 정책성 에러 안내
         if (data.code === 'DAILY_LIMIT') {
-          window.dispatchEvent(new CustomEvent('open-coming-soon', { detail: 'daily-limit' }))
           if (data.credits) window.dispatchEvent(new CustomEvent('credits-updated', { detail: data.credits }))
+          // 소진(0)일 때만 모달, 부족(>0)은 SongForm 인라인 에러(throw)로 정확한 메시지 표시
+          if (data.credits?.remaining === 0) {
+            window.dispatchEvent(new CustomEvent('open-coming-soon', { detail: 'daily-limit' }))
+          }
         } else if (data.code === 'MODEL_LOCKED') {
           window.dispatchEvent(new CustomEvent('open-coming-soon', { detail: 'locked-model' }))
         }
