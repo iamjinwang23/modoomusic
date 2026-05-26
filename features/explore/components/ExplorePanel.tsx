@@ -8,7 +8,7 @@ import { PublicSongCard } from './PublicSongCard'
 import { ExploreFeedFilter } from './ExploreFeedFilter'
 import type { PublicSong, Song } from '@/types/domain'
 
-const GENRE_SET = new Set(['발라드', '팝', 'R&B', '힙합', '재즈', '포크'])
+// 동적 칩으로 전환 — DB 집계 결과에서 set 구성 (SectionAllView 안에서 사용)
 
 const HOME_SECTIONS: { id: FeedTab; label: string }[] = [
   { id: 'recommended', label: '에디터 추천' },
@@ -166,23 +166,30 @@ function SectionAllView({
   const [filters, setFilters] = useState<string[]>([])
   const [feed, setFeed] = useState<PublicSong[]>([])
   const [loading, setLoading] = useState(true)
+  const [tags, setTags] = useState<{ genres: string[]; moods: string[] }>({ genres: [], moods: [] })
+  const genreSet = new Set(tags.genres)
+
+  // 칩 fetch (1회) — 공개 곡에 실제 존재하는 genre/mood만
+  useEffect(() => {
+    exploreService.getAvailableTags().then(setTags)
+  }, [])
 
   useEffect(() => {
     let cancelled = false
     setLoading(true)
-    const genres = filters.filter((f) => GENRE_SET.has(f))
-    const moods = filters.filter((f) => !GENRE_SET.has(f))
+    const genres = filters.filter((f) => genreSet.has(f))
+    const moods = filters.filter((f) => !genreSet.has(f))
     exploreService.getByFilter(tab, genres, moods).then((data) => {
       if (cancelled) return
       setFeed(data)
       setLoading(false)
     })
     return () => { cancelled = true }
-  }, [tab, filters])
+  }, [tab, filters, tags])
 
   return (
     <div className="flex flex-col h-full overflow-hidden">
-      <div className="shrink-0 flex items-center gap-3 px-5 h-14 border-b border-white/[0.06]">
+      <div className="shrink-0 flex items-center gap-3 px-5 h-14">
         <button
           onClick={onBack}
           className="w-8 h-8 rounded-full bg-white/[0.06] hover:bg-white/[0.12] flex items-center justify-center transition-colors"
@@ -194,8 +201,8 @@ function SectionAllView({
         <p className="text-sm font-semibold">{label}</p>
       </div>
 
-      <div className="shrink-0 px-5 py-3 border-b border-white/[0.06]">
-        <ExploreFeedFilter selected={filters} onChange={setFilters} />
+      <div className="shrink-0 px-5 py-3">
+        <ExploreFeedFilter selected={filters} onChange={setFilters} genres={tags.genres} moods={tags.moods} />
       </div>
 
       <div className="flex-1 overflow-y-auto px-5 py-5">

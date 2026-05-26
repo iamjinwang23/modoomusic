@@ -114,17 +114,29 @@ export const exploreService = {
   async getByFilter(tab: FeedTab, genres: string[], moods: string[], limit = 60): Promise<PublicSong[]> {
     const supabase = createClient()
     const fetchLimit = tab === 'recommended' ? Math.max(limit, 60) : limit
-    let q = supabase
+    // 필터가 있으면 DB .in()으로 1차 좁히지 X — inferTags 추출값 매칭이 클라이언트에서 일어나므로
+    // 모두 fetch한 뒤 후처리 필터 (곡 500개 이내 가정. 기존 곡 genre/mood NULL인 케이스 흡수)
+    const { data, error } = await supabase
       .from('songs')
       .select(SONG_SELECT)
       .eq('is_public', true)
       .order(feedOrderColumn(tab), { ascending: false, nullsFirst: false })
       .limit(fetchLimit)
-    if (genres.length > 0) q = q.in('genre', genres)
-    if (moods.length > 0)  q = q.in('mood',  moods)
-    const { data, error } = await q
     if (error) { console.error('[exploreService.getByFilter]', error.message); return [] }
-    const mapped = await fillIsLiked(supabase, (data as unknown as SongRow[]).map(rowToPublicSong))
+    let mapped = await fillIsLiked(supabase, (data as unknown as SongRow[]).map(rowToPublicSong))
+    if (genres.length > 0 || moods.length > 0) {
+      const { inferTags } = await import('@/utils/extractTags')
+      const songRows = data as unknown as Array<SongRow & { prompt?: string | null; title?: string | null; lyrics?: string | null }>
+      mapped = mapped.filter((song, idx) => {
+        const r = songRows[idx]
+        const inferred = inferTags({ prompt: r.prompt, title: r.title, lyrics: r.lyrics })
+        const effectiveGenre = song.genre ?? inferred.genre
+        const effectiveMood  = song.mood  ?? inferred.mood
+        const genreOk = genres.length === 0 || (effectiveGenre !== null && genres.includes(effectiveGenre))
+        const moodOk  = moods.length === 0  || (effectiveMood  !== null && moods.includes(effectiveMood))
+        return genreOk && moodOk
+      })
+    }
     return tab === 'recommended' ? sortRecommended(mapped).slice(0, limit) : mapped
   },
 
@@ -213,6 +225,39 @@ export const exploreService = {
     }
     const [filled] = await fillIsLiked(supabase, [rowToPublicSong(data as unknown as SongRow)])
     return filled
+  },
+
+  // 공개 곡의 genre/mood 칩 — 명시 값 + prompt/title/lyrics에서 추출 합집합
+  // (기존 곡들이 genre/mood NULL이어도 prompt 텍스트에서 자동 추출)
+  async getAvailableTags(): Promise<{ genres: string[]; moods: string[] }> {
+    const { inferTags } = await import('@/utils/extractTags')
+    const supabase = createClient()
+    const { data } = await supabase
+      .from('songs')
+      .select('genre, mood, prompt, title, lyrics')
+      .eq('is_public', true)
+      .limit(500)
+    const genreSet = new Set<string>()
+    const moodSet = new Set<string>()
+    for (const row of data ?? []) {
+      const r = row as { genre?: string | null; mood?: string | null; prompt?: string | null; title?: string | null; lyrics?: string | null }
+      const g = r.genre?.trim()
+      const m = r.mood?.trim()
+      if (g) genreSet.add(g)
+      else {
+        const inferred = inferTags({ prompt: r.prompt, title: r.title, lyrics: r.lyrics })
+        if (inferred.genre) genreSet.add(inferred.genre)
+      }
+      if (m) moodSet.add(m)
+      else {
+        const inferred = inferTags({ prompt: r.prompt, title: r.title, lyrics: r.lyrics })
+        if (inferred.mood) moodSet.add(inferred.mood)
+      }
+    }
+    return {
+      genres: [...genreSet].sort((a, b) => a.localeCompare(b, 'ko')),
+      moods: [...moodSet].sort((a, b) => a.localeCompare(b, 'ko')),
+    }
   },
 
   async getPopularProfiles(limit = 12): Promise<UserProfile[]> {

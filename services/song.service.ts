@@ -1,6 +1,7 @@
 // Design Ref: §3.4 songs 테이블 + §10 Forward Compatibility — 동기 인터페이스 유지 + 내부 Supabase 백엔드
 import type { Song } from '@/types/domain'
 import { createClient } from '@/lib/supabase/client'
+import { inferTags } from '@/utils/extractTags'
 
 let currentUserId: string | null = null
 let cache: Song[] = []
@@ -162,8 +163,15 @@ export const songService = {
   // notifications §4.2 — song_complete 알림이 곡 INSERT 완료를 의존하므로 await 가능하게 반환
   async save(song: Omit<Song, 'id' | 'createdAt'>): Promise<Song> {
     if (!currentUserId) throw new Error('songService.save: user not set')
+    // 사용자가 명시 입력 안 한 genre/mood는 prompt·lyrics 텍스트에서 자동 추출
+    // (탐색 칩 필터의 0건 칩 방지 + 분류 정확도 향상)
+    const inferred = (!song.genre || !song.mood)
+      ? inferTags({ prompt: song.prompt, title: song.title, lyrics: song.lyrics, customLyrics: song.customLyrics })
+      : { genre: null, mood: null }
     const newSong: Song = {
       ...song,
+      genre: song.genre ?? inferred.genre,
+      mood:  song.mood  ?? inferred.mood,
       id: crypto.randomUUID(),
       createdAt: new Date().toISOString(),
       isNew: true,

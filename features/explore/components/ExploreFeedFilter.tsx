@@ -1,15 +1,16 @@
 'use client'
 
-const GENRE_CHIPS = ['발라드', '팝', 'R&B', '힙합', '재즈', '포크']
-const MOOD_CHIPS = ['잔잔한', '신나는', '감성적', '몽환적', '그리운', '밝은', '우울한', '따뜻한']
-const EXPLORE_FILTER_CHIPS = ['전체', ...GENRE_CHIPS, ...MOOD_CHIPS]
-
 interface Props {
   selected: string[]
   onChange: (chips: string[]) => void
+  // DB 집계 기반 — 실제 공개 곡의 genre/mood만 노출 (0건 칩 회피)
+  genres: string[]
+  moods: string[]
 }
 
-export function ExploreFeedFilter({ selected, onChange }: Props) {
+export function ExploreFeedFilter({ selected, onChange, genres, moods }: Props) {
+  const chips = ['전체', ...genres, ...moods]
+
   function toggle(chip: string) {
     if (chip === '전체') {
       onChange([])
@@ -26,7 +27,7 @@ export function ExploreFeedFilter({ selected, onChange }: Props) {
 
   return (
     <div className="flex gap-2 overflow-x-auto pb-0.5 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
-      {EXPLORE_FILTER_CHIPS.map((chip: string) => {
+      {chips.map((chip: string) => {
         const active = chip === '전체' ? isAll : selected.includes(chip)
         return (
           <button
