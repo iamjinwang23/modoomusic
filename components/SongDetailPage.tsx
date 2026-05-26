@@ -185,36 +185,33 @@ export function SongDetailPage({ onBack, profile }: Props) {
       <div className="relative z-10 flex-1 min-h-0 flex flex-col md:flex-row overflow-y-auto md:overflow-hidden">
         {/* 좌측(데스크톱) / 상단(모바일) — 커버 + 메타 + 액션 */}
         <div className="shrink-0 md:w-[240px] flex flex-col items-center md:items-stretch p-0 md:p-5 gap-0 md:gap-4">
-          {/* 커버 — 모바일: 풀폭 정방형 + 하단 그라데이션 fade. 데스크톱: 200px 2:3 */}
+          {/* 커버 — 모바일: 풀폭 정방형 + 하단 mask fade(배경에 자연 묻어남). 데스크톱: 200px 2:3 */}
           <div
             onClick={togglePlay}
-            className="relative w-full aspect-square md:aspect-[2/3] md:rounded-2xl overflow-hidden cursor-pointer group"
+            className="relative w-full aspect-square md:aspect-[2/3] md:rounded-2xl overflow-hidden cursor-pointer group [-webkit-mask-image:linear-gradient(to_bottom,black_72%,transparent_100%)] [mask-image:linear-gradient(to_bottom,black_72%,transparent_100%)] md:[-webkit-mask-image:none] md:[mask-image:none]"
             style={{ background: song.coverImage ? undefined : coverGradient(song) }}
           >
             {song.coverImage && (
               <Image src={song.coverImage} alt="" fill className="object-cover" unoptimized />
             )}
+            {/* 데스크톱만: 재생 중 dim + 사운드 웨이브 (모바일은 제목 옆에 표시) */}
             {playing ? (
-              <>
-                <div className="absolute inset-0 bg-black/30 pointer-events-none" />
-                <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                  <SoundWaveIcon size={40} />
-                </div>
-              </>
+              <div className="hidden md:flex absolute inset-0 bg-black/30 items-center justify-center pointer-events-none">
+                <SoundWaveIcon size={40} />
+              </div>
             ) : (
               <div className="absolute inset-0 flex items-center justify-center transition-opacity duration-150 bg-black/20 opacity-0 group-hover:opacity-100">
                 <Image src="/Play.svg" alt="재생" width={36} height={36} style={{ filter: 'invert(1)' }} />
               </div>
             )}
-            {/* 모바일: 커버 하단 그라데이션 fade — 배경 #171A20 으로 부드럽게 */}
-            <div className="md:hidden absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-[#171A20] via-[#171A20]/60 to-transparent pointer-events-none" />
           </div>
 
-          {/* 커버 아래 컨테이너 — 모바일에선 좌우 padding 추가 */}
-          <div className="flex flex-col items-center md:items-stretch w-full gap-4 px-5 pt-2 pb-5 md:p-0">
-          {/* 모바일 전용: 커버 바로 아래 제목 가운데 정렬 */}
+          {/* 커버 아래 컨테이너 — 모바일은 mask fade 영역으로 살짝 끌어올림, 좌우 padding 추가 */}
+          <div className="relative z-10 flex flex-col items-center md:items-stretch w-full gap-4 px-5 -mt-10 md:mt-0 pb-5 md:p-0">
+          {/* 모바일 전용: 커버 바로 아래 제목 가운데 정렬 — 재생 중일 때 좌측에 사운드 웨이브 */}
           <div className="md:hidden flex flex-col items-center gap-1.5 w-full">
             <div className="flex items-center gap-2 flex-wrap justify-center">
+              {playing && <SoundWaveIcon size={18} />}
               <h2 className="text-xl font-bold text-white leading-snug text-center">{displayTitle}</h2>
               {song.instrumental && (
                 <span className="shrink-0 text-[10px] text-zinc-400 bg-zinc-800 px-2 py-0.5 rounded border border-white/[0.06] leading-none">
@@ -384,10 +381,10 @@ function ActionBtn({ title, icon, active, onClick }: { title: string; icon: stri
       title={title}
       onClick={onClick}
       className={`w-10 h-10 rounded-full flex items-center justify-center transition-colors ${
-        active ? 'bg-violet-600 hover:bg-violet-500' : 'bg-white/[0.06] hover:bg-white/[0.12]'
+        active ? 'bg-white hover:bg-zinc-100' : 'bg-white/[0.06] hover:bg-white/[0.12]'
       }`}
     >
-      <Image src={icon} alt={title} width={18} height={18} style={{ filter: active ? 'invert(1)' : 'invert(0.55)' }} />
+      <Image src={icon} alt={title} width={18} height={18} style={{ filter: active ? 'invert(0)' : 'invert(0.55)' }} />
     </button>
   )
 }
