@@ -76,7 +76,7 @@ export function GlobalMiniBar() {
 
   return (
     <>
-      <div className="relative shrink-0 bg-[#111318] border-t border-white/[0.06] select-none px-4 py-3">
+      <div className="relative shrink-0 bg-[#111318] border-t border-white/[0.06] select-none px-4 py-[11px] md:py-3">
         {/* 모바일 상단 프로그레스 — 탭/드래그로 시크 */}
         <div
           ref={trackRef}

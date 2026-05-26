@@ -40,7 +40,7 @@ export function BottomNav() {
   const profileHref = profile?.username ? `/profile/${profile.username}` : '#'
 
   const items: NavItem[] = [
-    { href: '/explore',       label: '탐색',      icon: '/Compass.svg' },
+    { href: '/explore',       label: '탐색',      icon: '/Publish.svg' },
     { href: '/library',       label: '라이브러리', icon: '/Music-Library.svg' },
     { href: '/',              label: '만들기',     icon: '/Music-Create.svg' },
     { href: '/notifications', label: '알림',      icon: '/Notification.svg' },

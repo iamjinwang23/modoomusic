@@ -475,8 +475,8 @@ function SongWorkItem({ song, onOpen, onEdit, onDelete, onCollect, onPublish, on
               onMouseDown={(e) => { e.stopPropagation(); song.published ? onUnpublish() : onPublish() }}
               className={`h-[35px] px-3.5 text-xs rounded-full border transition-all flex items-center gap-1.5 group/pub ${
                 song.published
-                  ? 'bg-white border-white text-zinc-900 hover:bg-zinc-100 opacity-100'
-                  : 'border-white/20 text-zinc-400 hover:text-white hover:border-white/40 opacity-0 group-hover:opacity-100'
+                  ? 'bg-white border-white text-zinc-900 hover:bg-zinc-100'
+                  : 'border-white/20 text-zinc-400 hover:text-white hover:border-white/40'
               }`}
             >
               <Image
