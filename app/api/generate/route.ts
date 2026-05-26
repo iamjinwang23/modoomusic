@@ -4,8 +4,29 @@ import { uploadFromUrl } from '@/services/storage.service'
 import { createUserClient } from '@/lib/supabase/server'
 import { tryConsumeCredits, refundCredits } from '@/services/credit.service'
 
+// 이미지 생성 프롬프트 우선순위: 가사 → 제목 → 스타일
+// 의미 없는 단순 반복(ㅋㅋ, 1111 등)은 의도하지 않은 결과를 피하기 위해
+// 다음 후보로 fallback. 그 외엔 MiniMax의 prompt_optimizer가 추상 이미지로 보정.
+function pickImagePrompt({ customLyrics, title, prompt }: { customLyrics?: string; title?: string; prompt: string }): string {
+  const cleanLyrics = (typeof customLyrics === 'string' ? customLyrics : '').replace(/\[.*?\]/g, '').trim()
+  if (isMeaningful(cleanLyrics, 12)) return cleanLyrics.slice(0, 300)
+  const t = (typeof title === 'string' ? title : '').trim()
+  if (isMeaningful(t, 2)) return t
+  return prompt.trim()
+}
+
+// 의미있는 문자열 판정: 길이 + 고유 문자 비율
+function isMeaningful(s: string, minLen: number): boolean {
+  if (s.length < minLen) return false
+  const noWhitespace = s.replace(/\s+/g, '')
+  if (noWhitespace.length === 0) return false
+  const uniqueChars = new Set(noWhitespace.split('')).size
+  // 고유 문자가 너무 적으면 (예: 'ㅋㅋㅋㅋㅋ', '11111') 의미없음으로 판단
+  return uniqueChars >= 3
+}
+
 export async function POST(req: NextRequest) {
-  const { prompt, genre, mood, customLyrics, instrumental, model, audioBase64 } = await req.json()
+  const { prompt, genre, mood, title, customLyrics, instrumental, model, audioBase64 } = await req.json()
 
   if (!prompt?.trim()) {
     return NextResponse.json({ error: '스타일을 입력해주세요' }, { status: 400 })
@@ -48,9 +69,10 @@ export async function POST(req: NextRequest) {
 
   // ── 4) MiniMax 호출
   try {
+    const imagePromptInput = pickImagePrompt({ customLyrics, title, prompt })
     const [songResult, coverUrl] = await Promise.all([
       generateSong({ prompt: prompt.trim(), genre, mood, customLyrics, instrumental, model, audioBase64 }),
-      generateCoverImage([genre, mood, prompt.trim()].filter(Boolean).join(', ')),
+      generateCoverImage([genre, mood, imagePromptInput].filter(Boolean).join(', ')),
     ])
 
     // MiniMax URL은 24시간 후 만료 → Supabase Storage에 영구 저장

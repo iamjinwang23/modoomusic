@@ -137,7 +137,7 @@ export function SongDetailPage({ onBack, profile }: Props) {
   }
 
   return (
-    <div className="relative isolate flex flex-col h-full overflow-hidden">
+    <div className="fixed inset-0 z-[60] md:relative md:inset-auto md:z-auto bg-[#171A20] flex flex-col overflow-hidden isolate md:h-full">
       {/* 커버 색감을 흐릿하게 깔아주는 배경 레이어 */}
       <div
         aria-hidden
@@ -164,12 +164,12 @@ export function SongDetailPage({ onBack, profile }: Props) {
         <p className="text-sm font-medium text-white truncate">{displayTitle}</p>
       </div>
 
-      {/* 모바일 닫기 X — 우상단 플로팅 */}
+      {/* 모바일 닫기 X — 우상단 플로팅 (status bar 아래) */}
       <button
         onClick={onBack}
         title="닫기"
-        className="md:hidden absolute top-3 right-3 z-20 w-9 h-9 rounded-full bg-black/40 hover:bg-black/60 backdrop-blur text-white flex items-center justify-center transition-colors"
-        style={{ marginTop: 'env(safe-area-inset-top, 0px)' }}
+        className="md:hidden absolute right-3 z-20 w-9 h-9 rounded-full bg-black/40 hover:bg-black/60 backdrop-blur text-white flex items-center justify-center transition-colors"
+        style={{ top: 'calc(12px + env(safe-area-inset-top, 0px))' }}
       >
         <svg width="14" height="14" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
           <path d="M1 1l10 10M11 1L1 11"/>
@@ -179,11 +179,12 @@ export function SongDetailPage({ onBack, profile }: Props) {
       {/* 본문 — 모바일 컬럼, 데스크톱 로우 */}
       <div className="relative z-10 flex-1 min-h-0 flex flex-col md:flex-row overflow-y-auto md:overflow-hidden">
         {/* 좌측(데스크톱) / 상단(모바일) — 커버 + 메타 + 액션 */}
-        <div className="shrink-0 md:w-[240px] flex flex-col items-center md:items-stretch p-5 pt-6 md:pt-5 gap-4">
+        <div className="shrink-0 md:w-[240px] flex flex-col items-center md:items-stretch p-0 md:p-5 gap-0 md:gap-4">
+          {/* 커버 — 모바일: 풀폭 정방형 + 하단 그라데이션 fade. 데스크톱: 200px 2:3 */}
           <div
             onClick={togglePlay}
-            className="relative w-[200px] md:w-full rounded-2xl overflow-hidden cursor-pointer group"
-            style={{ background: song.coverImage ? undefined : coverGradient(song), aspectRatio: '2 / 3' }}
+            className="relative w-full aspect-square md:aspect-[2/3] md:rounded-2xl overflow-hidden cursor-pointer group"
+            style={{ background: song.coverImage ? undefined : coverGradient(song) }}
           >
             {song.coverImage && (
               <Image src={song.coverImage} alt="" fill className="object-cover" unoptimized />
@@ -200,7 +201,12 @@ export function SongDetailPage({ onBack, profile }: Props) {
                 <Image src="/Play.svg" alt="재생" width={36} height={36} style={{ filter: 'invert(1)' }} />
               </div>
             )}
+            {/* 모바일: 커버 하단 그라데이션 fade — 배경 #171A20 으로 부드럽게 */}
+            <div className="md:hidden absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-[#171A20] via-[#171A20]/60 to-transparent pointer-events-none" />
           </div>
+
+          {/* 커버 아래 컨테이너 — 모바일에선 좌우 padding 추가 */}
+          <div className="flex flex-col items-center md:items-stretch w-full gap-4 px-5 pt-2 pb-5 md:p-0">
           {/* 모바일 전용: 커버 바로 아래 제목 가운데 정렬 */}
           <div className="md:hidden flex flex-col items-center gap-1.5 w-full">
             <div className="flex items-center gap-2 flex-wrap justify-center">
@@ -265,6 +271,7 @@ export function SongDetailPage({ onBack, profile }: Props) {
               />
             )}
           </div>
+          </div> {/* /커버 아래 컨테이너 */}
         </div>
 
         {/* 우측(데스크톱) / 하단(모바일) — 제목(데스크톱만)·스타일·가사 */}
