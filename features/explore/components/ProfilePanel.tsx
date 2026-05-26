@@ -133,6 +133,8 @@ export function ProfilePanel({ username }: Props) {
     displayName: string | null
     bio: string | null
     avatarHue: number
+    followerCount: number
+    followingCount: number
     links: SocialLinks
     usernameChangedAt: string | null
     nameChangeLog: string[]
@@ -148,7 +150,7 @@ export function ProfilePanel({ username }: Props) {
     const supabase = createClient()
     supabase
       .from('profiles')
-      .select('username, display_name, bio, avatar_hue, link_instagram, link_tiktok, link_youtube, link_facebook, link_x, username_changed_at, name_change_log')
+      .select('username, display_name, bio, avatar_hue, follower_count, following_count, link_instagram, link_tiktok, link_youtube, link_facebook, link_x, username_changed_at, name_change_log')
       .eq('id', user.id)
       .maybeSingle()
       .then(({ data }) => {
@@ -158,6 +160,8 @@ export function ProfilePanel({ username }: Props) {
           displayName: data.display_name,
           bio: data.bio,
           avatarHue: data.avatar_hue ?? 0,
+          followerCount: data.follower_count ?? 0,
+          followingCount: data.following_count ?? 0,
           links: {
             instagram: data.link_instagram,
             tiktok:    data.link_tiktok,
@@ -172,10 +176,10 @@ export function ProfilePanel({ username }: Props) {
   }, [isSelf, user?.id])
 
   useEffect(() => {
-    if (isSelf) { setOtherProfile(null); setOtherSongs([]); setLoadingOther(false); return }
+    // isSelf 분기 제거 — 본인 프로필도 getUserSongs로 like/play count 정확히 가져오기
+    // (이전엔 selfSongs를 로컬 cache에서 만들면서 likeCount/playCount/isLiked를 0/false로 하드코딩했음)
     let cancelled = false
     setLoadingOther(true)
-    // user.id를 명시 전달 — supabase.auth.getUser() hydrate race로 isFollowing이 false로 굳는 문제 회피
     Promise.all([
       exploreService.getProfile(username, user?.id ?? null),
       exploreService.getUserSongs(username),
@@ -186,7 +190,7 @@ export function ProfilePanel({ username }: Props) {
       setLoadingOther(false)
     })
     return () => { cancelled = true }
-  }, [isSelf, username, user?.id])
+  }, [username, user?.id])
 
   const selfProfile: UserProfile | null = isSelf && user && dbProfile && dbProfile.username === username
     ? {
@@ -195,8 +199,8 @@ export function ProfilePanel({ username }: Props) {
         userId: user.id,
         bio: dbProfile.bio,
         avatarHue: dbProfile.avatarHue,
-        followerCount: 0,
-        followingCount: 0,
+        followerCount: dbProfile.followerCount,
+        followingCount: dbProfile.followingCount,
         songCount: publishedCount,
         links: dbProfile.links,
       }
@@ -291,16 +295,8 @@ export function ProfilePanel({ username }: Props) {
     onError: () => toast.error('팔로우에 실패했어요'),
   })
 
-  const selfSongs: PublicSong[] = isSelf
-    ? songService.getAll().filter((s) => s.published).map((s) => ({
-        id: s.id, createdAt: s.createdAt, title: s.title, prompt: s.prompt,
-        genre: s.genre, mood: s.mood, lyrics: s.lyrics, instrumental: s.instrumental,
-        audioUrl: s.audioUrl, duration: s.duration, coverHue: s.coverHue ?? 0,
-        coverImage: s.coverImage, username, displayName: profile?.displayName ?? username,
-        userId: user!.id, likeCount: 0, playCount: 0, isLiked: false,
-      }))
-    : []
-  const songs = isSelf ? selfSongs : otherSongs
+  // 본인/타인 구분 없이 getUserSongs로 통합 — 카운트 정확
+  const songs = otherSongs
 
   if (loadingOther) {
     return (

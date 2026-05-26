@@ -45,7 +45,7 @@ function rowToPublicSong(r: SongRow): PublicSong {
     avatarUrl: r.profiles?.avatar_url ?? null,
     likeCount: r.like_count ?? 0,
     playCount: r.play_count ?? 0,
-    isLiked: false,  // 좋아요 상태는 별도 조회 (현재 미구현)
+    isLiked: false,  // fillIsLiked가 후처리로 덮어씀 (default false)
   }
 }
 
@@ -219,7 +219,7 @@ export const exploreService = {
     const supabase = createClient()
     const { data, error } = await supabase
       .from('profiles')
-      .select('id, username, display_name, avatar_hue, avatar_url, follower_count, song_count')
+      .select('id, username, display_name, avatar_hue, avatar_url, follower_count, following_count, song_count')
       .gt('song_count', 0)
       .order('follower_count', { ascending: false, nullsFirst: false })
       .limit(limit)
@@ -232,7 +232,7 @@ export const exploreService = {
       avatarHue: d.avatar_hue ?? 0,
       avatarImage: d.avatar_url ?? undefined,
       followerCount: d.follower_count ?? 0,
-      followingCount: 0,
+      followingCount: d.following_count ?? 0,
       songCount: d.song_count ?? 0,
     }))
   },

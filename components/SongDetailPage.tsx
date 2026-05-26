@@ -13,6 +13,7 @@ import { SoundWaveIcon } from '@/components/SoundWaveIcon'
 import { profileColor } from '@/utils/profileColor'
 import { buildSongShareUrl } from '@/utils/shareUrl'
 import { useOptimisticToggle } from '@/hooks/useOptimisticToggle'
+import { createClient } from '@/lib/supabase/client'
 import type { Song } from '@/types/domain'
 
 interface SongProfile {
@@ -67,9 +68,23 @@ export function SongDetailPage({ onBack, profile }: Props) {
     patchSong,
   } = useGlobalPlayer()
 
+  // 곡 소유자 팔로우 상태 fetch (initial 동기화) — ownerUserId 변경 시마다
+  const [followingInitial, setFollowingInitial] = useState(false)
+  useEffect(() => {
+    if (!user || !ownerUserId || user.id === ownerUserId) { setFollowingInitial(false); return }
+    let cancelled = false
+    const supabase = createClient()
+    supabase.from('follows')
+      .select('follower_id', { count: 'exact', head: true })
+      .eq('follower_id', user.id)
+      .eq('following_id', ownerUserId)
+      .then(({ count }) => { if (!cancelled) setFollowingInitial((count ?? 0) > 0) })
+    return () => { cancelled = true }
+  }, [user?.id, ownerUserId])
+
   // social-actions §5.3 — 곡 소유자 팔로우 (ownerUserId 기반). 실제 API 호출
   const { state: following, toggle: toggleFollow } = useOptimisticToggle({
-    initialState: false,
+    initialState: followingInitial,
     initialCount: 0,
     guard: () => {
       if (!user) { window.dispatchEvent(new Event('open-login')); return false }
