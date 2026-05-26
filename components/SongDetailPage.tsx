@@ -10,6 +10,8 @@ import { useAuth } from '@/components/AuthProvider'
 import { useGlobalPlayer } from '@/contexts/GlobalPlayerContext'
 import { toast } from '@/components/toast/toast'
 import { SoundWaveIcon } from '@/components/SoundWaveIcon'
+import { profileColor } from '@/utils/profileColor'
+import { buildSongShareUrl } from '@/utils/shareUrl'
 import type { Song } from '@/types/domain'
 
 interface SongProfile {
@@ -106,10 +108,11 @@ export function SongDetailPage({ onBack, profile }: Props) {
 
   async function handleShare() {
     const title = song!.title || song!.prompt.slice(0, 40)
+    const shareUrl = buildSongShareUrl(song!.id)
     if (navigator.share) {
-      await navigator.share({ title, url: song!.audioUrl }).catch(() => {})
+      await navigator.share({ title, url: shareUrl }).catch(() => {})
     } else {
-      const ok = await navigator.clipboard.writeText(song!.audioUrl).then(() => true).catch(() => false)
+      const ok = await navigator.clipboard.writeText(shareUrl).then(() => true).catch(() => false)
       if (ok) toast.success('링크가 복사되었어요')
       else toast.error('링크 복사에 실패했어요')
     }
@@ -137,7 +140,9 @@ export function SongDetailPage({ onBack, profile }: Props) {
   }
 
   return (
-    <div className="fixed inset-0 z-[60] md:relative md:inset-auto md:z-auto bg-[#171A20] flex flex-col overflow-hidden isolate md:h-full">
+    // 모바일: top 0 ~ 미니바 위까지만 덮어서 미니바·BottomNav는 그대로 노출
+    // 데스크톱: md:relative + md:inset-auto로 일반 flex 아이템처럼 동작
+    <div className="fixed inset-x-0 top-0 bottom-[calc(156px+env(safe-area-inset-bottom,0px))] z-[55] bg-[#171A20] flex flex-col overflow-hidden isolate md:relative md:inset-auto md:bottom-auto md:z-auto md:h-full">
       {/* 커버 색감을 흐릿하게 깔아주는 배경 레이어 */}
       <div
         aria-hidden
@@ -223,6 +228,7 @@ export function SongDetailPage({ onBack, profile }: Props) {
             const name = profile?.displayName ?? ownerName ?? user?.user_metadata?.full_name ?? user?.email?.split('@')[0] ?? null
             const hue = profile?.avatarHue ?? (user ? (user.id.charCodeAt(0) * 137) % 360 : 0)
             const avatarUrl = ownerAvatarUrl
+            const c = profileColor(hue)
             if (!name) return null
             return (
               <div className="flex items-center gap-2 flex-wrap justify-center md:justify-start">
@@ -232,8 +238,8 @@ export function SongDetailPage({ onBack, profile }: Props) {
                   </div>
                 ) : (
                   <div
-                    className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold text-white shrink-0"
-                    style={{ background: `hsl(${hue},60%,45%)` }}
+                    className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold shrink-0"
+                    style={{ background: c.bg, color: c.text }}
                   >
                     {name.slice(0, 1).toUpperCase()}
                   </div>

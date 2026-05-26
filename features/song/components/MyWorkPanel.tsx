@@ -11,6 +11,7 @@ import { collectionService } from '@/services/collection.service'
 import { useGlobalPlayer } from '@/contexts/GlobalPlayerContext'
 import { useAuth } from '@/components/AuthProvider'
 import { toast } from '@/components/toast/toast'
+import { buildSongShareUrl } from '@/utils/shareUrl'
 import { SoundWaveIcon } from '@/components/SoundWaveIcon'
 import { getPending as getPendingGen, type PendingInfo as GenPendingInfo } from '@/services/generation.store'
 import type { Song } from '@/types/domain'
@@ -384,10 +385,11 @@ function SongWorkItem({ song, onOpen, onEdit, onDelete, onCollect, onPublish, on
 
   async function handleShare() {
     const title = song.title || song.prompt.slice(0, 40)
+    const shareUrl = buildSongShareUrl(song.id)
     if (navigator.share) {
-      await navigator.share({ title, url: song.audioUrl }).catch(() => {})
+      await navigator.share({ title, url: shareUrl }).catch(() => {})
     } else {
-      const ok = await navigator.clipboard.writeText(song.audioUrl).then(() => true).catch(() => false)
+      const ok = await navigator.clipboard.writeText(shareUrl).then(() => true).catch(() => false)
       if (ok) toast.success('링크가 복사되었어요')
       else toast.error('링크 복사에 실패했어요')
     }

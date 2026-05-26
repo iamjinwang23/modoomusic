@@ -164,6 +164,21 @@ export const exploreService = {
     return (data as unknown as SongRow[]).map(rowToPublicSong)
   },
 
+  async getPublicSongById(id: string): Promise<PublicSong | null> {
+    const supabase = createClient()
+    const { data, error } = await supabase
+      .from('songs')
+      .select(SONG_SELECT)
+      .eq('id', id)
+      .eq('is_public', true)
+      .maybeSingle()
+    if (error || !data) {
+      if (error) console.error('[exploreService.getPublicSongById]', error.message)
+      return null
+    }
+    return rowToPublicSong(data as unknown as SongRow)
+  },
+
   async getPopularProfiles(limit = 12): Promise<UserProfile[]> {
     const supabase = createClient()
     const { data, error } = await supabase

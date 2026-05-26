@@ -15,14 +15,7 @@ import { GlobalMiniBar } from '@/components/GlobalMiniBar'
 import { BottomNav } from '@/components/BottomNav'
 import { useAuth } from '@/components/AuthProvider'
 
-const PROFILE_PALETTE = [
-  { bg: 'hsl(87,57%,73%)',  text: 'hsl(87,45%,32%)'  },
-  { bg: 'hsl(261,76%,75%)', text: 'hsl(261,55%,35%)' },
-  { bg: 'hsl(40,60%,82%)',  text: 'hsl(40,50%,35%)'  },
-  { bg: 'hsl(129,33%,77%)', text: 'hsl(129,30%,30%)' },
-  { bg: 'hsl(0,49%,80%)',   text: 'hsl(0,40%,35%)'   },
-  { bg: 'hsl(22,73%,75%)',  text: 'hsl(22,55%,35%)'  },
-]
+import { profileColor } from '@/utils/profileColor'
 
 const VIOLET_FILTER = 'brightness(0) saturate(100%) invert(44%) sepia(51%) saturate(1569%) hue-rotate(221deg) brightness(101%) contrast(96%)'
 
@@ -83,10 +76,46 @@ export default function MainShellLayout({ children }: { children: React.ReactNod
     setSongOverlayOpen(false)
   }, [pathname])
 
+  // 공유 링크로 진입 시 (?song={id}) 곡 상세 자동 오픈
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    const params = new URLSearchParams(window.location.search)
+    const songId = params.get('song')
+    if (!songId) return
+    import('@/services/explore.service').then(({ exploreService }) => {
+      exploreService.getPublicSongById(songId).then((pub) => {
+        if (!pub) return
+        window.dispatchEvent(new CustomEvent('view-song', {
+          detail: {
+            feed: [{
+              id: pub.id, createdAt: pub.createdAt, title: pub.title, prompt: pub.prompt,
+              genre: pub.genre, mood: pub.mood, customLyrics: null, lyrics: pub.lyrics,
+              instrumental: pub.instrumental, audioUrl: pub.audioUrl, duration: pub.duration ?? null,
+              liked: pub.isLiked, coverHue: pub.coverHue, coverImage: pub.coverImage,
+            }],
+            idx: 0,
+            isOwner: !!user && pub.userId === user.id,
+            ownerName: pub.displayName,
+            ownerAvatarUrl: null,
+          },
+        }))
+        // 쿼리 정리
+        const url = new URL(window.location.href)
+        url.searchParams.delete('song')
+        window.history.replaceState({}, '', url.toString())
+      })
+    })
+    // 마운트 시점 1회만 실행 (user는 deps 안 넣음 — 로딩 전엔 isOwner=false로 처리해도 무방)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
   const isCreate = pathname === '/'
 
   const headerInitial = (profile?.displayName ?? user?.user_metadata?.full_name ?? user?.email ?? '?').slice(0, 1).toUpperCase()
-  const paletteIdx = user ? (user.id.charCodeAt(0) * 137) % PROFILE_PALETTE.length : 0
+  // 프로필 아바타 색상 — profile.avatarHue 기반 (DB 저장값)으로 통일.
+  // profile 로드 전엔 fallback (user.id 첫 글자)으로 색 유지.
+  const fallbackHue = user ? user.id.charCodeAt(0) * 137 : 0
+  const avatarBg = profileColor(profile?.avatarHue ?? fallbackHue)
 
   return (
     <div
@@ -108,7 +137,7 @@ export default function MainShellLayout({ children }: { children: React.ReactNod
               <button
                 onClick={() => setUserMenuOpen((v) => !v)}
                 className="w-8 h-8 rounded-full overflow-hidden flex items-center justify-center text-xs font-bold transition-opacity hover:opacity-80"
-                style={profile?.avatarUrl ? undefined : { background: PROFILE_PALETTE[paletteIdx].bg, color: PROFILE_PALETTE[paletteIdx].text }}
+                style={profile?.avatarUrl ? undefined : { background: avatarBg.bg, color: avatarBg.text }}
               >
                 {profile?.avatarUrl ? (
                   <Image src={profile.avatarUrl} alt="" width={32} height={32} className="object-cover w-full h-full" unoptimized />

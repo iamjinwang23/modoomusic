@@ -13,15 +13,7 @@ import { toast } from '@/components/toast/toast'
 import type { PublicSong, Song, UserProfile, SocialLinks } from '@/types/domain'
 
 
-const PALETTE = [
-  { bg: 'hsl(87,57%,73%)',  text: 'hsl(87,45%,32%)'  },
-  { bg: 'hsl(261,76%,75%)', text: 'hsl(261,55%,35%)' },
-  { bg: 'hsl(40,60%,82%)',  text: 'hsl(40,50%,35%)'  },
-  { bg: 'hsl(129,33%,77%)', text: 'hsl(129,30%,30%)' },
-  { bg: 'hsl(0,49%,80%)',   text: 'hsl(0,40%,35%)'   },
-  { bg: 'hsl(22,73%,75%)',  text: 'hsl(22,55%,35%)'  },
-]
-function profileColor(hue: number) { return PALETTE[hue % PALETTE.length] }
+import { profileColor } from '@/utils/profileColor'
 
 function toSong(pub: PublicSong): Song {
   return {

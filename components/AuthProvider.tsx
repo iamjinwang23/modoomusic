@@ -11,6 +11,7 @@ export interface AuthProfile {
   username: string
   displayName: string | null
   avatarUrl: string | null
+  avatarHue: number
   onboardingDone: boolean
 }
 
@@ -40,7 +41,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const supabase = createClient()
     const { data } = await supabase
       .from('profiles')
-      .select('username, display_name, avatar_url, onboarding_done')
+      .select('username, display_name, avatar_url, avatar_hue, onboarding_done')
       .eq('id', user.id)
       .maybeSingle()
     if (!data) { setProfile(null); return }
@@ -48,6 +49,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       username: data.username,
       displayName: data.display_name,
       avatarUrl: data.avatar_url,
+      avatarHue: data.avatar_hue ?? 0,
       onboardingDone: !!data.onboarding_done,
     })
   }, [user])

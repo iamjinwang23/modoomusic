@@ -6,6 +6,7 @@ import { useGlobalPlayer } from '@/contexts/GlobalPlayerContext'
 import { CollectionPickerModal } from '@/features/song/components/CollectionPickerModal'
 import { songService } from '@/services/song.service'
 import { toast } from '@/components/toast/toast'
+import { buildSongShareUrl } from '@/utils/shareUrl'
 import type { Song } from '@/types/domain'
 
 function formatTime(s: number) {
@@ -47,10 +48,11 @@ export function GlobalMiniBar() {
   async function handleShare() {
     if (!song) return
     const title = song.title || song.prompt.slice(0, 40)
+    const shareUrl = buildSongShareUrl(song.id)
     if (navigator.share) {
-      await navigator.share({ title, url: song.audioUrl }).catch(() => {})
+      await navigator.share({ title, url: shareUrl }).catch(() => {})
     } else {
-      const ok = await navigator.clipboard.writeText(song.audioUrl).then(() => true).catch(() => false)
+      const ok = await navigator.clipboard.writeText(shareUrl).then(() => true).catch(() => false)
       if (ok) toast.success('링크가 복사되었어요')
       else toast.error('링크 복사에 실패했어요')
     }
