@@ -87,3 +87,4 @@ export async function refundCredits(userId: string, amount: number): Promise<voi
     .update({ daily_credits_used: Math.max(0, state.used - amount) })
     .eq('id', userId)
 }
+

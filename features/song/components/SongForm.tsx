@@ -107,7 +107,9 @@ export function SongForm() {
   const styleResize = useDragResize(96)
 
   const isGenerating = status === 'generating'
-  const isCoverModel = MODELS.find((m) => m.id === model)?.cover ?? false
+  // music-2.6은 참조 음원 업로드 시 cover 모드, 없으면 일반 모드
+  const isCoverCapable = model === 'music-2.6'
+  const isCoverRequest = isCoverCapable && !!refAudio
 
   useEffect(() => {
     setChips(shuffle(ALL_CHIPS).slice(0, 16))
@@ -170,18 +172,17 @@ export function SongForm() {
       return
     }
     if (!stylePrompt.trim() || isGenerating) return
-    if (isCoverModel && !refAudio) return
 
     // 가사 검증: 입력은 있는데 너무 짧으면 MiniMax가 거부 → 사전 차단
     const lyricsLen = lyrics.trim().length
-    if (!isCoverModel && !instrumental && lyricsLen > 0 && lyricsLen < MIN_LYRICS_LENGTH) {
+    if (!isCoverRequest && !instrumental && lyricsLen > 0 && lyricsLen < MIN_LYRICS_LENGTH) {
       toast.error('가사가 너무 짧아요', {
         description: `최소 ${MIN_LYRICS_LENGTH}자 이상 입력하거나, 가사를 비우면 자동으로 인스트루멘탈로 만들어요`,
       })
       return
     }
 
-    if (isCoverModel && refAudio) {
+    if (isCoverRequest) {
       const reader = new FileReader()
       reader.onload = () => {
         const base64 = (reader.result as string).split(',')[1]
@@ -221,7 +222,7 @@ export function SongForm() {
         className="hidden"
         onChange={(e) => { const f = e.target.files?.[0]; if (f) handleRefAudioFile(f) }}
       />
-      {isCoverModel && (
+      {isCoverCapable && (
         <section
           onClick={() => {
             if (isGenerating) return
@@ -389,7 +390,7 @@ export function SongForm() {
                   setLyrics('')
                   // Music 2.0은 인스트루멘탈 미지원 → 자동으로 Music 2.6으로 전환
                   if (model === 'music-2.0') {
-                    setModel('music-2.6-free')
+                    setModel('music-2.6')
                     toast.info('인스트루멘탈을 위해 Music 2.6로 변경했어요')
                   }
                 }
@@ -536,11 +537,11 @@ export function SongForm() {
       {/* 생성 버튼 */}
       <button
         type="submit"
-        disabled={!stylePrompt.trim() || isGenerating || (isCoverModel && !refAudio)}
+        disabled={!stylePrompt.trim() || isGenerating}
         className={`w-full rounded-xl py-4 font-semibold text-sm transition-colors ${
           isGenerating
             ? 'shimmer bg-violet-600 text-white cursor-not-allowed'
-            : !stylePrompt.trim() || (isCoverModel && !refAudio)
+            : !stylePrompt.trim()
             ? 'bg-[#393C41] text-white'
             : 'bg-violet-600 hover:bg-violet-500 text-white'
         }`}

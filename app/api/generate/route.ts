@@ -61,7 +61,6 @@ export async function POST(req: NextRequest) {
   const cost = creditsForModel(model as MusicModelId)
   const consume = await tryConsumeCredits(user.id, cost)
   if (!consume.ok) {
-    // 부족과 소진 구분 — UX 라이팅 정확하게
     const isExhausted = consume.state.remaining === 0
     const message = isExhausted
       ? '오늘의 크레딧을 모두 사용했어요. 내일 자정에 리셋돼요'
@@ -81,10 +80,8 @@ export async function POST(req: NextRequest) {
     ])
 
     // MiniMax URL은 24시간 후 만료 → Supabase Storage에 영구 저장
-    // Mock 모드에서는 이미 영구 URL이므로 업로드 생략
     let finalAudioUrl = songResult.audioUrl
     let finalCoverUrl = coverUrl
-
     if (!MOCK_MODE) {
       const storageId = crypto.randomUUID()
       const [permanentAudioUrl, permanentCoverUrl] = await Promise.all([
@@ -102,7 +99,6 @@ export async function POST(req: NextRequest) {
       credits: consume.state,
     })
   } catch (e) {
-    // 실패 시 차감했던 크레딧 복원
     await refundCredits(user.id, cost)
     const message = e instanceof Error ? e.message : 'API 오류'
     return NextResponse.json({ error: message }, { status: 502 })

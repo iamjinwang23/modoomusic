@@ -360,7 +360,6 @@ function SongWorkItem({ song, onOpen, onEdit, onDelete, onCollect, onPublish, on
   }, [song.id])
 
   const displayTitle = song.title || 'Untitled'
-  const tags = [song.genre, song.mood].filter(Boolean).join(', ')
 
   function clearNew() {
     if (!isNew) return
@@ -460,7 +459,7 @@ function SongWorkItem({ song, onOpen, onEdit, onDelete, onCollect, onPublish, on
                   </span>
                 )}
               </div>
-              <p className="text-xs text-zinc-400 mt-1 truncate">{tags || song.prompt}</p>
+              <p className="text-xs text-zinc-400 mt-1 truncate">{song.prompt}</p>
             </button>
             <MoreMenu onEdit={onEdit} onDelete={onDelete} />
           </div>

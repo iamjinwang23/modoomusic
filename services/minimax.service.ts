@@ -20,11 +20,15 @@ const MOCK_LYRICS = `[Verse]
 선율에 실어서 너에게 전해
 오늘의 내 하루를`
 
+// MiniMax 공식 카피 기반 (https://platform.minimax.io/docs/guides/pricing-paygo)
+// - 2.0: 기본 (보컬+악기). $0.03/곡
+// - 2.5+: 인스트루멘탈 음악 제작 지원. $0.15/곡
+// - 2.6: 참조 음원 커버 + 인스트루멘탈 지원. $0.15/곡 (Limited Free promo)
+// cover 모드는 model 단위 flag가 아닌 audioBase64 유무로 동적 분기 (music-2.6 + audio = cover)
 export const MODELS = [
-  { id: 'music-2.0',        label: 'Music 2.0',         desc: '안정적인 기본 모델, 저렴한 비용',   locked: false, cover: false, credits: 2  },
-  { id: 'music-2.6-free',   label: 'Music 2.6 (beta)', desc: '인스트루멘탈 가능, 풍부한 사운드',  locked: false, cover: false, credits: 10 },
-  { id: 'music-cover-free', label: 'Music Cover',       desc: '참조 음원 스타일로 커버 생성',      locked: true,  cover: true,  credits: 10 },
-  { id: 'music-2.6',        label: 'Music 2.6 Pro',     desc: '준비 중',                          locked: true,  cover: false, credits: 10 },
+  { id: 'music-2.0',  label: 'Music 2.0',  desc: '음악성·악기 연주 강화 (최대 5분)',                      locked: false, credits: 2  },
+  { id: 'music-2.5+', label: 'Music 2.5+', desc: '모든 장르 인스트루멘탈 음악 제작 지원',                  locked: false, credits: 10 },
+  { id: 'music-2.6',  label: 'Music 2.6',  desc: '참조 음원 커버 가능, 풍부한 악기·초저지연 (Limited Free)', locked: false, credits: 10 },
 ] as const
 
 export type MusicModelId = typeof MODELS[number]['id']
@@ -49,11 +53,12 @@ interface GenerateResult {
 }
 
 export async function generateSong(params: GenerateParams): Promise<GenerateResult> {
-  const { prompt, genre, mood, customLyrics, instrumental = false, model = 'music-2.6-free', audioBase64 } = params
+  const { prompt, genre, mood, customLyrics, instrumental = false, model = 'music-2.0', audioBase64 } = params
 
-  const isCoverModel = MODELS.find((m) => m.id === model)?.cover ?? false
+  // Cover 모드: music-2.6 + 참조 음원 업로드 시 활성화 (audio_base64 첨부)
+  const isCoverRequest = model === 'music-2.6' && !!audioBase64
   const hasLyrics = !!customLyrics?.trim()
-  const isInstrumental = !isCoverModel && (instrumental || !hasLyrics)
+  const isInstrumental = !isCoverRequest && (instrumental || !hasLyrics)
 
   if (MOCK_MODE) {
     await new Promise((r) => setTimeout(r, 3000))
@@ -74,16 +79,16 @@ export async function generateSong(params: GenerateParams): Promise<GenerateResu
   }
 
   // is_instrumental은 Music 2.5+/2.6 계열에서만 지원. Music 2.0은 lyrics 유무로 판정
-  const supportsInstrumentalFlag = model.startsWith('music-2.5') || model.startsWith('music-2.6')
+  const supportsInstrumentalFlag = model === 'music-2.5+' || model === 'music-2.6'
 
-  if (isCoverModel) {
-    if (audioBase64) body.audio_base64 = audioBase64
+  if (isCoverRequest) {
+    body.audio_base64 = audioBase64
     if (hasLyrics) body.lyrics = customLyrics!.trim()
   } else if (supportsInstrumentalFlag) {
     body.is_instrumental = isInstrumental
     if (!isInstrumental && hasLyrics) body.lyrics = customLyrics!.trim()
   } else {
-    // Music 2.0 등: 가사가 있으면 보컬, 없으면 instrumental
+    // Music 2.0: 가사가 있으면 보컬, 없으면 instrumental (별도 flag 미지원)
     if (!isInstrumental && hasLyrics) body.lyrics = customLyrics!.trim()
   }
 
