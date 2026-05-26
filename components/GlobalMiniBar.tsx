@@ -6,6 +6,7 @@ import { useGlobalPlayer } from '@/contexts/GlobalPlayerContext'
 import { CollectionPickerModal } from '@/features/song/components/CollectionPickerModal'
 import { songService } from '@/services/song.service'
 import { toast } from '@/components/toast/toast'
+import { useAuth } from '@/components/AuthProvider'
 import { buildSongShareUrl } from '@/utils/shareUrl'
 import type { Song } from '@/types/domain'
 
@@ -24,8 +25,10 @@ function coverGradient(song: Song) {
 
 export function GlobalMiniBar() {
   const { song, feed, idx, isOwner, ownerName, ownerUserId, ownerAvatarUrl, ownerAvatarHue, hasPrev, hasNext, isPlaying, currentTime, duration, togglePlay, next, prev, seekTo, patchSong } = useGlobalPlayer()
-    const trackRef = useRef<HTMLDivElement>(null)
-    const [dragging, setDragging] = useState(false)
+  const { user } = useAuth()
+  const trackRef = useRef<HTMLDivElement>(null)
+  const likeInflight = useRef(false)
+  const [dragging, setDragging] = useState(false)
   const [collectOpen, setCollectOpen] = useState(false)
 
   if (!song) return null
@@ -35,19 +38,33 @@ export function GlobalMiniBar() {
     window.dispatchEvent(new CustomEvent('view-song', { detail: { feed, idx, isOwner, ownerUserId, ownerName, ownerAvatarUrl, ownerAvatarHue } }))
   }
 
-  function handleLike() {
-    if (!song) return
-    const next = !song.liked
+  // 좋아요: isOwner=true는 책갈피(songs.liked), false는 공개 좋아요(likes 테이블+알림)
+  // 낙관적 UI + 실패 시 롤백 + inflight 중복 차단
+  async function handleLike() {
+    if (!song || likeInflight.current) return
+    if (!isOwner && !user) { window.dispatchEvent(new Event('open-login')); return }
+    likeInflight.current = true
+    const prev = !!song.liked
+    const next = !prev
     patchSong({ liked: next })
-    if (isOwner) {
-      songService.update(song.id, { liked: next })
-      window.dispatchEvent(new CustomEvent('song-updated'))
-    } else {
-      // notifications §4.1 — 다른 사람 곡: 공개 좋아요 API → 알림 생성
-      fetch(`/api/songs/${song.id}/like`, { method: 'POST' })
-        .then((r) => r.ok ? r.json() : null)
-        .then((data) => { if (data && typeof data.liked === 'boolean') patchSong({ liked: data.liked }) })
-        .catch(() => {})
+    try {
+      if (isOwner) {
+        songService.update(song.id, { liked: next })
+        window.dispatchEvent(new CustomEvent('song-updated'))
+      } else {
+        const r = await fetch(`/api/songs/${song.id}/like`, { method: 'POST' })
+        if (!r.ok) {
+          if (r.status === 401) window.dispatchEvent(new Event('open-login'))
+          throw new Error('like failed')
+        }
+        const d = await r.json()
+        patchSong({ liked: d.liked })
+      }
+    } catch {
+      patchSong({ liked: prev })
+      toast.error('좋아요 처리에 실패했어요')
+    } finally {
+      likeInflight.current = false
     }
   }
 

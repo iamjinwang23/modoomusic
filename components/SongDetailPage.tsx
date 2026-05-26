@@ -133,25 +133,39 @@ export function SongDetailPage({ onBack, profile }: Props) {
 
   const displayTitle = song.title || 'Untitled'
 
-  function handleLike() {
-    const next = !liked
+  // 좋아요: isOwner에 따라 두 의미가 다름
+  //  - isOwner=true: 책갈피 (songs.liked 로컬 마크, 카운트·알림 X)
+  //  - isOwner=false: 공개 좋아요 (likes 테이블 + like_count + 알림)
+  // 두 경로 모두 낙관적 UI + 실패 시 롤백 + inflight 중복 차단
+  const likeInflight = useRef(false)
+  async function handleLike() {
+    if (likeInflight.current) return
+    if (!isOwner && !user) { window.dispatchEvent(new Event('open-login')); return }
+    likeInflight.current = true
+    const prev = liked
+    const next = !prev
     setLiked(next)
     patchSong({ liked: next })
-    if (isOwner) {
-      // 본인 곡: 책갈피 토글 (기존 동작 유지)
-      songService.update(song!.id, { liked: next })
-      window.dispatchEvent(new CustomEvent('song-updated'))
-    } else {
-      // notifications §4.1 — 다른 사람 곡: 공개 좋아요 API → 알림 생성
-      fetch(`/api/songs/${song!.id}/like`, { method: 'POST' })
-        .then((r) => r.ok ? r.json() : null)
-        .then((data) => {
-          if (data && typeof data.liked === 'boolean') {
-            setLiked(data.liked)
-            patchSong({ liked: data.liked })
-          }
-        })
-        .catch(() => {})
+    try {
+      if (isOwner) {
+        songService.update(song!.id, { liked: next })
+        window.dispatchEvent(new CustomEvent('song-updated'))
+      } else {
+        const r = await fetch(`/api/songs/${song!.id}/like`, { method: 'POST' })
+        if (!r.ok) {
+          if (r.status === 401) window.dispatchEvent(new Event('open-login'))
+          throw new Error('like failed')
+        }
+        const d = await r.json()
+        setLiked(d.liked)
+        patchSong({ liked: d.liked })
+      }
+    } catch {
+      setLiked(prev)
+      patchSong({ liked: prev })
+      toast.error('좋아요 처리에 실패했어요')
+    } finally {
+      likeInflight.current = false
     }
   }
 
