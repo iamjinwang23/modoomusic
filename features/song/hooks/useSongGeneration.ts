@@ -4,10 +4,12 @@ import { useState, useRef } from 'react'
 import { songService } from '@/services/song.service'
 import { startGeneration, endGeneration } from '@/services/generation.store'
 import { toast } from '@/components/toast/toast'
+import { useAuth } from '@/components/AuthProvider'
 import type { Song } from '@/types/domain'
 import type { GenerationStatus } from '../types/song'
 
 export function useSongGeneration() {
+  const { profile } = useAuth()
   const [status, setStatus] = useState<GenerationStatus>('idle')
   const [elapsed, setElapsed] = useState(0)
   const [result, setResult] = useState<Song | null>(null)
@@ -53,7 +55,7 @@ export function useSongGeneration() {
       }
       if (data.credits) window.dispatchEvent(new CustomEvent('credits-updated', { detail: data.credits }))
 
-      const song = songService.save({
+      const song = await songService.save({
         title: params.title.trim() || null,
         prompt: params.prompt,
         genre: params.genre || null,
@@ -66,13 +68,27 @@ export function useSongGeneration() {
         duration: null,
       })
 
+      // notifications §4.2 — song_complete 알림 INSERT (서버 service role)
+      fetch('/api/notifications/song-complete', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ songId: song.id }),
+      })
+        .then(() => window.dispatchEvent(new Event('notifications-changed')))
+        .catch(() => {})
+
       // 완료 토스트 — 다른 페이지에 있어도 알 수 있게. '들어보기' 누르면 즉시 재생
       toast.success('곡이 완성됐어요', {
         action: {
           label: '들어보기',
           onClick: () => {
             window.dispatchEvent(new CustomEvent('play-song', {
-              detail: { feed: [song], idx: 0, isOwner: true, ownerAvatarUrl: null, ownerName: null },
+              detail: {
+                feed: [song], idx: 0, isOwner: true,
+                ownerAvatarUrl: profile?.avatarUrl ?? null,
+                ownerAvatarHue: profile?.avatarHue ?? null,
+                ownerName: profile?.displayName ?? profile?.username ?? null,
+              },
             }))
           },
         },

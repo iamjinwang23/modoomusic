@@ -13,7 +13,9 @@ import { CreditIndicator } from '@/components/CreditIndicator'
 import { GenerationChip } from '@/components/GenerationChip'
 import { GlobalMiniBar } from '@/components/GlobalMiniBar'
 import { BottomNav } from '@/components/BottomNav'
+import { NotificationPanel } from '@/components/NotificationPanel'
 import { useAuth } from '@/components/AuthProvider'
+import { notificationService } from '@/services/notification.service'
 
 import { profileColor } from '@/utils/profileColor'
 
@@ -41,6 +43,26 @@ export default function MainShellLayout({ children }: { children: React.ReactNod
   const [onboardingOpen, setOnboardingOpen] = useState(false)
   const [comingSoon, setComingSoon] = useState<null | 'sidebar' | 'locked-model' | 'daily-limit'>(null)
   const [songOverlayOpen, setSongOverlayOpen] = useState(false)
+  // notifications §5.1 — 데스크톱 오버레이 패널 + 미읽음 점 배지
+  const [notifPanelOpen, setNotifPanelOpen] = useState(false)
+  const [notifUnread, setNotifUnread] = useState(0)
+
+  // 미읽음 카운트 — 로그인 시 1회 + notifications-changed 이벤트로 재조회
+  useEffect(() => {
+    if (!user) { setNotifUnread(0); return }
+    let cancelled = false
+    async function load() {
+      const n = await notificationService.unreadCount()
+      if (!cancelled) setNotifUnread(n)
+    }
+    load()
+    function onChanged() { load() }
+    window.addEventListener('notifications-changed', onChanged)
+    return () => { cancelled = true; window.removeEventListener('notifications-changed', onChanged) }
+  }, [user])
+
+  // 라우트 변경 시 알림 패널 자동 닫기 (곡 상세와 동일 패턴)
+  useEffect(() => { setNotifPanelOpen(false) }, [pathname])
 
   // 신규 가입자 온보딩
   useEffect(() => {
@@ -96,7 +118,8 @@ export default function MainShellLayout({ children }: { children: React.ReactNod
             idx: 0,
             isOwner: !!user && pub.userId === user.id,
             ownerName: pub.displayName,
-            ownerAvatarUrl: null,
+            ownerAvatarUrl: pub.avatarUrl ?? null,
+            ownerAvatarHue: pub.avatarHue ?? null,
           },
         }))
         // 쿼리 정리
@@ -197,19 +220,31 @@ export default function MainShellLayout({ children }: { children: React.ReactNod
         <aside className="hidden md:flex w-60 shrink-0 flex-col border-r border-white/[0.06] bg-gradient-to-b from-[#111318] from-50% to-[#12151E]">
           <nav className="flex-1 px-3 py-3 space-y-0.5">
             {NAV_ITEMS.map(({ href, label, icon }) => {
-              const active = isActiveNav(pathname, href)
-              return (
-                <Link
-                  key={href}
-                  href={href}
-                  className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-base transition-colors text-left ${
-                    active
-                      ? 'font-bold text-white bg-white/[0.06]'
-                      : 'text-white hover:bg-white/[0.04]'
-                  }`}
-                >
+              // notifications §5.4 — 알림은 데스크톱에서 패널 토글 (라우팅 X)
+              const isNotif = href === '/notifications'
+              const active = isNotif ? notifPanelOpen : isActiveNav(pathname, href)
+              const className = `w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-base transition-colors text-left ${
+                active ? 'font-bold text-white bg-white/[0.06]' : 'text-white hover:bg-white/[0.04]'
+              }`
+              const inner = (
+                <>
                   <Image src={icon} alt="" width={18} height={18} style={{ filter: active ? VIOLET_FILTER : 'invert(0.4)' }} />
                   {label}
+                  {isNotif && notifUnread > 0 && (
+                    <span className="ml-auto w-1.5 h-1.5 rounded-full bg-red-500" />
+                  )}
+                </>
+              )
+              if (isNotif) {
+                return (
+                  <button key={href} onClick={() => setNotifPanelOpen((v) => !v)} className={className}>
+                    {inner}
+                  </button>
+                )
+              }
+              return (
+                <Link key={href} href={href} className={className}>
+                  {inner}
                 </Link>
               )
             })}
@@ -272,6 +307,13 @@ export default function MainShellLayout({ children }: { children: React.ReactNod
 
       {/* Bottom nav — mobile only */}
       <BottomNav />
+
+      {/* notifications §5.1 — 데스크톱 오버레이 알림 패널 */}
+      {notifPanelOpen && (
+        <div className="hidden md:block">
+          <NotificationPanel mode="overlay" onClose={() => setNotifPanelOpen(false)} />
+        </div>
+      )}
 
       {/* Modals */}
       {loginOpen && <LoginModal onClose={() => setLoginOpen(false)} />}

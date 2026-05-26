@@ -166,6 +166,7 @@ function CollectionDetailView({ collection, onBack, onUpdated }: { collection: C
   const [col, setCol] = useState(collection)
   const { profile } = useAuth()
   const ownerAvatarUrl = profile?.avatarUrl ?? null
+  const ownerAvatarHue = profile?.avatarHue ?? null
   const ownerName = profile?.displayName ?? profile?.username ?? null
   const player = useGlobalPlayer()
 
@@ -205,7 +206,7 @@ function CollectionDetailView({ collection, onBack, onUpdated }: { collection: C
       player.togglePlay()
     } else {
       window.dispatchEvent(new CustomEvent('play-song', {
-        detail: { feed: songs, idx, isOwner: true, ownerAvatarUrl, ownerName },
+        detail: { feed: songs, idx, isOwner: true, ownerAvatarUrl, ownerAvatarHue, ownerName },
       }))
     }
   }
@@ -213,7 +214,7 @@ function CollectionDetailView({ collection, onBack, onUpdated }: { collection: C
   function handleOpen(song: Song) {
     const idx = songs.findIndex((s) => s.id === song.id)
     window.dispatchEvent(new CustomEvent('view-song', {
-      detail: { feed: songs, idx, isOwner: true, ownerAvatarUrl, ownerName },
+      detail: { feed: songs, idx, isOwner: true, ownerAvatarUrl, ownerAvatarHue, ownerName },
     }))
   }
 

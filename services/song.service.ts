@@ -159,7 +159,8 @@ export const songService = {
     }))
   },
 
-  save(song: Omit<Song, 'id' | 'createdAt'>): Song {
+  // notifications §4.2 — song_complete 알림이 곡 INSERT 완료를 의존하므로 await 가능하게 반환
+  async save(song: Omit<Song, 'id' | 'createdAt'>): Promise<Song> {
     if (!currentUserId) throw new Error('songService.save: user not set')
     const newSong: Song = {
       ...song,
@@ -170,8 +171,8 @@ export const songService = {
     cache = [newSong, ...cache]
     window.dispatchEvent(new Event('song-updated'))
     const supabase = createClient()
-    supabase.from('songs').insert(songToRow(newSong, currentUserId))
-      .then(({ error }) => { if (error) console.error('[songService.save]', error.message) })
+    const { error } = await supabase.from('songs').insert(songToRow(newSong, currentUserId))
+    if (error) console.error('[songService.save]', error.message)
     return newSong
   },
 

@@ -23,7 +23,7 @@ function coverGradient(song: Song) {
 }
 
 export function GlobalMiniBar() {
-  const { song, feed, idx, isOwner, ownerName, ownerAvatarUrl, hasPrev, hasNext, isPlaying, currentTime, duration, togglePlay, next, prev, seekTo, patchSong } = useGlobalPlayer()
+  const { song, feed, idx, isOwner, ownerName, ownerAvatarUrl, ownerAvatarHue, hasPrev, hasNext, isPlaying, currentTime, duration, togglePlay, next, prev, seekTo, patchSong } = useGlobalPlayer()
     const trackRef = useRef<HTMLDivElement>(null)
     const [dragging, setDragging] = useState(false)
   const [collectOpen, setCollectOpen] = useState(false)
@@ -32,7 +32,7 @@ export function GlobalMiniBar() {
 
   function openDetail() {
     if (!song) return
-    window.dispatchEvent(new CustomEvent('view-song', { detail: { feed, idx, isOwner, ownerName, ownerAvatarUrl } }))
+    window.dispatchEvent(new CustomEvent('view-song', { detail: { feed, idx, isOwner, ownerName, ownerAvatarUrl, ownerAvatarHue } }))
   }
 
   function handleLike() {
@@ -42,6 +42,12 @@ export function GlobalMiniBar() {
     if (isOwner) {
       songService.update(song.id, { liked: next })
       window.dispatchEvent(new CustomEvent('song-updated'))
+    } else {
+      // notifications §4.1 — 다른 사람 곡: 공개 좋아요 API → 알림 생성
+      fetch(`/api/songs/${song.id}/like`, { method: 'POST' })
+        .then((r) => r.ok ? r.json() : null)
+        .then((data) => { if (data && typeof data.liked === 'boolean') patchSong({ liked: data.liked }) })
+        .catch(() => {})
     }
   }
 

@@ -21,7 +21,7 @@ interface SongRow {
   like_count: number | null
   play_count: number | null
   user_id: string
-  profiles: { username: string; display_name: string | null } | null
+  profiles: { username: string; display_name: string | null; avatar_hue: number | null; avatar_url: string | null } | null
 }
 
 function rowToPublicSong(r: SongRow): PublicSong {
@@ -41,6 +41,8 @@ function rowToPublicSong(r: SongRow): PublicSong {
     username: r.profiles?.username ?? 'unknown',
     displayName: r.profiles?.display_name ?? r.profiles?.username ?? '익명',
     userId: r.user_id,
+    avatarHue: r.profiles?.avatar_hue ?? 0,
+    avatarUrl: r.profiles?.avatar_url ?? null,
     likeCount: r.like_count ?? 0,
     playCount: r.play_count ?? 0,
     isLiked: false,  // 좋아요 상태는 별도 조회 (현재 미구현)
@@ -71,7 +73,7 @@ function sortRecommended(songs: PublicSong[]): PublicSong[] {
 const SONG_SELECT = `
   id, title, prompt, genre, mood, instrumental, audio_url, cover_hue, cover_image,
   duration, lyrics, created_at, like_count, play_count, user_id,
-  profiles!songs_user_id_fkey ( username, display_name )
+  profiles!songs_user_id_fkey ( username, display_name, avatar_hue, avatar_url )
 `
 
 export const exploreService = {

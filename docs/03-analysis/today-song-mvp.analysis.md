@@ -114,3 +114,57 @@ Structural × 0.2 + Functional × 0.4 + Contract × 0.4
 6. (문서) §7 UI Component Map 갱신
 
 예상 결과 Match Rate: 95%+
+
+---
+
+## 8. 후속 진행 (2026-05-22 ~ 2026-05-26)
+
+분석 이후 추가 구현된 항목 — 차기 Gap Analysis에서 §4·§7 갱신 필요.
+
+### 8.1 모바일 UX 폴리시
+
+| 항목 | 위치 | 메모 |
+|------|------|------|
+| 곡 상세 모바일 풀스크린 (상단만, 미니바/BottomNav 가시) | `components/SongDetailPage.tsx` | `fixed inset-x-0 top-0 bottom-[calc(156px+env(safe-area-inset-bottom,0px))] z-[55]` |
+| 커버 자연 페이드 | `components/SongDetailPage.tsx` | `mask-image` (검정 그라데이션 div 회피) |
+| 사운드 웨이브 → 제목 좌측 (모바일) | `components/SongDetailPage.tsx` | `SoundWaveIcon size={18}` |
+| 액션 버튼(좋아요 등) 활성 = 흰 바탕 + 검정 아이콘 | `components/SongDetailPage.tsx` ActionBtn | 리스트 패턴과 통일 |
+| 헤더 자동 숨김 시도 → 롤백 | (제거됨) | `hooks/useShellScroll.ts` 삭제. 상단 고정 유지 |
+| 탐색 캐러셀 좌우 화살표 모바일 숨김 | `features/explore/components/SectionCarousel` | — |
+| 미니바 상단 인터랙티브 프로그레스 | `components/GlobalMiniBar.tsx` | tap/drag seek |
+| iOS 안전영역 + viewport-fit=cover | `app/layout.tsx`, `globals.css` | 흰 띠 제거 |
+
+### 8.2 공유 deep link
+
+- `utils/shareUrl.ts:buildSongShareUrl` → `${origin}/?song={id}`
+- shell layout(`app/(main)/layout.tsx`)에서 `?song=` 쿼리 감지 → `exploreService.getPublicSongById()` fetch → `view-song` 디스패치 + 쿼리 정리
+- `services/explore.service.ts:getPublicSongById` 신규
+
+### 8.3 이미지 생성 프롬프트 우선순위
+
+- `app/api/generate/route.ts:pickImagePrompt` — 가사(`[...]` 태그 제거, 12자+고유문자 3+) → 제목(2자+) → 스타일 순
+- `isMeaningful()`로 "ㅇㄴㅁ" 같은 무의미 입력 차단
+
+### 8.4 프로필 컬러 통일 (avatar hue 전파)
+
+- `utils/profileColor.ts` 신규 — 6색 팔레트 (`PROFILE_PALETTE`)
+- `PublicSong`에 `avatarHue`, `avatarUrl` 필드 추가
+- `services/explore.service.ts:SONG_SELECT`에 `profiles.avatar_hue, avatar_url` 조인
+- `contexts/GlobalPlayerContext` State에 `ownerAvatarHue: number | null` 추가
+- `view-song` / `play-song` 이벤트 detail에 `ownerAvatarHue` 포함 — 모든 디스패처(`MyWorkPanel`, `MyCollectionPanel`, `ProfilePanel`, `ExplorePanel`, `useSongGeneration`, `GlobalMiniBar.openDetail`, shell `?song=`)에서 채움
+- `SongDetailPage`: `ownerAvatarHue ?? profile?.avatarHue ?? 0` 사용. **viewer의 `user.id`로 fallback 계산 금지** (다른 색 노출 원인)
+- `AuthProvider.AuthProfile`에 `avatarHue` 포함 (DB `avatar_hue` SELECT)
+
+### 8.5 MiniMax 호환성 분기 (검증된 사실)
+
+- Music 2.0: `is_instrumental` 미지원, 가사 필수(min 10자) → 사용자가 instrumental 토글 시 Music 2.6-free로 자동 전환 + 토스트
+- Music 2.5+/2.6/2.6-free: `is_instrumental` 지원
+- 가사 너무 짧으면 클라이언트·서버 둘 다 검증 (10자)
+- `translateMinimaxError`로 영문 응답 한국어화
+
+### 8.6 차기 Gap Analysis 시 갱신 필요 항목
+
+- Design §4.1 (POST /api/generate): `pickImagePrompt` 로직 + Storage 업로드 (이미 §11.1로 이동 권장됨)
+- Design §7 UI Component Map: `SongDetailPage` 풀스크린 구조, `profileColor` util, `shareUrl` util
+- Design §11.1 Decision Record: 11번 이후 신규 결정(avatar hue 전파, deep link 패턴, mask 페이드, 헤더 자동숨김 반려) 추가
+- Plan Success Criteria: 모바일 폴리시 / 공유 링크 / 아바타 통일 항목 ✅ Met 마킹

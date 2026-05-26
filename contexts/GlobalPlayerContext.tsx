@@ -9,6 +9,7 @@ interface State {
   idx: number
   isOwner: boolean
   ownerAvatarUrl: string | null
+  ownerAvatarHue: number | null
   ownerName: string | null
   isPlaying: boolean
   currentTime: number
@@ -16,7 +17,7 @@ interface State {
 }
 
 type Action =
-  | { type: 'LOAD'; feed: Song[]; idx: number; isOwner: boolean; ownerAvatarUrl?: string | null; ownerName?: string | null }
+  | { type: 'LOAD'; feed: Song[]; idx: number; isOwner: boolean; ownerAvatarUrl?: string | null; ownerAvatarHue?: number | null; ownerName?: string | null }
   | { type: 'PLAYING'; v: boolean }
   | { type: 'TIME'; t: number }
   | { type: 'DURATION'; d: number }
@@ -24,11 +25,11 @@ type Action =
   | { type: 'PREV' }
   | { type: 'PATCH'; patch: Partial<Song> }
 
-const INIT: State = { feed: [], idx: 0, isOwner: false, ownerAvatarUrl: null, ownerName: null, isPlaying: false, currentTime: 0, duration: 0 }
+const INIT: State = { feed: [], idx: 0, isOwner: false, ownerAvatarUrl: null, ownerAvatarHue: null, ownerName: null, isPlaying: false, currentTime: 0, duration: 0 }
 
 function reducer(s: State, a: Action): State {
   switch (a.type) {
-    case 'LOAD':    return { ...s, feed: a.feed, idx: a.idx, isOwner: a.isOwner, ownerAvatarUrl: a.ownerAvatarUrl ?? null, ownerName: a.ownerName ?? null, currentTime: 0, duration: 0 }
+    case 'LOAD':    return { ...s, feed: a.feed, idx: a.idx, isOwner: a.isOwner, ownerAvatarUrl: a.ownerAvatarUrl ?? null, ownerAvatarHue: a.ownerAvatarHue ?? null, ownerName: a.ownerName ?? null, currentTime: 0, duration: 0 }
     case 'PLAYING': return { ...s, isPlaying: a.v }
     case 'TIME':    return { ...s, currentTime: a.t }
     case 'DURATION':return { ...s, duration: a.d }
@@ -45,6 +46,7 @@ interface PlayerCtx {
   idx: number
   isOwner: boolean
   ownerAvatarUrl: string | null
+  ownerAvatarHue: number | null
   ownerName: string | null
   hasPrev: boolean
   hasNext: boolean
@@ -83,14 +85,14 @@ export function GlobalPlayerProvider({ children }: { children: React.ReactNode }
 
   useEffect(() => {
     function handleViewSong(e: Event) {
-      const { feed, idx, isOwner, ownerAvatarUrl, ownerName } = (e as CustomEvent).detail
+      const { feed, idx, isOwner, ownerAvatarUrl, ownerAvatarHue, ownerName } = (e as CustomEvent).detail
       const newId = (feed as Song[])[idx]?.id
       const curId = stateRef.current.feed[stateRef.current.idx]?.id
       if (newId && newId === curId) return  // 상세 보기는 같은 곡이면 재로드 불필요
-      dispatch({ type: 'LOAD', feed, idx, isOwner, ownerAvatarUrl, ownerName })
+      dispatch({ type: 'LOAD', feed, idx, isOwner, ownerAvatarUrl, ownerAvatarHue, ownerName })
     }
     function handlePlaySong(e: Event) {
-      const { feed, idx, isOwner, ownerAvatarUrl, ownerName } = (e as CustomEvent).detail
+      const { feed, idx, isOwner, ownerAvatarUrl, ownerAvatarHue, ownerName } = (e as CustomEvent).detail
       const newId = (feed as Song[])[idx]?.id
       const curId = stateRef.current.feed[stateRef.current.idx]?.id
       if (newId && newId === curId) {
@@ -99,7 +101,7 @@ export function GlobalPlayerProvider({ children }: { children: React.ReactNode }
         if (a) a.paused ? a.play().catch(() => {}) : a.pause()
         return
       }
-      dispatch({ type: 'LOAD', feed, idx, isOwner, ownerAvatarUrl, ownerName })
+      dispatch({ type: 'LOAD', feed, idx, isOwner, ownerAvatarUrl, ownerAvatarHue, ownerName })
     }
     // 다른 곳(인라인 카드)에서 재생 시작 시 글로벌 오디오 정지
     function handleInlinePlay(e: Event) {
@@ -142,7 +144,7 @@ export function GlobalPlayerProvider({ children }: { children: React.ReactNode }
 
   return (
     <Ctx.Provider value={{
-      song, feed: state.feed, idx: state.idx, isOwner: state.isOwner, ownerAvatarUrl: state.ownerAvatarUrl, ownerName: state.ownerName,
+      song, feed: state.feed, idx: state.idx, isOwner: state.isOwner, ownerAvatarUrl: state.ownerAvatarUrl, ownerAvatarHue: state.ownerAvatarHue, ownerName: state.ownerName,
       hasPrev: state.idx > 0, hasNext: state.idx < state.feed.length - 1,
       isPlaying: state.isPlaying, currentTime: state.currentTime, duration: state.duration,
       togglePlay, next, prev, seekTo, patchSong,

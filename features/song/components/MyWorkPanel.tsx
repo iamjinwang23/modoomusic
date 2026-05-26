@@ -116,6 +116,7 @@ export function MyWorkPanel({ showCollections = false }: { showCollections?: boo
   // AuthProvider의 캐시된 profile 사용 — 중복 fetch 방지
   const { profile } = useAuth()
   const ownerAvatarUrl = profile?.avatarUrl ?? null
+  const ownerAvatarHue = profile?.avatarHue ?? null
   const ownerName = profile?.displayName ?? profile?.username ?? null
   const [collecting, setCollecting] = useState<Song | null>(null)
   const [publishing, setPublishing] = useState<Song | null>(null)
@@ -166,14 +167,14 @@ export function MyWorkPanel({ showCollections = false }: { showCollections?: boo
   function handleOpen(song: Song) {
     const idx = songs.findIndex((s) => s.id === song.id)
     window.dispatchEvent(new CustomEvent('view-song', {
-      detail: { feed: songs, idx, isOwner: true, ownerAvatarUrl, ownerName },
+      detail: { feed: songs, idx, isOwner: true, ownerAvatarUrl, ownerAvatarHue, ownerName },
     }))
   }
 
   function handleThumbPlay(song: Song) {
     const idx = songs.findIndex((s) => s.id === song.id)
     window.dispatchEvent(new CustomEvent('play-song', {
-      detail: { feed: songs, idx, isOwner: true, ownerAvatarUrl, ownerName },
+      detail: { feed: songs, idx, isOwner: true, ownerAvatarUrl, ownerAvatarHue, ownerName },
     }))
   }
 

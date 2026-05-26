@@ -1,7 +1,6 @@
+// notifications §5.2 — 모바일 풀 페이지. 데스크톱은 layout이 알림 메뉴를 패널로 분기
+import { NotificationPanel } from '@/components/NotificationPanel'
+
 export default function NotificationsPage() {
-  return (
-    <div className="flex flex-col items-center justify-center h-full text-zinc-500 text-sm">
-      알림 준비 중
-    </div>
-  )
+  return <NotificationPanel mode="page" />
 }

@@ -1,9 +1,11 @@
 'use client'
 
+import { useEffect, useState } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { useAuth } from '@/components/AuthProvider'
+import { notificationService } from '@/services/notification.service'
 
 const VIOLET_FILTER = 'brightness(0) saturate(100%) invert(44%) sepia(51%) saturate(1569%) hue-rotate(221deg) brightness(101%) contrast(96%)'
 
@@ -18,6 +20,21 @@ function isActive(pathname: string, item: NavItem): boolean {
 export function BottomNav() {
   const pathname = usePathname()
   const { user, profile } = useAuth()
+  const [unread, setUnread] = useState(0)
+
+  // notifications §5.5 — 미읽음 점 배지
+  useEffect(() => {
+    if (!user) { setUnread(0); return }
+    let cancelled = false
+    async function load() {
+      const n = await notificationService.unreadCount()
+      if (!cancelled) setUnread(n)
+    }
+    load()
+    function onChanged() { load() }
+    window.addEventListener('notifications-changed', onChanged)
+    return () => { cancelled = true; window.removeEventListener('notifications-changed', onChanged) }
+  }, [user])
 
   // 프로필 탭 href — 로그인 + username 있을 때만 실제 프로필. 없으면 # + open-login
   const profileHref = profile?.username ? `/profile/${profile.username}` : '#'
@@ -48,13 +65,18 @@ export function BottomNav() {
             {...linkProps}
             className="flex flex-col items-center justify-center gap-1 py-2 transition-colors"
           >
-            <Image
-              src={it.icon}
-              alt=""
-              width={22}
-              height={22}
-              style={{ filter: active ? VIOLET_FILTER : 'invert(0.45)' }}
-            />
+            <div className="relative">
+              <Image
+                src={it.icon}
+                alt=""
+                width={22}
+                height={22}
+                style={{ filter: active ? VIOLET_FILTER : 'invert(0.45)' }}
+              />
+              {it.label === '알림' && unread > 0 && (
+                <span className="absolute -top-0.5 -right-0.5 w-1.5 h-1.5 rounded-full bg-red-500" />
+              )}
+            </div>
             <span className={`text-[10px] font-medium ${active ? 'text-white' : 'text-zinc-500'}`}>
               {it.label}
             </span>

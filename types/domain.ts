@@ -42,6 +42,8 @@ export interface PublicSong {
   username: string
   displayName: string
   userId: string
+  avatarHue?: number
+  avatarUrl?: string | null
   likeCount: number
   playCount: number
   isLiked?: boolean
@@ -60,6 +62,31 @@ export interface UserProfile {
   songCount: number
   isFollowing?: boolean
   links?: SocialLinks
+}
+
+// Design Ref: notifications §3.2 — 알림 5종 + 행위자·곡 join 메타
+export type NotificationType = 'like' | 'song_complete' | 'system' | 'follow' | 'comment'
+
+export interface NotificationSystemPayload {
+  title: string
+  body: string
+  url?: string
+}
+
+export interface Notification {
+  id: string
+  type: NotificationType
+  actorId: string | null
+  actorName: string | null
+  actorAvatarUrl: string | null
+  actorAvatarHue: number | null
+  songId: string | null
+  songTitle: string | null
+  songCoverImage: string | null
+  songCoverHue: number | null
+  payload: NotificationSystemPayload | Record<string, unknown>
+  readAt: string | null
+  createdAt: string
 }
 
 export interface SocialLinks {

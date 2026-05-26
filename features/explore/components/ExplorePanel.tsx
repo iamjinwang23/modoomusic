@@ -40,7 +40,7 @@ function dispatchView(pub: PublicSong, feed: PublicSong[], currentUserId: string
   const idx = feed.findIndex((s) => s.id === pub.id)
   const isOwner = !!currentUserId && pub.userId === currentUserId
   window.dispatchEvent(new CustomEvent('view-song', {
-    detail: { feed: songs, idx, isOwner, ownerName: pub.displayName },
+    detail: { feed: songs, idx, isOwner, ownerName: pub.displayName, ownerAvatarUrl: pub.avatarUrl ?? null, ownerAvatarHue: pub.avatarHue ?? null },
   }))
 }
 
@@ -50,7 +50,7 @@ function dispatchPlayOnly(pub: PublicSong, feed: PublicSong[], currentUserId: st
   const idx = feed.findIndex((s) => s.id === pub.id)
   const isOwner = !!currentUserId && pub.userId === currentUserId
   window.dispatchEvent(new CustomEvent('play-song', {
-    detail: { feed: songs, idx, isOwner, ownerName: pub.displayName },
+    detail: { feed: songs, idx, isOwner, ownerName: pub.displayName, ownerAvatarUrl: pub.avatarUrl ?? null, ownerAvatarHue: pub.avatarHue ?? null },
   }))
 }
 

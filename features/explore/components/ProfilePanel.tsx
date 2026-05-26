@@ -303,13 +303,13 @@ export function ProfilePanel({ username }: Props) {
   function handlePlay(pub: PublicSong) {
     const feed = songs.map(toSong)
     const idx  = songs.findIndex((s) => s.id === pub.id)
-    window.dispatchEvent(new CustomEvent('view-song', { detail: { feed, idx, isOwner: isSelf, ownerAvatarUrl: displayAvatarUrl, ownerName: profile?.displayName ?? profile?.username ?? null } }))
+    window.dispatchEvent(new CustomEvent('view-song', { detail: { feed, idx, isOwner: isSelf, ownerAvatarUrl: displayAvatarUrl, ownerAvatarHue: profile?.avatarHue ?? null, ownerName: profile?.displayName ?? profile?.username ?? null } }))
   }
 
   function handleThumbPlay(pub: PublicSong) {
     const feed = songs.map(toSong)
     const idx  = songs.findIndex((s) => s.id === pub.id)
-    window.dispatchEvent(new CustomEvent('play-song', { detail: { feed, idx, isOwner: isSelf, ownerAvatarUrl: displayAvatarUrl, ownerName: profile?.displayName ?? profile?.username ?? null } }))
+    window.dispatchEvent(new CustomEvent('play-song', { detail: { feed, idx, isOwner: isSelf, ownerAvatarUrl: displayAvatarUrl, ownerAvatarHue: profile?.avatarHue ?? null, ownerName: profile?.displayName ?? profile?.username ?? null } }))
   }
 
   return (

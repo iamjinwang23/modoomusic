@@ -54,6 +54,7 @@ export function SongDetailPage({ onBack, profile }: Props) {
     song,
     isOwner,
     ownerAvatarUrl,
+    ownerAvatarHue,
     ownerName,
     hasPrev,
     hasNext,
@@ -101,8 +102,20 @@ export function SongDetailPage({ onBack, profile }: Props) {
     setLiked(next)
     patchSong({ liked: next })
     if (isOwner) {
+      // 본인 곡: 책갈피 토글 (기존 동작 유지)
       songService.update(song!.id, { liked: next })
       window.dispatchEvent(new CustomEvent('song-updated'))
+    } else {
+      // notifications §4.1 — 다른 사람 곡: 공개 좋아요 API → 알림 생성
+      fetch(`/api/songs/${song!.id}/like`, { method: 'POST' })
+        .then((r) => r.ok ? r.json() : null)
+        .then((data) => {
+          if (data && typeof data.liked === 'boolean') {
+            setLiked(data.liked)
+            patchSong({ liked: data.liked })
+          }
+        })
+        .catch(() => {})
     }
   }
 
@@ -222,8 +235,9 @@ export function SongDetailPage({ onBack, profile }: Props) {
           </div>
 
           {(() => {
-            const name = profile?.displayName ?? ownerName ?? user?.user_metadata?.full_name ?? user?.email?.split('@')[0] ?? null
-            const hue = profile?.avatarHue ?? (user ? (user.id.charCodeAt(0) * 137) % 360 : 0)
+            const name = ownerName ?? profile?.displayName ?? user?.user_metadata?.full_name ?? user?.email?.split('@')[0] ?? null
+            // 곡 소유자의 avatarHue 우선 — 없으면 (내 곡 등) 본인 프로필 hue 사용
+            const hue = ownerAvatarHue ?? profile?.avatarHue ?? 0
             const avatarUrl = ownerAvatarUrl
             const c = profileColor(hue)
             if (!name) return null
