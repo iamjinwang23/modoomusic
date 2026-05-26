@@ -6,6 +6,7 @@ import { useSongGeneration } from '../hooks/useSongGeneration'
 import { MODELS, creditsForModel, type MusicModelId } from '@/services/minimax.service'
 import { useAuth } from '@/components/AuthProvider'
 import { toast } from '@/components/toast/toast'
+import { RefAudioTrimModal } from '@/components/RefAudioTrimModal'
 
 const MIN_LYRICS_LENGTH = 10  // MiniMax 최소 가사 길이
 
@@ -80,6 +81,9 @@ export function SongForm() {
   const [stylePrompt, setStylePrompt] = useState('')
   const [title, setTitle] = useState('')
   const [refAudio, setRefAudio] = useState<File | null>(null)
+  // 트림 모달 — 사용자가 파일 선택 시 모달 띄움. 모달 Save 시 트림된 WAV File로 교체
+  const [pendingRefFile, setPendingRefFile] = useState<File | null>(null)
+  const [refMeta, setRefMeta] = useState<{ startSec: number; endSec: number } | null>(null)
   const [isDragOver, setIsDragOver] = useState(false)
   const [styleRefNotice, setStyleRefNotice] = useState(false)
   const [styleRefDontShow, setStyleRefDontShow] = useState(false)
@@ -128,7 +132,8 @@ export function SongForm() {
 
   function handleRefAudioFile(file: File) {
     if (!file.type.startsWith('audio/')) return
-    setRefAudio(file)
+    // 파일 선택 시 즉시 setRefAudio가 아니라 트림 모달부터 띄움
+    setPendingRefFile(file)
   }
 
   function handleRefDrop(e: React.DragEvent) {
@@ -253,7 +258,10 @@ export function SongForm() {
             <div className="flex-1 min-w-0">
               <span className="text-sm font-semibold text-white">스타일 참조</span>
               {refAudio ? (
-                <p className="text-xs text-violet-400 mt-0.5 truncate">{refAudio.name}</p>
+                <p className="text-xs text-violet-400 mt-0.5 truncate">
+                  {refAudio.name}
+                  {refMeta && ` · ${(refMeta.endSec - refMeta.startSec).toFixed(1)}초 (${refMeta.startSec.toFixed(1)}~${refMeta.endSec.toFixed(1)}s)`}
+                </p>
               ) : (
                 <p className="text-xs text-zinc-400 mt-0.5">영감을 얻기 위해 음원을 클릭하거나 드래그해서 추가하세요</p>
               )}
@@ -261,7 +269,7 @@ export function SongForm() {
             {refAudio && (
               <button
                 type="button"
-                onClick={(e) => { e.stopPropagation(); setRefAudio(null); if (refAudioInputRef.current) refAudioInputRef.current.value = '' }}
+                onClick={(e) => { e.stopPropagation(); setRefAudio(null); setRefMeta(null); if (refAudioInputRef.current) refAudioInputRef.current.value = '' }}
                 className="shrink-0 text-zinc-500 hover:text-white transition-colors p-1"
               >
                 <svg width="14" height="14" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
@@ -310,7 +318,7 @@ export function SongForm() {
             </button>
 
             {modelDropOpen && (
-              <div className="absolute left-0 top-full mt-1.5 w-[300px] bg-[#1C1F27] border border-white/30 rounded-2xl shadow-2xl overflow-hidden z-30">
+              <div className="absolute left-0 top-full mt-1.5 w-[360px] bg-[#1C1F27] border border-white/30 rounded-2xl shadow-2xl overflow-hidden z-30">
                 {/* 드롭다운 헤더 */}
                 <div className="px-3.5 pt-3 pb-2">
                   <p className="text-sm font-semibold text-white">모델 선택</p>
@@ -606,6 +614,25 @@ export function SongForm() {
             </button>
           </div>
         </div>
+      )}
+
+      {/* 참조 음원 트림 모달 — 파일 선택 시 자동 오픈 */}
+      {pendingRefFile && (
+        <RefAudioTrimModal
+          file={pendingRefFile}
+          onClose={() => {
+            setPendingRefFile(null)
+            if (refAudioInputRef.current) refAudioInputRef.current.value = ''
+          }}
+          onSave={(blob, meta) => {
+            // trimmed WAV Blob을 File로 래핑하여 refAudio로 저장
+            const trimmedFile = new File([blob], meta.name.replace(/\.[^.]+$/, '') + '.wav', { type: 'audio/wav' })
+            setRefAudio(trimmedFile)
+            setRefMeta({ startSec: meta.startSec, endSec: meta.endSec })
+            setPendingRefFile(null)
+            if (refAudioInputRef.current) refAudioInputRef.current.value = ''
+          }}
+        />
       )}
     </form>
   )

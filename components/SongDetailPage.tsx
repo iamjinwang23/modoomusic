@@ -363,11 +363,18 @@ export function SongDetailPage({ onBack, profile }: Props) {
             <p className="text-sm text-white leading-relaxed mb-8 whitespace-pre-wrap">{song.publishComment}</p>
           )}
 
-          {song.mood && (
+          {(song.genre || song.mood) && (
             <div className="flex flex-wrap gap-1.5 mb-5">
-              <span className="text-xs text-zinc-400 bg-zinc-800 px-2.5 py-0.5 rounded-full border border-white/[0.06]">
-                {song.mood}
-              </span>
+              {song.genre && (
+                <span className="text-xs text-zinc-400 bg-zinc-800 px-2.5 py-0.5 rounded-full border border-white/[0.06]">
+                  {song.genre}
+                </span>
+              )}
+              {song.mood && (
+                <span className="text-xs text-zinc-400 bg-zinc-800 px-2.5 py-0.5 rounded-full border border-white/[0.06]">
+                  {song.mood}
+                </span>
+              )}
             </div>
           )}
 

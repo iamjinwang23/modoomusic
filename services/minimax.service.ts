@@ -26,9 +26,9 @@ const MOCK_LYRICS = `[Verse]
 // - 2.6: 참조 음원 커버 + 인스트루멘탈 지원. $0.15/곡 (Limited Free promo)
 // cover 모드는 model 단위 flag가 아닌 audioBase64 유무로 동적 분기 (music-2.6 + audio = cover)
 export const MODELS = [
-  { id: 'music-2.0',  label: 'Music 2.0',  desc: '음악성·악기 연주 강화 (최대 5분)',                      locked: false, credits: 2  },
-  { id: 'music-2.5+', label: 'Music 2.5+', desc: '모든 장르 인스트루멘탈 음악 제작 지원',                  locked: false, credits: 10 },
-  { id: 'music-2.6',  label: 'Music 2.6',  desc: '참조 음원 커버 가능, 풍부한 악기·초저지연 (Limited Free)', locked: false, credits: 10 },
+  { id: 'music-2.6',  label: 'Music 2.6',  desc: '참조 음원 커버 가능, 풍부한 악기·초저지연', locked: false, credits: 10 },
+  { id: 'music-2.5+', label: 'Music 2.5+', desc: '모든 장르 인스트루멘탈 음악 제작 지원',     locked: false, credits: 10 },
+  { id: 'music-2.0',  label: 'Music 2.0',  desc: '음악성·악기 연주 강화 (최대 5분)',          locked: false, credits: 2  },
 ] as const
 
 export type MusicModelId = typeof MODELS[number]['id']
