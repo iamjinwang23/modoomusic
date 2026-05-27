@@ -94,7 +94,7 @@ export function LoginModal({ onClose }: Props) {
             </SocialButton>
 
             {/* Apple */}
-            <SocialButton onClick={() => toast.info('Apple 로그인은 곧 지원될 예정이에요')} className="bg-[#21252E] hover:bg-[#2D323E] border border-white/10 text-white">
+            <SocialButton onClick={() => { setLoading(true); createClient().auth.signInWithOAuth({ provider: 'apple', options: { redirectTo: `${window.location.origin}/auth/callback` } }) }} className={`bg-[#21252E] hover:bg-[#2D323E] border border-white/10 text-white ${loading ? 'opacity-70 pointer-events-none' : ''}`}>
               <span className="absolute left-4 flex items-center">
                 <svg width="16" height="18" viewBox="0 0 16 18" xmlns="http://www.w3.org/2000/svg" fill="white">
                   <path d="M13.23 9.36c-.02-1.9 1.56-2.82 1.63-2.87-1.12-1.63-2.85-1.86-3.47-1.88-1.48-.15-2.9.87-3.65.87-.76 0-1.93-.85-3.17-.83C2.89 4.68 1.31 5.72.5 7.3c-1.63 2.82-.42 7 1.15 9.29.78 1.12 1.7 2.38 2.91 2.33 1.17-.05 1.61-.75 3.03-.75 1.41 0 1.81.75 3.05.72 1.26-.02 2.05-1.14 2.82-2.27.9-1.3 1.26-2.57 1.28-2.63-.03-.01-2.44-.93-2.46-3.67-.02-2.3 1.88-3.4 1.96-3.46z"/>
