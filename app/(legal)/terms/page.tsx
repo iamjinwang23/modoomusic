@@ -9,7 +9,7 @@ export default function TermsPage() {
     <article className="space-y-8 text-zinc-300 leading-relaxed">
       <header className="space-y-2">
         <h1 className="text-3xl font-bold text-white">이용약관</h1>
-        <p className="text-sm text-zinc-500">시행일: 2026년 5월 22일</p>
+        <p className="text-sm text-zinc-500">시행일: 2026년 5월 27일</p>
       </header>
 
       <Section title="제1조 (목적)">
@@ -39,7 +39,7 @@ export default function TermsPage() {
       <Section title="제4조 (회원가입)">
         <List items={[
           '서비스는 만 14세 이상만 가입할 수 있습니다. 만 14세 미만은 회원가입이 제한됩니다.',
-          '회원가입은 Google, Kakao 등 외부 인증 서비스(OAuth)를 통해 진행됩니다.',
+          '회원가입은 Google, Kakao, Naver 등 외부 인증 서비스(OAuth)를 통해 진행됩니다.',
           '회사는 다음 각 호에 해당하는 신청에 대해 가입을 거절하거나 사후 해지할 수 있습니다.',
         ]} />
         <SubList items={[
@@ -109,7 +109,7 @@ export default function TermsPage() {
       </Section>
 
       <Section title="제12조 (부칙)">
-        <p>본 약관은 2026년 5월 22일부터 시행됩니다.</p>
+        <p>본 약관은 2026년 5월 27일부터 시행됩니다.</p>
       </Section>
     </article>
   )

@@ -43,6 +43,11 @@ export function LoginModal({ onClose }: Props) {
     })
   }
 
+  function handleNaverLogin() {
+    setLoading(true)
+    window.location.href = '/api/auth/naver'
+  }
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       {/* Backdrop */}
@@ -100,7 +105,7 @@ export function LoginModal({ onClose }: Props) {
             </SocialButton>
 
             {/* Naver */}
-            <SocialButton onClick={() => toast.info('네이버 로그인은 곧 지원될 예정이에요')} className="bg-[#03C75A] hover:bg-[#02b350] text-white">
+            <SocialButton onClick={handleNaverLogin} className={`bg-[#03C75A] hover:bg-[#02b350] text-white ${loading ? 'opacity-70 pointer-events-none' : ''}`}>
               <span className="absolute left-4 flex items-center">
                 <svg width="16" height="16" viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg" fill="white">
                   <path d="M10.846 8.563L5.077 0H0v16h5.154V7.435L10.923 16H16V0h-5.154v8.563z"/>

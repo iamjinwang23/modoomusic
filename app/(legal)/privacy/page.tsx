@@ -9,7 +9,7 @@ export default function PrivacyPage() {
     <article className="space-y-8 text-zinc-300 leading-relaxed">
       <header className="space-y-2">
         <h1 className="text-3xl font-bold text-white">개인정보처리방침</h1>
-        <p className="text-sm text-zinc-500">시행일: 2026년 5월 22일</p>
+        <p className="text-sm text-zinc-500">시행일: 2026년 5월 27일</p>
         <p className="text-sm text-zinc-400">
           주식회사 비누컴퍼니(이하 "회사")는 회원의 개인정보를 중요하게 생각하며,
           「개인정보 보호법」 등 관련 법령을 준수하기 위해 본 방침을 수립·공개합니다.
@@ -22,7 +22,7 @@ export default function PrivacyPage() {
         <SubSection title="필수 항목 (회원가입 시)">
           <List items={[
             '이메일 주소',
-            'OAuth 식별자 (Google, Kakao가 제공하는 sub 또는 user id)',
+            'OAuth 식별자 (Google, Kakao, Naver가 제공하는 sub 또는 user id)',
             '아이디(username)',
             '가입 일시',
           ]} />
@@ -90,12 +90,17 @@ export default function PrivacyPage() {
             </thead>
             <tbody className="text-zinc-300">
               <tr>
-                <td className="p-2 border-b border-white/[0.06]">Supabase</td>
+                <td className="p-2 border-b border-white/[0.06]">Supabase Inc.</td>
                 <td className="p-2 border-b border-white/[0.06]">데이터베이스·파일 저장·인증</td>
-                <td className="p-2 border-b border-white/[0.06]">AWS (해외)</td>
+                <td className="p-2 border-b border-white/[0.06]">AWS 미국</td>
               </tr>
               <tr>
-                <td className="p-2 border-b border-white/[0.06]">MiniMax</td>
+                <td className="p-2 border-b border-white/[0.06]">Vercel Inc.</td>
+                <td className="p-2 border-b border-white/[0.06]">서비스 호스팅 및 요청 처리</td>
+                <td className="p-2 border-b border-white/[0.06]">미국</td>
+              </tr>
+              <tr>
+                <td className="p-2 border-b border-white/[0.06]">MiniMax AI</td>
                 <td className="p-2 border-b border-white/[0.06]">AI 음악·이미지·가사 생성</td>
                 <td className="p-2 border-b border-white/[0.06]">해외</td>
               </tr>
@@ -105,7 +110,12 @@ export default function PrivacyPage() {
                 <td className="p-2 border-b border-white/[0.06]">해외</td>
               </tr>
               <tr>
-                <td className="p-2">Kakao Corp.</td>
+                <td className="p-2 border-b border-white/[0.06]">Kakao Corp.</td>
+                <td className="p-2 border-b border-white/[0.06]">OAuth 인증 위임</td>
+                <td className="p-2 border-b border-white/[0.06]">국내</td>
+              </tr>
+              <tr>
+                <td className="p-2">Naver Corp.</td>
                 <td className="p-2">OAuth 인증 위임</td>
                 <td className="p-2">국내</td>
               </tr>
@@ -117,7 +127,46 @@ export default function PrivacyPage() {
         </p>
       </Section>
 
-      <Section title="제6조 (이용자의 권리와 행사 방법)">
+      <Section title="제6조 (개인정보의 국외이전)">
+        <p className="mb-2">
+          회사는 서비스 제공을 위해 아래와 같이 회원의 개인정보를 국외로 이전합니다.
+          「개인정보 보호법」 제28조의8에 따라 이를 공개합니다.
+        </p>
+        <div className="overflow-x-auto">
+          <table className="w-full text-xs border border-white/[0.08]">
+            <thead className="bg-white/[0.04] text-zinc-400">
+              <tr>
+                <th className="text-left p-2 border-b border-white/[0.08]">이전받는 자</th>
+                <th className="text-left p-2 border-b border-white/[0.08]">국가</th>
+                <th className="text-left p-2 border-b border-white/[0.08]">이전 목적</th>
+                <th className="text-left p-2 border-b border-white/[0.08]">이전 항목</th>
+                <th className="text-left p-2 border-b border-white/[0.08]">보유·이용 기간</th>
+              </tr>
+            </thead>
+            <tbody className="text-zinc-300">
+              <tr>
+                <td className="p-2 border-b border-white/[0.06]">Supabase Inc.</td>
+                <td className="p-2 border-b border-white/[0.06]">미국</td>
+                <td className="p-2 border-b border-white/[0.06]">회원 인증 및 계정 데이터 저장</td>
+                <td className="p-2 border-b border-white/[0.06]">이름, 이메일</td>
+                <td className="p-2 border-b border-white/[0.06]">회원 탈퇴 시까지</td>
+              </tr>
+              <tr>
+                <td className="p-2">Vercel Inc.</td>
+                <td className="p-2">미국</td>
+                <td className="p-2">서비스 호스팅 및 요청 처리</td>
+                <td className="p-2">이름, 이메일</td>
+                <td className="p-2">요청 처리 후 즉시 삭제</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <p className="text-xs text-zinc-500 mt-2">
+          회원은 국외이전에 동의하지 않을 권리가 있으나, 동의하지 않을 경우 서비스 이용이 제한될 수 있습니다.
+        </p>
+      </Section>
+
+      <Section title="제7조 (이용자의 권리와 행사 방법)">
         <List items={[
           '회원은 언제든지 자신의 개인정보 열람·정정·삭제·처리 정지를 요청할 수 있습니다.',
           '대부분의 권리는 프로필 화면에서 직접 수행할 수 있으며, 그 외 사항은 아래 연락처로 요청하실 수 있습니다.',
@@ -126,7 +175,7 @@ export default function PrivacyPage() {
         ]} />
       </Section>
 
-      <Section title="제7조 (개인정보의 파기 절차·방법)">
+      <Section title="제8조 (개인정보의 파기 절차·방법)">
         <List items={[
           '보유 기간이 경과하거나 처리 목적이 달성된 개인정보는 지체 없이 파기합니다.',
           '전자적 파일 형태: 복구·재생할 수 없도록 영구 삭제합니다.',
@@ -134,16 +183,16 @@ export default function PrivacyPage() {
         ]} />
       </Section>
 
-      <Section title="제8조 (개인정보의 안전성 확보 조치)">
+      <Section title="제9조 (개인정보의 안전성 확보 조치)">
         <List items={[
           'HTTPS를 통한 통신 구간 암호화',
           'Supabase Row Level Security(RLS)로 사용자별 데이터 접근 제어',
-          '비밀번호는 자체 저장하지 않고 OAuth 제공자(Google·Kakao)에 위임',
+          '비밀번호는 자체 저장하지 않고 OAuth 제공자(Google·Kakao·Naver)에 위임',
           '관리자 접근 권한 최소화 및 접근 기록 보관',
         ]} />
       </Section>
 
-      <Section title="제9조 (개인정보 보호 책임자)">
+      <Section title="제10조 (개인정보 보호 책임자)">
         <p>
           회사는 회원의 개인정보를 보호하고 관련 불만을 처리하기 위해 다음과 같이 책임자를 지정하고 있습니다.
         </p>
@@ -153,7 +202,7 @@ export default function PrivacyPage() {
         </div>
       </Section>
 
-      <Section title="제10조 (개인정보처리방침의 변경)">
+      <Section title="제11조 (개인정보처리방침의 변경)">
         <List items={[
           '본 방침은 법령·정책 또는 보안 기술의 변경에 따라 내용이 추가·삭제·수정될 수 있습니다.',
           '변경이 있을 경우 변경 사유와 시행일을 명시하여 시행일 7일 이전(중대한 변경은 30일 이전)에 서비스 내에 공지합니다.',
@@ -161,7 +210,7 @@ export default function PrivacyPage() {
       </Section>
 
       <p className="text-xs text-zinc-500 pt-4 border-t border-white/[0.06]">
-        본 방침은 2026년 5월 22일부터 시행됩니다.
+        본 방침은 2026년 5월 27일부터 시행됩니다.
       </p>
     </article>
   )
