@@ -127,9 +127,10 @@ export function GlobalMiniBar() {
         </div>
 
         <div className="grid grid-cols-[minmax(0,1fr)_auto] md:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-2 mb-1">
-          {/* Left: thumbnail + title — click opens detail */}
+          {/* Left: thumbnail + title — click opens detail
+              md+: 프로그레스 바(560px 중앙) 좌측 경계까지로 폭 제한 */}
           <div
-            className="flex items-center gap-2.5 min-w-0 overflow-hidden cursor-pointer"
+            className="flex items-center gap-2.5 min-w-0 overflow-hidden cursor-pointer md:max-w-[max(160px,calc((100vw-832px)/2))]"
             onClick={openDetail}
           >
             <div

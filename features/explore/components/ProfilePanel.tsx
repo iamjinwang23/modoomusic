@@ -107,7 +107,8 @@ async function uploadProfileImage(userId: string, file: File, type: 'avatar' | '
     .from('profile-images')
     .upload(path, blob, { upsert: true, contentType: 'image/webp' })
   if (error) { console.error('[profile upload]', error.message); return null }
-  return supabase.storage.from('profile-images').getPublicUrl(path).data.publicUrl
+  const baseUrl = supabase.storage.from('profile-images').getPublicUrl(path).data.publicUrl
+  return `${baseUrl}?v=${Date.now()}`
 }
 
 async function deleteProfileImage(userId: string, type: 'avatar' | 'cover') {
