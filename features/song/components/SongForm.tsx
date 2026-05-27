@@ -289,7 +289,7 @@ export function SongForm() {
           placeholder="곡 제목"
           value={title}
           onChange={(e) => setTitle(e.target.value)}
-          maxLength={80}
+          maxLength={100}
           disabled={isGenerating}
         />
         <div className="h-1" />

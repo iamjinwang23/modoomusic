@@ -24,13 +24,7 @@ export function SongCard({ song, onDelete }: Props) {
           <p className="text-xs text-zinc-500">{date}</p>
           <p className="text-sm text-white mt-0.5 line-clamp-2">{song.prompt}</p>
         </div>
-        <div className="flex gap-1">
-          {song.genre && (
-            <span className="text-xs bg-zinc-700 px-2 py-0.5 rounded-full text-zinc-400">
-              {song.genre}
-            </span>
-          )}
-        </div>
+        <div className="flex gap-1" />
       </div>
 
       <div className="flex items-center gap-2">

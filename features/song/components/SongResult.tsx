@@ -80,19 +80,9 @@ export function SongResult({ song, elapsed, onReset }: Props) {
         </h2>
         <div className="flex items-center gap-2 mt-2 flex-wrap">
           <span className="text-xs text-zinc-600">{elapsed}초 생성</span>
-          {song.genre && (
-            <span className="text-xs text-zinc-400 bg-zinc-800 px-2.5 py-0.5 rounded-full border border-white/[0.06]">
-              {song.genre}
-            </span>
-          )}
-          {song.mood && (
-            <span className="text-xs text-zinc-400 bg-zinc-800 px-2.5 py-0.5 rounded-full border border-white/[0.06]">
-              {song.mood}
-            </span>
-          )}
           {song.instrumental && (
             <span className="text-xs text-zinc-400 bg-zinc-800 px-2.5 py-0.5 rounded-full border border-white/[0.06]">
-              Instrumental
+              Inst.
             </span>
           )}
         </div>

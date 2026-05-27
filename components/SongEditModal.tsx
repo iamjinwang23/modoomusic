@@ -23,6 +23,7 @@ interface Props {
 }
 
 export function SongEditModal({ song, onClose }: Props) {
+  const songId = useRef(song.id)  // 모달 오픈 시점 ID 고정 — 재생 중 곡 변경돼도 영향 없음
   const [title, setTitle] = useState(song.title ?? '')
   const [hue, setHue] = useState(song.coverHue ?? baseHue(song.id))
   const [coverImage, setCoverImage] = useState<string | null>(song.coverImage ?? null)
@@ -41,7 +42,7 @@ export function SongEditModal({ song, onClose }: Props) {
   }
 
   function handleSave() {
-    songService.update(song.id, {
+    songService.update(songId.current, {
       title: title.trim() || null,
       coverHue: hue,
       coverImage: coverImage ?? undefined,
@@ -144,10 +145,13 @@ export function SongEditModal({ song, onClose }: Props) {
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
                 placeholder="제목 없음"
-                maxLength={80}
+                maxLength={100}
                 autoFocus
                 className="w-full bg-white/[0.06] border border-white/[0.08] focus:border-violet-500/50 rounded-xl px-3 py-2.5 text-sm text-white placeholder:text-zinc-600 focus:outline-none transition-colors"
               />
+              <p className={`text-xs text-right tabular-nums ${title.length >= 100 ? 'text-red-400' : 'text-zinc-600'}`}>
+                {title.length}/100
+              </p>
             </div>
           </div>
         </div>

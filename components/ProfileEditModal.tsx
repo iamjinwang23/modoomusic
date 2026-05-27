@@ -1,8 +1,10 @@
 'use client'
 
 import { useEffect, useMemo, useRef, useState } from 'react'
+import Image from 'next/image'
 import { createClient } from '@/lib/supabase/client'
 import { toast } from '@/components/toast/toast'
+import { profileColor } from '@/utils/profileColor'
 import type { SocialLinks } from '@/types/domain'
 
 const NAME_MAX = 30
@@ -48,9 +50,22 @@ interface Initial {
   nameChangeLog: string[]
 }
 
+interface ImageProps {
+  avatarUrl: string | null
+  coverUrl: string | null
+  avatarHue: number
+  initials: string
+  uploading: 'avatar' | 'cover' | null
+  onAvatarUpload: (file: File) => void
+  onAvatarDelete: () => void
+  onCoverUpload: (file: File) => void
+  onCoverDelete: () => void
+}
+
 interface Props {
   userId: string
   initial: Initial
+  images?: ImageProps
   onClose: () => void
   onSaved: (next: {
     username: string
@@ -62,7 +77,7 @@ interface Props {
   }) => void
 }
 
-export function ProfileEditModal({ userId, initial, onClose, onSaved }: Props) {
+export function ProfileEditModal({ userId, initial, images, onClose, onSaved }: Props) {
   const [displayName, setDisplayName] = useState(initial.displayName)
   const [username, setUsername] = useState(initial.username)
   const [bio, setBio] = useState(initial.bio)
@@ -78,6 +93,8 @@ export function ProfileEditModal({ userId, initial, onClose, onSaved }: Props) {
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const checkTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const coverFileRef = useRef<HTMLInputElement>(null)
+  const avatarFileRef = useRef<HTMLInputElement>(null)
 
   // ── 정책 계산 ────────────────────────────────────────────────
   const usernameLocked = initial.usernameChangedAt !== null
@@ -181,10 +198,11 @@ export function ProfileEditModal({ userId, initial, onClose, onSaved }: Props) {
   }
 
   return (
-    <div className="fixed inset-0 z-[80] flex items-end md:items-center justify-center">
-      <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={onClose} />
+    <div className="fixed inset-0 z-[80] flex md:items-center justify-center">
+      <div className="absolute inset-0 bg-black/70 backdrop-blur-sm md:block hidden" onClick={onClose} />
+      <div className="absolute inset-0 md:hidden" onClick={onClose} />
 
-      <div className="relative z-10 w-full max-w-full md:max-w-[480px] max-h-[90vh] md:max-h-[85vh] md:mx-4 bg-[#181B22] border border-white/[0.10] rounded-t-2xl md:rounded-2xl shadow-2xl flex flex-col" style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}>
+      <div className="relative z-10 w-full h-full md:h-auto md:max-w-[480px] md:max-h-[85vh] md:mx-4 bg-[#181B22] md:border border-white/[0.10] rounded-none md:rounded-2xl shadow-2xl flex flex-col" style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}>
         <div className="flex items-center justify-between px-6 py-4 border-b border-white/[0.06]">
           <h2 className="text-base font-semibold text-white">프로필 수정</h2>
           <button
@@ -196,6 +214,61 @@ export function ProfileEditModal({ userId, initial, onClose, onSaved }: Props) {
         </div>
 
         <div className="flex-1 overflow-y-auto px-6 py-5 space-y-4">
+          {/* 이미지 */}
+          {images && (
+            <div className="space-y-4">
+              {/* 커버 */}
+              <div>
+                <div
+                  className="relative w-full aspect-video rounded-xl overflow-hidden"
+                  style={{ background: profileColor(images.avatarHue).bg }}
+                >
+                  {images.coverUrl && (
+                    <Image src={images.coverUrl} alt="" fill className="object-cover" unoptimized />
+                  )}
+                  {images.uploading === 'cover' && (
+                    <div className="absolute inset-0 flex items-center justify-center bg-black/50">
+                      <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                    </div>
+                  )}
+                </div>
+                <div className="flex justify-center gap-2 mt-2">
+                  <button type="button" onClick={() => coverFileRef.current?.click()} className="text-xs px-3 py-1.5 rounded-lg bg-white/[0.08] text-zinc-300 hover:bg-white/[0.12] transition-colors">커버 변경</button>
+                  {images.coverUrl && (
+                    <button type="button" onClick={images.onCoverDelete} className="text-xs px-3 py-1.5 rounded-lg bg-red-500/10 text-red-400 hover:bg-red-500/20 transition-colors">삭제</button>
+                  )}
+                </div>
+                <input ref={coverFileRef} type="file" accept="image/*" className="hidden" onChange={(e) => { const f = e.target.files?.[0]; if (f) images.onCoverUpload(f); e.target.value = '' }} />
+              </div>
+
+              {/* 아바타 */}
+              <div className="flex flex-col items-center">
+                <div
+                  className="relative w-[80px] h-[80px] rounded-full overflow-hidden flex items-center justify-center text-2xl font-bold"
+                  style={{ background: profileColor(images.avatarHue).bg, color: profileColor(images.avatarHue).text }}
+                >
+                  {images.avatarUrl ? (
+                    <Image src={images.avatarUrl} alt="" fill className="object-cover" unoptimized />
+                  ) : (
+                    images.initials
+                  )}
+                  {images.uploading === 'avatar' && (
+                    <div className="absolute inset-0 flex items-center justify-center bg-black/50">
+                      <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                    </div>
+                  )}
+                </div>
+                <div className="flex gap-2 mt-2">
+                  <button type="button" onClick={() => avatarFileRef.current?.click()} className="text-xs px-3 py-1.5 rounded-lg bg-white/[0.08] text-zinc-300 hover:bg-white/[0.12] transition-colors">프로필 사진 변경</button>
+                  {images.avatarUrl && (
+                    <button type="button" onClick={images.onAvatarDelete} className="text-xs px-3 py-1.5 rounded-lg bg-red-500/10 text-red-400 hover:bg-red-500/20 transition-colors">삭제</button>
+                  )}
+                </div>
+                <input ref={avatarFileRef} type="file" accept="image/*" className="hidden" onChange={(e) => { const f = e.target.files?.[0]; if (f) images.onAvatarUpload(f); e.target.value = '' }} />
+              </div>
+            </div>
+          )}
+
           {/* 이름 */}
           <div>
             <div className="flex items-center justify-between mb-1.5">

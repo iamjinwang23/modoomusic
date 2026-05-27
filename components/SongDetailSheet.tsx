@@ -211,16 +211,11 @@ function handleLike() {
             <p className="text-sm text-zinc-400 leading-relaxed mb-5">{songData.prompt}</p>
 
             {/* Tags */}
-            {(songData.mood || songData.instrumental) && (
+            {songData.instrumental && (
               <div className="flex flex-wrap gap-1.5 mb-5">
-                {songData.mood && (
-                  <span className="text-xs text-zinc-400 bg-zinc-800 px-2.5 py-0.5 rounded-full border border-white/[0.06]">
-                    {songData.mood}
-                  </span>
-                )}
                 {songData.instrumental && (
                   <span className="text-xs text-zinc-400 bg-zinc-800 px-2.5 py-0.5 rounded-full border border-white/[0.06]">
-                    Instrumental
+                    Inst.
                   </span>
                 )}
               </div>
