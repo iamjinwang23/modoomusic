@@ -121,8 +121,8 @@ export function GlobalMiniBar() {
           </div>
           {/* 핸들 — 드래그 중에만 표시 */}
           <div
-            className={`absolute top-0 w-3 h-3 -ml-1.5 rounded-full bg-violet-500 shadow-lg shadow-violet-500/40 transition-opacity ${dragging ? 'opacity-100' : 'opacity-0'}`}
-            style={{ left: `${progressPct}%` }}
+            className={`absolute w-3 h-3 -ml-1.5 rounded-full bg-violet-500 shadow-lg shadow-violet-500/40 transition-opacity ${dragging ? 'opacity-100' : 'opacity-0'}`}
+            style={{ left: `${progressPct}%`, top: '-4px' }}
           />
         </div>
 
