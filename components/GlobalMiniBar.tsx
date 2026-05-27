@@ -4,11 +4,17 @@ import { useRef, useState } from 'react'
 import Image from 'next/image'
 import { useGlobalPlayer } from '@/contexts/GlobalPlayerContext'
 import { CollectionPickerModal } from '@/features/song/components/CollectionPickerModal'
-import { songService } from '@/services/song.service'
 import { toast } from '@/components/toast/toast'
 import { useAuth } from '@/components/AuthProvider'
 import { buildSongShareUrl } from '@/utils/shareUrl'
 import type { Song } from '@/types/domain'
+import { MarqueeText } from '@/components/MarqueeText'
+
+function formatCount(n: number) {
+  if (n >= 10000) return `${+(n / 10000).toFixed(1)}만`
+  if (n >= 1000) return `${+(n / 1000).toFixed(1)}k`
+  return String(n)
+}
 
 function formatTime(s: number) {
   if (!s || isNaN(s) || !isFinite(s)) return '0:00'
@@ -38,30 +44,25 @@ export function GlobalMiniBar() {
     window.dispatchEvent(new CustomEvent('view-song', { detail: { feed, idx, isOwner, ownerUserId, ownerName, ownerAvatarUrl, ownerAvatarHue } }))
   }
 
-  // 좋아요: isOwner=true는 책갈피(songs.liked), false는 공개 좋아요(likes 테이블+알림)
-  // 낙관적 UI + 실패 시 롤백 + inflight 중복 차단
   async function handleLike() {
     if (!song || likeInflight.current) return
-    if (!isOwner && !user) { window.dispatchEvent(new Event('open-login')); return }
+    if (!user) { window.dispatchEvent(new Event('open-login')); return }
     likeInflight.current = true
     const prev = !!song.liked
+    const prevCount = song.likeCount ?? 0
     const next = !prev
-    patchSong({ liked: next })
+    patchSong({ liked: next, likeCount: prevCount + (next ? 1 : -1) })
     try {
-      if (isOwner) {
-        songService.update(song.id, { liked: next })
-        window.dispatchEvent(new CustomEvent('song-updated'))
-      } else {
-        const r = await fetch(`/api/songs/${song.id}/like`, { method: 'POST' })
-        if (!r.ok) {
-          if (r.status === 401) window.dispatchEvent(new Event('open-login'))
-          throw new Error('like failed')
-        }
-        const d = await r.json()
-        patchSong({ liked: d.liked })
+      const r = await fetch(`/api/songs/${song.id}/like`, { method: 'POST' })
+      if (!r.ok) {
+        if (r.status === 401) window.dispatchEvent(new Event('open-login'))
+        throw new Error('like failed')
       }
+      const d = await r.json()
+      patchSong({ liked: d.liked, likeCount: d.likeCount })
+      window.dispatchEvent(new CustomEvent('like-updated', { detail: { songId: song.id, liked: d.liked, likeCount: d.likeCount } }))
     } catch {
-      patchSong({ liked: prev })
+      patchSong({ liked: prev, likeCount: prevCount })
       toast.error('좋아요 처리에 실패했어요')
     } finally {
       likeInflight.current = false
@@ -125,22 +126,27 @@ export function GlobalMiniBar() {
           />
         </div>
 
-        <div className="grid grid-cols-[1fr_auto] md:grid-cols-[1fr_auto_1fr] items-center gap-2 mb-1">
+        <div className="grid grid-cols-[minmax(0,1fr)_auto] md:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-2 mb-1">
           {/* Left: thumbnail + title — click opens detail */}
           <div
-            className="flex items-center gap-2.5 min-w-0 cursor-pointer"
+            className="flex items-center gap-2.5 min-w-0 overflow-hidden cursor-pointer"
             onClick={openDetail}
           >
             <div
-              className="w-10 aspect-[2/3] rounded-md shrink-0 overflow-hidden relative"
+              className="w-9 aspect-[2/3] rounded-md shrink-0 overflow-hidden relative"
               style={song.coverImage ? undefined : { background: coverGradient(song) }}
             >
               {song.coverImage && (
                 <Image src={song.coverImage} alt="" fill className="object-cover" unoptimized />
               )}
             </div>
-            <div className="min-w-0">
-              <p className="text-sm font-medium text-white truncate leading-tight">{song.title || 'Untitled'}</p>
+            <div className="flex-1 min-w-0 overflow-hidden">
+              <MarqueeText
+                text={song.title || 'Untitled'}
+                className="text-sm font-medium text-white leading-tight"
+                speed={10}
+                threshold={20}
+              />
               {ownerName && <p className="text-xs text-zinc-500 truncate mt-0.5">{ownerName}</p>}
             </div>
           </div>
@@ -156,13 +162,14 @@ export function GlobalMiniBar() {
             </button>
             <button
               onClick={togglePlay}
-              className="w-[38px] h-[38px] rounded-full bg-white hover:bg-zinc-100 flex items-center justify-center transition-colors shrink-0"
+              className="flex items-center justify-center transition-colors shrink-0 md:w-[38px] md:h-[38px] md:rounded-full md:bg-white md:hover:bg-zinc-100"
             >
               <Image
                 src={isPlaying ? '/Pause.svg' : '/Play.svg'}
                 alt={isPlaying ? '일시정지' : '재생'}
                 width={22}
                 height={22}
+                className="[filter:invert(1)] md:[filter:invert(0)]"
               />
             </button>
             <button
@@ -176,21 +183,29 @@ export function GlobalMiniBar() {
 
           {/* Right: action buttons — 모바일에선 숨김 (곡 상세 페이지에서 사용 가능) */}
           <div className="hidden md:flex items-center gap-2 justify-end">
+            {/* 재생수 */}
+            <div className="flex items-center gap-1.5 px-2.5 h-8 rounded-full bg-white/[0.06] text-xs text-zinc-400 tabular-nums">
+              <Image src="/Play.svg" alt="" width={12} height={12} style={{ filter: 'invert(0.55)' }} />
+              <span>{formatCount(song.playCount ?? 0)}</span>
+            </div>
             {/* Like */}
             <button
               onClick={handleLike}
               title="좋아요"
-              className={`w-8 h-8 rounded-full flex items-center justify-center transition-colors ${
+              className={`flex items-center gap-1.5 px-2.5 h-8 rounded-full transition-colors ${
                 song.liked ? 'bg-white hover:bg-zinc-100' : 'bg-white/[0.06] hover:bg-white/[0.12]'
               }`}
             >
               <Image
                 src="/Thumb-Up.svg"
                 alt="좋아요"
-                width={16}
-                height={16}
+                width={14}
+                height={14}
                 style={{ filter: song.liked ? 'invert(0)' : 'invert(0.45)' }}
               />
+              <span className={`text-xs tabular-nums ${song.liked ? 'text-black' : 'text-zinc-400'}`}>
+                {formatCount(song.likeCount ?? 0)}
+              </span>
             </button>
 
             {/* Collection */}

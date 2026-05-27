@@ -28,6 +28,8 @@ interface DbSong {
   published_at: string | null
   publish_comment: string | null
   created_at: string
+  play_count: number
+  like_count: number
 }
 
 function rowToSong(r: DbSong): Song {
@@ -50,6 +52,8 @@ function rowToSong(r: DbSong): Song {
     published: r.is_public,
     publishedAt: r.published_at ?? undefined,
     publishComment: r.publish_comment ?? undefined,
+    playCount: r.play_count ?? 0,
+    likeCount: r.like_count ?? 0,
   }
 }
 

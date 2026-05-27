@@ -15,6 +15,7 @@ import { buildSongShareUrl } from '@/utils/shareUrl'
 import { useOptimisticToggle } from '@/hooks/useOptimisticToggle'
 import { createClient } from '@/lib/supabase/client'
 import type { Song } from '@/types/domain'
+import { MarqueeText } from '@/components/MarqueeText'
 
 interface SongProfile {
   displayName: string
@@ -134,35 +135,29 @@ export function SongDetailPage({ onBack, profile }: Props) {
   const displayTitle = song.title || 'Untitled'
 
   // 좋아요: isOwner에 따라 두 의미가 다름
-  //  - isOwner=true: 책갈피 (songs.liked 로컬 마크, 카운트·알림 X)
-  //  - isOwner=false: 공개 좋아요 (likes 테이블 + like_count + 알림)
-  // 두 경로 모두 낙관적 UI + 실패 시 롤백 + inflight 중복 차단
   const likeInflight = useRef(false)
   async function handleLike() {
     if (likeInflight.current) return
-    if (!isOwner && !user) { window.dispatchEvent(new Event('open-login')); return }
+    if (!user) { window.dispatchEvent(new Event('open-login')); return }
     likeInflight.current = true
     const prev = liked
+    const prevCount = song!.likeCount ?? 0
     const next = !prev
     setLiked(next)
-    patchSong({ liked: next })
+    patchSong({ liked: next, likeCount: prevCount + (next ? 1 : -1) })
     try {
-      if (isOwner) {
-        songService.update(song!.id, { liked: next })
-        window.dispatchEvent(new CustomEvent('song-updated'))
-      } else {
-        const r = await fetch(`/api/songs/${song!.id}/like`, { method: 'POST' })
-        if (!r.ok) {
-          if (r.status === 401) window.dispatchEvent(new Event('open-login'))
-          throw new Error('like failed')
-        }
-        const d = await r.json()
-        setLiked(d.liked)
-        patchSong({ liked: d.liked })
+      const r = await fetch(`/api/songs/${song!.id}/like`, { method: 'POST' })
+      if (!r.ok) {
+        if (r.status === 401) window.dispatchEvent(new Event('open-login'))
+        throw new Error('like failed')
       }
+      const d = await r.json()
+      setLiked(d.liked)
+      patchSong({ liked: d.liked, likeCount: d.likeCount })
+      window.dispatchEvent(new CustomEvent('like-updated', { detail: { songId: song!.id, liked: d.liked, likeCount: d.likeCount } }))
     } catch {
       setLiked(prev)
-      patchSong({ liked: prev })
+      patchSong({ liked: prev, likeCount: prevCount })
       toast.error('좋아요 처리에 실패했어요')
     } finally {
       likeInflight.current = false
@@ -205,7 +200,7 @@ export function SongDetailPage({ onBack, profile }: Props) {
   return (
     // 모바일: top 0 ~ 미니바 위까지만 덮어서 미니바·BottomNav는 그대로 노출
     // 데스크톱: md:relative + md:inset-auto로 일반 flex 아이템처럼 동작
-    <div className="fixed inset-x-0 top-0 bottom-[calc(156px+env(safe-area-inset-bottom,0px))] z-[55] bg-[#171A20] flex flex-col overflow-hidden isolate md:relative md:inset-auto md:bottom-auto md:z-auto md:h-full">
+    <div className="fixed inset-x-0 top-0 bottom-[calc(148px+env(safe-area-inset-bottom,0px))] z-[55] bg-[#171A20] flex flex-col overflow-hidden isolate md:relative md:inset-auto md:bottom-auto md:z-auto md:h-full">
       {/* 커버 색감을 흐릿하게 깔아주는 배경 레이어 */}
       <div
         aria-hidden
@@ -259,76 +254,86 @@ export function SongDetailPage({ onBack, profile }: Props) {
             )}
             {/* 데스크톱만: 재생 중 dim + 사운드 웨이브 (모바일은 제목 옆에 표시) */}
             {playing ? (
-              <div className="hidden md:flex absolute inset-0 bg-black/30 items-center justify-center pointer-events-none">
-                <SoundWaveIcon size={40} />
+              <div className="hidden md:block absolute bottom-3 left-3 pointer-events-none">
+                <SoundWaveIcon size={24} />
               </div>
             ) : (
-              <div className="absolute inset-0 flex items-center justify-center transition-opacity duration-150 bg-black/20 opacity-0 group-hover:opacity-100">
-                <Image src="/Play.svg" alt="재생" width={36} height={36} style={{ filter: 'invert(1)' }} />
+              <div className="absolute inset-0 flex items-end transition-opacity duration-150 opacity-0 group-hover:opacity-100">
+                <div className="p-3">
+                  <Image src="/Play.svg" alt="재생" width={22} height={22} style={{ filter: 'invert(1)' }} />
+                </div>
               </div>
             )}
           </div>
 
           {/* 커버 아래 컨테이너 — 모바일은 mask fade 영역으로 살짝 끌어올림, 좌우 padding 추가 */}
-          <div className="relative z-10 flex flex-col items-center md:items-stretch w-full gap-4 px-5 -mt-10 md:mt-0 pb-5 md:p-0">
-          {/* 모바일 전용: 커버 바로 아래 제목 가운데 정렬 — 재생 중일 때 좌측에 사운드 웨이브 */}
-          <div className="md:hidden flex flex-col items-center gap-1.5 w-full">
-            <div className="flex items-center gap-2 flex-wrap justify-center">
-              {playing && <SoundWaveIcon size={18} />}
-              <h2 className="text-xl font-bold text-white leading-snug text-center">{displayTitle}</h2>
-              {song.instrumental && (
-                <span className="shrink-0 text-[10px] text-zinc-400 bg-zinc-800 px-2 py-0.5 rounded border border-white/[0.06] leading-none">
-                  Instrumental
-                </span>
-              )}
-            </div>
+          <div className="relative z-10 flex flex-col items-stretch w-full gap-4 px-5 -mt-10 md:mt-0 pb-5 md:p-0">
+          {/* 모바일 전용: 커버 바로 아래 제목 — 긴 제목은 마퀴 롤링 */}
+          <div className="md:hidden flex items-center gap-2 w-full min-w-0">
+            <MarqueeText
+              text={displayTitle}
+              className="text-2xl font-bold text-white leading-snug flex-1 min-w-0"
+            />
+            {song.instrumental && (
+              <span className="shrink-0 text-[10px] text-zinc-400 bg-zinc-800 px-2 py-0.5 rounded border border-white/[0.06] leading-none">
+                Inst.
+              </span>
+            )}
           </div>
 
+          {/* 모바일 전용: 프로필 + 팔로우 */}
           {(() => {
             const name = ownerName ?? profile?.displayName ?? user?.user_metadata?.full_name ?? user?.email?.split('@')[0] ?? null
-            // 곡 소유자의 avatarHue 우선 — 없으면 (내 곡 등) 본인 프로필 hue 사용
             const hue = ownerAvatarHue ?? profile?.avatarHue ?? 0
             const avatarUrl = ownerAvatarUrl
             const c = profileColor(hue)
             if (!name) return null
             return (
-              <div className="flex items-center gap-2 flex-wrap justify-center md:justify-start">
+              <div className="md:hidden flex items-center gap-2 flex-wrap justify-start">
                 {avatarUrl ? (
-                  <div className="relative w-8 h-8 rounded-full overflow-hidden shrink-0">
-                    <Image src={avatarUrl} alt={name} fill className="object-cover" sizes="32px" unoptimized />
+                  <div className="relative w-9 h-9 rounded-full overflow-hidden shrink-0">
+                    <Image src={avatarUrl} alt={name} fill className="object-cover" sizes="36px" unoptimized />
                   </div>
                 ) : (
                   <div
-                    className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold shrink-0"
+                    className="w-9 h-9 rounded-full flex items-center justify-center text-xs font-bold shrink-0"
                     style={{ background: c.bg, color: c.text }}
                   >
                     {name.slice(0, 1).toUpperCase()}
                   </div>
                 )}
-                <span className="text-sm text-zinc-300 truncate">{name}</span>
-                {/* 모바일: 사용자 옆에 시간 같이 (가운데 정렬 그룹) */}
-                <span className="md:hidden text-xs text-zinc-500">· {relativeTime(song.createdAt)}</span>
+                <span className="text-sm text-white truncate">{name}</span>
                 {!isOwner && (
                   <button
                     type="button"
                     onClick={() => toggleFollow()}
                     aria-pressed={following}
-                    className={`shrink-0 text-sm font-medium px-4 py-1.5 rounded-full transition-colors ${
-                      following
-                        ? 'border border-white text-white bg-transparent hover:bg-white/[0.06]'
-                        : 'bg-white text-black hover:bg-zinc-100'
-                    }`}
+                    className="shrink-0 flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-medium bg-white/[0.08] text-white hover:bg-white/[0.12] transition-colors"
                   >
+                    <Image src={following ? '/Following.svg' : '/Follow.svg'} alt="" width={14} height={14} style={{ filter: 'invert(1)' }} />
                     {following ? '팔로잉' : '팔로우'}
                   </button>
                 )}
               </div>
             )
           })()}
-          {/* 데스크톱 전용: 시간 별도 줄 */}
-          <p className="hidden md:block text-xs text-zinc-500">{relativeTime(song.createdAt)}</p>
-          <div className="flex items-center gap-2 flex-wrap justify-center md:justify-start">
-            <ActionBtn title="좋아요" icon="/Thumb-Up.svg" active={liked} onClick={handleLike} />
+          {/* 모바일 전용: 코멘트 */}
+          {song.publishComment && (
+            <p className="md:hidden text-sm text-white leading-relaxed whitespace-pre-wrap">{song.publishComment}</p>
+          )}
+          {/* 모바일 전용: 스타일 — 프로필과 아이콘 사이 */}
+          <div className="md:hidden relative">
+            <div className="absolute top-0 right-0"><CopyBtn text={song.prompt} /></div>
+            <p className="text-sm text-zinc-400 leading-relaxed pr-8">{song.prompt}</p>
+          </div>
+
+          {/* 모바일 전용: 액션 버튼 */}
+          <div className="md:hidden flex items-center gap-2 flex-wrap justify-start">
+            <div className="flex items-center gap-1.5 px-3 h-10 rounded-full bg-white/[0.08]">
+              <Image src="/Play.svg" alt="재생수" width={16} height={16} style={{ filter: 'invert(0.55)' }} />
+              <span className="text-xs font-medium text-zinc-400 tabular-nums">{formatCount(song.playCount ?? 0)}</span>
+            </div>
+            <ActionBtn title="좋아요" icon="/Thumb-Up.svg" active={liked} count={song.likeCount ?? 0} onClick={handleLike} />
             <ActionBtn title="컬렉션" icon="/Collection.svg" active={inCollection} onClick={() => setCollectOpen(true)} />
             <ActionBtn title="공유" icon="/Share.svg" onClick={handleShare} />
             <ActionBtn title="저장" icon="/Arrow-To-Down.svg" />
@@ -344,50 +349,92 @@ export function SongDetailPage({ onBack, profile }: Props) {
 
         {/* 우측(데스크톱) / 하단(모바일) — 제목(데스크톱만)·스타일·가사 */}
         <div className="flex-1 md:overflow-y-auto px-5 md:py-5 md:pr-6 md:pl-1 pb-8">
-          {/* 제목 — 데스크톱만 (모바일은 좌측 컬럼 커버 아래에) */}
-          <div className="hidden md:flex items-center gap-2 mb-6">
-            <h2 className="text-2xl font-bold text-white leading-snug">{displayTitle}</h2>
-            {song.instrumental && (
-              <span className="shrink-0 text-xs text-zinc-400 bg-zinc-800 px-2 py-1 rounded border border-white/[0.06] leading-none">
-                Instrumental
-              </span>
-            )}
-          </div>
-          <div className="flex items-center gap-1.5 mb-1.5">
-            <p className="text-xs text-zinc-500 uppercase tracking-wider">스타일</p>
-            <CopyBtn text={song.prompt} />
-          </div>
-          <p className="text-sm text-zinc-400 leading-relaxed mb-4">{song.prompt}</p>
-
-          {song.publishComment && (
-            <p className="text-sm text-white leading-relaxed mb-8 whitespace-pre-wrap">{song.publishComment}</p>
-          )}
-
-          {(song.genre || song.mood) && (
-            <div className="flex flex-wrap gap-1.5 mb-5">
-              {song.genre && (
-                <span className="text-xs text-zinc-400 bg-zinc-800 px-2.5 py-0.5 rounded-full border border-white/[0.06]">
-                  {song.genre}
-                </span>
+          {/* 제목·프로필·스타일·날짜 + 액션 — 데스크톱만, justify-between으로 아이콘을 커버 하단에 정렬 */}
+          <div className="hidden md:flex flex-col justify-between gap-6 min-h-[300px] mb-6">
+            <div className="flex flex-col gap-4">
+              {/* 제목 */}
+              <div className="flex items-center gap-2">
+                <h2 className="text-2xl font-bold text-white leading-snug">{displayTitle}</h2>
+                {song.instrumental && (
+                  <span className="shrink-0 text-xs text-zinc-400 bg-zinc-800 px-2 py-1 rounded border border-white/[0.06] leading-none">
+                    Inst.
+                  </span>
+                )}
+              </div>
+              {/* 프로필 + 팔로우 */}
+              {(() => {
+                const name = ownerName ?? profile?.displayName ?? user?.user_metadata?.full_name ?? user?.email?.split('@')[0] ?? null
+                const hue = ownerAvatarHue ?? profile?.avatarHue ?? 0
+                const avatarUrl = ownerAvatarUrl
+                const c = profileColor(hue)
+                if (!name) return null
+                return (
+                  <div className="flex items-center gap-2 flex-wrap">
+                    {avatarUrl ? (
+                      <div className="relative w-9 h-9 rounded-full overflow-hidden shrink-0">
+                        <Image src={avatarUrl} alt={name} fill className="object-cover" sizes="36px" unoptimized />
+                      </div>
+                    ) : (
+                      <div
+                        className="w-9 h-9 rounded-full flex items-center justify-center text-xs font-bold shrink-0"
+                        style={{ background: c.bg, color: c.text }}
+                      >
+                        {name.slice(0, 1).toUpperCase()}
+                      </div>
+                    )}
+                    <span className="text-sm text-white truncate">{name}</span>
+                    {!isOwner && (
+                      <button
+                        type="button"
+                        onClick={() => toggleFollow()}
+                        aria-pressed={following}
+                        className="shrink-0 flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-medium bg-white/[0.08] text-white hover:bg-white/[0.12] transition-colors"
+                      >
+                        <Image src={following ? '/Following.svg' : '/Follow.svg'} alt="" width={14} height={14} style={{ filter: 'invert(1)' }} />
+                        {following ? '팔로잉' : '팔로우'}
+                      </button>
+                    )}
+                  </div>
+                )
+              })()}
+              {/* 코멘트 */}
+              {song.publishComment && (
+                <p className="text-sm text-white leading-relaxed whitespace-pre-wrap">{song.publishComment}</p>
               )}
-              {song.mood && (
-                <span className="text-xs text-zinc-400 bg-zinc-800 px-2.5 py-0.5 rounded-full border border-white/[0.06]">
-                  {song.mood}
-                </span>
+              {/* 스타일 */}
+              <div className="relative">
+                <div className="absolute top-0 right-0"><CopyBtn text={song.prompt} /></div>
+                <p className="text-sm text-zinc-400 leading-relaxed pr-8">{song.prompt}</p>
+              </div>
+              {/* 날짜 */}
+              <p className="text-xs text-zinc-400">{relativeTime(song.createdAt)}</p>
+            </div>
+            {/* 액션 버튼 */}
+            <div className="flex items-center gap-2 flex-wrap">
+              <div className="flex items-center gap-1.5 px-3 h-10 rounded-full bg-white/[0.08]">
+                <Image src="/Play.svg" alt="재생수" width={16} height={16} style={{ filter: 'invert(0.55)' }} />
+                <span className="text-xs font-medium text-zinc-400 tabular-nums">{formatCount(song.playCount ?? 0)}</span>
+              </div>
+              <ActionBtn title="좋아요" icon="/Thumb-Up.svg" active={liked} count={song.likeCount ?? 0} onClick={handleLike} />
+              <ActionBtn title="컬렉션" icon="/Collection.svg" active={inCollection} onClick={() => setCollectOpen(true)} />
+              <ActionBtn title="공유" icon="/Share.svg" onClick={handleShare} />
+              <ActionBtn title="저장" icon="/Arrow-To-Down.svg" />
+              {isOwner && (
+                <OwnerMenu
+                  onEdit={() => setEditOpen(true)}
+                  onDelete={() => setConfirmDelete(true)}
+                />
               )}
             </div>
-          )}
+          </div>
 
           {song.lyrics && (
-            <>
-              <div className="flex items-center gap-1.5 mb-4">
-                <p className="text-xs text-zinc-500 uppercase tracking-wider">가사</p>
-                <CopyBtn text={song.lyrics} />
-              </div>
-              <p className="text-sm text-zinc-300 whitespace-pre-wrap leading-[1.9] font-[family-name:var(--font-pretendard)]">
+            <div className="relative">
+              <div className="absolute top-0 right-0"><CopyBtn text={song.lyrics} /></div>
+              <p className="text-sm text-zinc-300 whitespace-pre-wrap leading-[1.9] font-[family-name:var(--font-pretendard)] pr-8">
                 {song.lyrics}
               </p>
-            </>
+            </div>
           )}
         </div>
       </div>
@@ -420,6 +467,12 @@ export function SongDetailPage({ onBack, profile }: Props) {
   )
 }
 
+function formatCount(n: number) {
+  if (n >= 10000) return `${+(n / 10000).toFixed(1)}만`
+  if (n >= 1000) return `${+(n / 1000).toFixed(1)}k`
+  return String(n)
+}
+
 function CopyBtn({ text }: { text: string }) {
   const [copied, setCopied] = useState(false)
   function handleCopy() {
@@ -434,29 +487,37 @@ function CopyBtn({ text }: { text: string }) {
       type="button"
       onClick={handleCopy}
       title="복사"
-      className="p-1 rounded transition-opacity opacity-40 hover:opacity-100"
+      className="p-1 rounded transition-colors hover:bg-white/[0.06]"
     >
       {copied ? (
         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="text-violet-400">
           <path d="M20 6L9 17l-5-5"/>
         </svg>
       ) : (
-        <Image src="/Copy.svg" alt="복사" width={15} height={15} style={{ filter: 'invert(0.6)' }} />
+        <Image src="/Copy.svg" alt="복사" width={15} height={15} style={{ filter: 'invert(0.63)' }} />
       )}
     </button>
   )
 }
 
-function ActionBtn({ title, icon, active, onClick }: { title: string; icon: string; active?: boolean; onClick?: () => void }) {
+function ActionBtn({ title, icon, active, count, onClick }: { title: string; icon: string; active?: boolean; count?: number; onClick?: () => void }) {
+  const hasCount = count !== undefined
   return (
     <button
       title={title}
       onClick={onClick}
-      className={`w-10 h-10 rounded-full flex items-center justify-center transition-colors ${
-        active ? 'bg-white hover:bg-zinc-100' : 'bg-white/[0.06] hover:bg-white/[0.12]'
+      className={`flex items-center justify-center gap-1.5 h-10 rounded-full transition-colors ${
+        hasCount ? 'px-3' : 'w-10'
+      } ${
+        active ? 'bg-white hover:bg-zinc-100' : 'bg-white/[0.08] hover:bg-white/[0.12]'
       }`}
     >
       <Image src={icon} alt={title} width={18} height={18} style={{ filter: active ? 'invert(0)' : 'invert(0.55)' }} />
+      {hasCount && (
+        <span className={`text-xs font-medium tabular-nums ${active ? 'text-black' : 'text-zinc-400'}`}>
+          {formatCount(count)}
+        </span>
+      )}
     </button>
   )
 }

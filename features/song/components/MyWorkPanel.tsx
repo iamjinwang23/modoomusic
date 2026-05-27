@@ -18,6 +18,12 @@ import type { Song } from '@/types/domain'
 
 const ICON_FILTER = 'invert(0.45)'
 
+function formatCount(n: number) {
+  if (n >= 10000) return `${+(n / 10000).toFixed(1)}만`
+  if (n >= 1000) return `${+(n / 1000).toFixed(1)}k`
+  return String(n)
+}
+
 function thumbGradient(song: Song) {
   const hue = song.coverHue ?? (song.id.split('').reduce((acc, c) => acc + c.charCodeAt(0), 0) * 137) % 360
   const h2 = (hue + 55) % 360
@@ -127,13 +133,19 @@ export function MyWorkPanel({ showCollections = false }: { showCollections?: boo
     const onGenerating = (e: Event) => setPendingSong((e as CustomEvent<PendingInfo>).detail)
     const onGenState = () => setPendingSong(getPendingGen() as GenPendingInfo | null)
     const onUpdated = () => { setPendingSong(null); setSongs(user ? songService.getAll() : []) }
+    const onLikeUpdated = (e: Event) => {
+      const { songId, likeCount } = (e as CustomEvent<{ songId: string; liked: boolean; likeCount: number }>).detail
+      setSongs(prev => prev.map(s => s.id === songId ? { ...s, likeCount } : s))
+    }
     window.addEventListener('song-generating', onGenerating)
     window.addEventListener('generation-state', onGenState)
     window.addEventListener('song-updated', onUpdated)
+    window.addEventListener('like-updated', onLikeUpdated)
     return () => {
       window.removeEventListener('song-generating', onGenerating)
       window.removeEventListener('generation-state', onGenState)
       window.removeEventListener('song-updated', onUpdated)
+      window.removeEventListener('like-updated', onLikeUpdated)
     }
   }, [user])
 
@@ -272,19 +284,27 @@ export function MyWorkPanel({ showCollections = false }: { showCollections?: boo
   )
 }
 
-function IconBtn({ src, title, filter, active, onClick, size = 'md' }: { src: string; title: string; filter: string; active?: boolean; onClick?: () => void; size?: 'sm' | 'md' }) {
-  const sz = size === 'sm' ? 'w-[35px] h-[35px]' : 'w-10 h-10'
+function IconBtn({ src, title, filter, active, count, onClick, size = 'md' }: { src: string; title: string; filter: string; active?: boolean; count?: number; onClick?: () => void; size?: 'sm' | 'md' }) {
+  const hasCount = count !== undefined
+  const sz = size === 'sm'
+    ? (hasCount ? 'h-[35px] px-2.5' : 'w-[35px] h-[35px]')
+    : (hasCount ? 'h-10 px-3' : 'w-10 h-10')
   const iconSz = size === 'sm' ? 15 : 18
   return (
     <button
       type="button"
       title={title}
       onMouseDown={(e) => { e.stopPropagation(); onClick?.() }}
-      className={`${sz} rounded-full flex items-center justify-center transition-colors ${
+      className={`${sz} rounded-full flex items-center justify-center gap-1.5 transition-colors ${
         active ? 'bg-white hover:bg-zinc-100' : 'bg-white/[0.06] hover:bg-white/[0.12]'
       }`}
     >
       <Image src={src} alt={title} width={iconSz} height={iconSz} style={{ filter: active ? 'invert(0)' : filter }} />
+      {hasCount && (
+        <span className={`text-xs tabular-nums ${active ? 'text-black' : 'text-zinc-400'}`}>
+          {formatCount(count)}
+        </span>
+      )}
     </button>
   )
 }
@@ -466,7 +486,11 @@ function SongWorkItem({ song, onOpen, onEdit, onDelete, onCollect, onPublish, on
 
           {/* 액션 아이콘 행 */}
           <div className="flex items-center gap-2 mt-3">
-            <IconBtn src="/Thumb-Up.svg" title="좋아요" filter={ICON_FILTER} active={liked} onClick={handleLike} size="sm" />
+            <div className="flex items-center gap-1.5 px-2.5 h-[35px] rounded-full bg-white/[0.06] text-xs text-zinc-400 tabular-nums shrink-0">
+              <Image src="/Play.svg" alt="" width={13} height={13} style={{ filter: 'invert(0.55)' }} />
+              <span>{formatCount(song.playCount ?? 0)}</span>
+            </div>
+            <IconBtn src="/Thumb-Up.svg" title="좋아요" filter={ICON_FILTER} active={liked} count={song.likeCount ?? 0} onClick={handleLike} size="sm" />
             <IconBtn src="/Collection.svg" title="컬렉션" filter={ICON_FILTER} active={inCollection} onClick={onCollect} size="sm" />
             <IconBtn src="/Share.svg" title="공유" filter={ICON_FILTER} onClick={handleShare} size="sm" />
             <button

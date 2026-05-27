@@ -18,6 +18,8 @@ export interface Song {
   publishedAt?: string
   publishComment?: string
   publishCoverImage?: string
+  playCount?: number
+  likeCount?: number
 }
 
 export type Genre = '발라드' | '팝' | 'R&B' | '포크' | '힙합' | '재즈'

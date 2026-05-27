@@ -36,7 +36,7 @@ export function ToastHost() {
 
   // 모바일은 BottomNav(68px) + safe-area 추가로 더 위에 위치
   const bottomClass = hasMiniBar
-    ? 'bottom-[calc(164px+env(safe-area-inset-bottom,0px))] md:bottom-[calc(96px+env(safe-area-inset-bottom,0px))]'
+    ? 'bottom-[calc(156px+env(safe-area-inset-bottom,0px))] md:bottom-[calc(96px+env(safe-area-inset-bottom,0px))]'
     : 'bottom-[calc(92px+env(safe-area-inset-bottom,0px))] md:bottom-[calc(24px+env(safe-area-inset-bottom,0px))]'
 
   return (

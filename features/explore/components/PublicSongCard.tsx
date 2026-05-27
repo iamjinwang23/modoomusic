@@ -47,6 +47,7 @@ export function PublicSongCard({ song, onPlay, onThumbPlay, hideArtist = false }
         throw new Error('like failed')
       }
       const d = await r.json()
+      window.dispatchEvent(new CustomEvent('like-updated', { detail: { songId: song.id, liked: d.liked, likeCount: d.likeCount } }))
       return { state: d.liked, count: d.likeCount }
     },
     onError: () => toast.error('좋아요 처리에 실패했어요'),
@@ -102,7 +103,7 @@ export function PublicSongCard({ song, onPlay, onThumbPlay, hideArtist = false }
           <p className="text-sm font-medium text-zinc-100 leading-snug flex-1 line-clamp-2">{displayTitle}</p>
           {song.instrumental && (
             <span className="shrink-0 mt-0.5 text-[9px] bg-white/[0.08] text-zinc-400 px-1.5 py-0.5 rounded border border-white/[0.08]">
-              Instrumental
+              Inst.
             </span>
           )}
         </div>

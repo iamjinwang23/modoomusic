@@ -6,15 +6,56 @@ import { exploreService } from '@/services/explore.service'
 import { songService } from '@/services/song.service'
 import { useAuth } from '@/components/AuthProvider'
 import { createClient } from '@/lib/supabase/client'
-import { PublicSongCard } from './PublicSongCard'
 import { ProfileEditModal } from '@/components/ProfileEditModal'
 import { SocialLinksRow } from '@/components/SocialLinksRow'
 import { toast } from '@/components/toast/toast'
 import { useOptimisticToggle } from '@/hooks/useOptimisticToggle'
+import { useGlobalPlayer } from '@/contexts/GlobalPlayerContext'
+import { SoundWaveIcon } from '@/components/SoundWaveIcon'
 import type { PublicSong, Song, UserProfile, SocialLinks } from '@/types/domain'
-
-
 import { profileColor } from '@/utils/profileColor'
+
+function coverGradient(hue: number) {
+  const h2 = (hue + 55) % 360
+  return `linear-gradient(135deg, hsl(${hue},65%,48%) 0%, hsl(${h2},55%,32%) 100%)`
+}
+
+function formatCount(n: number) {
+  if (n >= 1000) return `${(n / 1000).toFixed(1)}k`
+  return String(n)
+}
+
+function ProfileSongThumb({ song, onPlay, onThumbPlay }: { song: PublicSong; onPlay: (s: PublicSong) => void; onThumbPlay: (s: PublicSong) => void }) {
+  const { song: currentSong, isPlaying } = useGlobalPlayer()
+  const isThisPlaying = currentSong?.id === song.id && isPlaying
+  return (
+    <div
+      onClick={() => onThumbPlay(song)}
+      className="relative aspect-[2/3] cursor-pointer overflow-hidden bg-zinc-900"
+    >
+      <div className="absolute inset-0" style={{ background: coverGradient(song.coverHue) }}>
+        {song.coverImage && (
+          <Image src={song.coverImage} alt={song.title || ''} fill className="object-cover" sizes="(min-width: 768px) 16vw, 33vw" />
+        )}
+      </div>
+      {isThisPlaying && (
+        <div className="absolute inset-0 bg-black/30 flex items-center justify-center">
+          <SoundWaveIcon size={24} />
+        </div>
+      )}
+      <div className="absolute bottom-1.5 left-1.5 flex items-center gap-2 text-white text-[11px] font-medium drop-shadow">
+        <span className="flex items-center gap-0.5">
+          <Image src="/Thumb-Up.svg" alt="" width={10} height={10} style={{ filter: 'invert(1)' }} />
+          {formatCount(song.likeCount)}
+        </span>
+        <span className="flex items-center gap-0.5">
+          <Image src="/Play.svg" alt="" width={10} height={10} style={{ filter: 'invert(1)' }} />
+          {formatCount(song.playCount)}
+        </span>
+      </div>
+    </div>
+  )
+}
 
 function toSong(pub: PublicSong): Song {
   return {
@@ -32,6 +73,8 @@ function toSong(pub: PublicSong): Song {
     liked: pub.isLiked,
     coverHue: pub.coverHue,
     coverImage: pub.coverImage,
+    playCount: pub.playCount,
+    likeCount: pub.likeCount,
   }
 }
 
@@ -192,6 +235,15 @@ export function ProfilePanel({ username }: Props) {
     return () => { cancelled = true }
   }, [username, user?.id])
 
+  useEffect(() => {
+    function handler(e: Event) {
+      const { songId, liked, likeCount } = (e as CustomEvent<{ songId: string; liked: boolean; likeCount: number }>).detail
+      setOtherSongs(prev => prev.map(s => s.id === songId ? { ...s, isLiked: liked, likeCount } : s))
+    }
+    window.addEventListener('like-updated', handler)
+    return () => window.removeEventListener('like-updated', handler)
+  }, [])
+
   const selfProfile: UserProfile | null = isSelf && user && dbProfile && dbProfile.username === username
     ? {
         username: dbProfile.username,
@@ -337,7 +389,7 @@ export function ProfilePanel({ username }: Props) {
 
           {/* ── 커버 + 아바타 (통합) — 모바일 풀폭·radius 0·헤더 밀착, 데스크톱 1064:368 + rounded ── */}
           <div
-            className={`relative w-full rounded-none md:rounded-2xl overflow-hidden aspect-video md:aspect-[1064/368] ${isSelf ? 'group/cover' : ''}`}
+            className={`relative w-full rounded-none md:rounded-3xl overflow-hidden aspect-video md:aspect-[1064/368] ${isSelf ? 'group/cover' : ''}`}
             style={{ background: profileColor(profile.avatarHue).bg }}
           >
             {displayCoverUrl && (
@@ -350,7 +402,7 @@ export function ProfilePanel({ username }: Props) {
             {/* 아바타 + 이름 — 커버 좌하단 */}
             <div className="absolute left-5 bottom-4 z-10 flex items-center gap-4">
               <div
-                className={`relative w-[100px] h-[100px] shrink-0 ${isSelf ? 'group/avatar' : ''}`}
+                className={`relative w-[80px] h-[80px] md:w-[100px] md:h-[100px] shrink-0 ${isSelf ? 'group/avatar' : ''}`}
                 onMouseEnter={isSelf ? () => setAvatarHovered(true) : undefined}
                 onMouseLeave={isSelf ? () => setAvatarHovered(false) : undefined}
               >
@@ -360,7 +412,7 @@ export function ProfilePanel({ username }: Props) {
                   </div>
                 ) : (
                   <div
-                    className="w-full h-full rounded-full flex items-center justify-center text-4xl font-bold"
+                    className="w-full h-full rounded-full flex items-center justify-center text-3xl md:text-4xl font-bold"
                     style={{ background: profileColor(profile.avatarHue).bg, color: profileColor(profile.avatarHue).text }}
                   >
                     {initials}
@@ -372,7 +424,7 @@ export function ProfilePanel({ username }: Props) {
                   </div>
                 )}
                 {isSelf && uploading !== 'avatar' && (
-                  <div className="absolute inset-0 rounded-full overflow-hidden [&>div]:opacity-0 [&>div]:group-hover/avatar:opacity-100">
+                  <div className="absolute inset-0 rounded-full overflow-hidden hidden md:block [&>div]:opacity-0 [&>div]:group-hover/avatar:opacity-100">
                     <ImageEditOverlay
                       hasImage={!!displayAvatarUrl}
                       onUpload={handleAvatarUpload}
@@ -384,9 +436,40 @@ export function ProfilePanel({ username }: Props) {
 
               {/* 이름 + 아이디 */}
               <div>
-                <p className="text-3xl font-bold text-white leading-tight">{profile.displayName}</p>
-                <p className="text-sm text-white/60 mt-1">@{profile.username}</p>
+                <p className="text-2xl md:text-3xl font-bold text-white leading-tight">{profile.displayName}</p>
+                <p className="text-xs md:text-sm text-white/60 mt-1">@{profile.username}</p>
               </div>
+            </div>
+
+            {/* 프로필 수정 / 팔로우 — 모바일 우상단, 데스크톱 우하단 */}
+            <div className="absolute top-3 right-3 md:top-auto md:bottom-4 md:right-5 z-10 flex items-center gap-2">
+              {isSelf ? (
+                <>
+                  <button
+                    onClick={() => setEditOpen(true)}
+                    className="flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-medium bg-black/25 backdrop-blur-sm text-white hover:bg-black/40 transition-colors"
+                  >
+                    <Image src="/Edit.svg" alt="" width={14} height={14} style={{ filter: 'invert(1)' }} />
+                    프로필 수정
+                  </button>
+                  <SelfSettingsMenu />
+                </>
+              ) : (
+                <button
+                  onClick={() => toggleFollow()}
+                  aria-pressed={following}
+                  className="flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-medium backdrop-blur-sm transition-colors bg-black/25 text-white hover:bg-black/40"
+                >
+                  <Image
+                    src={following ? '/Following.svg' : '/Follow.svg'}
+                    alt=""
+                    width={14}
+                    height={14}
+                    style={{ filter: 'invert(1)' }}
+                  />
+                  {following ? '팔로잉' : '팔로우'}
+                </button>
+              )}
             </div>
 
             {uploading === 'cover' && (
@@ -395,7 +478,7 @@ export function ProfilePanel({ username }: Props) {
               </div>
             )}
             {isSelf && uploading !== 'cover' && !avatarHovered && (
-              <div className="absolute inset-0 [&>div]:opacity-0 [&>div]:group-hover/cover:opacity-100">
+              <div className="absolute inset-0 hidden md:block [&>div]:opacity-0 [&>div]:group-hover/cover:opacity-100">
                 <ImageEditOverlay
                   hasImage={!!displayCoverUrl}
                   onUpload={handleCoverUpload}
@@ -407,55 +490,36 @@ export function ProfilePanel({ username }: Props) {
 
           {/* ── 프로필 헤더 ── */}
           <div className="relative px-5 pb-5">
-            <div className="mt-6 flex items-start justify-between gap-4">
-              <div className="min-w-0 flex-1 space-y-5">
-                <div className="flex gap-6 text-sm text-zinc-500">
-                  <span><span className="text-white font-semibold">{profile.songCount}</span> 곡</span>
-                  <span><span className="text-white font-semibold">{followerCount.toLocaleString()}</span> 팔로워</span>
-                  <span><span className="text-white font-semibold">{profile.followingCount.toLocaleString()}</span> 팔로잉</span>
-                </div>
-                {profile.bio && <p className="text-sm text-zinc-300 whitespace-pre-line">{profile.bio}</p>}
-                {profile.links && <SocialLinksRow links={profile.links} />}
+            <div className="mt-6 space-y-5">
+              <div className="flex gap-6 text-sm text-zinc-500">
+                <span><span className="text-white font-semibold">{profile.songCount}</span> 곡</span>
+                <span><span className="text-white font-semibold">{followerCount.toLocaleString()}</span> 팔로워</span>
+                <span><span className="text-white font-semibold">{profile.followingCount.toLocaleString()}</span> 팔로잉</span>
               </div>
-              {isSelf ? (
-                <div className="flex items-center gap-2 shrink-0">
-                  <button
-                    onClick={() => setEditOpen(true)}
-                    className="px-4 py-1.5 rounded-full text-sm font-medium bg-white/[0.08] text-zinc-200 hover:bg-white/[0.12] transition-colors"
-                  >
-                    프로필 수정
-                  </button>
-                  <SelfSettingsMenu />
-                </div>
-              ) : (
-                <button
-                  onClick={() => toggleFollow()}
-                  aria-pressed={following}
-                  className={`px-4 py-1.5 rounded-full text-sm font-medium transition-colors shrink-0 ${
-                    following
-                      ? 'border border-white text-white bg-transparent hover:bg-white/[0.06]'
-                      : 'bg-white text-black hover:bg-zinc-100'
-                  }`}
-                >
-                  {following ? '팔로잉' : '팔로우'}
-                </button>
-              )}
+              {profile.bio && <p className="text-sm text-zinc-300 whitespace-pre-line">{profile.bio}</p>}
+              {profile.links && <SocialLinksRow links={profile.links} />}
             </div>
           </div>
 
-          {/* ── 곡 목록 ── */}
-          <div className="pt-8 pb-8">
-            <div className="px-5 mb-4">
-              <h2 className="text-xl font-semibold text-white">곡 목록</h2>
+          {/* ── 곡 그리드 ── */}
+          <div className="pt-4 pb-8">
+            {/* 탭 바 */}
+            <div className="flex border-b border-white/10 mb-px">
+              <button className="flex-1 py-2.5 flex items-center justify-center gap-1.5 text-sm font-semibold text-white border-b-2 border-white">
+                <Image src="/Music.svg" alt="" width={20} height={20} style={{ filter: 'invert(1)' }} />
+                <span className="hidden md:inline">음악</span>
+              </button>
+              <button className="flex-1 py-2.5 flex items-center justify-center gap-1.5 text-sm text-zinc-600 cursor-default" disabled>
+                <Image src="/Movie.svg" alt="" width={20} height={20} style={{ filter: 'invert(0.3)' }} />
+                <span className="hidden md:inline">뮤직비디오</span>
+              </button>
             </div>
             {songs.length === 0 ? (
-              <p className="px-5 text-zinc-600 text-sm">아직 공개된 곡이 없어요</p>
+              <p className="px-5 py-8 text-zinc-600 text-sm">아직 공개된 곡이 없어요</p>
             ) : (
-              <div className="flex gap-3 overflow-x-auto px-5 pb-1 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
+              <div className="grid grid-cols-3 md:grid-cols-6 gap-0.5">
                 {songs.map((song) => (
-                  <div key={song.id} className="shrink-0 w-[160px]">
-                    <PublicSongCard song={song} onPlay={handlePlay} onThumbPlay={handleThumbPlay} hideArtist />
-                  </div>
+                  <ProfileSongThumb key={song.id} song={song} onPlay={handlePlay} onThumbPlay={handleThumbPlay} />
                 ))}
               </div>
             )}
@@ -473,6 +537,17 @@ export function ProfilePanel({ username }: Props) {
             links: dbProfile.links,
             usernameChangedAt: dbProfile.usernameChangedAt,
             nameChangeLog: dbProfile.nameChangeLog,
+          }}
+          images={{
+            avatarUrl,
+            coverUrl,
+            avatarHue: dbProfile.avatarHue,
+            initials,
+            uploading,
+            onAvatarUpload: handleAvatarUpload,
+            onAvatarDelete: handleAvatarDelete,
+            onCoverUpload: handleCoverUpload,
+            onCoverDelete: handleCoverDelete,
           }}
           onClose={() => setEditOpen(false)}
           onSaved={(next) => {
@@ -503,7 +578,7 @@ function SelfSettingsMenu() {
     <div className="relative">
       <button
         onClick={() => setOpen((v) => !v)}
-        className="w-9 h-9 rounded-full bg-white/[0.08] text-zinc-200 hover:bg-white/[0.12] flex items-center justify-center transition-colors"
+        className="w-10 h-10 rounded-full bg-black/25 backdrop-blur-sm text-white hover:bg-black/40 flex items-center justify-center transition-colors"
         title="설정"
       >
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">

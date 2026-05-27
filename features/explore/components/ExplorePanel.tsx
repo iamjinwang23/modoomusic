@@ -31,6 +31,8 @@ function toSong(pub: PublicSong): Song {
     liked: pub.isLiked,
     coverHue: pub.coverHue,
     coverImage: pub.coverImage,
+    playCount: pub.playCount,
+    likeCount: pub.likeCount,
   }
 }
 
@@ -71,7 +73,7 @@ function SectionCarousel({
   const [fadeRight, setFadeRight] = useState(false)
   const [hovered, setHovered] = useState(false)
 
-  const STEP = 160 + 12 // card width + gap
+  const STEP = 148 + 12 // card width + gap
 
   useEffect(() => {
     const el = scrollRef.current
@@ -95,13 +97,13 @@ function SectionCarousel({
   return (
     <div>
       {/* 섹션 헤더 */}
-      <div className="flex items-center justify-between mb-3">
-        <h2 className="text-xl font-semibold text-white">{label}</h2>
+      <div className="mb-3">
         <button
           onClick={onViewAll}
-          className="text-sm text-zinc-500 hover:text-violet-400 transition-colors"
+          className="flex items-center gap-0.5 text-xl font-semibold text-white hover:opacity-70 transition-opacity"
         >
-          더보기
+          {label}
+          <Image src="/Right-Line.svg" alt="" width={20} height={20} style={{ filter: 'invert(1)' }} />
         </button>
       </div>
 
@@ -112,7 +114,7 @@ function SectionCarousel({
         onMouseLeave={() => setHovered(false)}
       >
         {fadeLeft && (
-          <div className="absolute left-0 top-0 bottom-0 w-14 bg-gradient-to-r from-[#171A20] via-[#171A20]/60 to-transparent z-10 pointer-events-none" />
+          <div className="absolute left-0 top-0 bottom-0 w-8 bg-gradient-to-r from-[#171A20] via-[#171A20]/60 to-transparent z-10 pointer-events-none" />
         )}
         {fadeLeft && hovered && (
           <button
@@ -129,14 +131,14 @@ function SectionCarousel({
           className="flex gap-3 overflow-x-auto pb-1 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]"
         >
           {feed.map((song) => (
-            <div key={song.id} className="shrink-0 w-[160px]">
+            <div key={song.id} className="shrink-0 w-[148px] md:w-[160px]">
               <PublicSongCard song={song} onPlay={(p) => dispatchView(p, feed, currentUserId)} onThumbPlay={(p) => dispatchPlayOnly(p, feed, currentUserId)} />
             </div>
           ))}
         </div>
 
         {fadeRight && (
-          <div className="absolute right-0 top-0 bottom-0 w-14 bg-gradient-to-l from-[#171A20] via-[#171A20]/60 to-transparent z-10 pointer-events-none" />
+          <div className="absolute right-0 top-0 bottom-0 w-4 bg-gradient-to-l from-[#171A20] via-[#171A20]/60 to-transparent z-10 pointer-events-none" />
         )}
         {fadeRight && hovered && (
           <button
@@ -186,6 +188,15 @@ function SectionAllView({
     })
     return () => { cancelled = true }
   }, [tab, filters, tags])
+
+  useEffect(() => {
+    function handler(e: Event) {
+      const { songId, liked, likeCount } = (e as CustomEvent<{ songId: string; liked: boolean; likeCount: number }>).detail
+      setFeed(prev => prev.map(s => s.id === songId ? { ...s, isLiked: liked, likeCount } : s))
+    }
+    window.addEventListener('like-updated', handler)
+    return () => window.removeEventListener('like-updated', handler)
+  }, [])
 
   return (
     <div className="flex flex-col h-full overflow-hidden">
@@ -250,6 +261,21 @@ export function ExplorePanel() {
         setLoading(false)
       })
     return () => { cancelled = true }
+  }, [])
+
+  useEffect(() => {
+    function handler(e: Event) {
+      const { songId, liked, likeCount } = (e as CustomEvent<{ songId: string; liked: boolean; likeCount: number }>).detail
+      setSections(prev => {
+        const next = { ...prev }
+        for (const tab of Object.keys(next) as (keyof typeof next)[]) {
+          next[tab] = next[tab].map(s => s.id === songId ? { ...s, isLiked: liked, likeCount } : s)
+        }
+        return next
+      })
+    }
+    window.addEventListener('like-updated', handler)
+    return () => window.removeEventListener('like-updated', handler)
   }, [])
 
   if (allView) {

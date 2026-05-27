@@ -11,6 +11,16 @@ html, body {
   color: #fff;
 }
 
+@keyframes marquee-scroll {
+  0%   { transform: translateX(0); }
+  100% { transform: translateX(-50%); }
+}
+
+@keyframes marquee-px {
+  from { transform: translateX(0); }
+  to   { transform: translateX(calc(-1 * var(--marquee-cycle))); }
+}
+
 @keyframes shimmer {
   0%   { transform: translateX(-100%); }
   100% { transform: translateX(100%); }
