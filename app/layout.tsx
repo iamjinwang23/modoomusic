@@ -25,6 +25,9 @@ const jakarta = Plus_Jakarta_Sans({
 export const metadata: Metadata = {
   title: "모두의 노래",
   description: "오늘 하루를 나만의 음악으로",
+  icons: {
+    icon: '/favicon-16x16.png',
+  },
 }
 
 // iOS Safari가 status bar/home indicator 영역까지 콘텐츠 배경으로 채우게 함
