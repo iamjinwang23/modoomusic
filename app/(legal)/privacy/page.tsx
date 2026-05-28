@@ -22,7 +22,7 @@ export default function PrivacyPage() {
         <SubSection title="필수 항목 (회원가입 시)">
           <List items={[
             '이메일 주소',
-            'OAuth 식별자 (Google, Kakao, Naver가 제공하는 sub 또는 user id)',
+            'OAuth 식별자 (Google, Kakao, Naver, Apple이 제공하는 sub 또는 user id)',
             '아이디(username)',
             '가입 일시',
           ]} />
@@ -33,6 +33,7 @@ export default function PrivacyPage() {
             '표시 이름(display name), 한 줄 소개(bio)',
             '프로필 사진(avatar), 커버 이미지',
             'SNS 링크(인스타그램·틱톡·유튜브·페이스북·X)',
+            '커버 생성을 위해 회원이 업로드한 참조 음원 (AI 생성 입력용, 원본은 게시·배포되지 않음)',
           ]} />
         </SubSection>
 
@@ -110,6 +111,11 @@ export default function PrivacyPage() {
                 <td className="p-2 border-b border-white/[0.06]">해외</td>
               </tr>
               <tr>
+                <td className="p-2 border-b border-white/[0.06]">Apple Inc.</td>
+                <td className="p-2 border-b border-white/[0.06]">OAuth 인증 위임</td>
+                <td className="p-2 border-b border-white/[0.06]">해외</td>
+              </tr>
+              <tr>
                 <td className="p-2 border-b border-white/[0.06]">Kakao Corp.</td>
                 <td className="p-2 border-b border-white/[0.06]">OAuth 인증 위임</td>
                 <td className="p-2 border-b border-white/[0.06]">국내</td>
@@ -147,16 +153,23 @@ export default function PrivacyPage() {
               <tr>
                 <td className="p-2 border-b border-white/[0.06]">Supabase Inc.</td>
                 <td className="p-2 border-b border-white/[0.06]">미국</td>
-                <td className="p-2 border-b border-white/[0.06]">회원 인증 및 계정 데이터 저장</td>
-                <td className="p-2 border-b border-white/[0.06]">이름, 이메일</td>
+                <td className="p-2 border-b border-white/[0.06]">회원 인증 및 계정·콘텐츠 데이터 저장</td>
+                <td className="p-2 border-b border-white/[0.06]">이름, 이메일, 생성 콘텐츠</td>
                 <td className="p-2 border-b border-white/[0.06]">회원 탈퇴 시까지</td>
               </tr>
               <tr>
-                <td className="p-2">Vercel Inc.</td>
-                <td className="p-2">미국</td>
-                <td className="p-2">서비스 호스팅 및 요청 처리</td>
-                <td className="p-2">이름, 이메일</td>
-                <td className="p-2">요청 처리 후 즉시 삭제</td>
+                <td className="p-2 border-b border-white/[0.06]">Vercel Inc.</td>
+                <td className="p-2 border-b border-white/[0.06]">미국</td>
+                <td className="p-2 border-b border-white/[0.06]">서비스 호스팅 및 요청 처리</td>
+                <td className="p-2 border-b border-white/[0.06]">이름, 이메일</td>
+                <td className="p-2 border-b border-white/[0.06]">요청 처리 과정에서 일시 처리 (영구 저장 안 함)</td>
+              </tr>
+              <tr>
+                <td className="p-2">MiniMax</td>
+                <td className="p-2">해외</td>
+                <td className="p-2">AI 음악·이미지·가사 생성</td>
+                <td className="p-2">회원이 입력한 생성 텍스트(스타일·가사), 참조 음원</td>
+                <td className="p-2">생성 처리 목적 달성 시까지</td>
               </tr>
             </tbody>
           </table>
@@ -187,7 +200,7 @@ export default function PrivacyPage() {
         <List items={[
           'HTTPS를 통한 통신 구간 암호화',
           'Supabase Row Level Security(RLS)로 사용자별 데이터 접근 제어',
-          '비밀번호는 자체 저장하지 않고 OAuth 제공자(Google·Kakao·Naver)에 위임',
+          '비밀번호는 자체 저장하지 않고 OAuth 제공자(Google·Kakao·Naver·Apple)에 위임',
           '관리자 접근 권한 최소화 및 접근 기록 보관',
         ]} />
       </Section>
