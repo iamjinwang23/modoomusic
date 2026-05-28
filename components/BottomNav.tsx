@@ -42,7 +42,7 @@ export function BottomNav() {
   const items: NavItem[] = [
     { href: '/explore',       label: '탐색',      icon: '/Publish.svg' },
     { href: '/library',       label: '라이브러리', icon: '/Music-Library.svg' },
-    { href: '/',              label: '만들기',     icon: '/Music-Create.svg' },
+    { href: '/',              label: '만들기',     icon: '/Ai-Generate-Music.svg' },
     { href: '/notifications', label: '알림',      icon: '/Notification.svg' },
     { href: profileHref,      label: '프로필',     icon: '/Profile.svg', matchPrefix: '/profile' },
   ]

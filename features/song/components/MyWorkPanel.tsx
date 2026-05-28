@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react'
 import Image from 'next/image'
+import Link from 'next/link'
 import { songService } from '@/services/song.service'
 import { SongEditModal } from '@/components/SongEditModal'
 import { CollectionPickerModal } from './CollectionPickerModal'
@@ -13,6 +14,7 @@ import { useAuth } from '@/components/AuthProvider'
 import { toast } from '@/components/toast/toast'
 import { buildSongShareUrl } from '@/utils/shareUrl'
 import { SoundWaveIcon } from '@/components/SoundWaveIcon'
+import { AnimatedGradientBackground } from '@/components/AnimatedGradientBackground'
 import type { Song } from '@/types/domain'
 
 const ICON_FILTER = 'invert(0.45)'
@@ -189,9 +191,21 @@ export function MyWorkPanel({ showCollections = false }: { showCollections?: boo
       ) : (
       <div className="flex-1 overflow-y-auto">
         {songs.length === 0 ? (
-          <div className="pt-32 pb-16 text-center px-6">
-            <Image src="/Confused.svg" alt="" width={48} height={48} className="mx-auto mb-3 opacity-40" style={{ filter: 'invert(1)' }} />
-            <p className="text-xs text-zinc-400">아직 만든 음악이 없어요</p>
+          <div className="relative h-full min-h-[420px] flex flex-col items-center justify-center text-center px-6 overflow-hidden">
+            <AnimatedGradientBackground className="opacity-60" />
+            <div className="relative z-10 -translate-y-24">
+              <Image src="/Ai-Generate-Music.svg" alt="" width={48} height={48} className="mx-auto mb-3 opacity-50" style={{ filter: 'invert(1)' }} />
+              <p className="text-sm text-zinc-300">나만의 음악을 만들어보세요</p>
+              {showCollections && (
+                <Link
+                  href="/"
+                  className="mt-5 inline-flex items-center gap-1.5 px-5 py-2.5 rounded-xl bg-white text-zinc-900 text-sm font-semibold hover:bg-zinc-100 transition-colors"
+                >
+                  <Image src="/Sparkles.svg" alt="" width={16} height={16} />
+                  음악 만들기
+                </Link>
+              )}
+            </div>
           </div>
         ) : (
           <ul>
