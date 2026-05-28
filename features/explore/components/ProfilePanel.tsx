@@ -518,7 +518,7 @@ export function ProfilePanel({ username }: Props) {
             {songs.length === 0 ? (
               <p className="px-5 py-8 text-zinc-600 text-sm">아직 공개된 곡이 없어요</p>
             ) : (
-              <div className="grid grid-cols-3 md:grid-cols-6 gap-0.5">
+              <div className="grid grid-cols-3 md:grid-cols-5 gap-1">
                 {songs.map((song) => (
                   <ProfileSongThumb key={song.id} song={song} onPlay={handlePlay} onThumbPlay={handleThumbPlay} />
                 ))}
