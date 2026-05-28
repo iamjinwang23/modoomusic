@@ -394,21 +394,22 @@ function SongWorkItem({ song, onOpen, onEdit, onDelete, onCollect, onPublish, on
           />
           <div
             className={`absolute inset-0 flex items-center justify-center transition-transform duration-300 ease-out ${isGenerating || isFailed ? '' : 'group-hover:scale-[1.05]'}`}
-            style={song.coverImage ? undefined : { background: isGenerating || isFailed ? 'rgba(255,255,255,0.08)' : thumbGradient(song) }}
+            style={song.coverImage ? undefined : { background: thumbGradient(song) }}
           >
             {song.coverImage && !isGenerating && (
               <Image src={song.coverImage} alt="" fill className="object-cover" unoptimized />
             )}
             {isGenerating ? (
               <>
-                <div className="absolute inset-0 bg-black/40 pointer-events-none" />
-                <div className="w-4 h-4 md:w-5 md:h-5 border-2 border-white/20 border-t-white/70 rounded-full animate-spin relative z-10" />
+                <div className="absolute inset-0 bg-black/25 pointer-events-none" />
+                <div className="w-4 h-4 md:w-5 md:h-5 border-2 border-white/30 border-t-white rounded-full animate-spin relative z-10" />
                 <div className="absolute bottom-2 left-1.5 w-2 h-2 rounded-full bg-violet-400 animate-pulse pointer-events-none z-10" />
               </>
             ) : isFailed ? (
-              <div className="absolute inset-0 flex items-center justify-center">
-                <span className="text-[10px] font-medium text-red-400">실패</span>
-              </div>
+              <>
+                <div className="absolute inset-0 bg-black/50 pointer-events-none" />
+                <span className="relative z-10 text-[10px] font-medium text-red-400">실패</span>
+              </>
             ) : playing ? (
               <>
                 <div className="absolute inset-0 bg-black/30 pointer-events-none" />

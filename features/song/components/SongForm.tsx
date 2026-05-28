@@ -573,6 +573,10 @@ export function SongForm() {
         )}
       </button>
 
+      <p className="text-[11px] text-zinc-500 text-center -mt-1">
+        음악 생성은 최대 2분까지 걸릴 수 있어요. 다른 페이지로 이동해도 계속 진행돼요
+      </p>
+
       {/* Error */}
       {error && (
         <p className="text-red-400 text-sm bg-red-950/50 border border-red-900/50 rounded-xl p-3">{error}</p>
