@@ -24,6 +24,26 @@ function randomUsername() {
   return result
 }
 
+// provider별 metadata 키가 달라(full_name·name·given_name/family_name·nickname 등) 후보를 순서대로 시도.
+// Apple은 최초 인증에 'Name' scope 동의했을 때만 이름이 metadata에 들어옴 — 거부하면 fallback.
+function pickInitialDisplayName(user: User): string {
+  const m = (user.user_metadata ?? {}) as Record<string, unknown>
+  const str = (v: unknown): string | null => (typeof v === 'string' && v.trim() ? v.trim() : null)
+  const candidates: (string | null)[] = [
+    str(m.full_name),
+    str(m.name),
+    str(m.display_name),
+    str(m.given_name) && str(m.family_name) ? `${str(m.given_name)} ${str(m.family_name)}` : null,
+    str(m.given_name),
+    str(m.nickname),
+    str(m.preferred_username),
+  ]
+  for (const c of candidates) {
+    if (c) return c.slice(0, 30)
+  }
+  return randomDisplayName()
+}
+
 // ── 아이디 유효성 ────────────────────────────────────────────────
 function validateUsername(v: string): string | null {
   if (!v) return '아이디를 입력해주세요'
@@ -83,7 +103,7 @@ export function OnboardingModal({ user, onDone }: Props) {
   const [source, setSource] = useState('')
   const [aiExp, setAiExp] = useState('')
   const [goals, setGoals] = useState<string[]>([])
-  const [displayName, setDisplayName] = useState(() => randomDisplayName())
+  const [displayName, setDisplayName] = useState(() => pickInitialDisplayName(user))
   const [username, setUsername] = useState(() => randomUsername())
   const [usernameMsg, setUsernameMsg] = useState('')
   const [usernameOk, setUsernameOk] = useState(false)
