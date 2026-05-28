@@ -1,4 +1,7 @@
-import { createClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/admin'
+
+// userId를 명시 인자로 받으므로 admin 클라이언트로 안전하게 호출 (RLS 무관, 쿠키 의존 없음).
+// waitUntil 백그라운드 작업에서도 쿠키 만료 걱정 없이 동작.
 
 // 1차(Free Only) 정책: 일 10크레딧, KST 자정 리셋, 이월 X
 export const FREE_DAILY_CREDITS = 10
@@ -26,7 +29,7 @@ export interface CreditState {
 }
 
 export async function getCreditState(userId: string): Promise<CreditState> {
-  const supabase = await createClient()
+  const supabase = createAdminClient()
   const { data } = await supabase
     .from('profiles')
     .select('daily_credits_used, last_credit_reset_at')
@@ -66,7 +69,7 @@ export async function tryConsumeCredits(userId: string, amount: number): Promise
   if (state.remaining < amount) {
     return { ok: false, state }
   }
-  const supabase = await createClient()
+  const supabase = createAdminClient()
   const nextUsed = state.used + amount
   await supabase
     .from('profiles')
@@ -81,7 +84,7 @@ export async function tryConsumeCredits(userId: string, amount: number): Promise
 // 차감 후 생성 실패 시 환불
 export async function refundCredits(userId: string, amount: number): Promise<void> {
   const state = await getCreditState(userId)
-  const supabase = await createClient()
+  const supabase = createAdminClient()
   await supabase
     .from('profiles')
     .update({ daily_credits_used: Math.max(0, state.used - amount) })

@@ -2,14 +2,15 @@
 
 import { useState, useRef } from 'react'
 import { songService } from '@/services/song.service'
-import { startGeneration, endGeneration } from '@/services/generation.store'
 import { toast } from '@/components/toast/toast'
-import { useAuth } from '@/components/AuthProvider'
 import type { Song } from '@/types/domain'
 import type { GenerationStatus } from '../types/song'
 
+// 백그라운드 생성 패턴 (Suno parity):
+// 1) POST /api/generate → 서버가 status=generating row INSERT 후 즉시 반환
+// 2) 캐시에 add → "내 음악"에 생성 중 row 표시
+// 3) 완료 토스트·캐시 patch는 Supabase realtime이 담당 (RealtimeBridge)
 export function useSongGeneration() {
-  const { profile, user } = useAuth()
   const [status, setStatus] = useState<GenerationStatus>('idle')
   const [elapsed, setElapsed] = useState(0)
   const [result, setResult] = useState<Song | null>(null)
@@ -30,9 +31,6 @@ export function useSongGeneration() {
     setError('')
     setResult(null)
     setElapsed(0)
-    const pendingInfo = { title: params.title.trim(), prompt: params.prompt, genre: params.genre, mood: params.mood, instrumental: params.instrumental }
-    startGeneration(pendingInfo)
-    window.dispatchEvent(new CustomEvent('song-generating', { detail: pendingInfo }))
 
     timerRef.current = setInterval(() => setElapsed((s) => s + 1), 1000)
 
@@ -44,10 +42,8 @@ export function useSongGeneration() {
       })
       const data = await res.json()
       if (!res.ok) {
-        // 정책성 에러 안내
         if (data.code === 'DAILY_LIMIT') {
           if (data.credits) window.dispatchEvent(new CustomEvent('credits-updated', { detail: data.credits }))
-          // 소진(0)일 때만 모달, 부족(>0)은 SongForm 인라인 에러(throw)로 정확한 메시지 표시
           if (data.credits?.remaining === 0) {
             window.dispatchEvent(new CustomEvent('open-coming-soon', { detail: 'daily-limit' }))
           }
@@ -58,45 +54,11 @@ export function useSongGeneration() {
       }
       if (data.credits) window.dispatchEvent(new CustomEvent('credits-updated', { detail: data.credits }))
 
-      const song = await songService.save({
-        title: params.title.trim() || null,
-        prompt: params.prompt,
-        genre: params.genre || null,
-        mood: params.mood || null,
-        customLyrics: params.customLyrics || null,
-        instrumental: params.instrumental,
-        lyrics: data.lyrics ?? null,
-        audioUrl: data.audioUrl,
-        coverImage: data.coverUrl ?? undefined,
-        duration: null,
-      })
+      // 서버가 만든 generating row를 캐시에 추가 → "내 음악" 상단에 즉시 노출
+      const song: Song = data.song
+      songService.add(song)
 
-      // notifications §4.2 — song_complete 알림 INSERT (서버 service role)
-      fetch('/api/notifications/song-complete', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ songId: song.id }),
-      })
-        .then(() => window.dispatchEvent(new Event('notifications-changed')))
-        .catch(() => {})
-
-      // 완료 토스트 — 다른 페이지에 있어도 알 수 있게. '들어보기' 누르면 즉시 재생
-      toast.success('곡이 완성됐어요', {
-        action: {
-          label: '들어보기',
-          onClick: () => {
-            window.dispatchEvent(new CustomEvent('play-song', {
-              detail: {
-                feed: [song], idx: 0, isOwner: true,
-                ownerAvatarUrl: profile?.avatarUrl ?? null,
-                ownerUserId: user?.id ?? null,
-                ownerAvatarHue: profile?.avatarHue ?? null,
-                ownerName: profile?.displayName ?? profile?.username ?? null,
-              },
-            }))
-          },
-        },
-      })
+      toast.info('곡을 만들고 있어요', { description: '완성되면 알려드릴게요' })
 
       setResult(song)
       setStatus('done')
@@ -104,13 +66,11 @@ export function useSongGeneration() {
       const msg = e instanceof Error ? e.message : '알 수 없는 오류'
       setError(msg)
       setStatus('error')
-      // 정책 토스트(DAILY_LIMIT/MODEL_LOCKED)는 fetch 분기에서 별도 처리, 그 외만 일반 에러 토스트
       if (!msg.includes('크레딧') && !msg.includes('Plus')) {
         toast.error('곡 생성에 실패했어요', { description: msg })
       }
     } finally {
       if (timerRef.current) clearInterval(timerRef.current)
-      endGeneration()
     }
   }
 

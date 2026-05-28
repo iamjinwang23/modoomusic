@@ -10,7 +10,7 @@ import { LoginModal } from '@/components/LoginModal'
 import { OnboardingModal } from '@/components/OnboardingModal'
 import { ComingSoonModal } from '@/components/ComingSoonModal'
 import { CreditIndicator } from '@/components/CreditIndicator'
-import { GenerationChip } from '@/components/GenerationChip'
+import { SongRealtimeBridge } from '@/components/SongRealtimeBridge'
 import { GlobalMiniBar } from '@/components/GlobalMiniBar'
 import { BottomNav } from '@/components/BottomNav'
 import { NotificationPanel } from '@/components/NotificationPanel'
@@ -153,7 +153,6 @@ export default function MainShellLayout({ children }: { children: React.ReactNod
         </Link>
 
         <div className="ml-auto flex items-center gap-2">
-          {user && <GenerationChip />}
           {user && <CreditIndicator />}
 
           {user ? (
@@ -316,6 +315,9 @@ export default function MainShellLayout({ children }: { children: React.ReactNod
 
       {/* Bottom nav — mobile only */}
       <BottomNav />
+
+      {/* 곡 생성 완료/실패 realtime 구독 (로그인 시) */}
+      {user && <SongRealtimeBridge />}
 
       {/* Modals */}
       {loginOpen && <LoginModal onClose={() => setLoginOpen(false)} />}

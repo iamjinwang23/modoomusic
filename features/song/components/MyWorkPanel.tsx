@@ -13,7 +13,6 @@ import { useAuth } from '@/components/AuthProvider'
 import { toast } from '@/components/toast/toast'
 import { buildSongShareUrl } from '@/utils/shareUrl'
 import { SoundWaveIcon } from '@/components/SoundWaveIcon'
-import { getPending as getPendingGen, type PendingInfo as GenPendingInfo } from '@/services/generation.store'
 import type { Song } from '@/types/domain'
 
 const ICON_FILTER = 'invert(0.45)'
@@ -35,37 +34,6 @@ function formatDuration(seconds: number | null): string | null {
   const m = Math.floor(seconds / 60)
   const s = Math.floor(seconds % 60)
   return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`
-}
-
-interface PendingInfo { title: string; prompt: string; genre: string; mood: string; instrumental: boolean }
-
-function PendingSongItem({ info }: { info: PendingInfo }) {
-  const displayTitle = info.title || info.prompt.slice(0, 30) + (info.prompt.length > 30 ? '…' : '')
-  const tags = [info.genre, info.mood].filter(Boolean)
-  return (
-    <li className="px-4 py-3 flex items-stretch gap-3 opacity-80">
-      <div className="w-2 h-2 rounded-full bg-violet-400 shrink-0 self-start mt-2 animate-pulse" />
-      {/* 썸네일 — 스피너 */}
-      <div className="w-16 aspect-[2/3] rounded-lg shrink-0 bg-white/[0.08] flex items-center justify-center">
-        <div className="w-5 h-5 border-2 border-white/20 border-t-white/70 rounded-full animate-spin" />
-      </div>
-      <div className="flex-1 min-w-0 flex flex-col py-0.5 gap-1">
-        <p className="text-sm font-semibold text-white truncate">{displayTitle}</p>
-        <p className="text-xs text-zinc-500 truncate">{info.prompt}</p>
-        {tags.length > 0 && (
-          <div className="flex gap-1 mt-0.5 flex-wrap">
-            {tags.map((t) => (
-              <span key={t} className="text-[10px] px-2 py-0.5 rounded-full bg-white/[0.06] text-zinc-400">{t}</span>
-            ))}
-            {info.instrumental && (
-              <span className="text-[10px] px-2 py-0.5 rounded-full bg-white/[0.06] text-zinc-400">instrumental</span>
-            )}
-          </div>
-        )}
-        <p className="text-[11px] text-violet-400/80 mt-1">음악 생성 중…</p>
-      </div>
-    </li>
-  )
 }
 
 function ConfirmUnpublishModal({ onConfirm, onCancel }: { onConfirm: () => void; onCancel: () => void }) {
@@ -117,8 +85,6 @@ export function MyWorkPanel({ showCollections = false }: { showCollections?: boo
   const [songs, setSongs] = useState<Song[]>([])
   const [editing, setEditing] = useState<Song | null>(null)
   const [deleting, setDeleting] = useState<Song | null>(null)
-  // 진행 중인 생성은 페이지 이동에도 살아남게 store 기반으로 초기화
-  const [pendingSong, setPendingSong] = useState<PendingInfo | null>(() => getPendingGen() as GenPendingInfo | null)
   // AuthProvider의 캐시된 profile 사용 — 중복 fetch 방지
   const { profile } = useAuth()
   const ownerAvatarUrl = profile?.avatarUrl ?? null
@@ -130,20 +96,14 @@ export function MyWorkPanel({ showCollections = false }: { showCollections?: boo
 
   useEffect(() => {
     setSongs(user ? songService.getAll() : [])
-    const onGenerating = (e: Event) => setPendingSong((e as CustomEvent<PendingInfo>).detail)
-    const onGenState = () => setPendingSong(getPendingGen() as GenPendingInfo | null)
-    const onUpdated = () => { setPendingSong(null); setSongs(user ? songService.getAll() : []) }
+    const onUpdated = () => setSongs(user ? songService.getAll() : [])
     const onLikeUpdated = (e: Event) => {
       const { songId, likeCount } = (e as CustomEvent<{ songId: string; liked: boolean; likeCount: number }>).detail
       setSongs(prev => prev.map(s => s.id === songId ? { ...s, likeCount } : s))
     }
-    window.addEventListener('song-generating', onGenerating)
-    window.addEventListener('generation-state', onGenState)
     window.addEventListener('song-updated', onUpdated)
     window.addEventListener('like-updated', onLikeUpdated)
     return () => {
-      window.removeEventListener('song-generating', onGenerating)
-      window.removeEventListener('generation-state', onGenState)
       window.removeEventListener('song-updated', onUpdated)
       window.removeEventListener('like-updated', onLikeUpdated)
     }
@@ -228,14 +188,13 @@ export function MyWorkPanel({ showCollections = false }: { showCollections?: boo
         </div>
       ) : (
       <div className="flex-1 overflow-y-auto">
-        {songs.length === 0 && !pendingSong ? (
+        {songs.length === 0 ? (
           <div className="pt-32 pb-16 text-center px-6">
             <Image src="/Confused.svg" alt="" width={48} height={48} className="mx-auto mb-3 opacity-40" style={{ filter: 'invert(1)' }} />
             <p className="text-xs text-zinc-400">아직 만든 음악이 없어요</p>
           </div>
         ) : (
           <ul>
-              {pendingSong && <PendingSongItem info={pendingSong} />}
               {songs.map((song) => (
                 <SongWorkItem
                   key={song.id}
@@ -287,9 +246,10 @@ export function MyWorkPanel({ showCollections = false }: { showCollections?: boo
 function IconBtn({ src, title, filter, active, count, onClick, size = 'md' }: { src: string; title: string; filter: string; active?: boolean; count?: number; onClick?: () => void; size?: 'sm' | 'md' }) {
   const hasCount = count !== undefined
   const sz = size === 'sm'
-    ? (hasCount ? 'h-[35px] px-2.5' : 'w-[35px] h-[35px]')
+    ? (hasCount ? 'h-[30px] md:h-[35px] px-2 md:px-2.5' : 'w-[30px] h-[30px] md:w-[35px] md:h-[35px]')
     : (hasCount ? 'h-10 px-3' : 'w-10 h-10')
   const iconSz = size === 'sm' ? 15 : 18
+  const iconCls = size === 'sm' ? 'w-[13px] h-[13px] md:w-[15px] md:h-[15px]' : ''
   return (
     <button
       type="button"
@@ -299,7 +259,7 @@ function IconBtn({ src, title, filter, active, count, onClick, size = 'md' }: { 
         active ? 'bg-white hover:bg-zinc-100' : 'bg-white/[0.06] hover:bg-white/[0.12]'
       }`}
     >
-      <Image src={src} alt={title} width={iconSz} height={iconSz} style={{ filter: active ? 'invert(0)' : filter }} />
+      <Image src={src} alt={title} width={iconSz} height={iconSz} className={iconCls} style={{ filter: active ? 'invert(0)' : filter }} />
       {hasCount && (
         <span className={`text-xs tabular-nums ${active ? 'text-black' : 'text-zinc-400'}`}>
           {formatCount(count)}
@@ -309,7 +269,7 @@ function IconBtn({ src, title, filter, active, count, onClick, size = 'md' }: { 
   )
 }
 
-function MoreMenu({ onEdit, onDelete }: { onEdit: () => void; onDelete: () => void }) {
+function MoreMenu({ onEdit, onDelete, disableEdit = false }: { onEdit: () => void; onDelete: () => void; disableEdit?: boolean }) {
   const [pos, setPos] = useState<{ top: number; right: number } | null>(null)
   const btnRef = useRef<HTMLButtonElement>(null)
 
@@ -332,9 +292,9 @@ function MoreMenu({ onEdit, onDelete }: { onEdit: () => void; onDelete: () => vo
         ref={btnRef}
         type="button"
         onClick={handleToggle}
-        className="w-10 h-10 rounded-full hover:bg-white/[0.08] flex items-center justify-center transition-colors"
+        className="w-8 h-8 md:w-10 md:h-10 rounded-full hover:bg-white/[0.08] flex items-center justify-center transition-colors"
       >
-        <Image src="/More.svg" alt="더보기" width={18} height={18} style={{ filter: ICON_FILTER }} />
+        <Image src="/More.svg" alt="더보기" width={18} height={18} className="w-4 h-4 md:w-[18px] md:h-[18px]" style={{ filter: ICON_FILTER }} />
       </button>
 
       {pos && (
@@ -344,13 +304,15 @@ function MoreMenu({ onEdit, onDelete }: { onEdit: () => void; onDelete: () => vo
             className="fixed bg-[#282D38] border border-white/[0.08] rounded-xl py-1 min-w-[110px] shadow-xl z-[55]"
             style={{ top: pos.top, right: pos.right }}
           >
-            <button
-              onClick={() => { close(); onEdit() }}
-              className="w-full flex items-center gap-2.5 px-3 py-2.5 text-sm text-white hover:bg-white/[0.06] transition-colors"
-            >
-              <Image src="/Edit.svg" alt="" width={14} height={14} style={{ filter: ICON_FILTER }} />
-              편집
-            </button>
+            {!disableEdit && (
+              <button
+                onClick={() => { close(); onEdit() }}
+                className="w-full flex items-center gap-2.5 px-3 py-2.5 text-sm text-white hover:bg-white/[0.06] transition-colors"
+              >
+                <Image src="/Edit.svg" alt="" width={14} height={14} style={{ filter: ICON_FILTER }} />
+                편집
+              </button>
+            )}
             <button
               onClick={() => { close(); onDelete() }}
               className="w-full flex items-center gap-2.5 px-3 py-2.5 text-sm text-red-400 hover:bg-red-500/10 transition-colors"
@@ -372,6 +334,8 @@ function SongWorkItem({ song, onOpen, onEdit, onDelete, onCollect, onPublish, on
   const [liked, setLiked] = useState(song.liked ?? false)
   const [isNew, setIsNew] = useState(song.isNew ?? false)
   const [inCollection, setInCollection] = useState(() => collectionService.getSongCollectionIds(song.id).length > 0)
+  const isGenerating = song.status === 'generating'
+  const isFailed = song.status === 'failed'
 
   useEffect(() => {
     function handler() { setInCollection(collectionService.getSongCollectionIds(song.id).length > 0) }
@@ -389,6 +353,7 @@ function SongWorkItem({ song, onOpen, onEdit, onDelete, onCollect, onPublish, on
 
   function handleThumbClick(e: React.MouseEvent<HTMLDivElement>) {
     e.stopPropagation()
+    if (isGenerating || isFailed) return  // 생성 중·실패 곡은 재생 불가
     clearNew()
     if (isCurrentSong) {
       player.togglePlay()
@@ -418,28 +383,37 @@ function SongWorkItem({ song, onOpen, onEdit, onDelete, onCollect, onPublish, on
   return (
     <li className="hover:bg-white/[0.02] group">
       <div className="px-4 py-3 flex items-stretch gap-3">
-        {/* 신규 인디케이터 */}
-        <div
-          className={`w-2 h-2 rounded-full bg-red-500 shrink-0 transition-opacity self-start mt-2 ${isNew ? 'opacity-100' : 'opacity-0'}`}
-        />
-
-        {/* 썸네일 — 우측 컬럼 높이에 맞게 늘어남 */}
+        {/* 썸네일 — 2:3 비율 고정 (self-start로 stretch 방지) */}
         <div
           onClick={handleThumbClick}
-          className="w-16 aspect-[2/3] rounded-lg shrink-0 cursor-pointer overflow-hidden relative"
+          className={`w-14 md:w-16 aspect-[2/3] rounded-lg shrink-0 self-start overflow-hidden relative ${isGenerating || isFailed ? 'cursor-default' : 'cursor-pointer'}`}
         >
+          {/* 신규 인디케이터 — 썸네일 좌하단 (시간과 같은 라인) */}
           <div
-            className="absolute inset-0 flex items-center justify-center transition-transform duration-300 ease-out group-hover:scale-[1.05]"
-            style={song.coverImage ? undefined : { background: thumbGradient(song) }}
+            className={`absolute bottom-2 left-1.5 z-10 w-2 h-2 rounded-full bg-red-500 transition-opacity pointer-events-none ${isNew && !isGenerating ? 'opacity-100' : 'opacity-0'}`}
+          />
+          <div
+            className={`absolute inset-0 flex items-center justify-center transition-transform duration-300 ease-out ${isGenerating || isFailed ? '' : 'group-hover:scale-[1.05]'}`}
+            style={song.coverImage ? undefined : { background: isGenerating || isFailed ? 'rgba(255,255,255,0.08)' : thumbGradient(song) }}
           >
-            {song.coverImage && (
+            {song.coverImage && !isGenerating && (
               <Image src={song.coverImage} alt="" fill className="object-cover" unoptimized />
             )}
-            {playing ? (
+            {isGenerating ? (
+              <>
+                <div className="absolute inset-0 bg-black/40 pointer-events-none" />
+                <div className="w-4 h-4 md:w-5 md:h-5 border-2 border-white/20 border-t-white/70 rounded-full animate-spin relative z-10" />
+                <div className="absolute bottom-2 left-1.5 w-2 h-2 rounded-full bg-violet-400 animate-pulse pointer-events-none z-10" />
+              </>
+            ) : isFailed ? (
+              <div className="absolute inset-0 flex items-center justify-center">
+                <span className="text-[10px] font-medium text-red-400">실패</span>
+              </div>
+            ) : playing ? (
               <>
                 <div className="absolute inset-0 bg-black/30 pointer-events-none" />
                 <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                  <SoundWaveIcon size={18} />
+                  <SoundWaveIcon size={16} />
                 </div>
               </>
             ) : (
@@ -449,17 +423,17 @@ function SongWorkItem({ song, onOpen, onEdit, onDelete, onCollect, onPublish, on
                   alt="재생"
                   width={18}
                   height={18}
+                  className="w-4 h-4 md:w-[18px] md:h-[18px] opacity-0 group-hover:opacity-75"
                   style={{ filter: 'invert(1)', transition: 'opacity 0.15s' }}
-                  className="opacity-0 group-hover:opacity-75"
                 />
               </div>
             )}
           </div>
-          {/* 하단 그라데이션 + 재생시간 */}
-          {formatDuration(song.duration) && (
+          {/* 하단 그라데이션 + 재생시간 (generating/failed에선 숨김) */}
+          {!isGenerating && !isFailed && formatDuration(song.duration) && (
             <>
               <div className="absolute bottom-0 left-0 right-0 h-8 bg-gradient-to-t from-black/60 to-transparent pointer-events-none" />
-              <span className="absolute bottom-2 left-1.5 text-[10px] font-medium text-white leading-none pointer-events-none">
+              <span className="absolute bottom-2 right-1.5 text-[10px] font-medium text-white leading-none pointer-events-none">
                 {formatDuration(song.duration)}
               </span>
             </>
@@ -469,25 +443,34 @@ function SongWorkItem({ song, onOpen, onEdit, onDelete, onCollect, onPublish, on
         {/* 우측 컬럼 */}
         <div className="flex-1 min-w-0 flex flex-col py-0.5">
           {/* 제목 행 + 더보기 */}
-          <div className="flex items-start gap-2 mb-1">
-            <button type="button" onClick={() => { clearNew(); onOpen() }} className="flex-1 min-w-0 text-left">
+          <div className="flex items-start gap-2 mb-0 md:mb-1">
+            <button
+              type="button"
+              disabled={isGenerating}
+              onClick={() => { if (isGenerating) return; clearNew(); onOpen() }}
+              className={`flex-1 min-w-0 text-left ${isGenerating ? 'cursor-default' : ''}`}
+            >
               <div className="flex items-center gap-1.5 min-w-0">
                 <p className="text-base font-medium text-white truncate">{displayTitle}</p>
-                {song.instrumental && (
+                {song.instrumental && !isGenerating && (
                   <span className="shrink-0 text-[10px] text-zinc-400 bg-zinc-800 px-1.5 py-0.5 rounded border border-white/[0.06] leading-none">
-                    Instrumental
+                    Inst.
                   </span>
                 )}
               </div>
-              <p className="text-xs text-zinc-400 mt-1 truncate">{song.prompt}</p>
+              <p className="text-xs text-zinc-400 mt-1 truncate">
+                {isGenerating ? '음악 만드는 중…' : isFailed ? '생성에 실패했어요' : song.prompt}
+              </p>
             </button>
-            <MoreMenu onEdit={onEdit} onDelete={onDelete} />
+            {/* generating일 땐 편집 메뉴 숨기고 삭제만 가능하게 */}
+            <MoreMenu onEdit={onEdit} onDelete={onDelete} disableEdit={isGenerating || isFailed} />
           </div>
 
-          {/* 액션 아이콘 행 */}
-          <div className="flex items-center gap-2 mt-3">
-            <div className="flex items-center gap-1.5 px-2.5 h-[35px] rounded-full bg-white/[0.06] text-xs text-zinc-400 tabular-nums shrink-0">
-              <Image src="/Play.svg" alt="" width={13} height={13} style={{ filter: 'invert(0.55)' }} />
+          {/* 액션 아이콘 행 — generating/failed면 숨김 (모바일에선 썸네일 안쪽으로 끌어올림) */}
+          {!isGenerating && !isFailed && (
+          <div className="flex items-center gap-2 mt-1.5 md:mt-3">
+            <div className="flex items-center gap-1.5 px-2 md:px-2.5 h-[30px] md:h-[35px] rounded-full bg-white/[0.06] text-xs text-zinc-400 tabular-nums shrink-0">
+              <Image src="/Play.svg" alt="" width={13} height={13} className="w-[11px] h-[11px] md:w-[13px] md:h-[13px]" style={{ filter: 'invert(0.55)' }} />
               <span>{formatCount(song.playCount ?? 0)}</span>
             </div>
             <IconBtn src="/Thumb-Up.svg" title="좋아요" filter={ICON_FILTER} active={liked} count={song.likeCount ?? 0} onClick={handleLike} size="sm" />
@@ -496,7 +479,7 @@ function SongWorkItem({ song, onOpen, onEdit, onDelete, onCollect, onPublish, on
             <button
               type="button"
               onMouseDown={(e) => { e.stopPropagation(); song.published ? onUnpublish() : onPublish() }}
-              className={`h-[35px] px-3.5 text-xs rounded-full border transition-all flex items-center gap-1.5 group/pub ${
+              className={`h-[30px] md:h-[35px] px-3 md:px-3.5 text-xs rounded-full border transition-all flex items-center gap-1 md:gap-1.5 group/pub ${
                 song.published
                   ? 'bg-white border-white text-zinc-900 hover:bg-zinc-100'
                   : 'border-white/20 text-zinc-400 hover:text-white hover:border-white/40'
@@ -507,6 +490,7 @@ function SongWorkItem({ song, onOpen, onEdit, onDelete, onCollect, onPublish, on
                 alt=""
                 width={18}
                 height={18}
+                className="w-4 h-4 md:w-[18px] md:h-[18px]"
                 style={{ filter: song.published ? 'invert(0)' : ICON_FILTER }}
               />
               {song.published ? (
@@ -517,6 +501,7 @@ function SongWorkItem({ song, onOpen, onEdit, onDelete, onCollect, onPublish, on
               ) : '게시하기'}
             </button>
           </div>
+          )}
         </div>
       </div>
     </li>

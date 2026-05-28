@@ -1,7 +1,6 @@
 // Design Ref: §3.4 songs 테이블 + §10 Forward Compatibility — 동기 인터페이스 유지 + 내부 Supabase 백엔드
-import type { Song } from '@/types/domain'
+import type { Song, SongStatus } from '@/types/domain'
 import { createClient } from '@/lib/supabase/client'
-import { inferTags } from '@/utils/extractTags'
 
 let currentUserId: string | null = null
 let cache: Song[] = []
@@ -18,7 +17,7 @@ interface DbSong {
   custom_lyrics: string | null
   lyrics: string | null
   instrumental: boolean
-  audio_url: string
+  audio_url: string | null
   duration: number | null
   liked: boolean
   cover_image: string | null
@@ -30,6 +29,7 @@ interface DbSong {
   created_at: string
   play_count: number
   like_count: number
+  status: SongStatus | null
 }
 
 function rowToSong(r: DbSong): Song {
@@ -43,7 +43,7 @@ function rowToSong(r: DbSong): Song {
     customLyrics: r.custom_lyrics,
     lyrics: r.lyrics,
     instrumental: r.instrumental,
-    audioUrl: r.audio_url,
+    audioUrl: r.audio_url ?? '',
     duration: r.duration,
     liked: r.liked,
     coverImage: r.cover_image ?? undefined,
@@ -54,6 +54,7 @@ function rowToSong(r: DbSong): Song {
     publishComment: r.publish_comment ?? undefined,
     playCount: r.play_count ?? 0,
     likeCount: r.like_count ?? 0,
+    status: r.status ?? 'done',
   }
 }
 
@@ -78,6 +79,7 @@ function songToRow(s: Song, userId: string): Partial<DbSong> {
     published_at: s.publishedAt ?? null,
     publish_comment: s.publishComment ?? null,
     created_at: s.createdAt,
+    status: s.status ?? 'done',
   }
 }
 
@@ -164,28 +166,20 @@ export const songService = {
     }))
   },
 
-  // notifications §4.2 — song_complete 알림이 곡 INSERT 완료를 의존하므로 await 가능하게 반환
-  async save(song: Omit<Song, 'id' | 'createdAt'>): Promise<Song> {
-    if (!currentUserId) throw new Error('songService.save: user not set')
-    // 사용자가 명시 입력 안 한 genre/mood는 prompt·lyrics 텍스트에서 자동 추출
-    // (탐색 칩 필터의 0건 칩 방지 + 분류 정확도 향상)
-    const inferred = (!song.genre || !song.mood)
-      ? inferTags({ prompt: song.prompt, title: song.title, lyrics: song.lyrics, customLyrics: song.customLyrics })
-      : { genre: null, mood: null }
-    const newSong: Song = {
-      ...song,
-      genre: song.genre ?? inferred.genre,
-      mood:  song.mood  ?? inferred.mood,
-      id: crypto.randomUUID(),
-      createdAt: new Date().toISOString(),
-      isNew: true,
-    }
-    cache = [newSong, ...cache]
+  // 서버가 status=generating으로 INSERT한 곡을 클라이언트 캐시에 합류시키는 진입점.
+  // DB 단일 소스 패턴: INSERT/UPDATE는 모두 서버 책임 (또는 realtime). 여기선 캐시만.
+  add(song: Song): void {
+    if (cache.some((s) => s.id === song.id)) return
+    cache = [song, ...cache]
     window.dispatchEvent(new Event('song-updated'))
-    const supabase = createClient()
-    const { error } = await supabase.from('songs').insert(songToRow(newSong, currentUserId))
-    if (error) console.error('[songService.save]', error.message)
-    return newSong
+  },
+
+  // realtime UPDATE 이벤트로 status가 done/failed로 바뀌었을 때 캐시 patch
+  applyRowPatch(id: string, patch: Partial<Song>): void {
+    const idx = cache.findIndex((s) => s.id === id)
+    if (idx === -1) return
+    cache[idx] = { ...cache[idx], ...patch }
+    window.dispatchEvent(new Event('song-updated'))
   },
 
   update(id: string, patch: Partial<Omit<Song, 'id' | 'createdAt'>>) {

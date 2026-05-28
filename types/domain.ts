@@ -1,3 +1,5 @@
+export type SongStatus = 'generating' | 'done' | 'failed'
+
 export interface Song {
   id: string
   createdAt: string
@@ -20,6 +22,7 @@ export interface Song {
   publishCoverImage?: string
   playCount?: number
   likeCount?: number
+  status?: SongStatus
 }
 
 export type Genre = '발라드' | '팝' | 'R&B' | '포크' | '힙합' | '재즈'

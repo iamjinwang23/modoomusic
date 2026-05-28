@@ -1,5 +1,5 @@
 // genre/mood가 NULL인 공개 곡들에 inferTags로 추출한 값 채움.
-// Vercel Cron이 nightly 호출. 신규 곡은 songService.save가 이미 채우므로 누락 보완용.
+// Vercel Cron이 nightly 호출. 신규 곡은 /api/generate INSERT 단계에서 inferTags가 채우므로 누락 보완용.
 // 시간 지나면서 클라이언트 후처리(getByFilter inferTags 매칭) 비용 점진 감소.
 import { NextResponse } from 'next/server'
 import { createAdminClient } from '@/lib/supabase/admin'
