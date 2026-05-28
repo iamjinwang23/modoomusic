@@ -63,8 +63,49 @@ export function PublishModal({ song, onClose }: Props) {
           </button>
         </div>
 
-        {/* 2열 레이아웃 */}
-        <div className="flex gap-4 mb-4">
+        <input ref={fileRef} type="file" accept="image/*" className="hidden"
+          onChange={(e) => { const f = e.target.files?.[0]; if (f) handleFile(f) }} />
+
+        {/* ── 모바일: 리스트 행 + 하단 textarea ── */}
+        <div className="md:hidden space-y-3 mb-4">
+          <div className="flex items-center gap-3">
+            <div
+              onClick={() => fileRef.current?.click()}
+              className="relative w-14 aspect-[2/3] rounded-lg overflow-hidden shrink-0 cursor-pointer"
+              style={coverPreview ? undefined : { background: defaultGradient }}
+            >
+              {coverPreview && (
+                /* eslint-disable-next-line @next/next/no-img-element */
+                <img src={coverPreview} alt="" className="w-full h-full object-cover" />
+              )}
+            </div>
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-1.5 min-w-0">
+                <p className="text-sm font-semibold text-white truncate">{song.title || 'Untitled'}</p>
+                {song.instrumental && (
+                  <span className="shrink-0 text-[10px] text-zinc-400 bg-zinc-800 px-1.5 py-0.5 rounded border border-white/[0.06] leading-none">Instrumental</span>
+                )}
+              </div>
+              <button
+                type="button"
+                onClick={() => fileRef.current?.click()}
+                className="mt-1 text-[11px] text-violet-400 hover:text-violet-300 transition-colors"
+              >
+                커버 변경
+              </button>
+            </div>
+          </div>
+          <textarea
+            value={comment}
+            onChange={(e) => setComment(e.target.value)}
+            placeholder="이 음악에 대한 코멘트를 남겨보세요 (선택)"
+            rows={4}
+            className="w-full bg-white/[0.06] text-sm text-white px-3 py-2.5 rounded-xl outline-none placeholder:text-zinc-500 focus:ring-1 focus:ring-violet-500 resize-none leading-relaxed"
+          />
+        </div>
+
+        {/* ── 데스크톱: 2열 레이아웃 ── */}
+        <div className="hidden md:flex gap-4 mb-4">
           {/* 좌: 커버 */}
           <div className="shrink-0 w-[160px]">
             <div
@@ -84,12 +125,9 @@ export function PublishModal({ song, onClose }: Props) {
               </div>
             </div>
           </div>
-          <input ref={fileRef} type="file" accept="image/*" className="hidden"
-            onChange={(e) => { const f = e.target.files?.[0]; if (f) handleFile(f) }} />
 
-          {/* 우: 타이틀 + 코멘트 + 태그 */}
+          {/* 우: 타이틀 + 코멘트 */}
           <div className="flex-1 flex flex-col gap-3 min-w-0">
-            {/* 타이틀 + 인스트루멘탈 뱃지 */}
             <div className="flex items-center gap-2 min-w-0">
               <p className="text-base font-semibold text-white truncate">{song.title || 'Untitled'}</p>
               {song.instrumental && (
@@ -102,15 +140,6 @@ export function PublishModal({ song, onClose }: Props) {
               placeholder="이 음악에 대한 코멘트를 남겨보세요 (선택)"
               className="flex-1 w-full bg-white/[0.06] text-sm text-white px-3 py-2.5 rounded-xl outline-none placeholder:text-zinc-500 focus:ring-1 focus:ring-violet-500 resize-none leading-relaxed min-h-0"
             />
-            {/* 태그 */}
-            <div className="flex flex-wrap gap-1.5">
-              {song.genre && (
-                <span className="text-xs text-zinc-300 bg-white/[0.08] px-2.5 py-1 rounded-full border border-white/[0.06]">{song.genre}</span>
-              )}
-              {song.mood && (
-                <span className="text-xs text-zinc-300 bg-white/[0.08] px-2.5 py-1 rounded-full border border-white/[0.06]">{song.mood}</span>
-              )}
-            </div>
           </div>
         </div>
 
