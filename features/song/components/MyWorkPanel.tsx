@@ -15,6 +15,7 @@ import { toast } from '@/components/toast/toast'
 import { buildSongShareUrl } from '@/utils/shareUrl'
 import { SoundWaveIcon } from '@/components/SoundWaveIcon'
 import { AnimatedGradientBackground } from '@/components/AnimatedGradientBackground'
+import { FloatingDots } from '@/components/FloatingDots'
 import type { Song } from '@/types/domain'
 
 const ICON_FILTER = 'invert(0.45)'
@@ -193,6 +194,7 @@ export function MyWorkPanel({ showCollections = false }: { showCollections?: boo
         {songs.length === 0 ? (
           <div className="relative h-full min-h-[420px] flex flex-col items-center justify-center text-center px-6 overflow-hidden">
             <AnimatedGradientBackground className="opacity-60" />
+            <FloatingDots className="opacity-70" />
             <div className="relative z-10 -translate-y-24">
               <Image src="/Ai-Generate-Music.svg" alt="" width={48} height={48} className="mx-auto mb-3 opacity-50" style={{ filter: 'invert(1)' }} />
               <p className="text-sm text-zinc-300">나만의 음악을 만들어보세요</p>
