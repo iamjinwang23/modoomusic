@@ -54,11 +54,11 @@ function validateUsername(v: string): string | null {
 
 // ── 단계 데이터 ──────────────────────────────────────────────────
 const SOURCES = [
-  { id: 'instagram', label: '인스타그램' },
-  { id: 'youtube',   label: '유튜브' },
-  { id: 'friend',    label: '친구/지인 추천' },
-  { id: 'ad',        label: '광고' },
-  { id: 'etc',       label: '기타' },
+  { id: 'sns',    label: 'SNS(인스타그램, 유튜브 등)' },
+  { id: 'email',  label: '이메일' },
+  { id: 'friend', label: '친구/지인 추천' },
+  { id: 'ad',     label: '광고' },
+  { id: 'etc',    label: '기타' },
 ]
 
 const AI_EXPS = [
