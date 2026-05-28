@@ -7,16 +7,19 @@ export async function GET(request: NextRequest) {
   const state = searchParams.get('state')
   const storedState = request.cookies.get('naver_oauth_state')?.value
 
+  // 임시 디버그: 실패 원인을 ?naver_error= 로 노출 (검수 통과 후 제거)
+  const fail = (reason: string) => NextResponse.redirect(`${origin}/?naver_error=${encodeURIComponent(reason)}`)
+
   if (!code || !state || state !== storedState) {
     console.error('[naver/callback] state 불일치 또는 code 없음')
-    return NextResponse.redirect(origin)
+    return fail(`state_mismatch code=${!!code} state=${!!state} stored=${!!storedState}`)
   }
 
   // 1. 액세스 토큰 교환
   const tokenParams = new URLSearchParams({
     grant_type: 'authorization_code',
-    client_id: process.env.NAVER_CLIENT_ID!,
-    client_secret: process.env.NAVER_CLIENT_SECRET!,
+    client_id: process.env.NAVER_CLIENT_ID ?? '',
+    client_secret: process.env.NAVER_CLIENT_SECRET ?? '',
     code,
     state,
   })
@@ -25,7 +28,7 @@ export async function GET(request: NextRequest) {
 
   if (!tokenData.access_token) {
     console.error('[naver/callback] 토큰 교환 실패:', tokenData)
-    return NextResponse.redirect(origin)
+    return fail(`token_exchange:${tokenData.error ?? 'no_token'}:${tokenData.error_description ?? ''}`)
   }
 
   // 2. 네이버 프로필 조회
@@ -43,7 +46,7 @@ export async function GET(request: NextRequest) {
 
   if (!profile?.email) {
     console.error('[naver/callback] 이메일 없음:', profileData)
-    return NextResponse.redirect(origin)
+    return fail('no_email')
   }
 
   // 3. Supabase 매직링크 생성 — 신규 유저 자동 생성 + 기존 유저 세션 발급
@@ -64,7 +67,7 @@ export async function GET(request: NextRequest) {
 
   if (linkError || !linkData?.properties?.hashed_token) {
     console.error('[naver/callback] 매직링크 생성 실패:', linkError)
-    return NextResponse.redirect(origin)
+    return fail(`generate_link:${linkError?.message ?? 'no_token'}`)
   }
 
   const res = NextResponse.redirect(
