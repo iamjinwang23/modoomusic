@@ -224,15 +224,14 @@ function SectionAllView({
             <p>{filters.length > 0 ? '해당 조건의 곡이 없어요' : '아직 공개된 곡이 없어요'}</p>
           </div>
         ) : (
-          <div className="flex flex-wrap gap-3">
+          <div className="grid gap-3 [grid-template-columns:repeat(auto-fill,minmax(150px,1fr))] md:[grid-template-columns:repeat(auto-fill,minmax(200px,1fr))]">
             {feed.map((song) => (
-              <div key={song.id} className="w-[150px] md:w-[200px]">
-                <PublicSongCard
-                  song={song}
-                  onPlay={(p) => dispatchView(p, feed, currentUserId)}
-                  onThumbPlay={(p) => dispatchPlayOnly(p, feed, currentUserId)}
-                />
-              </div>
+              <PublicSongCard
+                key={song.id}
+                song={song}
+                onPlay={(p) => dispatchView(p, feed, currentUserId)}
+                onThumbPlay={(p) => dispatchPlayOnly(p, feed, currentUserId)}
+              />
             ))}
           </div>
         )}
