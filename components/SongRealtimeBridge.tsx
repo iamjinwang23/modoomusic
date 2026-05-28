@@ -45,20 +45,21 @@ export function SongRealtimeBridge() {
         { event: 'UPDATE', schema: 'public', table: 'songs', filter: `user_id=eq.${user.id}` },
         (payload) => {
           const next = payload.new as SongRow
-          const prev = payload.old as Partial<SongRow>
           if (!next?.id) return
+
+          // REPLICA IDENTITY DEFAULT에선 payload.old에 PK만 들어와 status 비교 불가.
+          // 캐시의 이전 status를 ground truth로 사용 (없으면 신규 row로 간주).
+          const cached = songService.getById(next.id)
+          const prevStatus = cached?.status ?? null
 
           songService.applyRowPatch(next.id, rowToPatch(next))
 
-          // 상태 전환만 토스트로 알림 (status 외 단순 patch는 무시)
-          if (prev?.status === 'generating' && next.status === 'done') {
+          if (prevStatus === 'generating' && next.status === 'done') {
             const label = next.title?.trim() || '새 곡'
             toast.success('곡이 완성됐어요', { description: label })
-            // notifications 리프레시 (서버가 song_complete INSERT 했음)
             window.dispatchEvent(new Event('notifications-changed'))
-          } else if (prev?.status === 'generating' && next.status === 'failed') {
+          } else if (prevStatus === 'generating' && next.status === 'failed') {
             toast.error('곡 생성에 실패했어요', { description: '크레딧이 자동으로 환불되었어요' })
-            // 환불됐으니 credits 리프레시
             fetch('/api/credits/me')
               .then((r) => r.json())
               .then((d) => window.dispatchEvent(new CustomEvent('credits-updated', { detail: d })))
