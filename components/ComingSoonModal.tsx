@@ -1,6 +1,7 @@
 'use client'
 
 import Image from 'next/image'
+import { BeamBorder } from '@/components/BeamBorder'
 
 interface Props {
   onClose: () => void
@@ -14,8 +15,8 @@ const TITLES: Record<NonNullable<Props['reason']>, string> = {
 }
 
 const SUBTITLES: Record<NonNullable<Props['reason']>, string> = {
-  'sidebar':       '더 많은 모델과 월간 크레딧으로 창의성을 극대화하세요',
-  'locked-model':  '더 풍부한 사운드의 Music 2.6와 스타일 참조 커버 생성을 곧 풀어드릴게요',
+  'sidebar':       '영감이 떠오른 순간, 크레딧 부족으로 멈추지 마세요',
+  'locked-model':  '더 풍부한 사운드의 프리미엄 모델을 곧 출시될 플랜에서 만나보실 수 있어요',
   'daily-limit':   '내일 KST 자정에 10크레딧이 다시 채워져요. 곧 출시될 플랜으로 더 많이 즐길 수 있어요',
 }
 
@@ -25,6 +26,9 @@ export function ComingSoonModal({ onClose, reason = 'sidebar' }: Props) {
       <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={onClose} />
 
       <div className="relative w-full max-w-[420px] bg-[#181B22] border border-white/[0.10] rounded-2xl shadow-2xl overflow-hidden">
+        {/* 테두리를 따라 한 바퀴 도는 빛 */}
+        <BeamBorder className="rounded-2xl" durationMs={8000} opacity={0.5} />
+
         {/* 이미지 헤더 — 16:9 */}
         <div className="relative aspect-video overflow-hidden">
           <Image
@@ -51,11 +55,11 @@ export function ComingSoonModal({ onClose, reason = 'sidebar' }: Props) {
           <p className="text-sm text-zinc-400 mt-1.5 leading-relaxed">{SUBTITLES[reason]}</p>
 
           <ul className="mt-5 space-y-2.5">
-            <Feature title="Music 2.6 · Music Cover 잠금 해제" />
             <Feature title="더 많은 월간 크레딧" />
+            <Feature title="더 빠른 음악 생성" />
             <Feature title="고품질 MP3·WAV 다운로드" />
             <Feature title="나만의 MV 생성" />
-            <Feature title="상업적 이용가능" />
+            <Feature title="상업적 이용 가능" />
           </ul>
 
           <button

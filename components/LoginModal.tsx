@@ -5,22 +5,28 @@ import Image from 'next/image'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
 import { toast } from '@/components/toast/toast'
+import { BeamBorder } from '@/components/BeamBorder'
 
 interface Props {
   onClose: () => void
 }
 
-function SocialButton({ onClick, className, children }: { onClick: () => void; className: string; children: React.ReactNode }) {
+function SocialButton({ onClick, className, children, style }: { onClick: () => void; className: string; children: React.ReactNode; style?: React.CSSProperties }) {
   return (
     <button
       type="button"
       onClick={onClick}
+      style={style}
       className={`w-full relative flex items-center justify-center py-3 rounded-xl text-sm font-medium transition-colors ${className}`}
     >
       {children}
     </button>
   )
 }
+
+// 진입 애니메이션 — 각 요소가 bottom에서 차례로 스르륵 올라옴
+// 지연은 CSS 변수 --d로 주입 (animation shorthand가 delay를 덮지 않도록)
+const rise = (delayMs: number): React.CSSProperties => ({ ['--d' as string]: `${delayMs}ms` } as React.CSSProperties)
 
 export function LoginModal({ onClose }: Props) {
   const [loading, setLoading] = useState(false)
@@ -56,6 +62,9 @@ export function LoginModal({ onClose }: Props) {
       {/* Modal */}
       <div className="relative z-10 flex rounded-2xl overflow-hidden w-full max-w-[740px] bg-[#181B22] border border-white/[0.10] shadow-2xl">
 
+        {/* 테두리를 따라 한 바퀴 도는 빛 */}
+        <BeamBorder className="rounded-2xl" durationMs={8000} opacity={0.5} />
+
         {/* ── Left: Image panel ── */}
         <div className="hidden md:block w-[300px] shrink-0 relative">
           <Image
@@ -73,15 +82,23 @@ export function LoginModal({ onClose }: Props) {
 
         {/* ── Right: Login panel ── */}
         <div className="flex-1 flex flex-col px-9 py-10">
+          <style>{`
+            @keyframes loginRise {
+              from { opacity: 0; transform: translateY(16px); }
+              to   { opacity: 1; transform: translateY(0); }
+            }
+            .lrise { animation: loginRise 0.58s cubic-bezier(0.22,1,0.36,1) var(--d, 0ms) backwards; }
+            @media (prefers-reduced-motion: reduce) { .lrise { animation: none; } }
+          `}</style>
           {/* Logo */}
-          <Image src="/logo.svg" alt="모두의 노래" width={72} height={16} style={{ filter: 'invert(1)' }} className="mb-8" />
+          <Image src="/logo.svg" alt="모두의 노래" width={72} height={16} style={{ filter: 'invert(1)', ...rise(50) }} className="mb-8 lrise" />
 
-          <h2 className="text-2xl font-bold text-white mb-1 font-mono">오신 걸 환영해요</h2>
-          <p className="text-zinc-400 text-sm mb-8">가입하고 무료로 음악을 만들어보세요</p>
+          <h2 className="text-2xl font-bold text-white mb-1 font-mono lrise" style={rise(120)}>환영합니다</h2>
+          <p className="text-zinc-400 text-sm mb-8 lrise" style={rise(190)}>지금 MONO와 함께 나만의 노래를 만들어보세요</p>
 
           <div className="space-y-3">
             {/* Google */}
-            <SocialButton onClick={handleGoogleLogin} className={`bg-white hover:bg-zinc-100 text-zinc-900 ${loading ? 'opacity-70 pointer-events-none' : ''}`}>
+            <SocialButton onClick={handleGoogleLogin} style={rise(260)} className={`lrise bg-white hover:bg-zinc-100 text-zinc-900 ${loading ? 'opacity-70 pointer-events-none' : ''}`}>
               <span className="absolute left-4 flex items-center">
                 <svg width="18" height="18" viewBox="0 0 18 18" xmlns="http://www.w3.org/2000/svg">
                   <path d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844c-.209 1.125-.843 2.078-1.796 2.717v2.258h2.908C16.658 14.013 17.64 11.705 17.64 9.2z" fill="#4285F4"/>
@@ -94,7 +111,7 @@ export function LoginModal({ onClose }: Props) {
             </SocialButton>
 
             {/* Apple */}
-            <SocialButton onClick={() => { setLoading(true); createClient().auth.signInWithOAuth({ provider: 'apple', options: { redirectTo: `${window.location.origin}/auth/callback` } }) }} className={`bg-[#21252E] hover:bg-[#2D323E] border border-white/10 text-white ${loading ? 'opacity-70 pointer-events-none' : ''}`}>
+            <SocialButton onClick={() => { setLoading(true); createClient().auth.signInWithOAuth({ provider: 'apple', options: { redirectTo: `${window.location.origin}/auth/callback` } }) }} style={rise(330)} className={`lrise bg-[#21252E] hover:bg-[#2D323E] border border-white/10 text-white ${loading ? 'opacity-70 pointer-events-none' : ''}`}>
               <span className="absolute left-4 flex items-center">
                 <svg width="16" height="18" viewBox="0 0 16 18" xmlns="http://www.w3.org/2000/svg" fill="white">
                   <path d="M13.23 9.36c-.02-1.9 1.56-2.82 1.63-2.87-1.12-1.63-2.85-1.86-3.47-1.88-1.48-.15-2.9.87-3.65.87-.76 0-1.93-.85-3.17-.83C2.89 4.68 1.31 5.72.5 7.3c-1.63 2.82-.42 7 1.15 9.29.78 1.12 1.7 2.38 2.91 2.33 1.17-.05 1.61-.75 3.03-.75 1.41 0 1.81.75 3.05.72 1.26-.02 2.05-1.14 2.82-2.27.9-1.3 1.26-2.57 1.28-2.63-.03-.01-2.44-.93-2.46-3.67-.02-2.3 1.88-3.4 1.96-3.46z"/>
@@ -105,7 +122,7 @@ export function LoginModal({ onClose }: Props) {
             </SocialButton>
 
             {/* Naver */}
-            <SocialButton onClick={handleNaverLogin} className={`bg-[#03C75A] hover:bg-[#02b350] text-white ${loading ? 'opacity-70 pointer-events-none' : ''}`}>
+            <SocialButton onClick={handleNaverLogin} style={rise(400)} className={`lrise bg-[#03C75A] hover:bg-[#02b350] text-white ${loading ? 'opacity-70 pointer-events-none' : ''}`}>
               <span className="absolute left-4 flex items-center">
                 <svg width="16" height="16" viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg" fill="white">
                   <path d="M10.846 8.563L5.077 0H0v16h5.154V7.435L10.923 16H16V0h-5.154v8.563z"/>
@@ -115,7 +132,7 @@ export function LoginModal({ onClose }: Props) {
             </SocialButton>
 
             {/* Kakao */}
-            <SocialButton onClick={handleKakaoLogin} className={`bg-[#FEE500] hover:bg-[#fdd800] text-[#191919] ${loading ? 'opacity-70 pointer-events-none' : ''}`}>
+            <SocialButton onClick={handleKakaoLogin} style={rise(470)} className={`lrise bg-[#FEE500] hover:bg-[#fdd800] text-[#191919] ${loading ? 'opacity-70 pointer-events-none' : ''}`}>
               <span className="absolute left-4 flex items-center">
                 <svg width="18" height="18" viewBox="0 0 18 18" xmlns="http://www.w3.org/2000/svg">
                   <path d="M9 1.5C4.86 1.5 1.5 4.16 1.5 7.44c0 2.09 1.32 3.93 3.32 4.99l-.84 3.12a.25.25 0 0 0 .37.28L8.1 13.7c.29.03.59.05.9.05 4.14 0 7.5-2.66 7.5-5.94S13.14 1.5 9 1.5z" fill="#191919"/>
@@ -125,7 +142,7 @@ export function LoginModal({ onClose }: Props) {
             </SocialButton>
           </div>
 
-          <div className="relative my-5">
+          <div className="relative my-5 lrise" style={rise(540)}>
             <div className="absolute inset-0 flex items-center">
               <div className="w-full border-t border-white/[0.08]" />
             </div>
@@ -135,7 +152,7 @@ export function LoginModal({ onClose }: Props) {
           </div>
 
           {/* Email */}
-          <SocialButton onClick={() => toast.info('이메일 로그인은 곧 지원될 예정이에요')} className="border border-white/[0.10] hover:border-white/20 text-zinc-300 hover:text-white">
+          <SocialButton onClick={() => toast.info('이메일 로그인은 곧 지원될 예정이에요')} style={rise(610)} className="lrise border border-white/[0.10] hover:border-white/20 text-zinc-300 hover:text-white">
             <span className="absolute left-4 flex items-center">
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <rect width="20" height="16" x="2" y="4" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/>
@@ -144,7 +161,7 @@ export function LoginModal({ onClose }: Props) {
             이메일로 계속하기
           </SocialButton>
 
-          <p className="text-xs text-zinc-600 mt-8 text-center leading-relaxed">
+          <p className="text-xs text-zinc-600 mt-8 text-center leading-relaxed lrise" style={rise(680)}>
             계속하면{' '}
             <Link href="/terms" target="_blank" className="underline hover:text-zinc-400">이용약관</Link>
             {' '}과{' '}
