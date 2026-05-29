@@ -531,7 +531,7 @@ export function SongForm() {
         {/* 가사 입력 — 인스트루멘탈 시 접힘 */}
         <div
           className="overflow-hidden transition-[max-height] duration-300 ease-in-out"
-          style={{ maxHeight: instrumental ? 0 : lyricsResize.height + 56 }}
+          style={{ maxHeight: instrumental ? 0 : lyricsResize.height + 80 }}
         >
           <div className="px-4">
             <textarea

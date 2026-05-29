@@ -17,6 +17,7 @@ interface SongRow {
   cover_image: string | null
   duration: number | null
   lyrics: string | null
+  publish_comment: string | null
   created_at: string
   like_count: number | null
   play_count: number | null
@@ -37,6 +38,7 @@ function rowToPublicSong(r: SongRow): PublicSong {
     coverImage: r.cover_image ?? undefined,
     duration: r.duration,
     lyrics: r.lyrics,
+    publishComment: r.publish_comment ?? undefined,
     createdAt: r.created_at,
     username: r.profiles?.username ?? 'unknown',
     displayName: r.profiles?.display_name ?? r.profiles?.username ?? '익명',
@@ -72,7 +74,7 @@ function sortRecommended(songs: PublicSong[]): PublicSong[] {
 
 const SONG_SELECT = `
   id, title, prompt, genre, mood, instrumental, audio_url, cover_hue, cover_image,
-  duration, lyrics, created_at, like_count, play_count, user_id,
+  duration, lyrics, publish_comment, created_at, like_count, play_count, user_id,
   profiles!songs_user_id_fkey ( username, display_name, avatar_hue, avatar_url )
 `
 

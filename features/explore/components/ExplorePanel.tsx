@@ -33,6 +33,7 @@ function toSong(pub: PublicSong): Song {
     coverImage: pub.coverImage,
     playCount: pub.playCount,
     likeCount: pub.likeCount,
+    publishComment: pub.publishComment,
   }
 }
 

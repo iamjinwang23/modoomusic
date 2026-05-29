@@ -20,16 +20,21 @@ interface SongRow {
   lyrics: string | null
   duration: number | null
   title: string | null
+  prompt: string | null
 }
 
 function rowToPatch(r: SongRow): Partial<Song> {
-  return {
+  const patch: Partial<Song> = {
     status: r.status ?? 'done',
     audioUrl: r.audio_url ?? '',
     coverImage: r.cover_image ?? undefined,
     lyrics: r.lyrics,
     duration: r.duration,
+    title: r.title,  // 심플 모드 자동 제목(song_title)이 완료 시 채워짐 → 캐시 반영
   }
+  // 심플 모드는 완료 시 prompt(스타일)를 style_tags로 교체 → 캐시 반영
+  if (r.prompt != null) patch.prompt = r.prompt
+  return patch
 }
 
 export function SongRealtimeBridge() {

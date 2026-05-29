@@ -43,6 +43,7 @@ export interface PublicSong {
   coverImage?: string
   duration?: number | null
   lyrics: string | null
+  publishComment?: string
   createdAt: string
   username: string
   displayName: string

@@ -122,11 +122,13 @@ export async function POST(req: NextRequest) {
       let genPrompt = prompt.trim()
       let genLyrics: string | undefined = customLyrics
       let autoTitle: string | null = null
+      let autoStyleTags: string | null = null
       if (autoLyrics && !instrumental) {
         const lyr = await generateLyrics(genPrompt)
         genLyrics = lyr.lyrics
         genPrompt = [lyr.styleTags, prompt.trim()].filter(Boolean).join('. ')
         autoTitle = lyr.songTitle || null
+        autoStyleTags = lyr.styleTags || null
       }
 
       const imagePromptInput = pickImagePrompt({ customLyrics: genLyrics, title, prompt })
@@ -155,6 +157,8 @@ export async function POST(req: NextRequest) {
       }
       // 자동 제목: 클라가 제목을 비워 보냈을 때만 song_title로 채움 (사용자 제목 미덮어쓰기)
       if (autoTitle && !inserted.title) updatePatch.title = autoTitle
+      // 심플 모드 스타일: 설명 원문 대신 AI 추출 style_tags를 곡 스타일(prompt)로 저장
+      if (autoStyleTags) updatePatch.prompt = autoStyleTags
 
       const { error: updErr } = await admin
         .from('songs')
