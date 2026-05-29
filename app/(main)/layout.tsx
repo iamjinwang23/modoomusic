@@ -147,7 +147,7 @@ export default function MainShellLayout({ children }: { children: React.ReactNod
     >
 
       {/* ── Header — 항상 상단 고정 ── */}
-      <header className="shrink-0 h-14 flex items-center px-5 border-b border-white/[0.06] bg-[#111318] z-20">
+      <header className="relative shrink-0 h-14 flex items-center px-5 border-b border-white/[0.06] bg-[#111318] z-50">
         <Link href="/">
           <Image src="/logo.svg" alt="모두의 노래" width={72} height={16} style={{ filter: 'invert(1)' }} />
         </Link>

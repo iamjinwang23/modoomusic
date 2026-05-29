@@ -336,7 +336,7 @@ export function SongDetailPage({ onBack, profile }: Props) {
             <ActionBtn title="좋아요" icon="/Thumb-Up.svg" active={liked} count={song.likeCount ?? 0} onClick={handleLike} />
             <ActionBtn title="컬렉션" icon="/Collection.svg" active={inCollection} onClick={() => setCollectOpen(true)} />
             <ActionBtn title="공유" icon="/Share.svg" onClick={handleShare} />
-            <ActionBtn title="저장" icon="/Arrow-To-Down.svg" />
+            <ActionBtn title="저장" icon="/Arrow-To-Down.svg" onClick={() => window.dispatchEvent(new CustomEvent('open-coming-soon', { detail: 'sidebar' }))} />
             {isOwner && (
               <OwnerMenu
                 onEdit={() => setEditOpen(true)}
@@ -418,7 +418,7 @@ export function SongDetailPage({ onBack, profile }: Props) {
               <ActionBtn title="좋아요" icon="/Thumb-Up.svg" active={liked} count={song.likeCount ?? 0} onClick={handleLike} />
               <ActionBtn title="컬렉션" icon="/Collection.svg" active={inCollection} onClick={() => setCollectOpen(true)} />
               <ActionBtn title="공유" icon="/Share.svg" onClick={handleShare} />
-              <ActionBtn title="저장" icon="/Arrow-To-Down.svg" />
+              <ActionBtn title="저장" icon="/Arrow-To-Down.svg" onClick={() => window.dispatchEvent(new CustomEvent('open-coming-soon', { detail: 'sidebar' }))} />
               {isOwner && (
                 <OwnerMenu
                   onEdit={() => setEditOpen(true)}

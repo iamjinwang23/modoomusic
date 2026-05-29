@@ -16,6 +16,7 @@ const NAME_CHANGE_WINDOW_MS = 14 * 24 * 60 * 60 * 1000
 
 function validateUsername(v: string): string | null {
   if (!v) return '아이디를 입력해주세요'
+  if (v.length < 4) return '아이디는 최소 4자 이상이어야 해요'
   if (!/^[a-z0-9._]{1,30}$/.test(v)) return '영문 소문자, 숫자, ., _ 만 사용할 수 있어요 (최대 30자)'
   if (/\.\./.test(v) || v.startsWith('.') || v.endsWith('.')) return '마침표는 연속으로 쓰거나 앞뒤에 올 수 없어요'
   return null

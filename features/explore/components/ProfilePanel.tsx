@@ -270,6 +270,11 @@ export function ProfilePanel({ username }: Props) {
   const [uploading, setUploading] = useState<'avatar' | 'cover' | null>(null)
   const [avatarHovered, setAvatarHovered] = useState(false)
   const [editOpen, setEditOpen] = useState(false)
+  // 모달 편집 이미지 스테이징 — 저장 시에만 storage 업로드 + DB 커밋, 취소 시 스냅샷 복원.
+  // (인라인 배너 즉시 편집은 예외 — handleAvatarUpload/handleCoverUpload 유지)
+  const imgSnapshotRef = useRef<{ avatar: string | null; cover: string | null }>({ avatar: null, cover: null })
+  const pendingAvatarRef = useRef<File | 'delete' | null>(null)
+  const pendingCoverRef = useRef<File | 'delete' | null>(null)
 
   useEffect(() => {
     if (!isSelf || !user) return
@@ -295,13 +300,14 @@ export function ProfilePanel({ username }: Props) {
     setUploading(null)
   }
 
-  async function handleAvatarDelete() {
-    if (!user || !avatarUrl) return
-    await deleteProfileImage(user.id, 'avatar')
+  // ── 모달 편집 스테이징 (저장 시 커밋) ──
+  function handleAvatarStage(file: File) {
+    pendingAvatarRef.current = file
+    setAvatarUrl(URL.createObjectURL(file))  // objectURL 미리보기 (업로드는 저장 시)
+  }
+  function handleAvatarDelete() {
+    pendingAvatarRef.current = 'delete'
     setAvatarUrl(null)
-    await createClient().from('profiles').update({ avatar_url: null }).eq('id', user.id)
-    window.dispatchEvent(new CustomEvent('profile-avatar-updated', { detail: null }))
-    toast.info('프로필 사진이 제거되었어요')
   }
 
   async function handleCoverUpload(file: File) {
@@ -318,12 +324,13 @@ export function ProfilePanel({ username }: Props) {
     setUploading(null)
   }
 
-  async function handleCoverDelete() {
-    if (!user || !coverUrl) return
-    await deleteProfileImage(user.id, 'cover')
+  function handleCoverStage(file: File) {
+    pendingCoverRef.current = file
+    setCoverUrl(URL.createObjectURL(file))
+  }
+  function handleCoverDelete() {
+    pendingCoverRef.current = 'delete'
     setCoverUrl(null)
-    await createClient().from('profiles').update({ cover_url: null }).eq('id', user.id)
-    toast.info('커버 이미지가 제거되었어요')
   }
 
   const profile = isSelf ? selfProfile : otherProfile
@@ -448,13 +455,21 @@ export function ProfilePanel({ username }: Props) {
               {isSelf ? (
                 <>
                   <button
-                    onClick={() => setEditOpen(true)}
+                    onClick={() => {
+                      imgSnapshotRef.current = { avatar: avatarUrl, cover: coverUrl }
+                      pendingAvatarRef.current = null
+                      pendingCoverRef.current = null
+                      setEditOpen(true)
+                    }}
                     className="flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-medium bg-black/25 backdrop-blur-sm text-white hover:bg-black/40 transition-colors"
                   >
                     <Image src="/Edit.svg" alt="" width={14} height={14} style={{ filter: 'invert(1)' }} />
                     프로필 수정
                   </button>
-                  <SelfSettingsMenu />
+                  {/* 설정(로그아웃) 버튼 — 모바일 전용. 데스크톱은 헤더 아바타 드롭다운에 로그아웃 있음 */}
+                  <div className="md:hidden">
+                    <SelfSettingsMenu />
+                  </div>
                 </>
               ) : (
                 <button
@@ -546,13 +561,48 @@ export function ProfilePanel({ username }: Props) {
             avatarHue: dbProfile.avatarHue,
             initials,
             uploading,
-            onAvatarUpload: handleAvatarUpload,
+            onAvatarUpload: handleAvatarStage,
             onAvatarDelete: handleAvatarDelete,
-            onCoverUpload: handleCoverUpload,
+            onCoverUpload: handleCoverStage,
             onCoverDelete: handleCoverDelete,
           }}
-          onClose={() => setEditOpen(false)}
-          onSaved={(next) => {
+          onClose={() => {
+            // 취소 — 스테이징 폐기 + 미리보기 스냅샷 복원
+            setAvatarUrl(imgSnapshotRef.current.avatar)
+            setCoverUrl(imgSnapshotRef.current.cover)
+            pendingAvatarRef.current = null
+            pendingCoverRef.current = null
+            setEditOpen(false)
+          }}
+          onSaved={async (next) => {
+            // 저장 시점에만 스테이징된 이미지 커밋 (storage 업로드 + DB)
+            if (user && (pendingAvatarRef.current !== null || pendingCoverRef.current !== null)) {
+              const patch: Record<string, unknown> = {}
+              const pa = pendingAvatarRef.current
+              if (pa instanceof File) {
+                const url = await uploadProfileImage(user.id, pa, 'avatar')
+                if (url) { setAvatarUrl(url); patch.avatar_url = url }
+              } else if (pa === 'delete') {
+                await deleteProfileImage(user.id, 'avatar')
+                patch.avatar_url = null
+              }
+              const pc = pendingCoverRef.current
+              if (pc instanceof File) {
+                const url = await uploadProfileImage(user.id, pc, 'cover')
+                if (url) { setCoverUrl(url); patch.cover_url = url }
+              } else if (pc === 'delete') {
+                await deleteProfileImage(user.id, 'cover')
+                patch.cover_url = null
+              }
+              if (Object.keys(patch).length > 0) {
+                await createClient().from('profiles').update(patch).eq('id', user.id)
+                if ('avatar_url' in patch) {
+                  window.dispatchEvent(new CustomEvent('profile-avatar-updated', { detail: patch.avatar_url ?? null }))
+                }
+              }
+              pendingAvatarRef.current = null
+              pendingCoverRef.current = null
+            }
             patchDbProfile({
               username: next.username,
               displayName: next.displayName,
