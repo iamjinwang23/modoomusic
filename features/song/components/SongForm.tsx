@@ -91,6 +91,7 @@ export function SongForm() {
   const [vocalGender, setVocalGender] = useState<'male' | 'female' | null>(null)
   const [model, setModel] = useState<MusicModelId>('music-2.0')
   const [lyricsModalOpen, setLyricsModalOpen] = useState(false)
+  const [mode, setMode] = useState<'simple' | 'advanced'>('simple')
   const [modelDropOpen, setModelDropOpen] = useState(false)
   const modelDropRef = useRef<HTMLDivElement>(null)
 
@@ -116,6 +117,19 @@ export function SongForm() {
   // music-2.6은 참조 음원 업로드 시 cover 모드, 없으면 일반 모드
   const isCoverCapable = model === 'music-2.6'
   const isCoverRequest = isCoverCapable && !!refAudio
+  // 심플 모드 모델: 보컬→2.0, 인스트루멘탈→2.6 (2.0은 인스트루멘탈 미지원)
+  const simpleModel: MusicModelId = instrumental ? 'music-2.6' : 'music-2.0'
+  const ctaCredits = creditsForModel(mode === 'simple' ? simpleModel : model)
+
+  // 모드 영속화: 첫 진입은 심플(SSR), mount 후 마지막 선택 복원
+  useEffect(() => {
+    const saved = localStorage.getItem('mono.songform.mode')
+    if (saved === 'advanced' || saved === 'simple') setMode(saved)
+  }, [])
+  function changeMode(next: 'simple' | 'advanced') {
+    setMode(next)
+    localStorage.setItem('mono.songform.mode', next)
+  }
 
   useEffect(() => {
     setChips(shuffle(ALL_CHIPS).slice(0, 16))
@@ -167,11 +181,14 @@ export function SongForm() {
     setStylePrompt((prev) => (prev ? `${prev}, ${chip}` : chip))
   }
 
-  function handleLyricsGenerated(next: string) {
+  function handleLyricsGenerated(next: string, songTitle?: string) {
     if (lyrics.trim() && !confirm('현재 가사를 새로 만든 가사로 바꿀까요?')) return
     setLyrics(next)
     if (instrumental) setInstrumental(false)  // 가사가 생겼으니 보컬 모드로
-    toast.success('가사를 만들었어요')
+    // 제목이 비어 있을 때만 자동 채움 (사용자 입력 미덮어쓰기)
+    const fillTitle = !!songTitle && !title.trim()
+    if (fillTitle) setTitle(songTitle!)
+    toast.success(fillTitle ? '가사와 제목을 만들었어요' : '가사를 만들었어요')
   }
 
   function buildPrompt() {
@@ -186,6 +203,21 @@ export function SongForm() {
       return
     }
     if (!stylePrompt.trim() || isGenerating) return
+
+    // 심플 모드: 설명만으로 서버 자동작사 → 음악 생성 (인스트루멘탈이면 작사 생략)
+    if (mode === 'simple') {
+      generate({
+        prompt: stylePrompt.trim(),
+        genre: '',
+        mood: '',
+        title: '',
+        customLyrics: '',
+        instrumental,
+        model: simpleModel,
+        autoLyrics: !instrumental,
+      })
+      return
+    }
 
     // 가사 검증: 입력은 있는데 너무 짧으면 MiniMax가 거부 → 사전 차단
     const lyricsLen = lyrics.trim().length
@@ -236,6 +268,79 @@ export function SongForm() {
         className="hidden"
         onChange={(e) => { const f = e.target.files?.[0]; if (f) handleRefAudioFile(f) }}
       />
+
+      {/* 타이틀 + Simple/Advanced 모드 토글 */}
+      <div className="flex items-center justify-between">
+        <h1 className="text-xl font-semibold">음악 만들기</h1>
+        <div className="relative inline-flex rounded-full bg-white/[0.06] p-1">
+          {/* 슬라이딩 활성 표시 — 두 버튼은 동일 폭(2글자+px-5)이라 50% 기준으로 이동 */}
+          <span
+            aria-hidden
+            className="absolute top-1 bottom-1 left-1 w-[calc(50%-4px)] rounded-full bg-white transition-transform duration-300 ease-out motion-reduce:transition-none"
+            style={{ transform: mode === 'simple' ? 'translateX(0)' : 'translateX(100%)' }}
+          />
+          {(['simple', 'advanced'] as const).map((m) => (
+            <button
+              key={m}
+              type="button"
+              disabled={isGenerating}
+              onClick={() => changeMode(m)}
+              className={`relative z-10 px-5 py-1.5 rounded-full text-sm font-medium transition-colors disabled:opacity-40 ${
+                mode === m ? 'text-black' : 'text-zinc-400 hover:text-white'
+              }`}
+            >
+              {m === 'simple' ? '심플' : '고급'}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* 심플 모드: 설명 + 인스트루멘탈 + 가사로 전환 */}
+      {mode === 'simple' && (
+        <section className="mode-fade rounded-xl border border-white/[0.08] bg-[#1E2129] overflow-hidden group">
+          <div className="px-4 py-3 flex items-center justify-between">
+            <span className="text-sm font-semibold text-white">설명</span>
+            <div className="flex items-center gap-2">
+              <span className={`text-xs transition-colors ${instrumental ? 'text-violet-400' : 'text-zinc-500'}`}>
+                인스트루멘탈
+              </span>
+              <button
+                type="button"
+                onClick={() => setInstrumental((v) => !v)}
+                disabled={isGenerating}
+                className={`relative w-9 h-5 rounded-full transition-colors duration-200 ${instrumental ? 'bg-violet-600' : 'bg-zinc-700'}`}
+              >
+                <span className={`absolute top-0.5 left-0.5 w-4 h-4 rounded-full bg-white shadow transition-transform duration-200 ${instrumental ? 'translate-x-4' : 'translate-x-0'}`} />
+              </button>
+            </div>
+          </div>
+          <div className="px-4 pb-3">
+            <textarea
+              className="w-full bg-transparent text-sm text-white resize-none focus:outline-none placeholder:text-zinc-500 leading-relaxed"
+              style={{ height: 144 }}
+              placeholder={`만들고 싶은 노래를 자유롭게 설명해주세요\n예) 싸움 후 침묵에 대한 감성적인 보사노바`}
+              value={stylePrompt}
+              onChange={(e) => setStylePrompt(e.target.value)}
+              maxLength={2000}
+              disabled={isGenerating}
+            />
+            <div className="flex items-center justify-between py-1">
+              <button
+                type="button"
+                onClick={() => changeMode('advanced')}
+                disabled={isGenerating}
+                className="text-sm text-white border border-white/[0.08] hover:border-white/20 px-4 py-1.5 rounded-full transition-colors disabled:opacity-40"
+              >
+                + 가사
+              </button>
+              <span className="text-xs text-zinc-500">{stylePrompt.length} / 2,000자</span>
+            </div>
+          </div>
+        </section>
+      )}
+
+      {mode === 'advanced' && (
+      <div className="mode-fade space-y-3">
       {isCoverCapable && (
         <section
           onClick={() => {
@@ -558,6 +663,8 @@ export function SongForm() {
           </div>
         </div>
       </section>
+      </div>
+      )}
 
       {/* 생성 버튼 */}
       <button
@@ -584,7 +691,7 @@ export function SongForm() {
             <span>음악 만들기</span>
             <span className="inline-flex items-center gap-1">
               <Image src="/Sparkles.svg" alt="" width={16} height={16} style={{ filter: 'invert(1)' }} />
-              <span className="font-extrabold tabular-nums">{creditsForModel(model)}</span>
+              <span className="font-extrabold tabular-nums">{ctaCredits}</span>
             </span>
           </span>
         )}

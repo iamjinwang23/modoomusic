@@ -46,6 +46,16 @@ html, body {
   to   { transform: translateX(0); opacity: 1; }
 }
 
+/* 심플/고급 모드 전환 — 새로 렌더되는 뷰가 살짝 떠오르며 페이드인 */
+@keyframes modeFade {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.mode-fade { animation: modeFade 0.24s ease-out; }
+@media (prefers-reduced-motion: reduce) {
+  .mode-fade { animation: none; }
+}
+
 .shimmer {
   position: relative;
   overflow: hidden;

@@ -67,11 +67,17 @@ export async function commitLyricsGen(userId: string, row: RateRow): Promise<voi
     .eq('id', userId)
 }
 
+export interface LyricsResult {
+  lyrics: string
+  styleTags: string   // 예: "Pop, Upbeat, Female Vocals" — 심플 모드 스타일 프롬프트로 사용
+  songTitle: string   // 자동 제목 — 곡 제목 자동 채움에 사용
+}
+
 // 3) MiniMax 가사 생성
-export async function generateLyrics(prompt: string): Promise<string> {
+export async function generateLyrics(prompt: string): Promise<LyricsResult> {
   if (MOCK_MODE) {
     await new Promise((r) => setTimeout(r, 1200))
-    return MOCK_LYRICS
+    return { lyrics: MOCK_LYRICS, styleTags: 'Pop, Ballad', songTitle: '오늘의 노래' }
   }
 
   const res = await fetch('https://api.minimax.io/v1/lyrics_generation', {
@@ -87,7 +93,11 @@ export async function generateLyrics(prompt: string): Promise<string> {
   if (data.base_resp?.status_code !== 0) {
     throw mapLyricsError(data.base_resp?.status_code)
   }
-  return sanitizeLyrics(typeof data.lyrics === 'string' ? data.lyrics : '')
+  return {
+    lyrics: sanitizeLyrics(typeof data.lyrics === 'string' ? data.lyrics : ''),
+    styleTags: typeof data.style_tags === 'string' ? data.style_tags : '',
+    songTitle: typeof data.song_title === 'string' ? data.song_title : '',
+  }
 }
 
 // MiniMax status_code → 한국어 메시지 (translateMinimaxError와 동일 톤)

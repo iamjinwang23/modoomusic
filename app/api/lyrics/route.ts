@@ -26,10 +26,10 @@ export async function POST(req: NextRequest) {
 
   // 3) MiniMax 가사 생성
   try {
-    const lyrics = await generateLyrics(prompt.trim())
+    const { lyrics, songTitle } = await generateLyrics(prompt.trim())
     // 4) 성공 시에만 타임스탬프 시프트
     await commitLyricsGen(user.id, rate.row)
-    return NextResponse.json({ lyrics })
+    return NextResponse.json({ lyrics, songTitle })
   } catch (e) {
     const message = e instanceof Error ? e.message : '가사를 만드는 중 문제가 생겼어요'
     return NextResponse.json({ error: message, code: 'MINIMAX_ERROR' }, { status: 502 })

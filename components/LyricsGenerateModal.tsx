@@ -9,7 +9,7 @@ import { toast } from '@/components/toast/toast'
 interface Props {
   open: boolean
   onClose: () => void
-  onGenerated: (lyrics: string) => void
+  onGenerated: (lyrics: string, songTitle?: string) => void
 }
 
 export function LyricsGenerateModal({ open, onClose, onGenerated }: Props) {
@@ -52,7 +52,7 @@ export function LyricsGenerateModal({ open, onClose, onGenerated }: Props) {
         toast.error(data?.error ?? '가사를 만드는 중 문제가 생겼어요')
         return
       }
-      onGenerated(data.lyrics ?? '')
+      onGenerated(data.lyrics ?? '', data.songTitle ?? undefined)
       setVisible(false)
       setTimeout(() => {
         setPrompt('')

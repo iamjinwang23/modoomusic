@@ -4,6 +4,7 @@ import { uploadFromUrl } from '@/services/storage.service'
 import { createUserClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { tryConsumeCredits, refundCredits } from '@/services/credit.service'
+import { generateLyrics } from '@/services/lyrics.service'
 import { inferTags } from '@/utils/extractTags'
 
 // 이미지 생성 프롬프트 우선순위: 가사 → 제목 → 스타일
@@ -25,7 +26,7 @@ function isMeaningful(s: string, minLen: number): boolean {
 }
 
 export async function POST(req: NextRequest) {
-  const { prompt, genre, mood, title, customLyrics, instrumental, model, audioBase64 } = await req.json()
+  const { prompt, genre, mood, title, customLyrics, instrumental, model, audioBase64, autoLyrics } = await req.json()
 
   if (!prompt?.trim()) {
     return NextResponse.json({ error: '스타일을 입력해주세요' }, { status: 400 })
@@ -75,7 +76,8 @@ export async function POST(req: NextRequest) {
   const inferred = (!genre || !mood)
     ? inferTags({ prompt, title, lyrics: null, customLyrics })
     : { genre: null, mood: null }
-  const isInstrumental = !!instrumental || trimmedLyrics.length === 0
+  // autoLyrics(심플 보컬)는 INSERT 시점엔 가사가 비어 있어도 이후 자동 생성되므로 instrumental 아님
+  const isInstrumental = !!instrumental || (!autoLyrics && trimmedLyrics.length === 0)
   const coverHue = Math.floor(Math.random() * 360)
   const nowIso = new Date().toISOString()
 
@@ -115,9 +117,21 @@ export async function POST(req: NextRequest) {
   // ── 5) 백그라운드: MiniMax + Storage + UPDATE → status=done. 실패 시 status=failed + 환불
   after(async () => {
     try {
-      const imagePromptInput = pickImagePrompt({ customLyrics, title, prompt })
+      // 심플 모드 자동작사: 설명(prompt)으로 가사·스타일·제목 생성 후 음악 생성에 반영
+      // (레이트리밋 미적용 — 크레딧이 게이트). 인스트루멘탈은 작사 생략.
+      let genPrompt = prompt.trim()
+      let genLyrics: string | undefined = customLyrics
+      let autoTitle: string | null = null
+      if (autoLyrics && !instrumental) {
+        const lyr = await generateLyrics(genPrompt)
+        genLyrics = lyr.lyrics
+        genPrompt = [lyr.styleTags, prompt.trim()].filter(Boolean).join('. ')
+        autoTitle = lyr.songTitle || null
+      }
+
+      const imagePromptInput = pickImagePrompt({ customLyrics: genLyrics, title, prompt })
       const [songResult, coverUrl] = await Promise.all([
-        generateSong({ prompt: prompt.trim(), genre, mood, customLyrics, instrumental, model, audioBase64 }),
+        generateSong({ prompt: genPrompt, genre, mood, customLyrics: genLyrics, instrumental, model, audioBase64 }),
         generateCoverImage([genre, mood, imagePromptInput].filter(Boolean).join(', ')),
       ])
 
@@ -133,14 +147,18 @@ export async function POST(req: NextRequest) {
         if (permCover) finalCoverUrl = permCover
       }
 
+      const updatePatch: Record<string, unknown> = {
+        audio_url: finalAudioUrl,
+        cover_image: finalCoverUrl,
+        lyrics: songResult.lyrics || null,
+        status: 'done',
+      }
+      // 자동 제목: 클라가 제목을 비워 보냈을 때만 song_title로 채움 (사용자 제목 미덮어쓰기)
+      if (autoTitle && !inserted.title) updatePatch.title = autoTitle
+
       const { error: updErr } = await admin
         .from('songs')
-        .update({
-          audio_url: finalAudioUrl,
-          cover_image: finalCoverUrl,
-          lyrics: songResult.lyrics || null,
-          status: 'done',
-        })
+        .update(updatePatch)
         .eq('id', songId)
       if (updErr) {
         console.error('[generate bg] UPDATE 실패:', updErr.message)

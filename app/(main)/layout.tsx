@@ -267,7 +267,7 @@ export default function MainShellLayout({ children }: { children: React.ReactNod
               <Link href="/terms" className="text-[11px] text-zinc-600 hover:text-zinc-400 transition-colors">이용약관</Link>
               <Link href="/privacy" className="text-[11px] text-zinc-600 hover:text-zinc-400 transition-colors">개인정보처리방침</Link>
             </div>
-            <p className="text-center text-[10px] text-zinc-700 font-mono">© 2026 mono</p>
+            <p className="text-center text-[10px] text-zinc-700">© 2026 BeeNoo Company</p>
           </div>
         </aside>
 

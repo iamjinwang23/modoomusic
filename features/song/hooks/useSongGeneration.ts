@@ -26,6 +26,7 @@ export function useSongGeneration() {
     instrumental: boolean
     model: string
     audioBase64?: string
+    autoLyrics?: boolean
   }) {
     setStatus('generating')
     setError('')

@@ -5,7 +5,6 @@ export default function CreatePage() {
   // 데스크톱은 layout 우측에 MyWorkPanel 별도
   return (
     <div className="px-6 py-6">
-      <h1 className="text-xl font-semibold mb-6">음악 만들기</h1>
       <SongForm />
     </div>
   )
