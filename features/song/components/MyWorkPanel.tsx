@@ -203,26 +203,26 @@ export function MyWorkPanel({ showCollections = false }: { showCollections?: boo
 
       {!(showCollections && tab === 'collections') && songs.length > 0 && (
         <div className="px-6 pb-3">
-          <div className="relative flex items-center h-9 md:justify-between">
+          <div className="relative flex items-center h-10 md:justify-between">
             {/* 필터 칩 — 모바일에서 검색 열리면 페이드아웃, 데스크톱은 항상 노출 */}
             <div className={`flex items-center gap-1.5 transition-opacity duration-200 md:opacity-100 md:pointer-events-auto ${searchOpen ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}>
               {([
-                ['all', '전체', null],
-                ['liked', '좋아요', '/Thumb-Up.svg'],
-                ['published', '게시', '/Publish.svg'],
-              ] as const).map(([key, label, icon]) => {
+                ['all', '전체', null, 0],
+                ['liked', '좋아요', '/Thumb-Up.svg', 15],
+                ['published', '게시', '/Publish.svg', 17],
+              ] as const).map(([key, label, icon, iconSize]) => {
                 const active = filter === key
                 return (
                   <button
                     key={key}
                     type="button"
                     onClick={() => setFilter(key)}
-                    className={`flex items-center gap-1.5 px-3.5 h-9 rounded-full text-sm transition-colors ${
-                      active ? 'bg-white text-zinc-900 font-medium' : 'bg-white/[0.06] text-zinc-400 hover:text-white'
+                    className={`flex items-center gap-1.5 px-4 h-10 rounded-full text-[15px] border transition-colors ${
+                      active ? 'bg-white border-white text-zinc-900 font-medium' : 'bg-white/[0.06] border-white/[0.08] text-zinc-400 hover:text-white'
                     }`}
                   >
                     {icon && (
-                      <Image src={icon} alt="" width={13} height={13} style={{ filter: active ? 'invert(0)' : 'invert(0.6)' }} />
+                      <Image src={icon} alt="" width={iconSize} height={iconSize} style={{ filter: active ? 'invert(0)' : 'invert(0.6)' }} />
                     )}
                     {label}
                   </button>
@@ -230,14 +230,14 @@ export function MyWorkPanel({ showCollections = false }: { showCollections?: boo
               })}
             </div>
             {/* 검색 — 모바일: 아이콘→폭 모핑(칩 덮음). 데스크톱: 항상 펼친 입력 */}
-            <div className={`absolute inset-y-0 right-0 md:static md:inset-auto flex items-center rounded-full bg-white/[0.06] border border-transparent overflow-hidden transition-[width] duration-300 ease-out shrink-0 ${searchOpen ? 'w-full border-white/[0.08]' : 'w-9'} md:w-48 md:border-white/[0.08]`}>
+            <div className={`absolute inset-y-0 right-0 md:static md:inset-auto flex items-center rounded-full bg-white/[0.06] border border-white/[0.08] overflow-hidden transition-[width] duration-300 ease-out shrink-0 ${searchOpen ? 'w-full' : 'w-10'} md:w-52`}>
               <button
                 type="button"
                 onClick={() => { setSearchOpen(true); requestAnimationFrame(() => searchInputRef.current?.focus()) }}
-                className="w-9 h-9 shrink-0 flex items-center justify-center"
+                className="w-10 h-10 shrink-0 flex items-center justify-center"
                 aria-label="검색"
               >
-                <Image src="/Search.svg" alt="" width={14} height={14} style={{ filter: 'invert(1)' }} />
+                <Image src="/Search.svg" alt="" width={18} height={18} style={{ filter: 'invert(1)' }} />
               </button>
               <input
                 ref={searchInputRef}
@@ -245,7 +245,7 @@ export function MyWorkPanel({ showCollections = false }: { showCollections?: boo
                 onChange={(e) => setQuery(e.target.value)}
                 onBlur={() => { if (!query.trim()) setSearchOpen(false) }}
                 placeholder="제목·가사·키워드 검색"
-                className="flex-1 min-w-0 bg-transparent pr-3 text-sm text-white placeholder:text-zinc-500 focus:outline-none"
+                className="flex-1 min-w-0 bg-transparent pr-3 text-[14px] text-white placeholder:text-zinc-500 focus:outline-none"
               />
             </div>
           </div>
