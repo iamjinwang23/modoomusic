@@ -96,6 +96,10 @@ export function MyWorkPanel({ showCollections = false }: { showCollections?: boo
   const [collecting, setCollecting] = useState<Song | null>(null)
   const [publishing, setPublishing] = useState<Song | null>(null)
   const [unpublishing, setUnpublishing] = useState<Song | null>(null)
+  const [filter, setFilter] = useState<'all' | 'liked' | 'published'>('all')
+  const [query, setQuery] = useState('')
+  const [searchOpen, setSearchOpen] = useState(false)  // 모바일: 검색 아이콘→폭 모핑 오버레이
+  const searchInputRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
     setSongs(user ? songService.getAll() : [])
@@ -111,6 +115,18 @@ export function MyWorkPanel({ showCollections = false }: { showCollections?: boo
       window.removeEventListener('like-updated', onLikeUpdated)
     }
   }, [user])
+
+  // 내 음악 필터(전체/좋아요/게시) + 검색(제목·가사·키워드)
+  const q = query.trim().toLowerCase()
+  const filtered = songs.filter((s) => {
+    if (filter === 'liked' && !s.liked) return false
+    if (filter === 'published' && !s.published) return false
+    if (q) {
+      const hay = [s.title, s.prompt, s.genre, s.mood, s.lyrics, s.customLyrics].filter(Boolean).join(' ').toLowerCase()
+      if (!hay.includes(q)) return false
+    }
+    return true
+  })
 
   function confirmDelete() {
     if (!deleting) return
@@ -140,16 +156,16 @@ export function MyWorkPanel({ showCollections = false }: { showCollections?: boo
   }
 
   function handleOpen(song: Song) {
-    const idx = songs.findIndex((s) => s.id === song.id)
+    const idx = filtered.findIndex((s) => s.id === song.id)
     window.dispatchEvent(new CustomEvent('view-song', {
-      detail: { feed: songs, idx, isOwner: true, ownerUserId: user?.id ?? null, ownerAvatarUrl, ownerAvatarHue, ownerName },
+      detail: { feed: filtered, idx, isOwner: true, ownerUserId: user?.id ?? null, ownerAvatarUrl, ownerAvatarHue, ownerName },
     }))
   }
 
   function handleThumbPlay(song: Song) {
-    const idx = songs.findIndex((s) => s.id === song.id)
+    const idx = filtered.findIndex((s) => s.id === song.id)
     window.dispatchEvent(new CustomEvent('play-song', {
-      detail: { feed: songs, idx, isOwner: true, ownerUserId: user?.id ?? null, ownerAvatarUrl, ownerAvatarHue, ownerName },
+      detail: { feed: filtered, idx, isOwner: true, ownerUserId: user?.id ?? null, ownerAvatarUrl, ownerAvatarHue, ownerName },
     }))
   }
 
@@ -185,6 +201,57 @@ export function MyWorkPanel({ showCollections = false }: { showCollections?: boo
         )}
       </div>
 
+      {!(showCollections && tab === 'collections') && songs.length > 0 && (
+        <div className="px-6 pb-3">
+          <div className="relative flex items-center h-9 md:justify-between">
+            {/* 필터 칩 — 모바일에서 검색 열리면 페이드아웃, 데스크톱은 항상 노출 */}
+            <div className={`flex items-center gap-1.5 transition-opacity duration-200 md:opacity-100 md:pointer-events-auto ${searchOpen ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}>
+              {([
+                ['all', '전체', null],
+                ['liked', '좋아요', '/Thumb-Up.svg'],
+                ['published', '게시', '/Publish.svg'],
+              ] as const).map(([key, label, icon]) => {
+                const active = filter === key
+                return (
+                  <button
+                    key={key}
+                    type="button"
+                    onClick={() => setFilter(key)}
+                    className={`flex items-center gap-1.5 px-3.5 h-9 rounded-full text-sm transition-colors ${
+                      active ? 'bg-white text-zinc-900 font-medium' : 'bg-white/[0.06] text-zinc-400 hover:text-white'
+                    }`}
+                  >
+                    {icon && (
+                      <Image src={icon} alt="" width={13} height={13} style={{ filter: active ? 'invert(0)' : 'invert(0.6)' }} />
+                    )}
+                    {label}
+                  </button>
+                )
+              })}
+            </div>
+            {/* 검색 — 모바일: 아이콘→폭 모핑(칩 덮음). 데스크톱: 항상 펼친 입력 */}
+            <div className={`absolute inset-y-0 right-0 md:static md:inset-auto flex items-center rounded-full bg-white/[0.06] border border-transparent overflow-hidden transition-[width] duration-300 ease-out shrink-0 ${searchOpen ? 'w-full border-white/[0.08]' : 'w-9'} md:w-48 md:border-white/[0.08]`}>
+              <button
+                type="button"
+                onClick={() => { setSearchOpen(true); requestAnimationFrame(() => searchInputRef.current?.focus()) }}
+                className="w-9 h-9 shrink-0 flex items-center justify-center"
+                aria-label="검색"
+              >
+                <Image src="/Search.svg" alt="" width={14} height={14} style={{ filter: 'invert(1)' }} />
+              </button>
+              <input
+                ref={searchInputRef}
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                onBlur={() => { if (!query.trim()) setSearchOpen(false) }}
+                placeholder="제목·가사·키워드 검색"
+                className="flex-1 min-w-0 bg-transparent pr-3 text-sm text-white placeholder:text-zinc-500 focus:outline-none"
+              />
+            </div>
+          </div>
+        </div>
+      )}
+
       {showCollections && tab === 'collections' ? (
         <div className="flex-1 overflow-hidden">
           <MyCollectionPanel />
@@ -209,9 +276,13 @@ export function MyWorkPanel({ showCollections = false }: { showCollections?: boo
               )}
             </div>
           </div>
+        ) : filtered.length === 0 ? (
+          <div className="flex flex-col items-center justify-center h-full min-h-[200px] text-zinc-500 text-sm px-6 text-center">
+            <p>{query.trim() ? '검색 결과가 없어요' : '해당 조건의 곡이 없어요'}</p>
+          </div>
         ) : (
           <ul>
-              {songs.map((song) => (
+              {filtered.map((song) => (
                 <SongWorkItem
                   key={song.id}
                   song={song}
@@ -285,7 +356,7 @@ function IconBtn({ src, title, filter, active, count, onClick, size = 'md' }: { 
   )
 }
 
-function MoreMenu({ onEdit, onDelete, disableEdit = false }: { onEdit: () => void; onDelete: () => void; disableEdit?: boolean }) {
+function MoreMenu({ onEdit, onDelete, onPublish, disableEdit = false }: { onEdit: () => void; onDelete: () => void; onPublish?: () => void; disableEdit?: boolean }) {
   const [pos, setPos] = useState<{ top: number; right: number } | null>(null)
   const btnRef = useRef<HTMLButtonElement>(null)
 
@@ -320,6 +391,18 @@ function MoreMenu({ onEdit, onDelete, disableEdit = false }: { onEdit: () => voi
             className="fixed bg-[#282D38] border border-white/[0.08] rounded-xl py-1 min-w-[110px] shadow-xl z-[55]"
             style={{ top: pos.top, right: pos.right }}
           >
+            {onPublish && (
+              <>
+                <button
+                  onClick={() => { close(); onPublish() }}
+                  className="w-full flex items-center gap-2.5 px-3 py-2.5 text-sm text-white hover:bg-white/[0.06] transition-colors"
+                >
+                  <Image src="/Publish.svg" alt="" width={14} height={14} style={{ filter: ICON_FILTER }} />
+                  게시하기
+                </button>
+                <div className="my-1 h-px bg-white/[0.06]" />
+              </>
+            )}
             {!disableEdit && (
               <button
                 onClick={() => { close(); onEdit() }}
@@ -479,8 +562,13 @@ function SongWorkItem({ song, onOpen, onEdit, onDelete, onCollect, onPublish, on
                 {isGenerating ? '음악 만드는 중…' : isFailed ? '생성에 실패했어요' : song.prompt}
               </p>
             </button>
-            {/* generating일 땐 편집 메뉴 숨기고 삭제만 가능하게 */}
-            <MoreMenu onEdit={onEdit} onDelete={onDelete} disableEdit={isGenerating || isFailed} />
+            {/* generating일 땐 편집 메뉴 숨기고 삭제만 가능하게. 미게시 곡은 '게시하기'를 더보기 안으로 */}
+            <MoreMenu
+              onEdit={onEdit}
+              onDelete={onDelete}
+              onPublish={!song.published && !isGenerating && !isFailed ? onPublish : undefined}
+              disableEdit={isGenerating || isFailed}
+            />
           </div>
 
           {/* 액션 아이콘 행 — generating/failed면 숨김 (모바일에선 썸네일 안쪽으로 끌어올림) */}
@@ -493,30 +581,32 @@ function SongWorkItem({ song, onOpen, onEdit, onDelete, onCollect, onPublish, on
             <IconBtn src="/Thumb-Up.svg" title="좋아요" filter={ICON_FILTER} active={liked} count={song.likeCount ?? 0} onClick={handleLike} size="sm" />
             <IconBtn src="/Collection.svg" title="컬렉션" filter={ICON_FILTER} active={inCollection} onClick={onCollect} size="sm" />
             <IconBtn src="/Share.svg" title="공유" filter={ICON_FILTER} onClick={handleShare} size="sm" />
-            <button
-              type="button"
-              onMouseDown={(e) => { e.stopPropagation(); song.published ? onUnpublish() : onPublish() }}
-              className={`h-[30px] md:h-[35px] px-3 md:px-3.5 text-xs rounded-full border transition-all flex items-center gap-1 md:gap-1.5 group/pub ${
-                song.published
-                  ? 'bg-white border-white text-zinc-900 hover:bg-zinc-100'
-                  : 'border-white/20 text-zinc-400 hover:text-white hover:border-white/40'
-              }`}
-            >
-              <Image
-                src="/Publish.svg"
-                alt=""
-                width={18}
-                height={18}
-                className="w-4 h-4 md:w-[18px] md:h-[18px]"
-                style={{ filter: song.published ? 'invert(0)' : ICON_FILTER }}
-              />
-              {song.published ? (
-                <>
-                  <span className="group-hover/pub:hidden">게시됨</span>
-                  <span className="hidden group-hover/pub:inline text-red-500">게시 삭제</span>
-                </>
-              ) : '게시하기'}
-            </button>
+            {/* 게시됨 상태만 행에 노출. 호버 시 아이콘 360° 회전 + 텍스트(게시됨↔게시 삭제) 폭이 부드럽게 모핑 */}
+            {song.published && (
+              <button
+                type="button"
+                onMouseDown={(e) => { e.stopPropagation(); onUnpublish() }}
+                className="h-[30px] md:h-[35px] px-3 md:px-3.5 text-xs rounded-full border bg-white border-white text-zinc-900 hover:bg-zinc-100 transition-colors flex items-center gap-1 md:gap-1.5 group/pub"
+              >
+                <Image
+                  src="/Publish.svg"
+                  alt=""
+                  width={18}
+                  height={18}
+                  className="w-4 h-4 md:w-[18px] md:h-[18px] shrink-0 transition-transform duration-500 ease-out group-hover/pub:rotate-[360deg]"
+                  style={{ filter: 'invert(0)' }}
+                />
+                {/* grid 0fr↔1fr 트릭 — 두 텍스트가 동시에 접히고 펴지며 폭이 자연스럽게 변함 */}
+                <span className="flex">
+                  <span className="grid grid-cols-[1fr] group-hover/pub:grid-cols-[0fr] transition-[grid-template-columns] duration-300 ease-out">
+                    <span className="overflow-hidden whitespace-nowrap">게시됨</span>
+                  </span>
+                  <span className="grid grid-cols-[0fr] group-hover/pub:grid-cols-[1fr] transition-[grid-template-columns] duration-300 ease-out">
+                    <span className="overflow-hidden whitespace-nowrap">게시 삭제</span>
+                  </span>
+                </span>
+              </button>
+            )}
           </div>
           )}
         </div>

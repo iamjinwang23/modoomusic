@@ -113,7 +113,7 @@ export function PublicSongCard({ song, onPlay, onThumbPlay, hideArtist = false }
               e.stopPropagation()
               window.dispatchEvent(new CustomEvent('view-profile', { detail: song.username }))
             }}
-            className="text-sm text-zinc-400 hover:text-white transition-colors truncate block text-left"
+            className="text-xs text-zinc-400 hover:text-white transition-colors truncate block text-left"
           >
             {song.displayName}
           </button>

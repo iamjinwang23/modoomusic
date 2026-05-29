@@ -329,9 +329,10 @@ export function SongForm() {
                 type="button"
                 onClick={() => changeMode('advanced')}
                 disabled={isGenerating}
-                className="text-sm text-white border border-white/[0.08] hover:border-white/20 px-4 py-1.5 rounded-full transition-colors disabled:opacity-40"
+                className="flex items-center gap-1 text-sm text-white border border-white/[0.08] hover:border-white/20 px-4 py-1.5 rounded-full transition-colors disabled:opacity-40"
               >
-                + 가사
+                <Image src="/Add.svg" alt="" width={14} height={14} style={{ filter: 'invert(1)' }} />
+                가사
               </button>
               <span className="text-xs text-zinc-500">{stylePrompt.length} / 2,000자</span>
             </div>
