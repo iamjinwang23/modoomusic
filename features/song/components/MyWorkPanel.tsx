@@ -468,7 +468,7 @@ function SongWorkItem({ song, onOpen, onEdit, onDelete, onCollect, onPublish, on
               className={`flex-1 min-w-0 text-left ${isGenerating ? 'cursor-default' : ''}`}
             >
               <div className="flex items-center gap-1.5 min-w-0">
-                <p className="text-base font-medium text-white truncate">{displayTitle}</p>
+                <p className="text-sm font-medium text-white truncate">{displayTitle}</p>
                 {song.instrumental && !isGenerating && (
                   <span className="shrink-0 text-[10px] text-zinc-400 bg-zinc-800 px-1.5 py-0.5 rounded border border-white/[0.06] leading-none">
                     Inst.

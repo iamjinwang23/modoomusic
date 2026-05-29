@@ -353,11 +353,11 @@ export function MyCollectionPanel() {
   return (
     <div className="flex flex-col h-full">
       <div className="flex-1 overflow-y-auto">
-        <div className="flex flex-wrap gap-3 p-4">
+        <div className="grid gap-3 p-4 [grid-template-columns:repeat(auto-fill,minmax(150px,1fr))] md:[grid-template-columns:repeat(auto-fill,minmax(200px,1fr))]">
           {/* + 만들기 카드 */}
           <div
             onClick={() => setCreating(true)}
-            className="w-[200px] cursor-pointer group"
+            className="w-full cursor-pointer group"
           >
             <div className="w-full aspect-square rounded-2xl bg-zinc-800/60 border-2 border-dashed border-zinc-700 group-hover:border-zinc-500 group-hover:bg-zinc-800 transition-colors flex flex-col items-center justify-center gap-2">
               <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="text-zinc-500 group-hover:text-zinc-300 transition-colors">
@@ -369,7 +369,7 @@ export function MyCollectionPanel() {
 
           {/* 컬렉션 폴더들 */}
           {collections.map((col) => (
-            <div key={col.id} className="w-[200px] group cursor-pointer" onClick={() => setSelected(col)}>
+            <div key={col.id} className="w-full group cursor-pointer" onClick={() => setSelected(col)}>
               <div className="relative overflow-hidden rounded-2xl">
                 <FolderCover collection={col} isDefault={col.id === 'col-default'} className="transition-transform duration-300 ease-out group-hover:scale-[1.05]" />
                 {col.id !== 'col-default' && (
