@@ -7,6 +7,7 @@ import { MODELS, creditsForModel, type MusicModelId } from '@/services/minimax.s
 import { useAuth } from '@/components/AuthProvider'
 import { toast } from '@/components/toast/toast'
 import { RefAudioTrimModal } from '@/components/RefAudioTrimModal'
+import { LyricsGenerateModal } from '@/components/LyricsGenerateModal'
 
 const MIN_LYRICS_LENGTH = 10  // MiniMax 최소 가사 길이
 
@@ -89,6 +90,7 @@ export function SongForm() {
   const [styleRefDontShow, setStyleRefDontShow] = useState(false)
   const [vocalGender, setVocalGender] = useState<'male' | 'female' | null>(null)
   const [model, setModel] = useState<MusicModelId>('music-2.0')
+  const [lyricsModalOpen, setLyricsModalOpen] = useState(false)
   const [modelDropOpen, setModelDropOpen] = useState(false)
   const modelDropRef = useRef<HTMLDivElement>(null)
 
@@ -163,6 +165,13 @@ export function SongForm() {
 
   function addChip(chip: string) {
     setStylePrompt((prev) => (prev ? `${prev}, ${chip}` : chip))
+  }
+
+  function handleLyricsGenerated(next: string) {
+    if (lyrics.trim() && !confirm('현재 가사를 새로 만든 가사로 바꿀까요?')) return
+    setLyrics(next)
+    if (instrumental) setInstrumental(false)  // 가사가 생겼으니 보컬 모드로
+    toast.success('가사를 만들었어요')
   }
 
   function buildPrompt() {
@@ -429,8 +438,17 @@ export function SongForm() {
               maxLength={3500}
               disabled={isGenerating}
             />
-            <div className="flex justify-end py-1">
-              <span className="text-xs text-zinc-500">{lyrics.length} / 3,500</span>
+            <div className="flex items-center justify-between py-1">
+              <button
+                type="button"
+                onClick={() => setLyricsModalOpen(true)}
+                disabled={isGenerating}
+                className="flex items-center gap-1.5 text-sm text-white border border-white/[0.08] hover:border-white/20 px-4 py-1.5 rounded-full transition-colors disabled:opacity-40"
+              >
+                <Image src="/Ai-Generate-Text.svg" alt="" width={14} height={14} style={{ filter: 'invert(1)' }} />
+                AI 가사
+              </button>
+              <span className="text-xs text-zinc-500">{lyrics.length} / 3,500자</span>
             </div>
           </div>
           <ResizeHandle onMouseDown={lyricsResize.onMouseDown} dragging={lyricsResize.dragging} />
@@ -441,7 +459,6 @@ export function SongForm() {
       <section className="rounded-xl border border-white/[0.08] bg-[#1E2129] overflow-hidden group">
         <div className="px-4 py-3 flex items-center gap-1">
           <span className="text-sm font-semibold text-white">스타일</span>
-          <span className="text-red-400 text-xs">*</span>
         </div>
         <div className="px-4 space-y-3">
           <textarea
@@ -454,7 +471,7 @@ export function SongForm() {
             disabled={isGenerating}
           />
           <div className="flex justify-end">
-            <span className="text-xs text-zinc-500">{stylePrompt.length} / 2,000</span>
+            <span className="text-xs text-zinc-500">{stylePrompt.length} / 2,000자</span>
           </div>
           {/* 퀵 태그 */}
           <div className="flex items-center gap-1.5 pb-3">
@@ -638,6 +655,13 @@ export function SongForm() {
           }}
         />
       )}
+
+      {/* AI 가사 생성 모달 */}
+      <LyricsGenerateModal
+        open={lyricsModalOpen}
+        onClose={() => setLyricsModalOpen(false)}
+        onGenerated={handleLyricsGenerated}
+      />
     </form>
   )
 }

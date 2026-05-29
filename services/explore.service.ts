@@ -227,6 +227,24 @@ export const exploreService = {
     return filled
   },
 
+  // is_public 필터 없이 조회 — 알림 라우팅 등 본인 소유 비공개 곡(예: 생성 완료 직후)도 열기 위함.
+  // RLS(songs_select: is_public = true OR auth.uid() = user_id)가 권한을 보장하므로
+  // 타인의 비공개 곡은 여전히 null.
+  async getSongById(id: string): Promise<PublicSong | null> {
+    const supabase = createClient()
+    const { data, error } = await supabase
+      .from('songs')
+      .select(SONG_SELECT)
+      .eq('id', id)
+      .maybeSingle()
+    if (error || !data) {
+      if (error) console.error('[exploreService.getSongById]', error.message)
+      return null
+    }
+    const [filled] = await fillIsLiked(supabase, [rowToPublicSong(data as unknown as SongRow)])
+    return filled
+  },
+
   // 공개 곡의 genre/mood 칩 — 명시 값 + prompt/title/lyrics에서 추출 합집합
   // (기존 곡들이 genre/mood NULL이어도 prompt 텍스트에서 자동 추출)
   async getAvailableTags(): Promise<{ genres: string[]; moods: string[] }> {

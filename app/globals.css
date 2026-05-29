@@ -11,6 +11,21 @@ html, body {
   color: #fff;
 }
 
+/* 스크롤바 — 다크 테마에 맞게 은은하게 (기본 밝은 스크롤바 대체)
+   @layer base에 넣어 Tailwind utilities(예: 캐러셀의 [&::-webkit-scrollbar]:hidden)가
+   우선순위로 이기도록 함. 레이어 밖이면 specificity 무관하게 유틸리티를 덮어써 숨김이 풀림. */
+@layer base {
+  ::-webkit-scrollbar { width: 8px; height: 8px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.12);
+    border-radius: 9999px;
+  }
+  ::-webkit-scrollbar-thumb:hover { background: rgba(255, 255, 255, 0.22); }
+  /* Firefox */
+  * { scrollbar-width: thin; scrollbar-color: rgba(255, 255, 255, 0.15) transparent; }
+}
+
 @keyframes marquee-scroll {
   0%   { transform: translateX(0); }
   100% { transform: translateX(-50%); }

@@ -48,8 +48,9 @@ export function NotificationPanel({ mode, onClose }: Props) {
 
     // 타입별 라우팅
     if ((n.type === 'like' || n.type === 'song_complete' || n.type === 'comment') && n.songId) {
-      // 공개 곡 fetch → view-song 디스패치
-      const pub = await exploreService.getPublicSongById(n.songId)
+      // 곡 fetch → view-song 디스패치. song_complete는 본인 비공개 곡이라 is_public 필터 없는 getSongById 사용
+      // (RLS가 소유자만 비공개 접근 허용). like/comment 대상 곡도 동일하게 조회됨.
+      const pub = await exploreService.getSongById(n.songId)
       if (pub) {
         window.dispatchEvent(new CustomEvent('view-song', {
           detail: {
