@@ -40,6 +40,7 @@ export default function MainShellLayout({ children }: { children: React.ReactNod
 
   const [loginOpen, setLoginOpen] = useState(false)
   const [userMenuOpen, setUserMenuOpen] = useState(false)
+  const [legalMenuOpen, setLegalMenuOpen] = useState(false)
   const [onboardingOpen, setOnboardingOpen] = useState(false)
   const [comingSoon, setComingSoon] = useState<null | 'sidebar' | 'locked-model' | 'daily-limit'>(null)
   const [songOverlayOpen, setSongOverlayOpen] = useState(false)
@@ -256,6 +257,42 @@ export default function MainShellLayout({ children }: { children: React.ReactNod
             </div>
           </nav>
           <div className="p-3 space-y-2">
+            {/* 더보기 — 클릭 시 위로 팝업 */}
+            <div className="relative">
+              <button
+                onClick={() => setLegalMenuOpen((v) => !v)}
+                className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-base text-white hover:bg-white/[0.04] transition-colors"
+              >
+                <Image src="/More-3.svg" alt="" width={18} height={18} style={{ filter: 'invert(0.4)' }} />
+                더보기
+              </button>
+              {legalMenuOpen && (
+                <>
+                  <div className="fixed inset-0 z-[54]" onClick={() => setLegalMenuOpen(false)} />
+                  <div className="absolute bottom-full left-10 mb-2 z-[55] w-56 bg-[#21252E] border border-white/[0.08] rounded-xl shadow-xl overflow-hidden py-1">
+                    {[
+                      { href: '/terms', label: '이용약관' },
+                      { href: '/privacy', label: '개인정보처리방침' },
+                      { href: '/policy', label: '운영정책' },
+                    ].map(({ href, label }) => (
+                      <Link
+                        key={href}
+                        href={href}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        onClick={() => setLegalMenuOpen(false)}
+                        className="flex items-center justify-between gap-2 px-4 py-2.5 text-sm text-zinc-300 hover:text-white hover:bg-white/[0.04] transition-colors"
+                      >
+                        {label}
+                        <Image src="/External-Link.svg" alt="" width={14} height={14} style={{ filter: 'invert(0.4)' }} />
+                      </Link>
+                    ))}
+                    <a href="mailto:bee202408@gmail.com" onClick={() => setLegalMenuOpen(false)} className="block px-4 py-2.5 text-sm text-zinc-300 hover:text-white hover:bg-white/[0.04] transition-colors border-t border-white/[0.06]">문의하기</a>
+                  </div>
+                </>
+              )}
+            </div>
+
             <button
               onClick={() => setComingSoon('sidebar')}
               className="relative w-full py-2.5 rounded-xl border border-violet-600 text-violet-400 text-sm font-medium overflow-hidden group hover:text-white transition-colors duration-300"
@@ -263,10 +300,6 @@ export default function MainShellLayout({ children }: { children: React.ReactNod
               <span className="absolute inset-0 bg-violet-600 scale-x-0 group-hover:scale-x-100 transition-transform duration-300 origin-center" />
               <span className="relative">플랜 업그레이드</span>
             </button>
-            <div className="flex justify-center gap-3 px-1">
-              <Link href="/terms" className="text-[11px] text-zinc-600 hover:text-zinc-400 transition-colors">이용약관</Link>
-              <Link href="/privacy" className="text-[11px] text-zinc-600 hover:text-zinc-400 transition-colors">개인정보처리방침</Link>
-            </div>
             <p className="text-center text-[10px] text-zinc-700">© 2026 BeeNoo Company</p>
           </div>
         </aside>

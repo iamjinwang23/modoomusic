@@ -118,7 +118,7 @@ export function PublicSongCard({ song, onPlay, onThumbPlay, hideArtist = false }
             {song.displayName}
           </button>
         )}
-        <div className="flex items-center gap-3 pt-1 text-sm text-zinc-500">
+        <div className="flex items-center gap-3 pt-1 text-xs text-zinc-500">
           <button
             onClick={handleLike}
             className={`flex items-center gap-1.5 transition-colors ${liked ? 'text-violet-400' : 'hover:text-zinc-300'}`}
@@ -126,14 +126,14 @@ export function PublicSongCard({ song, onPlay, onThumbPlay, hideArtist = false }
             <Image
               src="/Thumb-Up.svg"
               alt="좋아요"
-              width={14}
-              height={14}
+              width={12}
+              height={12}
               style={{ filter: liked ? 'brightness(0) saturate(100%) invert(44%) sepia(51%) saturate(1569%) hue-rotate(221deg) brightness(101%) contrast(96%)' : 'invert(0.45)' }}
             />
             {formatCount(likeCount)}
           </button>
           <span className="flex items-center gap-1.5">
-            <Image src="/Play.svg" alt="" width={14} height={14} style={{ filter: 'invert(0.45)' }} />
+            <Image src="/Play.svg" alt="" width={12} height={12} style={{ filter: 'invert(0.45)' }} />
             {formatCount(song.playCount)}
           </span>
         </div>
