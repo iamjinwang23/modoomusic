@@ -245,8 +245,21 @@ export function MyWorkPanel({ showCollections = false }: { showCollections?: boo
                 onChange={(e) => setQuery(e.target.value)}
                 onBlur={() => { if (!query.trim()) setSearchOpen(false) }}
                 placeholder="제목·가사·키워드 검색"
-                className="flex-1 min-w-0 bg-transparent pr-3 text-[14px] text-white placeholder:text-zinc-500 focus:outline-none"
+                className="flex-1 min-w-0 bg-transparent pr-1 text-[14px] text-white placeholder:text-zinc-500 focus:outline-none"
               />
+              {/* 닫기 — 모바일 펼침 상태에서만. 검색어 비우고 접힘 */}
+              {searchOpen && (
+                <button
+                  type="button"
+                  onMouseDown={() => { setQuery(''); setSearchOpen(false) }}
+                  className="md:hidden shrink-0 w-9 h-10 flex items-center justify-center text-zinc-400 hover:text-white transition-colors"
+                  aria-label="검색 닫기"
+                >
+                  <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+                    <path d="M1 1l10 10M11 1L1 11" />
+                  </svg>
+                </button>
+              )}
             </div>
           </div>
         </div>
