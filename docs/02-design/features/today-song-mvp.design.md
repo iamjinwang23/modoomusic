@@ -555,7 +555,7 @@ types/domain.ts                    — Song / UserProfile / PublicSong
 
 ---
 
-## 12. Addendum — Phase 3·4 진화 (2026-05-22 ~ 2026-06-01)
+## 12. Addendum — Phase 3·4 진화 (2026-05-22 ~ 2026-06-02)
 
 본 섹션은 2026-05-21 본 문서 작성 이후 추가된 아키텍처·데이터 모델·이벤트·UI 패턴을 모은 부록. 각 항목의 상세 plan/design은 별도 문서 참조.
 
@@ -647,7 +647,39 @@ types/domain.ts                    — Song / UserProfile / PublicSong
 - 내 음악 필터 칩(전체/좋아요/게시) + 검색(통합 부분일치), 모바일은 검색 아이콘→폭 모핑 오버레이
 - 사이드바 "더보기" 메뉴(More-3) — 약관·정책·문의
 
-### 12.9 새 함정 (관련 메모 [[feedback-code-pitfalls]] 동기화)
+### 12.9 탐색 hero + Aurora + 장르 사전 확장 (2026-06-02)
+
+- `features/explore/components/ExploreHero.tsx`: Suno 스타일 글래스모피즘 입력 박스. textarea auto-grow(2→4줄 cap), 19 장르별 placeholder + 10 타이틀 랜덤. 비로그인 → open-login / 로그인 → sessionStorage prefill·autosubmit → `/` 이동
+- `SongForm`: mount 시 prefill 소비, `pendingAutoSubmit` state로 user·prefill 준비되면 즉시 generate
+- `features/explore/components/AuroraBackground.tsx`: 페이지 fixed 그라데이션 배경. globals.css의 `.aurora-layer` 클래스(repeating-linear-gradient blue·indigo·violet + mix-blend-difference + 150s) 재사용. 좌측 사이드바 영역 제외(`md:left-60`) + mask로 상단 30%만 노출
+- `AnimatedGradientBackground` 재작성: 기존 rAF radial breathing 제거 → `.aurora-layer absolute` 사용. MyWorkPanel 빈 상태도 동일 톤(탭까지 덮음), FloatingDots 제거
+- `utils/extractTags.ts`: 12 → 19 라벨 + 기타 fallback. K-pop 독립, 트로트·레게·가스펠·라틴·동요·디스코 신규, R&B에 soul/소울. `extractGenre` 반환 타입 `string | null` → `string`. 사전 순서 = 특화 먼저 → 일반 (substring 충돌 회피)
+- 마이그레이션 018(`018_reinfer_genre.sql`): TS pickFirst와 동일한 CASE WHEN ILIKE 순서로 기존 곡 일괄 재추론
+- cron `/api/cron/backfill-tags?force=1` 옵션 추가 — 전체 재평가 모드
+
+### 12.10 곡 커버 이미지 WebP + Storage (2026-06-02, 마이그레이션 019)
+
+- **문제**: 사용자 편집·게시 시 base64 data URL이 `songs.cover_image` TEXT 컬럼에 통째로 저장 → Postgres statement timeout 폭주
+- **`utils/imageUpload.ts`** 신규: `toWebp(file, maxPx=800, quality=0.85)` + `uploadSongCover(userId, songId, file, variant)`. Storage `songs-covers/{userId}/{songId}-{cover|publish}.webp` 경로
+- `SongEditModal`·`PublishModal`: FileReader 폐기, objectURL 프리뷰 + 저장 시점 Storage 업로드 (트랜잭션 안전, 색상 선택 시 pendingFile 클리어)
+- 마이그레이션 019(`019_songs_publish_cover_image.sql`): `ALTER TABLE songs ADD COLUMN publish_cover_image text`
+- `song.service.ts` DbSong/rowToSong/songToRow/patchToRow에 매핑 추가
+- `explore.service.ts` SONG_SELECT에 추가 + `coverImage = publish_cover_image ?? cover_image` 우선 노출
+- `types/domain.ts` PublicSong에 `publishCoverImage` 필드
+- WebP 효과: 200KB → 30~60KB (3~5배 축소), DB가 아닌 Storage라 쿼리 부하 0
+- **운영 액션 (2026-06-02 완료)**: 019 SQL 적용, base64 cover_image NULL UPDATE, Storage RLS 정책 추가
+
+### 12.11 Unlisted 공유 모델 (2026-06-02)
+
+- 기존: 비공개 곡은 공유 링크 받아도 RLS에 막혀 접근 불가
+- 변경: Suno·YouTube Unlisted 패턴 — 게시 안 한 곡도 링크 받은 사람이 접근 가능. 게시는 "탐색·프로필 공식 노출" 의미로 분리
+- `app/api/songs/[id]/share/route.ts` 신규: service_role로 by-id 조회 (RLS 우회). `generating`/`failed`는 404. UUID v4 추측 불가가 보안 모델
+- `exploreService.getShareSongById` 신규: 위 API 호출 + `fillIsLiked`
+- `app/(main)/layout.tsx` 딥링크 핸들러: `getPublicSongById` → `getShareSongById` 교체
+- 탐색·프로필 list는 무변경 (여전히 `is_public=true` 필터)
+- 다음: `/song/[id]` 전용 라우트 + `generateMetadata`로 카톡·페북 공유 시 곡 커버 OG 미리보기 (2026-06-03 예정)
+
+### 12.12 새 함정 (관련 메모 [[feedback-code-pitfalls]] 동기화)
 
 본 단계에서 누적된 함정 — Plan/Design 시 반드시 참고:
 
