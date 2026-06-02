@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import Image from 'next/image'
 import { useAuth } from '@/components/AuthProvider'
@@ -8,14 +8,14 @@ import { useAuth } from '@/components/AuthProvider'
 const HERO_TITLES = [
   '듣지만 말고, 이제는 만들 시간',
   '악보는 몰라도 느낌만으로',
-  '당신의 키워드가 음악이 되는 순간',
+  '키워드가 음악이 되는 순간',
   '어떤 장르를 원하시나요?',
-  '생각나는 악기나 분위기를 적어보세요',
+  '오늘의 무드를 연주해볼까요',
   '원하는 음악의 느낌을 한 줄로',
   '이런 노래가 있었으면',
   '오늘부터 내가 프로듀서',
   '지금 이 순간 필요한 배경음악',
-  '나만의 첫 번째 플레이리스트',
+  '나의 첫 번째 플레이리스트',
 ]
 
 const PLACEHOLDER_EXAMPLES = [
@@ -55,6 +55,20 @@ export function ExploreHero() {
     () => HERO_TITLES[Math.floor(Math.random() * HERO_TITLES.length)],
   )
 
+  // Auto-grow textarea: 2줄 시작 → 4줄까지 늘어남 → 그 이상은 내부 스크롤
+  const textareaRef = useRef<HTMLTextAreaElement>(null)
+  useEffect(() => {
+    const ta = textareaRef.current
+    if (!ta) return
+    ta.style.height = 'auto'
+    const cs = window.getComputedStyle(ta)
+    const lineH = parseFloat(cs.lineHeight) || 24
+    const padTop = parseFloat(cs.paddingTop) || 0
+    const padBot = parseFloat(cs.paddingBottom) || 0
+    const maxH = lineH * 4 + padTop + padBot
+    ta.style.height = `${Math.min(ta.scrollHeight, maxH)}px`
+  }, [prompt])
+
   function handleSubmit(e?: React.FormEvent) {
     e?.preventDefault()
     if (submitting) return
@@ -77,31 +91,34 @@ export function ExploreHero() {
 
   return (
     <div className="relative mb-8">
-      <div className="md:px-10 py-12 md:py-20 flex flex-col items-center text-center">
+      <div className="md:px-10 pt-20 pb-12 md:py-20 flex flex-col items-center text-center">
         <h1 className="text-2xl md:text-4xl font-bold text-white tracking-tight drop-shadow-lg">
           {title}
         </h1>
 
         <form
           onSubmit={handleSubmit}
-          className="mt-7 md:mt-9 w-full max-w-2xl flex items-end gap-2 rounded-2xl md:rounded-3xl pl-5 pr-2 py-2 bg-white/[0.08] border border-white/20 backdrop-blur-3xl backdrop-saturate-200 shadow-[0_8px_32px_0_rgba(0,0,0,0.4),inset_0_1px_0_0_rgba(255,255,255,0.12)]"
+          className="mt-7 md:mt-9 w-full max-w-2xl flex flex-col gap-2 rounded-2xl md:rounded-3xl p-4 md:p-5 bg-white/[0.08] border border-white/20 backdrop-blur-3xl backdrop-saturate-200 shadow-[0_8px_32px_0_rgba(0,0,0,0.4),inset_0_1px_0_0_rgba(255,255,255,0.12)]"
         >
           <textarea
+            ref={textareaRef}
             value={prompt}
             onChange={(e) => setPrompt(e.target.value)}
             placeholder={placeholder}
             maxLength={200}
-            rows={3}
-            className="flex-1 bg-transparent text-sm md:text-base text-white placeholder:text-zinc-400 focus:outline-none min-w-0 resize-none py-1.5 leading-relaxed"
+            rows={2}
+            className="w-full bg-transparent text-sm md:text-base text-white placeholder:text-zinc-400 focus:outline-none resize-none leading-relaxed overflow-y-auto"
           />
-          <button
-            type="submit"
-            disabled={submitting}
-            className="shrink-0 inline-flex items-center gap-1.5 bg-violet-600 hover:bg-violet-500 text-white text-sm font-semibold px-4 md:px-5 py-2 md:py-2.5 rounded-full transition-colors disabled:opacity-60"
-          >
-            <Image src="/Sparkles.svg" alt="" width={16} height={16} style={{ filter: 'invert(1)' }} />
-            만들기
-          </button>
+          <div className="flex items-center justify-end">
+            <button
+              type="submit"
+              disabled={submitting}
+              className="shrink-0 inline-flex items-center gap-1.5 bg-violet-600 hover:bg-violet-500 text-white text-sm font-semibold px-4 md:px-5 py-2 md:py-2.5 rounded-full transition-colors disabled:opacity-60"
+            >
+              <Image src="/Sparkles.svg" alt="" width={16} height={16} style={{ filter: 'invert(1)' }} />
+              만들기
+            </button>
+          </div>
         </form>
       </div>
     </div>
