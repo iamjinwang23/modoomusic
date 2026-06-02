@@ -45,6 +45,7 @@ export interface PublicSong {
   duration?: number | null
   lyrics: string | null
   publishComment?: string
+  publishCoverImage?: string
   published?: boolean
   createdAt: string
   username: string

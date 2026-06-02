@@ -4,6 +4,8 @@ import { useState, useEffect, useRef } from 'react'
 import Image from 'next/image'
 import { songService } from '@/services/song.service'
 import { toast } from '@/components/toast/toast'
+import { uploadSongCover } from '@/utils/imageUpload'
+import { useAuth } from '@/components/AuthProvider'
 import type { Song } from '@/types/domain'
 
 const COVER_HUES = [0, 30, 60, 120, 180, 210, 260, 300]
@@ -23,13 +25,20 @@ interface Props {
 }
 
 export function SongEditModal({ song, onClose }: Props) {
+  const { user } = useAuth()
   const songId = useRef(song.id)  // 모달 오픈 시점 ID 고정 — 재생 중 곡 변경돼도 영향 없음
   const [title, setTitle] = useState(song.title ?? '')
   const [hue, setHue] = useState(song.coverHue ?? baseHue(song.id))
   const [coverImage, setCoverImage] = useState<string | null>(song.coverImage ?? null)
+  const [pendingFile, setPendingFile] = useState<File | null>(null)  // 저장 시점에 업로드 트랜잭션
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null)  // objectURL — 즉시 프리뷰
   const [showPicker, setShowPicker] = useState(false)
   const [visible, setVisible] = useState(false)
+  const [uploading, setUploading] = useState(false)
   const fileRef = useRef<HTMLInputElement>(null)
+
+  // 모달 종료 시 objectURL 정리
+  useEffect(() => () => { if (previewUrl) URL.revokeObjectURL(previewUrl) }, [previewUrl])
 
   useEffect(() => {
     const t = setTimeout(() => setVisible(true), 10)
@@ -41,11 +50,21 @@ export function SongEditModal({ song, onClose }: Props) {
     setTimeout(onClose, 280)
   }
 
-  function handleSave() {
+  async function handleSave() {
+    if (uploading) return
+    let finalCoverImage = coverImage
+    // 저장 시점에 Storage 업로드 — 파일 새로 선택했을 때만
+    if (pendingFile && user) {
+      setUploading(true)
+      const url = await uploadSongCover(user.id, songId.current, pendingFile, 'cover')
+      setUploading(false)
+      if (!url) { toast.error('커버 이미지 업로드 실패'); return }
+      finalCoverImage = url
+    }
     songService.update(songId.current, {
       title: title.trim() || null,
       coverHue: hue,
-      coverImage: coverImage ?? undefined,
+      coverImage: finalCoverImage ?? undefined,
     })
     window.dispatchEvent(new CustomEvent('song-updated'))
     toast.success('곡 정보가 저장되었어요')
@@ -53,12 +72,13 @@ export function SongEditModal({ song, onClose }: Props) {
   }
 
   function handleFile(file: File) {
-    const reader = new FileReader()
-    reader.onload = (e) => {
-      setCoverImage(e.target?.result as string)
-      setShowPicker(false)
-    }
-    reader.readAsDataURL(file)
+    // 즉시 프리뷰만 — 실제 업로드는 저장 시점
+    if (previewUrl) URL.revokeObjectURL(previewUrl)
+    const objectUrl = URL.createObjectURL(file)
+    setPreviewUrl(objectUrl)
+    setCoverImage(objectUrl)
+    setPendingFile(file)
+    setShowPicker(false)
   }
 
   return (
@@ -124,7 +144,7 @@ export function SongEditModal({ song, onClose }: Props) {
                     <button
                       key={h}
                       type="button"
-                      onClick={() => { setHue(h); setCoverImage(null); setShowPicker(false) }}
+                      onClick={() => { setHue(h); setCoverImage(null); setPendingFile(null); if (previewUrl) { URL.revokeObjectURL(previewUrl); setPreviewUrl(null) } setShowPicker(false) }}
                       className={`w-7 h-7 rounded-full transition-transform hover:scale-110 ${
                         !coverImage && hue === h ? 'ring-2 ring-white/60 ring-offset-1 ring-offset-[#21252E]' : ''
                       }`}

@@ -1,10 +1,11 @@
 'use client'
 
-import { useState, useRef } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import Image from 'next/image'
 import { songService } from '@/services/song.service'
 import { useAuth } from '@/components/AuthProvider'
 import { toast } from '@/components/toast/toast'
+import { uploadSongCover } from '@/utils/imageUpload'
 import type { Song } from '@/types/domain'
 
 interface Props {
@@ -20,12 +21,19 @@ export function PublishModal({ song, onClose }: Props) {
 
   const [coverPreview, setCoverPreview] = useState<string | null>(song.publishCoverImage ?? song.coverImage ?? null)
   const [comment, setComment] = useState(song.publishComment ?? '')
+  const [pendingFile, setPendingFile] = useState<File | null>(null)  // 게시 시점에 Storage 업로드
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null)
+  const [publishing, setPublishing] = useState(false)
   const fileRef = useRef<HTMLInputElement>(null)
 
+  useEffect(() => () => { if (previewUrl) URL.revokeObjectURL(previewUrl) }, [previewUrl])
+
   function handleFile(file: File) {
-    const reader = new FileReader()
-    reader.onload = (e) => setCoverPreview(e.target?.result as string)
-    reader.readAsDataURL(file)
+    if (previewUrl) URL.revokeObjectURL(previewUrl)
+    const objectUrl = URL.createObjectURL(file)
+    setPreviewUrl(objectUrl)
+    setCoverPreview(objectUrl)
+    setPendingFile(file)
   }
 
   function handleDrop(e: React.DragEvent) {
@@ -34,12 +42,21 @@ export function PublishModal({ song, onClose }: Props) {
     if (file?.type.startsWith('image/')) handleFile(file)
   }
 
-  function handlePublish() {
+  async function handlePublish() {
+    if (publishing) return
+    let finalCover = coverPreview
+    if (pendingFile && user) {
+      setPublishing(true)
+      const url = await uploadSongCover(user.id, song.id, pendingFile, 'publish')
+      setPublishing(false)
+      if (!url) { toast.error('커버 이미지 업로드 실패'); return }
+      finalCover = url
+    }
     songService.update(song.id, {
       published: true,
       publishedAt: new Date().toISOString(),
       publishComment: comment.trim() || undefined,
-      publishCoverImage: coverPreview ?? undefined,
+      publishCoverImage: finalCover ?? undefined,
     })
     window.dispatchEvent(new CustomEvent('song-updated'))
     toast.success('곡이 게시되었어요')

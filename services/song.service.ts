@@ -26,6 +26,7 @@ interface DbSong {
   is_public: boolean
   published_at: string | null
   publish_comment: string | null
+  publish_cover_image: string | null
   created_at: string
   play_count: number
   like_count: number
@@ -53,6 +54,7 @@ function rowToSong(r: DbSong): Song {
     published: r.is_public,
     publishedAt: r.published_at ?? undefined,
     publishComment: r.publish_comment ?? undefined,
+    publishCoverImage: r.publish_cover_image ?? undefined,
     playCount: r.play_count ?? 0,
     likeCount: r.like_count ?? 0,
     commentCount: r.comment_count ?? 0,
@@ -80,6 +82,7 @@ function songToRow(s: Song, userId: string): Partial<DbSong> {
     is_public: s.published ?? false,
     published_at: s.publishedAt ?? null,
     publish_comment: s.publishComment ?? null,
+    publish_cover_image: s.publishCoverImage ?? null,
     created_at: s.createdAt,
     status: s.status ?? 'done',
   }
@@ -103,6 +106,7 @@ function patchToRow(p: Partial<Omit<Song, 'id' | 'createdAt'>>): Record<string, 
   if ('published' in p) out.is_public = p.published
   if ('publishedAt' in p) out.published_at = p.publishedAt ?? null
   if ('publishComment' in p) out.publish_comment = p.publishComment ?? null
+  if ('publishCoverImage' in p) out.publish_cover_image = p.publishCoverImage ?? null
   return out
 }
 

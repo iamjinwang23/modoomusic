@@ -18,6 +18,7 @@ interface SongRow {
   duration: number | null
   lyrics: string | null
   publish_comment: string | null
+  publish_cover_image: string | null
   is_public: boolean | null
   created_at: string
   like_count: number | null
@@ -37,10 +38,11 @@ function rowToPublicSong(r: SongRow): PublicSong {
     instrumental: !!r.instrumental,
     audioUrl: r.audio_url ?? '',
     coverHue: r.cover_hue ?? 0,
-    coverImage: r.cover_image ?? undefined,
+    coverImage: r.publish_cover_image ?? r.cover_image ?? undefined,  // 게시용 커버 우선
     duration: r.duration,
     lyrics: r.lyrics,
     publishComment: r.publish_comment ?? undefined,
+    publishCoverImage: r.publish_cover_image ?? undefined,
     published: !!r.is_public,
     createdAt: r.created_at,
     username: r.profiles?.username ?? 'unknown',
@@ -77,7 +79,7 @@ function sortRecommended(songs: PublicSong[]): PublicSong[] {
 }
 
 const SONG_SELECT = `
-  id, title, prompt, genre, mood, instrumental, audio_url, cover_hue, cover_image,
+  id, title, prompt, genre, mood, instrumental, audio_url, cover_hue, cover_image, publish_cover_image,
   duration, lyrics, publish_comment, is_public, created_at, like_count, play_count, comment_count, user_id,
   profiles!songs_user_id_fkey ( username, display_name, avatar_hue, avatar_url )
 `
