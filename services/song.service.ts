@@ -29,6 +29,7 @@ interface DbSong {
   created_at: string
   play_count: number
   like_count: number
+  comment_count: number
   status: SongStatus | null
 }
 
@@ -54,6 +55,7 @@ function rowToSong(r: DbSong): Song {
     publishComment: r.publish_comment ?? undefined,
     playCount: r.play_count ?? 0,
     likeCount: r.like_count ?? 0,
+    commentCount: r.comment_count ?? 0,
     status: r.status ?? 'done',
   }
 }
@@ -164,6 +166,11 @@ export const songService = {
       ...s,
       duration: s.duration ?? (60 + (s.id.split('').reduce((acc, c) => acc + c.charCodeAt(0), 0) % 180)),
     }))
+  },
+
+  // 첫 Supabase 로드 완료 여부. MyWorkPanel 스켈레톤 게이팅에 사용.
+  isLoaded(): boolean {
+    return loaded
   },
 
   // 서버가 status=generating으로 INSERT한 곡을 클라이언트 캐시에 합류시키는 진입점.

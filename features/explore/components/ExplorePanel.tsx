@@ -33,7 +33,9 @@ function toSong(pub: PublicSong): Song {
     coverImage: pub.coverImage,
     playCount: pub.playCount,
     likeCount: pub.likeCount,
+    commentCount: pub.commentCount,
     publishComment: pub.publishComment,
+    published: pub.published,
   }
 }
 
@@ -219,7 +221,7 @@ function SectionAllView({
 
       <div className="flex-1 overflow-y-auto px-5 py-5">
         {loading ? (
-          <div className="flex items-center justify-center h-full text-zinc-500 text-sm">불러오는 중…</div>
+          <GridSkeleton />
         ) : feed.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-full text-zinc-500 text-sm gap-1">
             <p>{filters.length > 0 ? '해당 조건의 곡이 없어요' : '아직 공개된 곡이 없어요'}</p>
@@ -291,8 +293,8 @@ export function ExplorePanel() {
 
   if (loading) {
     return (
-      <div className="flex-1 flex items-center justify-center text-zinc-500 text-sm">
-        불러오는 중…
+      <div className="flex-1 overflow-y-auto px-5 py-6 space-y-8">
+        {HOME_SECTIONS.map((s) => <SectionCarouselSkeleton key={s.id} label={s.label} />)}
       </div>
     )
   }
@@ -318,6 +320,48 @@ export function ExplorePanel() {
           currentUserId={currentUserId}
         />
       ))}
+    </div>
+  )
+}
+
+function PublicSongCardSkeleton() {
+  return (
+    <div>
+      <div className="aspect-[2/3] w-full rounded-xl bg-white/[0.04] shimmer" />
+      <div className="pt-2 space-y-1.5">
+        <div className="h-4 w-3/4 rounded bg-white/[0.04] shimmer" />
+        <div className="h-3 w-1/2 rounded bg-white/[0.04] shimmer" />
+        <div className="flex items-center gap-3 pt-1">
+          <div className="h-3 w-8 rounded bg-white/[0.04] shimmer" />
+          <div className="h-3 w-8 rounded bg-white/[0.04] shimmer" />
+          <div className="h-3 w-8 rounded bg-white/[0.04] shimmer" />
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function SectionCarouselSkeleton({ label }: { label: string }) {
+  return (
+    <div>
+      <div className="mb-3">
+        <p className="text-xl font-semibold text-white/50">{label}</p>
+      </div>
+      <div className="flex gap-3 overflow-hidden">
+        {Array.from({ length: 8 }).map((_, i) => (
+          <div key={i} className="shrink-0 w-[150px] md:w-[200px]">
+            <PublicSongCardSkeleton />
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+function GridSkeleton({ count = 12 }: { count?: number }) {
+  return (
+    <div className="grid gap-3 [grid-template-columns:repeat(auto-fill,minmax(150px,1fr))] md:[grid-template-columns:repeat(auto-fill,minmax(200px,1fr))]">
+      {Array.from({ length: count }).map((_, i) => <PublicSongCardSkeleton key={i} />)}
     </div>
   )
 }

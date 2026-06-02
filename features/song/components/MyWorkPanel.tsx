@@ -86,6 +86,7 @@ export function MyWorkPanel({ showCollections = false }: { showCollections?: boo
   const { user } = useAuth()
   const [tab, setTab] = useState<'songs' | 'collections'>('songs')
   const [songs, setSongs] = useState<Song[]>([])
+  const [loading, setLoading] = useState<boolean>(() => !songService.isLoaded())
   const [editing, setEditing] = useState<Song | null>(null)
   const [deleting, setDeleting] = useState<Song | null>(null)
   // AuthProvider의 캐시된 profile 사용 — 중복 fetch 방지
@@ -103,7 +104,11 @@ export function MyWorkPanel({ showCollections = false }: { showCollections?: boo
 
   useEffect(() => {
     setSongs(user ? songService.getAll() : [])
-    const onUpdated = () => setSongs(user ? songService.getAll() : [])
+    setLoading(user ? !songService.isLoaded() : false)
+    const onUpdated = () => {
+      setSongs(user ? songService.getAll() : [])
+      setLoading(user ? !songService.isLoaded() : false)
+    }
     const onLikeUpdated = (e: Event) => {
       const { songId, likeCount } = (e as CustomEvent<{ songId: string; liked: boolean; likeCount: number }>).detail
       setSongs(prev => prev.map(s => s.id === songId ? { ...s, likeCount } : s))
@@ -271,7 +276,11 @@ export function MyWorkPanel({ showCollections = false }: { showCollections?: boo
         </div>
       ) : (
       <div className="flex-1 overflow-y-auto">
-        {songs.length === 0 ? (
+        {loading && songs.length === 0 ? (
+          <ul aria-label="로딩 중">
+            {Array.from({ length: 6 }).map((_, i) => <SongWorkItemSkeleton key={i} />)}
+          </ul>
+        ) : songs.length === 0 ? (
           <div className="relative h-full min-h-[420px] flex flex-col items-center justify-center text-center px-6 overflow-hidden">
             <AnimatedGradientBackground className="opacity-60" />
             <FloatingDots className="opacity-70" />
@@ -369,7 +378,7 @@ function IconBtn({ src, title, filter, active, count, onClick, size = 'md' }: { 
   )
 }
 
-function MoreMenu({ onEdit, onDelete, onPublish, disableEdit = false }: { onEdit: () => void; onDelete: () => void; onPublish?: () => void; disableEdit?: boolean }) {
+function MoreMenu({ onEdit, onDelete, onPublish, disableEdit = false, onCollect, inCollection = false }: { onEdit: () => void; onDelete: () => void; onPublish?: () => void; disableEdit?: boolean; onCollect?: () => void; inCollection?: boolean }) {
   const [pos, setPos] = useState<{ top: number; right: number } | null>(null)
   const btnRef = useRef<HTMLButtonElement>(null)
 
@@ -401,11 +410,27 @@ function MoreMenu({ onEdit, onDelete, onPublish, disableEdit = false }: { onEdit
         <>
           <div className="fixed inset-0 z-[54]" onClick={close} />
           <div
-            className="fixed bg-[#282D38] border border-white/[0.08] rounded-xl py-1 min-w-[110px] shadow-xl z-[55]"
+            className="fixed bg-[#282D38] border border-white/[0.08] rounded-xl py-1 min-w-[130px] shadow-xl z-[55]"
             style={{ top: pos.top, right: pos.right }}
           >
+            {onCollect && (
+              <button
+                onClick={(e) => { e.stopPropagation(); close(); onCollect() }}
+                className={`w-full flex items-center gap-2.5 px-3 py-2.5 text-sm hover:bg-white/[0.06] transition-colors ${inCollection ? 'text-violet-400' : 'text-white'}`}
+              >
+                <Image
+                  src="/Collection.svg"
+                  alt=""
+                  width={14}
+                  height={14}
+                  style={{ filter: inCollection ? 'brightness(0) saturate(100%) invert(44%) sepia(51%) saturate(1569%) hue-rotate(221deg) brightness(101%) contrast(96%)' : ICON_FILTER }}
+                />
+                컬렉션
+              </button>
+            )}
             {onPublish && (
               <>
+                {onCollect && <div className="my-1 h-px bg-white/[0.06]" />}
                 <button
                   onClick={() => { close(); onPublish() }}
                   className="w-full flex items-center gap-2.5 px-3 py-2.5 text-sm text-white hover:bg-white/[0.06] transition-colors"
@@ -415,6 +440,9 @@ function MoreMenu({ onEdit, onDelete, onPublish, disableEdit = false }: { onEdit
                 </button>
                 <div className="my-1 h-px bg-white/[0.06]" />
               </>
+            )}
+            {!onPublish && onCollect && (
+              <div className="my-1 h-px bg-white/[0.06]" />
             )}
             {!disableEdit && (
               <button
@@ -575,12 +603,14 @@ function SongWorkItem({ song, onOpen, onEdit, onDelete, onCollect, onPublish, on
                 {isGenerating ? '음악 만드는 중…' : isFailed ? '생성에 실패했어요' : song.prompt}
               </p>
             </button>
-            {/* generating일 땐 편집 메뉴 숨기고 삭제만 가능하게. 미게시 곡은 '게시하기'를 더보기 안으로 */}
+            {/* generating일 땐 편집·컬렉션 메뉴 숨기고 삭제만 가능하게. 미게시 곡은 '게시하기'를 더보기 안으로 */}
             <MoreMenu
               onEdit={onEdit}
               onDelete={onDelete}
               onPublish={!song.published && !isGenerating && !isFailed ? onPublish : undefined}
               disableEdit={isGenerating || isFailed}
+              onCollect={!isGenerating && !isFailed ? onCollect : undefined}
+              inCollection={inCollection}
             />
           </div>
 
@@ -592,7 +622,10 @@ function SongWorkItem({ song, onOpen, onEdit, onDelete, onCollect, onPublish, on
               <span>{formatCount(song.playCount ?? 0)}</span>
             </div>
             <IconBtn src="/Thumb-Up.svg" title="좋아요" filter={ICON_FILTER} active={liked} count={song.likeCount ?? 0} onClick={handleLike} size="sm" />
-            <IconBtn src="/Collection.svg" title="컬렉션" filter={ICON_FILTER} active={inCollection} onClick={onCollect} size="sm" />
+            <div className="flex items-center gap-1.5 px-2 md:px-2.5 h-[30px] md:h-[35px] rounded-full bg-white/[0.06] text-xs text-zinc-400 tabular-nums shrink-0">
+              <Image src="/chat.svg" alt="" width={13} height={13} className="w-[11px] h-[11px] md:w-[13px] md:h-[13px]" style={{ filter: 'invert(0.55)' }} />
+              <span>{formatCount(song.commentCount ?? 0)}</span>
+            </div>
             <IconBtn src="/Share.svg" title="공유" filter={ICON_FILTER} onClick={handleShare} size="sm" />
             {/* 게시됨 상태만 행에 노출. 호버 시 아이콘 360° 회전 + 텍스트(게시됨↔게시 삭제) 폭이 부드럽게 모핑 */}
             {song.published && (
@@ -622,6 +655,30 @@ function SongWorkItem({ song, onOpen, onEdit, onDelete, onCollect, onPublish, on
             )}
           </div>
           )}
+        </div>
+      </div>
+    </li>
+  )
+}
+
+function SongWorkItemSkeleton() {
+  return (
+    <li className="border-b border-white/[0.04] last:border-b-0">
+      <div className="px-4 py-3 flex items-stretch gap-3">
+        <div className="w-14 md:w-16 aspect-[2/3] rounded-lg shrink-0 bg-white/[0.04] shimmer" />
+        <div className="flex-1 min-w-0 flex flex-col gap-2">
+          <div className="flex items-start justify-between gap-2">
+            <div className="flex-1 min-w-0 space-y-2">
+              <div className="h-4 w-2/3 rounded bg-white/[0.04] shimmer" />
+              <div className="h-3 w-full rounded bg-white/[0.04] shimmer" />
+            </div>
+            <div className="w-8 h-8 md:w-10 md:h-10 rounded-full bg-white/[0.04] shimmer shrink-0" />
+          </div>
+          <div className="flex items-center gap-2 mt-1.5 md:mt-3">
+            {[0, 1, 2, 3].map((i) => (
+              <div key={i} className="h-[30px] md:h-[35px] w-14 rounded-full bg-white/[0.04] shimmer shrink-0" />
+            ))}
+          </div>
         </div>
       </div>
     </li>

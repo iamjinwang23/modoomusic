@@ -49,6 +49,10 @@ function ProfileSongThumb({ song, onPlay, onThumbPlay }: { song: PublicSong; onP
           {formatCount(song.likeCount)}
         </span>
         <span className="flex items-center gap-0.5">
+          <Image src="/chat.svg" alt="" width={10} height={10} style={{ filter: 'invert(1)' }} />
+          {formatCount(song.commentCount)}
+        </span>
+        <span className="flex items-center gap-0.5">
           <Image src="/Play.svg" alt="" width={10} height={10} style={{ filter: 'invert(1)' }} />
           {formatCount(song.playCount)}
         </span>
@@ -75,7 +79,9 @@ function toSong(pub: PublicSong): Song {
     coverImage: pub.coverImage,
     playCount: pub.playCount,
     likeCount: pub.likeCount,
+    commentCount: pub.commentCount,
     publishComment: pub.publishComment,
+    published: pub.published,
   }
 }
 
@@ -360,11 +366,7 @@ export function ProfilePanel({ username }: Props) {
   const songs = otherSongs
 
   if (loadingOther) {
-    return (
-      <div className="flex items-center justify-center h-full text-zinc-500 text-sm">
-        불러오는 중…
-      </div>
-    )
+    return <ProfilePanelSkeleton />
   }
 
   if (!profile) {
@@ -660,6 +662,47 @@ function SelfSettingsMenu() {
           </div>
         </>
       )}
+    </div>
+  )
+}
+
+function ProfilePanelSkeleton() {
+  return (
+    <div className="flex-1 overflow-y-auto">
+      {/* 커버 배너 — 1064/368 비율 */}
+      <div className="w-full max-w-[1064px] mx-auto" style={{ aspectRatio: '1064/368' }}>
+        <div className="w-full h-full bg-white/[0.04] shimmer md:rounded-b-xl" />
+      </div>
+      {/* 본문 영역 */}
+      <div className="max-w-[1064px] mx-auto px-5 pb-10">
+        {/* 아바타 + 이름 행 */}
+        <div className="flex items-end gap-4 -mt-12 mb-5">
+          <div className="w-24 h-24 rounded-full bg-white/[0.04] shimmer border-4 border-[#171A20] shrink-0" />
+          <div className="flex-1 min-w-0 space-y-2 pb-2">
+            <div className="h-5 w-40 rounded bg-white/[0.04] shimmer" />
+            <div className="h-3 w-28 rounded bg-white/[0.04] shimmer" />
+          </div>
+          <div className="h-9 w-24 rounded-full bg-white/[0.04] shimmer shrink-0" />
+        </div>
+        {/* 스탯/링크 행 */}
+        <div className="flex items-center gap-3 mb-6">
+          <div className="h-3 w-16 rounded bg-white/[0.04] shimmer" />
+          <div className="h-3 w-16 rounded bg-white/[0.04] shimmer" />
+          <div className="h-3 w-16 rounded bg-white/[0.04] shimmer" />
+        </div>
+        {/* 곡 grid */}
+        <div className="grid gap-3 [grid-template-columns:repeat(auto-fill,minmax(150px,1fr))] md:[grid-template-columns:repeat(auto-fill,minmax(200px,1fr))]">
+          {Array.from({ length: 8 }).map((_, i) => (
+            <div key={i}>
+              <div className="aspect-[2/3] w-full rounded-xl bg-white/[0.04] shimmer" />
+              <div className="pt-2 space-y-1.5">
+                <div className="h-4 w-3/4 rounded bg-white/[0.04] shimmer" />
+                <div className="h-3 w-1/2 rounded bg-white/[0.04] shimmer" />
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
     </div>
   )
 }

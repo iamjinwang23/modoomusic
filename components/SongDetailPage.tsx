@@ -5,6 +5,7 @@ import Image from 'next/image'
 import { songService } from '@/services/song.service'
 import { SongEditModal } from '@/components/SongEditModal'
 import { CollectionPickerModal } from '@/features/song/components/CollectionPickerModal'
+import { PublishModal } from '@/features/song/components/PublishModal'
 import { collectionService } from '@/services/collection.service'
 import { useAuth } from '@/components/AuthProvider'
 import { useGlobalPlayer } from '@/contexts/GlobalPlayerContext'
@@ -16,6 +17,7 @@ import { useOptimisticToggle } from '@/hooks/useOptimisticToggle'
 import { createClient } from '@/lib/supabase/client'
 import type { Song } from '@/types/domain'
 import { MarqueeText } from '@/components/MarqueeText'
+import { CommentsPanel } from '@/components/CommentsPanel'
 
 interface SongProfile {
   displayName: string
@@ -69,6 +71,9 @@ export function SongDetailPage({ onBack, profile }: Props) {
     patchSong,
   } = useGlobalPlayer()
 
+  // 모바일 가사·댓글 토글 (데스크톱은 가로 분할로 동시 노출)
+  const [tab, setTab] = useState<'lyrics' | 'comments'>('lyrics')
+
   // 곡 소유자 팔로우 상태 fetch (initial 동기화) — ownerUserId 변경 시마다
   const [followingInitial, setFollowingInitial] = useState(false)
   useEffect(() => {
@@ -107,7 +112,21 @@ export function SongDetailPage({ onBack, profile }: Props) {
   const [inCollection, setInCollection] = useState(false)
   const [editOpen, setEditOpen] = useState(false)
   const [confirmDelete, setConfirmDelete] = useState(false)
+  const [publishOpen, setPublishOpen] = useState(false)
+  const [confirmUnpublish, setConfirmUnpublish] = useState(false)
   const [liked, setLiked] = useState(song?.liked ?? false)
+
+  // 댓글 작성/삭제 시 액션 행 댓글 수 즉시 갱신
+  useEffect(() => {
+    function onChange(e: Event) {
+      const { songId, delta } = (e as CustomEvent<{ songId: string; delta: number }>).detail
+      if (song?.id === songId) {
+        patchSong?.({ commentCount: Math.max(0, (song.commentCount ?? 0) + delta) })
+      }
+    }
+    window.addEventListener('song-comment-count-changed', onChange)
+    return () => window.removeEventListener('song-comment-count-changed', onChange)
+  }, [song?.id, song?.commentCount, patchSong])
 
   // Sync liked state when song changes
   useEffect(() => {
@@ -334,23 +353,41 @@ export function SongDetailPage({ onBack, profile }: Props) {
               <span className="text-xs font-medium text-zinc-400 tabular-nums">{formatCount(song.playCount ?? 0)}</span>
             </div>
             <ActionBtn title="좋아요" icon="/Thumb-Up.svg" active={liked} count={song.likeCount ?? 0} onClick={handleLike} />
-            <ActionBtn title="컬렉션" icon="/Collection.svg" active={inCollection} onClick={() => setCollectOpen(true)} />
+            <div className="flex items-center gap-1.5 px-3 h-10 rounded-full bg-white/[0.08]">
+              <Image src="/chat.svg" alt="댓글수" width={16} height={16} style={{ filter: 'invert(0.55)' }} />
+              <span className="text-xs font-medium text-zinc-400 tabular-nums">{formatCount(song.commentCount ?? 0)}</span>
+            </div>
             <ActionBtn title="공유" icon="/Share.svg" onClick={handleShare} />
-            {isOwner && (
-              <>
-                <ActionBtn title="저장" icon="/Arrow-To-Down.svg" onClick={() => window.dispatchEvent(new CustomEvent('open-coming-soon', { detail: 'sidebar' }))} />
-                <OwnerMenu
-                  onEdit={() => setEditOpen(true)}
-                  onDelete={() => setConfirmDelete(true)}
-                />
-              </>
-            )}
+            <SongMoreMenu
+              isOwner={isOwner}
+              inCollection={inCollection}
+              onCollect={() => setCollectOpen(true)}
+              onEdit={isOwner ? () => setEditOpen(true) : undefined}
+              onDelete={isOwner ? () => setConfirmDelete(true) : undefined}
+              onPublish={isOwner && !song.published ? () => setPublishOpen(true) : undefined}
+              onUnpublish={isOwner && song.published ? () => setConfirmUnpublish(true) : undefined}
+            />
           </div>
           </div> {/* /커버 아래 컨테이너 */}
         </div>
 
-        {/* 우측(데스크톱) / 하단(모바일) — 제목(데스크톱만)·스타일·가사 */}
-        <div className="flex-1 md:overflow-y-auto px-5 md:py-5 md:pr-6 md:pl-1 pb-8">
+        {/* 우측(데스크톱) / 하단(모바일) — 데스크톱: 가사 옆 댓글 / 모바일: 가사·댓글 토글 */}
+        <div className="flex-1 px-5 md:py-5 md:pr-6 md:pl-1 pb-8 md:flex md:flex-row md:gap-5 md:overflow-hidden">
+          {/* 좌측 패널: 헤더 + 가사 (모바일에선 가사 탭일 때만) */}
+          <div className={`md:flex-1 md:min-w-0 md:overflow-y-auto ${tab === 'comments' ? 'hidden md:block' : ''}`}>
+            {/* 모바일 가사·댓글 토글 (공개 곡일 때만 댓글 노출) */}
+            {song.published && (
+              <div className="md:hidden mb-4">
+                <div className="inline-flex rounded-full bg-white/[0.06] p-1">
+                  {(['lyrics', 'comments'] as const).map((t) => (
+                    <button key={t} type="button" onClick={() => setTab(t)}
+                      className={`px-5 py-1.5 rounded-full text-sm font-medium transition-colors ${tab === t ? 'bg-white text-zinc-900' : 'text-zinc-400 hover:text-white'}`}>
+                      {t === 'lyrics' ? '가사' : '댓글'}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
           {/* 제목·프로필·스타일·날짜 + 액션 — 데스크톱만, justify-between으로 아이콘을 커버 하단에 정렬 */}
           <div className="hidden md:flex flex-col justify-between gap-6 min-h-[300px] mb-6">
             <div className="flex flex-col gap-4">
@@ -418,17 +455,20 @@ export function SongDetailPage({ onBack, profile }: Props) {
                 <span className="text-xs font-medium text-zinc-400 tabular-nums">{formatCount(song.playCount ?? 0)}</span>
               </div>
               <ActionBtn title="좋아요" icon="/Thumb-Up.svg" active={liked} count={song.likeCount ?? 0} onClick={handleLike} />
-              <ActionBtn title="컬렉션" icon="/Collection.svg" active={inCollection} onClick={() => setCollectOpen(true)} />
+              <div className="flex items-center gap-1.5 px-3 h-10 rounded-full bg-white/[0.08]">
+                <Image src="/chat.svg" alt="댓글수" width={16} height={16} style={{ filter: 'invert(0.55)' }} />
+                <span className="text-xs font-medium text-zinc-400 tabular-nums">{formatCount(song.commentCount ?? 0)}</span>
+              </div>
               <ActionBtn title="공유" icon="/Share.svg" onClick={handleShare} />
-              {isOwner && (
-                <>
-                  <ActionBtn title="저장" icon="/Arrow-To-Down.svg" onClick={() => window.dispatchEvent(new CustomEvent('open-coming-soon', { detail: 'sidebar' }))} />
-                  <OwnerMenu
-                    onEdit={() => setEditOpen(true)}
-                    onDelete={() => setConfirmDelete(true)}
-                  />
-                </>
-              )}
+              <SongMoreMenu
+                isOwner={isOwner}
+                inCollection={inCollection}
+                onCollect={() => setCollectOpen(true)}
+                onEdit={isOwner ? () => setEditOpen(true) : undefined}
+                onDelete={isOwner ? () => setConfirmDelete(true) : undefined}
+                onPublish={isOwner && !song.published ? () => setPublishOpen(true) : undefined}
+                onUnpublish={isOwner && song.published ? () => setConfirmUnpublish(true) : undefined}
+              />
             </div>
           </div>
 
@@ -440,6 +480,28 @@ export function SongDetailPage({ onBack, profile }: Props) {
               </p>
             </div>
           )}
+          </div>
+
+          {/* 우측 패널: 댓글 (모바일에선 댓글 탭일 때만) */}
+          <div className={`md:flex-1 md:min-w-0 md:overflow-y-auto md:border-l md:border-white/[0.06] md:pl-5 ${tab === 'lyrics' ? 'hidden md:block' : ''}`}>
+            {song.published && (
+              <div className="md:hidden mb-4">
+                <div className="inline-flex rounded-full bg-white/[0.06] p-1">
+                  {(['lyrics', 'comments'] as const).map((t) => (
+                    <button key={t} type="button" onClick={() => setTab(t)}
+                      className={`px-5 py-1.5 rounded-full text-sm font-medium transition-colors ${tab === t ? 'bg-white text-zinc-900' : 'text-zinc-400 hover:text-white'}`}>
+                      {t === 'lyrics' ? '가사' : '댓글'}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+            <CommentsPanel
+              songId={song.id}
+              songOwnerId={ownerUserId ?? null}
+              songIsPublic={!!song.published}
+            />
+          </div>
         </div>
       </div>
 
@@ -463,6 +525,35 @@ export function SongDetailPage({ onBack, profile }: Props) {
             <div className="flex gap-2 justify-end">
               <button onClick={() => setConfirmDelete(false)} className="px-4 py-2 rounded-xl text-sm text-zinc-400 hover:text-white hover:bg-white/[0.06] transition-colors">아니요</button>
               <button onClick={handleDelete} className="px-5 py-2 rounded-xl text-sm font-semibold bg-red-600 hover:bg-red-500 text-white transition-colors">네</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {publishOpen && song && (
+        <PublishModal song={song} onClose={() => setPublishOpen(false)} />
+      )}
+
+      {confirmUnpublish && song && (
+        <div className="fixed inset-0 z-[70] flex items-center justify-center p-6">
+          <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={() => setConfirmUnpublish(false)} />
+          <div className="relative bg-[#21252E] border border-white/[0.10] rounded-2xl p-5 w-full max-w-[320px] shadow-2xl">
+            <p className="text-sm font-semibold text-white mb-1">게시를 취소하시겠어요?</p>
+            <p className="text-xs text-zinc-400 mb-5">게시 취소하면 더이상 탐색과 프로필, 검색에서 노출되지 않아요.</p>
+            <div className="flex gap-2 justify-end">
+              <button onClick={() => setConfirmUnpublish(false)} className="px-4 py-2 rounded-xl text-sm text-zinc-400 hover:text-white hover:bg-white/[0.06] transition-colors">취소</button>
+              <button
+                onClick={() => {
+                  songService.update(song.id, { published: false, publishedAt: undefined })
+                  patchSong?.({ published: false, publishedAt: undefined })
+                  setConfirmUnpublish(false)
+                  window.dispatchEvent(new CustomEvent('song-updated'))
+                  toast.info('게시가 취소되었어요')
+                }}
+                className="px-5 py-2 rounded-xl text-sm font-semibold bg-red-600 hover:bg-red-500 text-white transition-colors"
+              >
+                게시 삭제
+              </button>
             </div>
           </div>
         </div>
@@ -526,7 +617,15 @@ function ActionBtn({ title, icon, active, count, onClick }: { title: string; ico
   )
 }
 
-function OwnerMenu({ onEdit, onDelete }: { onEdit: () => void; onDelete: () => void }) {
+function SongMoreMenu({ isOwner, inCollection, onCollect, onPublish, onUnpublish, onEdit, onDelete }: {
+  isOwner: boolean
+  inCollection: boolean
+  onCollect: () => void
+  onPublish?: () => void
+  onUnpublish?: () => void
+  onEdit?: () => void
+  onDelete?: () => void
+}) {
   const [open, setOpen] = useState(false)
   const ref = useRef<HTMLDivElement>(null)
 
@@ -548,13 +647,39 @@ function OwnerMenu({ onEdit, onDelete }: { onEdit: () => void; onDelete: () => v
         <Image src="/More.svg" alt="더보기" width={18} height={18} style={{ filter: 'invert(0.55)' }} />
       </button>
       {open && (
-        <div className="absolute left-0 bottom-full mb-2 bg-[#282D38] border border-white/[0.08] rounded-xl py-1 min-w-[110px] shadow-xl z-20">
-          <button onClick={() => { setOpen(false); onEdit() }} className="w-full flex items-center gap-2.5 px-3 py-2.5 text-sm text-white hover:bg-white/[0.06] transition-colors">
-            <Image src="/Edit.svg" alt="" width={14} height={14} style={{ filter: 'invert(0.55)' }} /> 편집
+        <div className="absolute right-0 bottom-full mb-2 bg-[#282D38] border border-white/[0.08] rounded-xl py-1 min-w-[140px] shadow-xl z-20">
+          <button onClick={() => { setOpen(false); onCollect() }} className={`w-full flex items-center gap-2.5 px-3 py-2.5 text-sm hover:bg-white/[0.06] transition-colors ${inCollection ? 'text-violet-400' : 'text-white'}`}>
+            <Image src="/Collection.svg" alt="" width={14} height={14} style={{ filter: inCollection ? 'brightness(0) saturate(100%) invert(44%) sepia(51%) saturate(1569%) hue-rotate(221deg) brightness(101%) contrast(96%)' : 'invert(0.55)' }} /> 컬렉션
           </button>
-          <button onClick={() => { setOpen(false); onDelete() }} className="w-full flex items-center gap-2.5 px-3 py-2.5 text-sm text-red-400 hover:bg-red-500/10 transition-colors">
-            <Image src="/Delete-2.svg" alt="" width={14} height={14} style={{ filter: 'invert(0.4) sepia(1) saturate(3) hue-rotate(300deg)' }} /> 삭제
-          </button>
+          {isOwner && (
+            <>
+              <div className="my-1 h-px bg-white/[0.06]" />
+              {onPublish && (
+                <button onClick={() => { setOpen(false); onPublish() }} className="w-full flex items-center gap-2.5 px-3 py-2.5 text-sm text-white hover:bg-white/[0.06] transition-colors">
+                  <Image src="/Publish.svg" alt="" width={14} height={14} style={{ filter: 'invert(0.55)' }} /> 게시하기
+                </button>
+              )}
+              {onUnpublish && (
+                <button onClick={() => { setOpen(false); onUnpublish() }} className="w-full flex items-center gap-2.5 px-3 py-2.5 text-sm text-white hover:bg-white/[0.06] transition-colors">
+                  <Image src="/Publish.svg" alt="" width={14} height={14} style={{ filter: 'invert(0.55)' }} /> 게시 취소
+                </button>
+              )}
+              <button onClick={() => { setOpen(false); window.dispatchEvent(new CustomEvent('open-coming-soon', { detail: 'sidebar' })) }} className="w-full flex items-center gap-2.5 px-3 py-2.5 text-sm text-white hover:bg-white/[0.06] transition-colors">
+                <Image src="/Arrow-To-Down.svg" alt="" width={14} height={14} style={{ filter: 'invert(0.55)' }} /> 저장
+              </button>
+              <div className="my-1 h-px bg-white/[0.06]" />
+              {onEdit && (
+                <button onClick={() => { setOpen(false); onEdit() }} className="w-full flex items-center gap-2.5 px-3 py-2.5 text-sm text-white hover:bg-white/[0.06] transition-colors">
+                  <Image src="/Edit.svg" alt="" width={14} height={14} style={{ filter: 'invert(0.55)' }} /> 편집
+                </button>
+              )}
+              {onDelete && (
+                <button onClick={() => { setOpen(false); onDelete() }} className="w-full flex items-center gap-2.5 px-3 py-2.5 text-sm text-red-400 hover:bg-red-500/10 transition-colors">
+                  <Image src="/Delete-2.svg" alt="" width={14} height={14} style={{ filter: 'invert(0.4) sepia(1) saturate(3) hue-rotate(300deg)' }} /> 삭제
+                </button>
+              )}
+            </>
+          )}
         </div>
       )}
     </div>

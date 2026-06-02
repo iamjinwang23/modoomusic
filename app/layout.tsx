@@ -24,7 +24,7 @@ const jakarta = Plus_Jakarta_Sans({
 
 const SITE_URL = 'https://modoomusic.com'
 const SITE_NAME = '모두의 노래'
-const SITE_TAGLINE = '오늘 하루를 나만의 음악으로 — AI 음악 크리에이티브 플랫폼'
+const SITE_TAGLINE = 'AI 음악 크리에이티브 플랫폼'
 const SITE_DESCRIPTION = '음악 경험이 없어도 누구나 작곡할 수 있는 모두의 노래, MONO. 지금 무료로 만들어보세요.'
 
 export const metadata: Metadata = {
