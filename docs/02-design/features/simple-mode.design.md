@@ -4,7 +4,8 @@
 > **Plan**: `docs/01-plan/features/simple-mode.plan.md`
 > **Architecture**: 단일 `SongForm` + `mode` 플래그 + 상태 공유 (Plan §3-#1에서 확정)
 > **Date**: 2026-05-29
-> **Status**: Design
+> **Status**: Done (구현 완료, 2026-05-29)
+> **Last Updated**: 2026-06-01
 
 ---
 

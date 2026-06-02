@@ -6,8 +6,11 @@
 > **Version**: 0.2.0
 > **Author**: jinwang
 > **Date**: 2026-05-21
-> **Status**: Implemented (Phase 1·2)
+> **Status**: Implemented (Phase 1·2·3·4 모두 완료)
+> **Last Updated**: 2026-06-01
 > **Planning Doc**: [today-song-mvp.plan.md](../../01-plan/features/today-song-mvp.plan.md)
+
+> **갱신 이력**: 본 문서 §1~§11은 2026-05-21 작성 당시의 Phase 1·2 설계 스냅샷. Phase 3·4 진화(Supabase 마이그레이션, 알림·좋아요·팔로우·댓글, 백그라운드 생성, AI 가사·심플 모드, ⋮ 메뉴 통합, SEO, 모바일 skeleton)는 §12 Addendum 참조.
 
 ---
 
@@ -549,3 +552,111 @@ types/domain.ts                    — Song / UserProfile / PublicSong
 | `module-plan-lock` | music-cover 유료 모델 구독자 잠금 | SongForm.tsx, profiles 컬럼 추가 |
 
 사용 예: `/pdca do today-song-mvp --scope module-songs-schema,module-song-service`
+
+---
+
+## 12. Addendum — Phase 3·4 진화 (2026-05-22 ~ 2026-06-01)
+
+본 섹션은 2026-05-21 본 문서 작성 이후 추가된 아키텍처·데이터 모델·이벤트·UI 패턴을 모은 부록. 각 항목의 상세 plan/design은 별도 문서 참조.
+
+### 12.1 Phase 3 — Supabase 곡 DB·Storage·백그라운드 생성
+
+- `songs` 테이블 마이그레이션 완료 (id·user_id·title·prompt·genre·mood·lyrics·audio_url·cover_image·duration·is_public·created_at·status·model·like_count·play_count·comment_count·publish_comment·published_at)
+- `songService` 재작성: `cache` 모듈 변수 + `loaded`/`inflightLoad` 플래그 + `getAll()` 동기 반환 + `setSongOwner(userId)` 진입 + `isLoaded()` 노출
+- MiniMax 24h URL → Supabase Storage `songs/{userId}/{songId}.{ext}` 영속화
+- **백그라운드 생성** (Suno parity, 마이그레이션 011): `/api/generate`가 status=generating으로 INSERT → 즉시 응답 → Next.js `after()`로 MiniMax+Storage 처리 → UPDATE(done|failed)
+- `SongRealtimeBridge` 컴포넌트: Supabase Realtime UPDATE 구독 → 캐시 patch + "곡 완성" 토스트. **payload.old엔 PK만** 오므로 캐시의 이전 status를 기준 비교 (함정)
+- 좀비 generating row cleanup (10분 timeout, cron 통합 — Hobby 한도 2개·daily)
+
+### 12.2 알림·좋아요·팔로우 (마이그레이션 010, social-actions feature)
+
+- `notifications` 테이블 5종 타입(`like`/`song_complete`/`system`/`follow`/`comment`) + RLS + Vercel Cron daily 정리(KST 03:00, 90일+)
+- `like` 알림 dedupe: UNIQUE INDEX (영구 — 한 번 받으면 다시 안 옴)
+- `follow` 알림 폭주 차단: 미읽음 dedupe + unfollow 시 미읽음 DELETE
+- API: POST `/api/songs/[id]/like`, POST `/api/profiles/[id]/follow` (둘 다 토글 + 알림 INSERT)
+- `useOptimisticToggle` 헬퍼 — 4 컴포넌트 통일 (낙관적 UI + 롤백 + inflight 차단 + guard 콜백)
+- `fillIsLiked` 후처리로 N+1 회피 (4개 메서드 통합)
+- 알림 UI: 데스크톱 사이드바 옆 400px 오버레이 / 모바일 `/notifications` 풀페이지
+
+### 12.3 AI 가사 생성 + 심플 모드 (2026-05-29, 마이그레이션 013)
+
+- MiniMax **전용** `lyrics_generation` 엔드포인트 (크레딧 미소모, 15초 + 1분 2회 레이트리밋 — `profiles.last_lyrics_gen_at`/`prev_lyrics_gen_at` 2컬럼 게이팅)
+- 14종 구조 태그 포함 가사 + style_tags + song_title 반환
+- 어드밴스드 가사 섹션 "AI 가사" 버튼 → 팝업 → textarea 교체 + 제목 자동 채움
+- **심플 모드**: 토글로 mode 분기, localStorage 마지막 모드 복원. 자동작사(`autoLyrics`) + 모델 자동(보컬→2.0, 인스트→2.6)
+- 효과음/지문 sanitize: 14종 구조 태그 외 **대괄호 단독 라인만** 제거 (괄호 보컬 애드립은 유지)
+
+### 12.4 댓글 시스템 (2026-05-31 ~ 2026-06-01, 마이그레이션 014/015/016/017)
+
+상세는 `docs/02-design/features/comments.design.md` 참조.
+
+- 3테이블: `comments`·`comment_likes`·`comment_reports`
+- 1단계 대댓글 DB 트리거 (`enforce_comment_depth`)
+- 카운트 트리거 둘 다 `SECURITY DEFINER` (다른 사용자 row UPDATE 시 RLS 우회 — 함정)
+- `songs.comment_count` 컬럼 + top-level 전용 동기화 트리거 (017)
+- API: 6 핸들러 (GET/POST list, PATCH/DELETE, reply, like, report — 23505 멱등)
+- 컴포넌트: EmojiHotkeyBar, CommentReportModal(8 사유), CommentItem(인라인 하트·게시자 배지·더보기/접기·인라인 편집/답글), CommentsPanel(이모지+500자+카운트)
+- 알림 통합: `type='comment'` + `payload.kind`('comment'|'reply') 분기
+- SongDetailPage: 데스크톱 가사·댓글 좌우 / 모바일 `[가사|댓글]` 토글
+- 좋아요 아이콘 변경: Thumb-Up → 인라인 하트 SVG(빨강 fill)
+- `song-comment-count-changed` 커스텀 이벤트로 카운트 실시간 동기화
+
+### 12.5 ⋮ 메뉴 통합 (2026-06-01)
+
+- 행 최종 구성: 재생수·좋아요·댓글·공유·(게시됨 pill: 리스트만)·⋮
+- ⋮ 안 항목: 비소유자→컬렉션 / 소유자→컬렉션·게시하기/취소·저장(상세만)·편집·삭제
+- 컬렉션 active 시 `text-violet-400` + violet 필터
+- SongDetailPage: `OwnerMenu` → `SongMoreMenu`로 일반화 (모든 사용자에게 ⋮ 노출)
+- MyWorkPanel: 기존 `MoreMenu`에 컬렉션 항목 추가, 생성중/실패는 컬렉션 비활성
+- 게시됨 pill 위치 정책: 리스트 유지(여러 곡 훑을 때 가치), 상세 제거(단일 곡이라 중복 — OwnerMenu의 "게시 취소"로 대체)
+
+### 12.6 SEO + 검색 등록 (2026-06-01)
+
+- `app/layout.tsx` metadata 풍부화:
+  - `metadataBase`, `alternates.canonical: '/'`
+  - `title.template: '%s · 모두의 노래'`, `SITE_TAGLINE = 'AI 음악 크리에이티브 플랫폼'`
+  - openGraph(ko_KR·images 1200×630), twitter(summary_large_image), keywords, authors
+  - robots.googleBot 'max-image-preview':'large'
+  - verification: env `GOOGLE_SITE_VERIFICATION`·`NAVER_SITE_VERIFICATION` (HTML 태그 fallback)
+- JSON-LD `@graph` inline `<script type="application/ld+json">`:
+  - `Organization` (logo `ImageObject{ url, width:512, height:512 }`)
+  - `WebSite` (publisher → Organization)
+  - `WebApplication` (`MultimediaApplication`, `Offer price:0 KRW`)
+- `app/robots.ts`: `*` allow `/`, disallow `/api/`·`/auth/`·`/archive/`·`/notifications/`
+- `app/sitemap.ts` (정적): `/`(1.0 daily), `/explore`(0.8 daily), `/terms`·`/privacy`·`/policy`(0.3 monthly)
+- 공개 곡 sitemap 의도적 제외 — `?song={id}` 쿼리는 SSR 동일 콘텐츠 → duplicate content 위험
+- Google Search Console: 도메인 속성 + DNS TXT verify 완료
+- Naver Search Advisor: HTML 파일 verify 완료 (`/public/naver*.html`)
+- **Vercel Primary swap** (함정): 기존 www가 Primary였고 non-www는 307 임시 리다이렉트 → Naver 봇이 307 안 따라가 verify 실패. **non-www를 Production / www는 308 Permanent Redirect로 swap** + canonical과 일치
+
+### 12.7 Skeleton 로딩 UI (2026-06-01)
+
+- 공통: `bg-white/[0.04] shimmer` 클래스 (globals.css 기존 shimmer 키프레임 활용)
+- `MyWorkPanel`: `songService.isLoaded()` derive → loading state. 6개 `SongWorkItemSkeleton` (썸네일+제목+프롬프트+⋮+액션 알약4)
+- `ExplorePanel`:
+  - 메인: 2개 `SectionCarouselSkeleton` (라벨 유지 + 8 카드 가로)
+  - AllView: `GridSkeleton` 12 (auto-fill,minmax 150·200 grid)
+- `ProfilePanel`: `ProfilePanelSkeleton` (커버 + 아바타·이름 + 스탯 + 그리드 8)
+- 의도: 텍스트 "불러오는 중…" / 빈 상태 플래시 제거, 콘텐츠 점프 방지
+
+### 12.8 UX 폴리시 모음
+
+- 곡 표면 댓글 카운트 칩(chat.svg + count): SongDetailPage·MyWorkPanel·PublicSongCard·ProfileSongThumb (좋아요 다음 위치)
+- 모델 설명 한국어화 (Music 2.0/2.5+/2.6 desc 사용자 친화 문구로)
+- 게시됨 pill 호버 모핑 (grid 0fr↔1fr "게시됨↔게시 삭제" 폭 모핑 + 아이콘 360° 회전)
+- 내 음악 필터 칩(전체/좋아요/게시) + 검색(통합 부분일치), 모바일은 검색 아이콘→폭 모핑 오버레이
+- 사이드바 "더보기" 메뉴(More-3) — 약관·정책·문의
+
+### 12.9 새 함정 (관련 메모 [[feedback-code-pitfalls]] 동기화)
+
+본 단계에서 누적된 함정 — Plan/Design 시 반드시 참고:
+
+1. **SONG_SELECT 누락** — public 뷰에서 컬럼 조용히 사라짐 (`is_public`, `comment_count`, `publish_comment` 미포함 시 `published`/`commentCount` undefined로 나옴)
+2. **트리거 SECURITY DEFINER** — 다른 사용자 row UPDATE 트리거(좋아요·팔로우·댓글 카운트)는 반드시 정의자 권한
+3. **Realtime payload.old엔 PK만** — UPDATE 이벤트의 이전 상태는 클라이언트 캐시에서 가져와야 함
+4. **rowToPatch 필드 미러링** — 생성 후 바뀌는 모든 필드(audio·status·duration·title·cover 등)를 미러링
+5. **Apple Team ID B/8 혼동** — `Y5K8ACM8PL`은 B 아니라 8
+6. **Naver=Email 프로바이더** — Supabase Custom Provider 불가, 자체 API 라우트 + magic link
+7. **Vercel webhook 권한** — GitHub App 권한 업데이트 대기 시 자동 배포 끊김
+8. **Vercel 307 vs 308 SEO 함정** — Primary 아닌 도메인의 307 임시 리다이렉트를 Naver 봇이 안 따라감. canonical과 Primary 방향 일치 필수
+9. **마이그레이션 수동 적용 drift** — Supabase MCP 권한 부족으로 `*.sql`은 수동 SQL Editor 적용 → repo 파일과 원격 drift 가능

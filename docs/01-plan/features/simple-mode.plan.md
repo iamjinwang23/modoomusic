@@ -6,7 +6,8 @@
 > **Version**: 0.1.0
 > **Author**: jinwang
 > **Date**: 2026-05-29
-> **Status**: Planning
+> **Status**: Done (구현 완료, 2026-05-29)
+> **Last Updated**: 2026-06-01
 
 ---
 

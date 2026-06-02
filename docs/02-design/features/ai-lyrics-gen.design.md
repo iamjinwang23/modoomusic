@@ -4,7 +4,8 @@
 > **Plan**: `docs/01-plan/features/ai-lyrics-gen.plan.md`
 > **Architecture**: **Option C — 실용 균형** (가사 관심사를 `lyrics.service.ts`에 격리, 크레딧 경로 무수정)
 > **Date**: 2026-05-29
-> **Status**: Design
+> **Status**: Done (구현 완료, 2026-05-29)
+> **Last Updated**: 2026-06-01
 
 ---
 

@@ -6,7 +6,8 @@
 > **Version**: 0.1.0
 > **Author**: jinwang
 > **Date**: 2026-05-22
-> **Status**: In Progress
+> **Status**: Done (BottomNav·바텀시트·곡 상세 풀스크린·미니바·skeleton 로딩까지 완료)
+> **Last Updated**: 2026-06-01
 
 ---
 
