@@ -22,6 +22,7 @@ export interface Song {
   publishCoverImage?: string
   playCount?: number
   likeCount?: number
+  commentCount?: number
   status?: SongStatus
 }
 
@@ -44,6 +45,7 @@ export interface PublicSong {
   duration?: number | null
   lyrics: string | null
   publishComment?: string
+  published?: boolean
   createdAt: string
   username: string
   displayName: string
@@ -52,7 +54,27 @@ export interface PublicSong {
   avatarUrl?: string | null
   likeCount: number
   playCount: number
+  commentCount: number
   isLiked?: boolean
+}
+
+// Design Ref: comments §3.3 — 댓글 + 작성자 메타 (단일 GET으로 top+replies)
+export interface Comment {
+  id: string
+  songId: string
+  userId: string
+  parentId: string | null
+  body: string
+  likeCount: number
+  liked: boolean              // 현재 사용자의 좋아요 여부 (서버에서 채움)
+  createdAt: string
+  editedAt: string | null
+  user: {
+    username: string
+    displayName: string | null
+    avatarUrl: string | null
+    avatarHue: number | null
+  }
 }
 
 export interface UserProfile {

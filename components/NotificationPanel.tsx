@@ -60,6 +60,8 @@ export function NotificationPanel({ mode, onClose }: Props) {
               instrumental: pub.instrumental, audioUrl: pub.audioUrl, duration: pub.duration ?? null,
               liked: pub.isLiked, coverHue: pub.coverHue, coverImage: pub.coverImage,
               publishComment: pub.publishComment,
+              published: pub.published,
+              commentCount: pub.commentCount,
             }],
             idx: 0,
             isOwner: !!user && pub.userId === user.id,

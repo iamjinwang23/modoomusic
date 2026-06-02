@@ -18,9 +18,11 @@ interface SongRow {
   duration: number | null
   lyrics: string | null
   publish_comment: string | null
+  is_public: boolean | null
   created_at: string
   like_count: number | null
   play_count: number | null
+  comment_count: number | null
   user_id: string
   profiles: { username: string; display_name: string | null; avatar_hue: number | null; avatar_url: string | null } | null
 }
@@ -39,6 +41,7 @@ function rowToPublicSong(r: SongRow): PublicSong {
     duration: r.duration,
     lyrics: r.lyrics,
     publishComment: r.publish_comment ?? undefined,
+    published: !!r.is_public,
     createdAt: r.created_at,
     username: r.profiles?.username ?? 'unknown',
     displayName: r.profiles?.display_name ?? r.profiles?.username ?? '익명',
@@ -47,6 +50,7 @@ function rowToPublicSong(r: SongRow): PublicSong {
     avatarUrl: r.profiles?.avatar_url ?? null,
     likeCount: r.like_count ?? 0,
     playCount: r.play_count ?? 0,
+    commentCount: r.comment_count ?? 0,
     isLiked: false,  // fillIsLiked가 후처리로 덮어씀 (default false)
   }
 }
@@ -74,7 +78,7 @@ function sortRecommended(songs: PublicSong[]): PublicSong[] {
 
 const SONG_SELECT = `
   id, title, prompt, genre, mood, instrumental, audio_url, cover_hue, cover_image,
-  duration, lyrics, publish_comment, created_at, like_count, play_count, user_id,
+  duration, lyrics, publish_comment, is_public, created_at, like_count, play_count, comment_count, user_id,
   profiles!songs_user_id_fkey ( username, display_name, avatar_hue, avatar_url )
 `
 

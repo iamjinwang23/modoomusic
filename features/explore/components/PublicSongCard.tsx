@@ -121,7 +121,7 @@ export function PublicSongCard({ song, onPlay, onThumbPlay, hideArtist = false }
         <div className="flex items-center gap-3 pt-1 text-xs text-zinc-500">
           <button
             onClick={handleLike}
-            className={`flex items-center gap-1.5 transition-colors ${liked ? 'text-violet-400' : 'hover:text-zinc-300'}`}
+            className={`flex items-center gap-1 transition-colors ${liked ? 'text-violet-400' : 'hover:text-zinc-300'}`}
           >
             <Image
               src="/Thumb-Up.svg"
@@ -132,7 +132,11 @@ export function PublicSongCard({ song, onPlay, onThumbPlay, hideArtist = false }
             />
             {formatCount(likeCount)}
           </button>
-          <span className="flex items-center gap-1.5">
+          <span className="flex items-center gap-1">
+            <Image src="/chat.svg" alt="" width={12} height={12} style={{ filter: 'invert(0.45)' }} />
+            {formatCount(song.commentCount ?? 0)}
+          </span>
+          <span className="flex items-center gap-1">
             <Image src="/Play.svg" alt="" width={12} height={12} style={{ filter: 'invert(0.45)' }} />
             {formatCount(song.playCount)}
           </span>

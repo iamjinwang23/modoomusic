@@ -25,8 +25,14 @@ function renderText(n: Notification): React.ReactNode {
       return <>{title} 생성이 완료되었어요</>
     case 'follow':
       return <>{actor}님이 회원님을 팔로우했어요</>
-    case 'comment':
-      return <>{actor}님이 댓글을 남겼어요</>
+    case 'comment': {
+      // Design Ref: comments §8 — payload.kind로 댓글/답글 구분
+      const p = (n.payload as { kind?: 'comment' | 'reply' }) ?? {}
+      if (p.kind === 'reply') {
+        return <>{actor}님이 내 댓글에 답글을 남겼어요</>
+      }
+      return <>{actor}님이 {title}에 댓글을 남겼어요</>
+    }
     case 'system': {
       const p = (n.payload as NotificationSystemPayload) ?? { title: '', body: '' }
       return (
