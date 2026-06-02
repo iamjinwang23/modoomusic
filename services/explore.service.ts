@@ -253,6 +253,23 @@ export const exploreService = {
     return filled
   },
 
+  // Unlisted 공유 — `?song={id}` 딥링크 진입용. service_role API로 RLS 우회해 비공개 곡도 조회.
+  // 클라이언트 anon supabase로는 RLS에 막히므로 API 라우트를 거침.
+  async getShareSongById(id: string): Promise<PublicSong | null> {
+    try {
+      const res = await fetch(`/api/songs/${id}/share`)
+      if (!res.ok) return null
+      const { song } = await res.json()
+      if (!song) return null
+      const supabase = createClient()
+      const [filled] = await fillIsLiked(supabase, [rowToPublicSong(song as SongRow)])
+      return filled
+    } catch (e) {
+      console.error('[exploreService.getShareSongById]', e)
+      return null
+    }
+  },
+
   // 공개 곡의 genre/mood 칩 — 명시 값 + prompt/title/lyrics에서 추출 합집합
   // (기존 곡들이 genre/mood NULL이어도 prompt 텍스트에서 자동 추출)
   async getAvailableTags(): Promise<{ genres: string[]; moods: string[] }> {

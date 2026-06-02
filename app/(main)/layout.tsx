@@ -106,7 +106,7 @@ export default function MainShellLayout({ children }: { children: React.ReactNod
     const songId = params.get('song')
     if (!songId) return
     import('@/services/explore.service').then(({ exploreService }) => {
-      exploreService.getPublicSongById(songId).then((pub) => {
+      exploreService.getShareSongById(songId).then((pub) => {
         if (!pub) return
         window.dispatchEvent(new CustomEvent('view-song', {
           detail: {
