@@ -371,10 +371,10 @@ export function SongDetailPage({ onBack, profile }: Props) {
           </div> {/* /커버 아래 컨테이너 */}
         </div>
 
-        {/* 우측(데스크톱) / 하단(모바일) — 데스크톱: 가사 옆 댓글 / 모바일: 가사·댓글 토글 */}
-        <div className="flex-1 px-5 md:py-5 md:pr-6 md:pl-1 pb-8 md:flex md:flex-row md:gap-5 md:overflow-hidden">
-          {/* 좌측 패널: 헤더 + 가사 (모바일에선 가사 탭일 때만) */}
-          <div className={`md:flex-1 md:min-w-0 md:overflow-y-auto ${tab === 'comments' ? 'hidden md:block' : ''}`}>
+        {/* 우측(데스크톱) / 하단(모바일) — 데스크톱: 가사 옆 댓글 / 모바일: 가사·댓글 토글. gap 최소화로 좌측 스크롤바를 댓글 패널 경계에 붙임 */}
+        <div className="flex-1 px-5 md:py-5 md:pr-6 md:pl-1 pb-8 md:flex md:flex-row md:gap-0 md:overflow-hidden">
+          {/* 좌측 패널: 헤더 + 가사 (모바일에선 가사 탭일 때만). md:pr-3 — 복사 버튼이 스크롤바와 겹치지 않도록 */}
+          <div className={`md:flex-1 md:min-w-0 md:overflow-y-auto md:pr-3 ${tab === 'comments' ? 'hidden md:block' : ''}`}>
             {/* 모바일 가사·댓글 토글 (공개 곡일 때만 댓글 노출) */}
             {song.published && (
               <div className="md:hidden mb-4">
@@ -482,8 +482,8 @@ export function SongDetailPage({ onBack, profile }: Props) {
           )}
           </div>
 
-          {/* 우측 패널: 댓글 (모바일에선 댓글 탭일 때만) */}
-          <div className={`md:flex-1 md:min-w-0 md:overflow-y-auto md:border-l md:border-white/[0.06] md:pl-5 ${tab === 'lyrics' ? 'hidden md:block' : ''}`}>
+          {/* 우측 패널: 댓글 — 데스크톱은 고정 폭. md:-mr-6 (외부 pr-6 상쇄) + md:pr-3 (스크롤바와 컨텐츠 분리). 모바일에선 댓글 탭일 때만 */}
+          <div className={`md:w-[500px] md:shrink-0 md:overflow-y-auto md:border-l md:border-white/[0.06] md:pl-5 md:pr-3 md:-mr-6 ${tab === 'lyrics' ? 'hidden md:block' : ''}`}>
             {song.published && (
               <div className="md:hidden mb-4">
                 <div className="inline-flex rounded-full bg-white/[0.06] p-1">
