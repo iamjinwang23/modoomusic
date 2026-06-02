@@ -95,6 +95,22 @@ export function SongForm() {
   const [modelDropOpen, setModelDropOpen] = useState(false)
   const modelDropRef = useRef<HTMLDivElement>(null)
 
+  // ExploreHero 등에서 sessionStorage로 전달한 prompt를 한 번만 소비
+  const [pendingAutoSubmit, setPendingAutoSubmit] = useState(false)
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    const prefill = sessionStorage.getItem('mono.songform.prefill')
+    if (prefill) {
+      setStylePrompt(prefill)
+      setMode('simple')
+      sessionStorage.removeItem('mono.songform.prefill')
+    }
+    if (sessionStorage.getItem('mono.songform.autosubmit') === '1') {
+      sessionStorage.removeItem('mono.songform.autosubmit')
+      setPendingAutoSubmit(true)
+    }
+  }, [])
+
   useEffect(() => {
     if (!modelDropOpen) return
     function handler(e: MouseEvent) {
@@ -120,6 +136,26 @@ export function SongForm() {
   // 심플 모드 모델: 보컬→2.0, 인스트루멘탈→2.6 (2.0은 인스트루멘탈 미지원)
   const simpleModel: MusicModelId = instrumental ? 'music-2.6' : 'music-2.0'
   const ctaCredits = creditsForModel(mode === 'simple' ? simpleModel : model)
+
+  // ExploreHero에서 autosubmit 플래그를 받았으면 user·prefill 둘 다 준비된 시점에 즉시 generate
+  useEffect(() => {
+    if (!pendingAutoSubmit) return
+    if (!user) return
+    if (!stylePrompt.trim()) return
+    if (isGenerating) return
+    setPendingAutoSubmit(false)
+    if (mode !== 'simple') setMode('simple')
+    generate({
+      prompt: stylePrompt.trim(),
+      genre: '',
+      mood: '',
+      title: '',
+      customLyrics: '',
+      instrumental,
+      model: simpleModel,
+      autoLyrics: !instrumental,
+    })
+  }, [pendingAutoSubmit, user, stylePrompt, isGenerating, mode, instrumental, simpleModel, generate])
 
   // 모드 영속화: 첫 진입은 심플(SSR), mount 후 마지막 선택 복원
   useEffect(() => {

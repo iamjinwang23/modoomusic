@@ -1,5 +1,33 @@
 @import "tailwindcss";
 
+/* Aurora 배경 (탐색 페이지 페이지 배경) — Tailwind utility 의존 없이 plain CSS로 정의 */
+@keyframes aurora-flow {
+  0%   { background-position: 50% 50%, 50% 50%; }
+  100% { background-position: 350% 50%, 350% 50%; }
+}
+
+.aurora-layer {
+  --aurora-dark: repeating-linear-gradient(100deg,#000 0%,#000 7%,transparent 10%,transparent 12%,#000 16%);
+  --aurora-rainbow: repeating-linear-gradient(100deg,#3b82f6 10%,#a5b4fc 15%,#93c5fd 20%,#ddd6fe 25%,#60a5fa 30%);
+  background-image: var(--aurora-dark), var(--aurora-rainbow);
+  background-size: 300%, 200%;
+  background-position: 50% 50%, 50% 50%;
+  filter: blur(10px);
+  opacity: 0.25;
+  will-change: transform;
+  pointer-events: none;
+}
+.aurora-layer::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background-image: var(--aurora-dark), var(--aurora-rainbow);
+  background-size: 200%, 100%;
+  background-position: 50% 50%, 50% 50%;
+  mix-blend-mode: difference;
+  animation: aurora-flow 150s linear infinite;
+}
+
 /* iOS Safari가 status bar/home indicator 영역까지 다크 배경으로 채우게 — body 색 명시 */
 html, body {
   background: #111318;

@@ -15,7 +15,6 @@ import { toast } from '@/components/toast/toast'
 import { buildSongShareUrl } from '@/utils/shareUrl'
 import { SoundWaveIcon } from '@/components/SoundWaveIcon'
 import { AnimatedGradientBackground } from '@/components/AnimatedGradientBackground'
-import { FloatingDots } from '@/components/FloatingDots'
 import type { Song } from '@/types/domain'
 
 const ICON_FILTER = 'invert(0.45)'
@@ -174,9 +173,12 @@ export function MyWorkPanel({ showCollections = false }: { showCollections?: boo
     }))
   }
 
+  const showEmptyAurora = !loading && songs.length === 0 && !(showCollections && tab === 'collections')
+
   return (
-    <div className="flex flex-col h-full">
-      <div className="px-6 py-6">
+    <div className="relative flex flex-col h-full overflow-hidden">
+      {showEmptyAurora && <AnimatedGradientBackground className="opacity-60" />}
+      <div className="relative z-10 px-6 py-6">
         {showCollections ? (
           <div className="flex gap-6 text-xl font-semibold items-center">
             <button
@@ -281,18 +283,16 @@ export function MyWorkPanel({ showCollections = false }: { showCollections?: boo
             {Array.from({ length: 6 }).map((_, i) => <SongWorkItemSkeleton key={i} />)}
           </ul>
         ) : songs.length === 0 ? (
-          <div className="relative h-full min-h-[420px] flex flex-col items-center justify-center text-center px-6 overflow-hidden">
-            <AnimatedGradientBackground className="opacity-60" />
-            <FloatingDots className="opacity-70" />
+          <div className="relative h-full min-h-[420px] flex flex-col items-center justify-center text-center px-6">
             <div className="relative z-10 -translate-y-24">
               <Image src="/Ai-Generate-Music.svg" alt="" width={48} height={48} className="mx-auto mb-3 opacity-50" style={{ filter: 'invert(1)' }} />
               <p className="text-sm text-zinc-300">나만의 음악을 만들어보세요</p>
               {showCollections && (
                 <Link
                   href="/"
-                  className="mt-5 inline-flex items-center gap-1.5 px-5 py-2.5 rounded-xl bg-white text-zinc-900 text-sm font-semibold hover:bg-zinc-100 transition-colors"
+                  className="mt-5 inline-flex items-center gap-1.5 px-5 py-2.5 rounded-xl bg-violet-600 hover:bg-violet-500 text-white text-sm font-semibold transition-colors"
                 >
-                  <Image src="/Sparkles.svg" alt="" width={16} height={16} />
+                  <Image src="/Sparkles.svg" alt="" width={16} height={16} style={{ filter: 'invert(1)' }} />
                   음악 만들기
                 </Link>
               )}
