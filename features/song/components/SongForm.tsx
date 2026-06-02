@@ -354,7 +354,7 @@ export function SongForm() {
             <textarea
               className="w-full bg-transparent text-sm text-white resize-none focus:outline-none placeholder:text-zinc-500 leading-relaxed"
               style={{ height: 144 }}
-              placeholder={`만들고 싶은 노래를 자유롭게 설명해주세요\n예) 싸움 후 침묵에 대한 감성적인 보사노바`}
+              placeholder={`만들고 싶은 노래를 자유롭게 적어보세요.\n제목부터 가사, 음악까지 한 번에 완성됩니다.`}
               value={stylePrompt}
               onChange={(e) => setStylePrompt(e.target.value)}
               maxLength={2000}
