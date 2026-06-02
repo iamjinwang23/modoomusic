@@ -47,13 +47,13 @@ export function ExploreHero() {
   const { user } = useAuth()
   const [prompt, setPrompt] = useState('')
   const [submitting, setSubmitting] = useState(false)
-  // 마운트 시 1회만 랜덤 — Hydration 안정성을 위해 useState lazy init 후 클라이언트에서만 변경
-  const [placeholder] = useState(
-    () => PLACEHOLDER_EXAMPLES[Math.floor(Math.random() * PLACEHOLDER_EXAMPLES.length)],
-  )
-  const [title] = useState(
-    () => HERO_TITLES[Math.floor(Math.random() * HERO_TITLES.length)],
-  )
+  // SSR-stable 초기값 (배열 첫 항목) → mount 후 client에서 랜덤 (hydration mismatch 방지)
+  const [placeholder, setPlaceholder] = useState(PLACEHOLDER_EXAMPLES[0])
+  const [title, setTitle] = useState(HERO_TITLES[0])
+  useEffect(() => {
+    setPlaceholder(PLACEHOLDER_EXAMPLES[Math.floor(Math.random() * PLACEHOLDER_EXAMPLES.length)])
+    setTitle(HERO_TITLES[Math.floor(Math.random() * HERO_TITLES.length)])
+  }, [])
 
   // Auto-grow textarea: 2줄 시작 → 4줄까지 늘어남 → 그 이상은 내부 스크롤
   const textareaRef = useRef<HTMLTextAreaElement>(null)
