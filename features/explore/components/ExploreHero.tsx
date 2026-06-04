@@ -91,14 +91,14 @@ export function ExploreHero() {
 
   return (
     <div className="relative mb-8">
-      <div className="md:px-10 pt-20 pb-12 md:py-20 flex flex-col items-center text-center">
+      <div className="md:px-10 pt-11 pb-5 md:py-11 flex flex-col items-center text-center">
         <h1 className="text-2xl md:text-4xl font-bold text-white tracking-tight drop-shadow-lg">
           {title}
         </h1>
 
         <form
           onSubmit={handleSubmit}
-          className="mt-7 md:mt-9 w-full max-w-2xl flex flex-col gap-2 rounded-2xl md:rounded-3xl p-4 md:p-5 bg-white/[0.08] border border-white/20 backdrop-blur-3xl backdrop-saturate-200"
+          className="mt-5 md:mt-6 w-full max-w-2xl flex flex-col gap-2 rounded-2xl md:rounded-3xl p-4 md:p-5 bg-white/[0.08] border border-white/20 backdrop-blur-3xl backdrop-saturate-200"
         >
           <textarea
             ref={textareaRef}

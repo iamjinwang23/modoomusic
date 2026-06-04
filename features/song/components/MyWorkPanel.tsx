@@ -15,6 +15,7 @@ import { toast } from '@/components/toast/toast'
 import { buildSongShareUrl } from '@/utils/shareUrl'
 import { SoundWaveIcon } from '@/components/SoundWaveIcon'
 import { AnimatedGradientBackground } from '@/components/AnimatedGradientBackground'
+import { GeneratingPhrase } from '@/components/GeneratingPhrase'
 import type { Song } from '@/types/domain'
 
 const ICON_FILTER = 'invert(0.45)'
@@ -600,7 +601,7 @@ function SongWorkItem({ song, onOpen, onEdit, onDelete, onCollect, onPublish, on
                 )}
               </div>
               <p className="text-xs text-zinc-400 mt-1 truncate">
-                {isGenerating ? '음악 만드는 중…' : isFailed ? '생성에 실패했어요' : song.prompt}
+                {isGenerating ? <GeneratingPhrase startedAt={song.createdAt} /> : isFailed ? '생성에 실패했어요' : song.prompt}
               </p>
             </button>
             {/* generating일 땐 편집·컬렉션 메뉴 숨기고 삭제만 가능하게. 미게시 곡은 '게시하기'를 더보기 안으로 */}
