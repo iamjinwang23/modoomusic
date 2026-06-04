@@ -133,9 +133,11 @@ const jsonLd = {
 }
 
 // iOS Safari가 status bar/home indicator 영역까지 콘텐츠 배경으로 채우게 함
+// maximumScale=1: input/textarea focus 시 자동 줌인 방지 (iOS 10+는 사용자 핀치 줌은 보존)
 export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
+  maximumScale: 1,
   viewportFit: "cover",
   themeColor: "#111318",
 };
