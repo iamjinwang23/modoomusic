@@ -98,7 +98,7 @@ export function ExploreHero() {
 
         <form
           onSubmit={handleSubmit}
-          className="mt-7 md:mt-9 w-full max-w-2xl flex flex-col gap-2 rounded-2xl md:rounded-3xl p-4 md:p-5 bg-white/[0.08] border border-white/20 backdrop-blur-3xl backdrop-saturate-200 shadow-[0_8px_32px_0_rgba(0,0,0,0.4),inset_0_1px_0_0_rgba(255,255,255,0.12)]"
+          className="mt-7 md:mt-9 w-full max-w-2xl flex flex-col gap-2 rounded-2xl md:rounded-3xl p-4 md:p-5 bg-white/[0.08] border border-white/20 backdrop-blur-3xl backdrop-saturate-200"
         >
           <textarea
             ref={textareaRef}

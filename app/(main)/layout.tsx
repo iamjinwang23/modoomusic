@@ -22,9 +22,9 @@ import { profileColor } from '@/utils/profileColor'
 const VIOLET_FILTER = 'brightness(0) saturate(100%) invert(44%) sepia(51%) saturate(1569%) hue-rotate(221deg) brightness(101%) contrast(96%)'
 
 const NAV_ITEMS: { href: string; label: string; icon: string }[] = [
+  { href: '/explore',       label: '둘러보기',    icon: '/Publish.svg' },
   { href: '/',              label: '음악 만들기', icon: '/Ai-Generate-Music.svg' },
   { href: '/library',       label: '라이브러리',   icon: '/Music-Library.svg' },
-  { href: '/explore',       label: '탐색',        icon: '/Publish.svg' },
   { href: '/notifications', label: '알림',        icon: '/Notification.svg' },
 ]
 
