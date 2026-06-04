@@ -1,4 +1,5 @@
 import { createClient } from '@supabase/supabase-js'
+import sharp from 'sharp'
 
 function getAdminClient() {
   return createClient(
@@ -7,20 +8,40 @@ function getAdminClient() {
   )
 }
 
+interface UploadOptions {
+  /** WebP 변환 + 다운스케일. AI 생성 커버 등 외부 URL에서 받은 큰 이미지 압축용 */
+  toWebp?: {
+    maxPx: number
+    quality?: number
+  }
+}
+
 export async function uploadFromUrl(
   url: string,
   bucket: string,
-  path: string
+  path: string,
+  options: UploadOptions = {}
 ): Promise<string | null> {
   try {
     const res = await fetch(url)
     if (!res.ok) return null
-    const buffer = await res.arrayBuffer()
-    const contentType = res.headers.get('content-type') ?? 'application/octet-stream'
+    const buffer = Buffer.from(await res.arrayBuffer())
+
+    let finalBuffer: Buffer = buffer
+    let finalContentType = res.headers.get('content-type') ?? 'application/octet-stream'
+
+    if (options.toWebp) {
+      const { maxPx, quality = 85 } = options.toWebp
+      finalBuffer = await sharp(buffer)
+        .resize({ width: maxPx, height: maxPx, fit: 'inside', withoutEnlargement: true })
+        .webp({ quality })
+        .toBuffer()
+      finalContentType = 'image/webp'
+    }
 
     const supabase = getAdminClient()
-    const { error } = await supabase.storage.from(bucket).upload(path, buffer, {
-      contentType,
+    const { error } = await supabase.storage.from(bucket).upload(path, finalBuffer, {
+      contentType: finalContentType,
       upsert: true,
     })
 

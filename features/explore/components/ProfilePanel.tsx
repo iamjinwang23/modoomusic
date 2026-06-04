@@ -15,6 +15,7 @@ import { useGlobalPlayer } from '@/contexts/GlobalPlayerContext'
 import { SoundWaveIcon } from '@/components/SoundWaveIcon'
 import type { PublicSong, Song, UserProfile, SocialLinks } from '@/types/domain'
 import { profileColor } from '@/utils/profileColor'
+import { toWebp } from '@/utils/imageUpload'
 
 function coverGradient(hue: number) {
   const h2 = (hue + 55) % 360
@@ -84,24 +85,6 @@ function toSong(pub: PublicSong): Song {
     publishComment: pub.publishComment,
     published: pub.published,
   }
-}
-
-// ── 이미지 → WebP 변환 ───────────────────────────────────────────
-function toWebp(file: File, maxPx: number, quality = 0.85): Promise<Blob> {
-  return new Promise((resolve, reject) => {
-    const img = new window.Image()
-    img.onload = () => {
-      const scale = Math.min(1, maxPx / Math.max(img.width, img.height))
-      const w = Math.round(img.width * scale)
-      const h = Math.round(img.height * scale)
-      const canvas = document.createElement('canvas')
-      canvas.width = w; canvas.height = h
-      canvas.getContext('2d')!.drawImage(img, 0, 0, w, h)
-      canvas.toBlob((blob) => blob ? resolve(blob) : reject(new Error('toBlob failed')), 'image/webp', quality)
-    }
-    img.onerror = reject
-    img.src = URL.createObjectURL(file)
-  })
 }
 
 // ── 이미지 업로드 유틸 ────────────────────────────────────────────

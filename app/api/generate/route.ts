@@ -143,7 +143,7 @@ export async function POST(req: NextRequest) {
         const storageId = crypto.randomUUID()
         const [permAudio, permCover] = await Promise.all([
           uploadFromUrl(songResult.audioUrl, 'songs-audio', `${storageId}.mp3`),
-          coverUrl ? uploadFromUrl(coverUrl, 'songs-covers', `${storageId}.jpg`) : Promise.resolve(null),
+          coverUrl ? uploadFromUrl(coverUrl, 'songs-covers', `${storageId}.webp`, { toWebp: { maxPx: 800, quality: 85 } }) : Promise.resolve(null),
         ])
         if (permAudio) finalAudioUrl = permAudio
         if (permCover) finalCoverUrl = permCover
