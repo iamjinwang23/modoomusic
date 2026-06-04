@@ -146,15 +146,42 @@ export function GlobalPlayerProvider({ children }: { children: React.ReactNode }
       ms.metadata = null
       return
     }
+    let cancelled = false
     const coverUrl = song.publishCoverImage ?? song.coverImage ?? '/og_image.png'
-    ms.metadata = new MediaMetadata({
-      title: song.title || song.prompt || '제목 없음',
-      artist: state.ownerName ?? '모두의 노래',
-      album: '모두의 노래',
-      artwork: [
-        { src: coverUrl, sizes: '512x512', type: 'image/png' },
-      ],
-    })
+
+    function applyMetadata(artworkSrc: string, type: string) {
+      if (cancelled || !song) return
+      ms.metadata = new MediaMetadata({
+        title: song.title || song.prompt || '제목 없음',
+        artist: state.ownerName ?? '모두의 노래',
+        album: '모두의 노래',
+        artwork: [{ src: artworkSrc, sizes: '512x512', type }],
+      })
+    }
+
+    // iOS는 원본 비율(2:3) 그대로 노출 → canvas로 center-crop 후 정사각형 data URL로 주입
+    const img = new Image()
+    img.crossOrigin = 'anonymous'
+    img.onload = () => {
+      const size = Math.min(img.width, img.height)
+      const sx = (img.width - size) / 2
+      const sy = (img.height - size) / 2
+      const canvas = document.createElement('canvas')
+      canvas.width = 512
+      canvas.height = 512
+      const ctx = canvas.getContext('2d')
+      if (!ctx) return applyMetadata(coverUrl, 'image/png')
+      ctx.drawImage(img, sx, sy, size, size, 0, 0, 512, 512)
+      try {
+        applyMetadata(canvas.toDataURL('image/jpeg', 0.9), 'image/jpeg')
+      } catch {
+        // CORS taint 등 → 원본 URL 폴백
+        applyMetadata(coverUrl, 'image/png')
+      }
+    }
+    img.onerror = () => applyMetadata(coverUrl, 'image/png')
+    img.src = coverUrl
+
     ms.setActionHandler('play',  () => audioRef.current?.play().catch(() => {}))
     ms.setActionHandler('pause', () => audioRef.current?.pause())
     ms.setActionHandler('previoustrack', stateRef.current.idx > 0 ? () => dispatch({ type: 'PREV' }) : null)
@@ -163,6 +190,8 @@ export function GlobalPlayerProvider({ children }: { children: React.ReactNode }
       if (typeof e.seekTime !== 'number') return
       if (audioRef.current) audioRef.current.currentTime = e.seekTime
     })
+
+    return () => { cancelled = true }
   }, [song?.id, state.ownerName, state.idx, state.feed.length])
 
   // 잠금화면 시크바 위치 동기화
