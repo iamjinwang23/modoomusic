@@ -40,7 +40,7 @@ function CreatorCard({ creator }: { creator: RecommendedCreator }) {
   }
 
   return (
-    <div className="shrink-0 w-[140px] md:w-[160px] flex flex-col items-center gap-2 p-3 rounded-2xl bg-white/[0.04] hover:bg-white/[0.08] transition-colors">
+    <div className="shrink-0 w-[140px] md:w-[160px] flex flex-col items-center gap-2 p-3 rounded-xl bg-white/[0.04] hover:bg-white/[0.08] transition-colors">
       <button type="button" onClick={openProfile} className="block">
         <div
           className="relative w-20 h-20 md:w-24 md:h-24 rounded-full overflow-hidden flex items-center justify-center"
@@ -83,7 +83,7 @@ function CreatorCard({ creator }: { creator: RecommendedCreator }) {
 
 function CreatorCardSkeleton() {
   return (
-    <div className="shrink-0 w-[140px] md:w-[160px] flex flex-col items-center gap-2 p-3 rounded-2xl bg-white/[0.04]">
+    <div className="shrink-0 w-[140px] md:w-[160px] flex flex-col items-center gap-2 p-3 rounded-xl bg-white/[0.04]">
       <div className="w-20 h-20 md:w-24 md:h-24 rounded-full bg-white/[0.06] shimmer" />
       <div className="h-3 w-3/4 rounded bg-white/[0.06] shimmer" />
       <div className="h-2.5 w-1/2 rounded bg-white/[0.06] shimmer" />
