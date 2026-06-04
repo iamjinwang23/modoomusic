@@ -129,6 +129,16 @@ export async function POST(req: NextRequest) {
         genPrompt = [lyr.styleTags, prompt.trim()].filter(Boolean).join('. ')
         autoTitle = lyr.songTitle || null
         autoStyleTags = lyr.styleTags || null
+      } else if (!inserted.title && genLyrics && genLyrics.trim().length >= 10) {
+        // 고급 모드 자동 제목: title 비어있고 가사 있으면 lyrics_generation 재호출해 song_title만 채택
+        // (반환된 lyrics·style_tags는 무시 — 사용자 입력 가사 유지)
+        try {
+          const titleGen = await generateLyrics(genLyrics)
+          if (titleGen.songTitle) autoTitle = titleGen.songTitle
+        } catch (e) {
+          // 자동 제목 실패는 무시 (음악 생성 흐름 계속)
+          console.warn('[generate] auto-title from lyrics failed:', e)
+        }
       }
 
       const imagePromptInput = pickImagePrompt({ customLyrics: genLyrics, title, prompt })
