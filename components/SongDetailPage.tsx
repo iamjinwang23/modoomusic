@@ -14,6 +14,7 @@ import { SoundWaveIcon } from '@/components/SoundWaveIcon'
 import { profileColor } from '@/utils/profileColor'
 import { buildSongShareUrl } from '@/utils/shareUrl'
 import { useOptimisticToggle } from '@/hooks/useOptimisticToggle'
+import { track, EVENTS } from '@/utils/analytics'
 import { createClient } from '@/lib/supabase/client'
 import type { Song } from '@/types/domain'
 import { MarqueeText } from '@/components/MarqueeText'
@@ -104,6 +105,10 @@ export function SongDetailPage({ onBack, profile }: Props) {
         throw new Error('follow failed')
       }
       const d = await r.json()
+      // Plan SC FR-06: 팔로우 성공 시 creator_follow (source: 'song_detail')
+      if (d.following && ownerUserId) {
+        track(EVENTS.CREATOR_FOLLOW, { source: 'song_detail', target_user_id: ownerUserId })
+      }
       return { state: d.following }
     },
     onError: () => toast.error('팔로우에 실패했어요'),

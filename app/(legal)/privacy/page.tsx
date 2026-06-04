@@ -45,6 +45,18 @@ export default function PrivacyPage() {
             '접속 IP, 사용자 에이전트(User-Agent), 접속 일시(서비스 운영·보안 목적)',
           ]} />
         </SubSection>
+
+        <SubSection title="행동 분석 자동 수집 (Google Analytics 4)">
+          <List items={[
+            '페이지 방문 기록, 클릭·재생·게시 등 행동 이벤트',
+            '디바이스 정보(브라우저·OS), 대략적 위치(국가 단위)',
+            '익명 사용자 식별 쿠키 (`_ga`, `_ga_<id>`)',
+            '로그인 회원의 경우 익명 UUID 형태의 user_id (이메일·실명 등 개인정보 미포함)',
+          ]} />
+          <p className="mt-2 text-xs text-zinc-400">
+            수집 목적: 서비스 이용 패턴 분석, 기능 개선, 추천 알고리즘 최적화 · 보존 기간: 최대 14개월 (Google Analytics 정책) · 제3자 제공: Google LLC (Google Analytics 운영) · 거부 방법: <a href="https://tools.google.com/dlpage/gaoptout" target="_blank" rel="noopener noreferrer" className="underline">Google Analytics Opt-out 브라우저 확장</a> 또는 광고 차단기 사용
+          </p>
+        </SubSection>
       </Section>
 
       <Section title="제2조 (개인정보의 수집·이용 목적)">

@@ -6,6 +6,7 @@ import { songService } from '@/services/song.service'
 import { useAuth } from '@/components/AuthProvider'
 import { toast } from '@/components/toast/toast'
 import { uploadSongCover } from '@/utils/imageUpload'
+import { track, EVENTS } from '@/utils/analytics'
 import type { Song } from '@/types/domain'
 
 interface Props {
@@ -59,6 +60,11 @@ export function PublishModal({ song, onClose }: Props) {
       publishCoverImage: finalCover ?? undefined,
     })
     window.dispatchEvent(new CustomEvent('song-updated'))
+    // Plan SC FR-05: 게시 성공 시 song_publish (has_cover, comment_length)
+    track(EVENTS.SONG_PUBLISH, {
+      has_cover: !!finalCover,
+      comment_length: comment.trim().length,
+    })
     toast.success('곡이 게시되었어요')
     onClose()
     if (user) {

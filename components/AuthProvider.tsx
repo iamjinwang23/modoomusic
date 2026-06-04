@@ -6,6 +6,7 @@ import { createClient } from '@/lib/supabase/client'
 import { setSongOwner } from '@/services/song.service'
 import { setCollectionOwner } from '@/services/collection.service'
 import { toast } from '@/components/toast/toast'
+import { track, setUserId, clearUserId, EVENTS } from '@/utils/analytics'
 
 export interface AuthProfile {
   username: string
@@ -65,19 +66,37 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setLoading(false)
     })
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       const u = session?.user ?? null
       setUser(u)
       setSongOwner(u?.id ?? null)
       setCollectionOwner(u?.id ?? null)
+
+      // Design Ref: §7.4 — GA4 user_id sync + sign_up/login 이벤트
+      if (event === 'SIGNED_IN' && u) {
+        const provider = (u.app_metadata?.provider as string) || 'unknown'
+        // 신규 가입 판별: created_at 이 60초 이내면 sign_up
+        const createdAt = u.created_at ? new Date(u.created_at).getTime() : 0
+        const isNewUser = createdAt > 0 && Date.now() - createdAt < 60_000
+        if (isNewUser) {
+          track(EVENTS.SIGN_UP, { provider })
+        } else {
+          track(EVENTS.LOGIN, { provider })
+        }
+      } else if (event === 'SIGNED_OUT') {
+        clearUserId()
+      }
     })
 
     return () => subscription.unsubscribe()
   }, [])
 
-  // 유저 바뀌면 프로필 1회 fetch
+  // 유저 바뀌면 프로필 1회 fetch + GA4 user_id sync
   useEffect(() => {
     refreshProfile()
+    // Design Ref: §7.4 — auth 변경 단일 진입점에서 user_id sync (Plan SC: cross-device retention)
+    if (user?.id) setUserId(user.id)
+    else clearUserId()
   }, [user?.id, refreshProfile])
 
   // 부분 갱신 이벤트 — fetch 안 하고 로컬 패치

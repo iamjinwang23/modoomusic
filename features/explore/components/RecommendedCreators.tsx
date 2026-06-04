@@ -9,9 +9,10 @@ import Image from 'next/image'
 import { useAuth } from '@/components/AuthProvider'
 import { useOptimisticToggle } from '@/hooks/useOptimisticToggle'
 import { profileColor } from '@/utils/profileColor'
+import { track, EVENTS } from '@/utils/analytics'
 import type { RecommendedCreator } from '@/types/domain'
 
-function CreatorCard({ creator }: { creator: RecommendedCreator }) {
+function CreatorCard({ creator, position }: { creator: RecommendedCreator; position: number }) {
   const { user } = useAuth()
   // Plan SC: 팔로우 버튼 즉시 "팔로잉" 회색 전환 (useOptimisticToggle)
   const { state: following, count: followerCount, toggle } = useOptimisticToggle({
@@ -28,6 +29,10 @@ function CreatorCard({ creator }: { creator: RecommendedCreator }) {
         throw new Error('follow failed')
       }
       const d = await r.json()
+      // Plan SC FR-06: 팔로우 성공 시 creator_follow (source: 'recommended')
+      if (d.following) {
+        track(EVENTS.CREATOR_FOLLOW, { source: 'recommended', target_user_id: creator.id })
+      }
       return { state: d.following, count: d.followerCount }
     },
   })
@@ -36,6 +41,12 @@ function CreatorCard({ creator }: { creator: RecommendedCreator }) {
   const color = profileColor(creator.avatarHue)
 
   function openProfile() {
+    // Plan SC FR-07: recommended_creator_click (bucket, position, target_user_id)
+    track(EVENTS.RECOMMENDED_CREATOR_CLICK, {
+      bucket: creator.bucket ?? 2,
+      position,
+      target_user_id: creator.id,
+    })
     window.dispatchEvent(new CustomEvent('view-profile', { detail: creator.username }))
   }
 
@@ -179,7 +190,7 @@ export function RecommendedCreators() {
           onScroll={handleScroll}
           className="flex gap-3 overflow-x-auto pb-1 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]"
         >
-          {creators.map((c) => <CreatorCard key={c.id} creator={c} />)}
+          {creators.map((c, i) => <CreatorCard key={c.id} creator={c} position={i} />)}
         </div>
 
         {fadeRight && (

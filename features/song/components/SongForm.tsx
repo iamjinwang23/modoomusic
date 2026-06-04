@@ -9,6 +9,7 @@ import { GeneratingPhrase } from '@/components/GeneratingPhrase'
 import { toast } from '@/components/toast/toast'
 import { RefAudioTrimModal } from '@/components/RefAudioTrimModal'
 import { LyricsGenerateModal } from '@/components/LyricsGenerateModal'
+import { track, EVENTS } from '@/utils/analytics'
 
 const MIN_LYRICS_LENGTH = 10  // MiniMax 최소 가사 길이
 
@@ -122,6 +123,14 @@ export function SongForm() {
   }, [modelDropOpen])
   const refAudioInputRef = useRef<HTMLInputElement>(null)
   const { status, elapsed, error, generate, reset } = useSongGeneration()
+  // Plan SC FR-04: 곡 생성 성공 시 song_generate 이벤트. ref로 마지막 생성 컨텍스트 보관 → status='done' 시 1회 발사
+  const lastGenContextRef = useRef<{ genre?: string; mood?: string; mode: 'simple' | 'detail' | 'cover' } | null>(null)
+  useEffect(() => {
+    if (status === 'done' && lastGenContextRef.current) {
+      track(EVENTS.SONG_GENERATE, lastGenContextRef.current)
+      lastGenContextRef.current = null
+    }
+  }, [status])
   const { user } = useAuth()
   const chipScrollRef = useRef<HTMLDivElement>(null)
   const [canScrollLeft, setCanScrollLeft] = useState(false)
@@ -146,6 +155,7 @@ export function SongForm() {
     if (isGenerating) return
     setPendingAutoSubmit(false)
     if (mode !== 'simple') setMode('simple')
+    lastGenContextRef.current = { mode: 'simple' }
     generate({
       prompt: stylePrompt.trim(),
       genre: '',
@@ -243,6 +253,7 @@ export function SongForm() {
 
     // 심플 모드: 설명만으로 서버 자동작사 → 음악 생성 (인스트루멘탈이면 작사 생략)
     if (mode === 'simple') {
+      lastGenContextRef.current = { mode: 'simple' }
       generate({
         prompt: stylePrompt.trim(),
         genre: '',
@@ -269,6 +280,7 @@ export function SongForm() {
       const reader = new FileReader()
       reader.onload = () => {
         const base64 = (reader.result as string).split(',')[1]
+        lastGenContextRef.current = { mode: 'cover' }
         generate({
           prompt: buildPrompt(),
           genre: '',
@@ -284,6 +296,7 @@ export function SongForm() {
       return
     }
 
+    lastGenContextRef.current = { mode: 'detail' }
     generate({
       prompt: buildPrompt(),
       genre: '',

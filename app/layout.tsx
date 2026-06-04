@@ -5,6 +5,7 @@ import "./globals.css";
 import { AuthProvider } from "@/components/AuthProvider";
 import { GlobalPlayerProvider } from "@/contexts/GlobalPlayerContext";
 import { ToastHost } from "@/components/toast/ToastHost";
+import { GoogleAnalytics } from "@next/third-parties/google";
 
 const pretendard = localFont({
   src: "../node_modules/pretendard/dist/web/variable/woff2/PretendardVariable.woff2",
@@ -161,6 +162,10 @@ export default function RootLayout({
           </GlobalPlayerProvider>
         </AuthProvider>
       </body>
+      {/* Design Ref: analytics-ga4 §10 — env 없으면 스크립트 미주입 (LCP 영향 0) */}
+      {process.env.NEXT_PUBLIC_GA_ID && (
+        <GoogleAnalytics gaId={process.env.NEXT_PUBLIC_GA_ID} />
+      )}
     </html>
   );
 }

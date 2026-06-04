@@ -10,6 +10,7 @@ import { ProfileEditModal } from '@/components/ProfileEditModal'
 import { SocialLinksRow } from '@/components/SocialLinksRow'
 import { toast } from '@/components/toast/toast'
 import { useOptimisticToggle } from '@/hooks/useOptimisticToggle'
+import { track, EVENTS } from '@/utils/analytics'
 import { useGlobalPlayer } from '@/contexts/GlobalPlayerContext'
 import { SoundWaveIcon } from '@/components/SoundWaveIcon'
 import type { PublicSong, Song, UserProfile, SocialLinks } from '@/types/domain'
@@ -357,6 +358,10 @@ export function ProfilePanel({ username }: Props) {
         throw new Error('follow failed')
       }
       const d = await r.json()
+      // Plan SC FR-06: 팔로우 성공 시 creator_follow (source: 'profile')
+      if (d.following) {
+        track(EVENTS.CREATOR_FOLLOW, { source: 'profile', target_user_id: profile.userId })
+      }
       return { state: d.following, count: d.followerCount }
     },
     onError: () => toast.error('팔로우에 실패했어요'),
@@ -384,13 +389,13 @@ export function ProfilePanel({ username }: Props) {
   function handlePlay(pub: PublicSong) {
     const feed = songs.map(toSong)
     const idx  = songs.findIndex((s) => s.id === pub.id)
-    window.dispatchEvent(new CustomEvent('view-song', { detail: { feed, idx, isOwner: isSelf, ownerUserId: profile?.userId ?? null, ownerAvatarUrl: displayAvatarUrl, ownerAvatarHue: profile?.avatarHue ?? null, ownerName: profile?.displayName ?? profile?.username ?? null } }))
+    window.dispatchEvent(new CustomEvent('view-song', { detail: { feed, idx, isOwner: isSelf, ownerUserId: profile?.userId ?? null, ownerAvatarUrl: displayAvatarUrl, ownerAvatarHue: profile?.avatarHue ?? null, ownerName: profile?.displayName ?? profile?.username ?? null, origin: 'profile' } }))
   }
 
   function handleThumbPlay(pub: PublicSong) {
     const feed = songs.map(toSong)
     const idx  = songs.findIndex((s) => s.id === pub.id)
-    window.dispatchEvent(new CustomEvent('play-song', { detail: { feed, idx, isOwner: isSelf, ownerUserId: profile?.userId ?? null, ownerAvatarUrl: displayAvatarUrl, ownerAvatarHue: profile?.avatarHue ?? null, ownerName: profile?.displayName ?? profile?.username ?? null } }))
+    window.dispatchEvent(new CustomEvent('play-song', { detail: { feed, idx, isOwner: isSelf, ownerUserId: profile?.userId ?? null, ownerAvatarUrl: displayAvatarUrl, ownerAvatarHue: profile?.avatarHue ?? null, ownerName: profile?.displayName ?? profile?.username ?? null, origin: 'profile' } }))
   }
 
   return (

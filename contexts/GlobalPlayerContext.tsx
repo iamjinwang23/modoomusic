@@ -2,6 +2,7 @@
 
 import { createContext, useContext, useReducer, useRef, useEffect, useCallback } from 'react'
 import { songService } from '@/services/song.service'
+import { track, EVENTS } from '@/utils/analytics'
 import type { Song } from '@/types/domain'
 
 interface State {
@@ -87,14 +88,16 @@ export function GlobalPlayerProvider({ children }: { children: React.ReactNode }
 
   useEffect(() => {
     function handleViewSong(e: Event) {
-      const { feed, idx, isOwner, ownerUserId, ownerAvatarUrl, ownerAvatarHue, ownerName } = (e as CustomEvent).detail
+      const { feed, idx, isOwner, ownerUserId, ownerAvatarUrl, ownerAvatarHue, ownerName, origin } = (e as CustomEvent).detail
       const newId = (feed as Song[])[idx]?.id
       const curId = stateRef.current.feed[stateRef.current.idx]?.id
       if (newId && newId === curId) return  // 상세 보기는 같은 곡이면 재로드 불필요
+      // Plan SC FR-08: 새 곡 재생 시작 (view-song도 detail 진입 후 auto-play)
+      if (newId) track(EVENTS.SONG_PLAY, { song_id: newId, origin: origin ?? 'unknown' })
       dispatch({ type: 'LOAD', feed, idx, isOwner, ownerUserId, ownerAvatarUrl, ownerAvatarHue, ownerName })
     }
     function handlePlaySong(e: Event) {
-      const { feed, idx, isOwner, ownerUserId, ownerAvatarUrl, ownerAvatarHue, ownerName } = (e as CustomEvent).detail
+      const { feed, idx, isOwner, ownerUserId, ownerAvatarUrl, ownerAvatarHue, ownerName, origin } = (e as CustomEvent).detail
       const newId = (feed as Song[])[idx]?.id
       const curId = stateRef.current.feed[stateRef.current.idx]?.id
       if (newId && newId === curId) {
@@ -103,6 +106,8 @@ export function GlobalPlayerProvider({ children }: { children: React.ReactNode }
         if (a) a.paused ? a.play().catch(() => {}) : a.pause()
         return
       }
+      // Plan SC FR-08: 새 곡 재생 시작 시 song_play (origin 옵셔널)
+      if (newId) track(EVENTS.SONG_PLAY, { song_id: newId, origin: origin ?? 'unknown' })
       dispatch({ type: 'LOAD', feed, idx, isOwner, ownerUserId, ownerAvatarUrl, ownerAvatarHue, ownerName })
     }
     // 다른 곳(인라인 카드)에서 재생 시작 시 글로벌 오디오 정지
