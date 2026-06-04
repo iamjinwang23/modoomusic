@@ -138,6 +138,55 @@ export function GlobalPlayerProvider({ children }: { children: React.ReactNode }
     audio.play().catch(() => {})
   }, [state.idx])
 
+  // 모바일 잠금화면 / 제어센터 / Bluetooth / CarPlay 메타데이터 (Media Session API)
+  useEffect(() => {
+    if (typeof navigator === 'undefined' || !('mediaSession' in navigator)) return
+    const ms = navigator.mediaSession
+    if (!song) {
+      ms.metadata = null
+      return
+    }
+    const coverUrl = song.publishCoverImage ?? song.coverImage ?? '/og_image.png'
+    ms.metadata = new MediaMetadata({
+      title: song.title || song.prompt || '제목 없음',
+      artist: state.ownerName ?? '모두의 노래',
+      album: '모두의 노래',
+      artwork: [
+        { src: coverUrl, sizes: '512x512', type: 'image/png' },
+      ],
+    })
+    ms.setActionHandler('play',  () => audioRef.current?.play().catch(() => {}))
+    ms.setActionHandler('pause', () => audioRef.current?.pause())
+    ms.setActionHandler('previoustrack', stateRef.current.idx > 0 ? () => dispatch({ type: 'PREV' }) : null)
+    ms.setActionHandler('nexttrack', stateRef.current.idx < stateRef.current.feed.length - 1 ? () => dispatch({ type: 'NEXT' }) : null)
+    ms.setActionHandler('seekto', (e) => {
+      if (typeof e.seekTime !== 'number') return
+      if (audioRef.current) audioRef.current.currentTime = e.seekTime
+    })
+  }, [song?.id, state.ownerName, state.idx, state.feed.length])
+
+  // 잠금화면 시크바 위치 동기화
+  useEffect(() => {
+    if (typeof navigator === 'undefined' || !('mediaSession' in navigator)) return
+    if (typeof navigator.mediaSession.setPositionState !== 'function') return
+    if (!state.duration || !isFinite(state.duration)) return
+    try {
+      navigator.mediaSession.setPositionState({
+        duration: state.duration,
+        position: Math.min(state.currentTime, state.duration),
+        playbackRate: 1,
+      })
+    } catch {
+      // Safari가 position > duration일 때 throw — 무시
+    }
+  }, [state.currentTime, state.duration])
+
+  // 재생 상태 sync (자동 감지되지만 명시)
+  useEffect(() => {
+    if (typeof navigator === 'undefined' || !('mediaSession' in navigator)) return
+    navigator.mediaSession.playbackState = state.isPlaying ? 'playing' : 'paused'
+  }, [state.isPlaying])
+
   const togglePlay = useCallback(() => {
     const a = audioRef.current
     if (!a) return
