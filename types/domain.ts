@@ -134,6 +134,18 @@ export interface Collection {
   createdAt: string
 }
 
+// Design Ref: recommended-creators §3.2 — 추천 크리에이터 카드용 가벼운 타입
+export interface RecommendedCreator {
+  id: string
+  username: string
+  displayName: string
+  avatarHue: number
+  avatarUrl: string | null
+  followerCount: number
+  /** 디버깅용 분기 표시 (1=개인화, 2=트렌딩, 3=신규). UI 표시 X */
+  bucket?: 1 | 2 | 3
+}
+
 export const EXAMPLE_PROMPTS = [
   '비 오는 날 카페에서 혼자 창밖을 바라봤어',
   '오랜 친구를 오랜만에 만나서 너무 반가웠어',

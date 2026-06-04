@@ -8,6 +8,7 @@ import { PublicSongCard } from './PublicSongCard'
 import { ExploreFeedFilter } from './ExploreFeedFilter'
 import { ExploreHero } from './ExploreHero'
 import { AuroraBackground } from './AuroraBackground'
+import { RecommendedCreators } from './RecommendedCreators'
 import type { PublicSong, Song } from '@/types/domain'
 
 // 동적 칩으로 전환 — DB 집계 결과에서 set 구성 (SectionAllView 안에서 사용)
@@ -300,6 +301,7 @@ export function ExplorePanel() {
         <ExploreHero />
         <div className="space-y-8">
           {HOME_SECTIONS.map((s) => <SectionCarouselSkeleton key={s.id} label={s.label} />)}
+          <RecommendedCreators />
         </div>
       </div>
     )
@@ -311,9 +313,12 @@ export function ExplorePanel() {
       <div className="relative flex-1 overflow-y-auto px-5 py-6">
         <AuroraBackground />
         <ExploreHero />
-        <div className="flex flex-col items-center justify-center text-zinc-500 text-sm gap-2 px-6 py-16">
-          <p className="text-base text-zinc-300">아직 공개된 곡이 없어요</p>
-          <p className="text-xs">첫 번째로 곡을 게시해보세요 ✨</p>
+        <div className="space-y-8">
+          <div className="flex flex-col items-center justify-center text-zinc-500 text-sm gap-2 px-6 py-16">
+            <p className="text-base text-zinc-300">아직 공개된 곡이 없어요</p>
+            <p className="text-xs">첫 번째로 곡을 게시해보세요 ✨</p>
+          </div>
+          <RecommendedCreators />
         </div>
       </div>
     )
@@ -333,6 +338,7 @@ export function ExplorePanel() {
             currentUserId={currentUserId}
           />
         ))}
+        <RecommendedCreators />
       </div>
     </div>
   )
