@@ -22,6 +22,8 @@ export const EVENTS = {
   CREATOR_FOLLOW: 'creator_follow',
   RECOMMENDED_CREATOR_CLICK: 'recommended_creator_click',
   SONG_PLAY: 'song_play',
+  SEARCH_PERFORM: 'search_perform',
+  SEARCH_RESULT_CLICK: 'search_result_click',
 } as const
 
 export type EventName = (typeof EVENTS)[keyof typeof EVENTS]

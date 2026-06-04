@@ -5,7 +5,7 @@ import { createClient } from '@/lib/supabase/client'
 
 export type FeedTab = 'recommended' | 'latest' | 'popular'
 
-interface SongRow {
+export interface SongRow {
   id: string
   title: string | null
   prompt: string
@@ -28,7 +28,7 @@ interface SongRow {
   profiles: { username: string; display_name: string | null; avatar_hue: number | null; avatar_url: string | null } | null
 }
 
-function rowToPublicSong(r: SongRow): PublicSong {
+export function rowToPublicSong(r: SongRow): PublicSong {
   return {
     id: r.id,
     title: r.title,
@@ -78,7 +78,7 @@ function sortRecommended(songs: PublicSong[]): PublicSong[] {
   })
 }
 
-const SONG_SELECT = `
+export const SONG_SELECT = `
   id, title, prompt, genre, mood, instrumental, audio_url, cover_hue, cover_image, publish_cover_image,
   duration, lyrics, publish_comment, is_public, created_at, like_count, play_count, comment_count, user_id,
   profiles!songs_user_id_fkey ( username, display_name, avatar_hue, avatar_url )

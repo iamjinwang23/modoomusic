@@ -9,6 +9,8 @@ import { ExploreFeedFilter } from './ExploreFeedFilter'
 import { ExploreHero } from './ExploreHero'
 import { AuroraBackground } from './AuroraBackground'
 import { RecommendedCreators } from './RecommendedCreators'
+import { SearchPanel } from './SearchPanel'
+import type { SearchTag } from '@/services/search.service'
 import type { PublicSong, Song } from '@/types/domain'
 
 // 동적 칩으로 전환 — DB 집계 결과에서 set 구성 (SectionAllView 안에서 사용)
@@ -165,13 +167,15 @@ function SectionAllView({
   label,
   onBack,
   currentUserId,
+  initialFilters,
 }: {
   tab: FeedTab
   label: string
   onBack: () => void
   currentUserId: string | null
+  initialFilters?: string[]
 }) {
-  const [filters, setFilters] = useState<string[]>([])
+  const [filters, setFilters] = useState<string[]>(initialFilters ?? [])
   const [feed, setFeed] = useState<PublicSong[]>([])
   const [loading, setLoading] = useState(true)
   const [tags, setTags] = useState<{ genres: string[]; moods: string[] }>({ genres: [], moods: [] })
@@ -250,9 +254,32 @@ function SectionAllView({
 export function ExplorePanel() {
   const { user } = useAuth()
   const currentUserId = user?.id ?? null
-  const [allView, setAllView] = useState<{ tab: FeedTab; label: string } | null>(null)
+  const [allView, setAllView] = useState<{ tab: FeedTab; label: string; initialFilters?: string[] } | null>(null)
   const [sections, setSections] = useState<Record<FeedTab, PublicSong[]>>({ recommended: [], latest: [], popular: [] })
   const [loading, setLoading] = useState(true)
+
+  // Design Ref: §5.1 — 검색 state (MyWorkPanel과 별개)
+  const [searchOpen, setSearchOpen] = useState(false)
+  const [query, setQuery] = useState('')
+  const [debouncedQuery, setDebouncedQuery] = useState('')
+  const searchInputRef = useRef<HTMLInputElement>(null)
+
+  useEffect(() => {
+    const id = setTimeout(() => setDebouncedQuery(query.trim()), 300)
+    return () => clearTimeout(id)
+  }, [query])
+
+  function closeSearch() {
+    setQuery('')
+    setSearchOpen(false)
+    searchInputRef.current?.blur()
+  }
+
+  // Design Ref: §7.4 — 태그 클릭 → 둘러보기 필터 자동 적용
+  function handleTagClick(tag: SearchTag) {
+    closeSearch()
+    setAllView({ tab: 'latest', label: '새로운 음악', initialFilters: [tag.label] })
+  }
 
   useEffect(() => {
     let cancelled = false
@@ -290,14 +317,30 @@ export function ExplorePanel() {
         label={allView.label}
         onBack={() => setAllView(null)}
         currentUserId={currentUserId}
+        initialFilters={allView.initialFilters}
       />
     )
   }
 
+  const searchBar = (
+    <SearchBar
+      query={query}
+      onChange={setQuery}
+      open={searchOpen}
+      onOpenChange={setSearchOpen}
+      onClose={closeSearch}
+      inputRef={searchInputRef}
+    />
+  )
+
+  // Plan SC FR-02: 검색 활성 시 hero·섹션 대신 결과 패널
+  const inSearchMode = !!debouncedQuery
+
   if (loading) {
     return (
-      <div className="relative flex-1 overflow-y-auto px-5 py-6">
+      <div className="relative flex-1 overflow-y-auto [scrollbar-gutter:stable] px-5 py-6">
         <AuroraBackground />
+        <div className="flex justify-end">{searchBar}</div>
         <ExploreHero />
         <div className="space-y-8">
           {HOME_SECTIONS.map((s) => <SectionCarouselSkeleton key={s.id} label={s.label} />)}
@@ -308,11 +351,16 @@ export function ExplorePanel() {
   }
 
   const hasAny = HOME_SECTIONS.some((s) => sections[s.id].length > 0)
-  if (!hasAny) {
-    return (
-      <div className="relative flex-1 overflow-y-auto px-5 py-6">
-        <AuroraBackground />
-        <ExploreHero />
+
+  return (
+    <div className="relative flex-1 overflow-y-auto [scrollbar-gutter:stable] px-5 py-6">
+      <AuroraBackground />
+      <div className="flex justify-end">{searchBar}</div>
+      {!inSearchMode && <ExploreHero />}
+
+      {inSearchMode ? (
+        <SearchPanel query={debouncedQuery} onTagClick={handleTagClick} />
+      ) : !hasAny ? (
         <div className="space-y-8">
           <div className="flex flex-col items-center justify-center text-zinc-500 text-sm gap-2 px-6 py-16">
             <p className="text-base text-zinc-300">아직 공개된 곡이 없어요</p>
@@ -320,26 +368,66 @@ export function ExplorePanel() {
           </div>
           <RecommendedCreators />
         </div>
-      </div>
-    )
-  }
+      ) : (
+        <div className="space-y-8">
+          {HOME_SECTIONS.map(({ id, label }) => (
+            <SectionCarousel
+              key={id}
+              label={label}
+              feed={sections[id]}
+              onViewAll={() => setAllView({ tab: id, label })}
+              currentUserId={currentUserId}
+            />
+          ))}
+          <RecommendedCreators />
+        </div>
+      )}
+    </div>
+  )
+}
 
+// Design Ref: §5.1 — MyWorkPanel 검색 패턴 차용 (모바일 모핑 / 데스크톱 펼침)
+function SearchBar({
+  query, onChange, open, onOpenChange, onClose, inputRef,
+}: {
+  query: string
+  onChange: (v: string) => void
+  open: boolean
+  onOpenChange: (v: boolean) => void
+  onClose: () => void
+  inputRef: React.RefObject<HTMLInputElement | null>
+}) {
   return (
-    <div className="relative flex-1 overflow-y-auto px-5 py-6">
-      <AuroraBackground />
-      <ExploreHero />
-      <div className="space-y-8">
-        {HOME_SECTIONS.map(({ id, label }) => (
-          <SectionCarousel
-            key={id}
-            label={label}
-            feed={sections[id]}
-            onViewAll={() => setAllView({ tab: id, label })}
-            currentUserId={currentUserId}
-          />
-        ))}
-        <RecommendedCreators />
-      </div>
+    <div className={`relative md:static flex items-center h-11 rounded-full bg-white/[0.06] border border-white/[0.08] overflow-hidden transition-[width] duration-300 ease-out shrink-0 ${open ? 'w-full' : 'w-11'} md:w-72`}>
+      <button
+        type="button"
+        onClick={() => { onOpenChange(true); requestAnimationFrame(() => inputRef.current?.focus()) }}
+        aria-label="검색"
+        className="shrink-0 w-11 h-11 flex items-center justify-center"
+      >
+        <Image src="/Search.svg" alt="" width={18} height={18} style={{ filter: 'invert(1)' }} />
+      </button>
+      <input
+        ref={inputRef}
+        value={query}
+        onChange={(e) => onChange(e.target.value)}
+        onKeyDown={(e) => { if (e.key === 'Escape') onClose() }}
+        placeholder="곡·사용자·태그 검색"
+        maxLength={50}
+        className="flex-1 bg-transparent text-sm text-white placeholder:text-zinc-500 focus:outline-none pr-3"
+      />
+      {(open || query) && (
+        <button
+          type="button"
+          onClick={onClose}
+          aria-label="검색 닫기"
+          className="shrink-0 w-11 h-11 flex items-center justify-center text-zinc-400 hover:text-white transition-colors"
+        >
+          <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+            <path d="M1 1l10 10M11 1L1 11" />
+          </svg>
+        </button>
+      )}
     </div>
   )
 }
