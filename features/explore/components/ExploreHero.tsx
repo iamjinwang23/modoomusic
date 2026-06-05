@@ -86,7 +86,7 @@ export function ExploreHero() {
       // 자동 제출 플래그 — SongForm이 prefill 적용 후 즉시 generate 호출
       sessionStorage.setItem('mono.songform.autosubmit', '1')
     }
-    router.push('/')
+    router.push('/create')
   }
 
   return (

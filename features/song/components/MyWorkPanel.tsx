@@ -290,7 +290,7 @@ export function MyWorkPanel({ showCollections = false }: { showCollections?: boo
               <p className="text-sm text-zinc-300">나만의 음악을 만들어보세요</p>
               {showCollections && (
                 <Link
-                  href="/"
+                  href="/create"
                   className="mt-5 inline-flex items-center gap-1.5 px-5 py-2.5 rounded-xl bg-violet-600 hover:bg-violet-500 text-white text-sm font-semibold transition-colors"
                 >
                   <Image src="/Sparkles.svg" alt="" width={16} height={16} style={{ filter: 'invert(1)' }} />
