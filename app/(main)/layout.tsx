@@ -134,7 +134,7 @@ export default function MainShellLayout({ children }: { children: React.ReactNod
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
-  const isCreate = pathname === '/'
+  const isCreate = pathname === '/create'
 
   const headerInitial = (profile?.displayName ?? user?.user_metadata?.full_name ?? user?.email ?? '?').slice(0, 1).toUpperCase()
   // 프로필 아바타 색상 — profile.avatarHue 기반 (DB 저장값)으로 통일.
