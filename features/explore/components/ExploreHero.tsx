@@ -92,7 +92,7 @@ export function ExploreHero() {
   return (
     <div className="relative mb-8">
       <div className="md:px-10 pt-4 pb-5 md:py-11 flex flex-col items-center text-center">
-        <h1 className="text-2xl md:text-4xl font-bold text-white tracking-tight drop-shadow-lg">
+        <h1 className="text-2xl md:text-4xl font-semibold text-white tracking-tight drop-shadow-lg">
           {title}
         </h1>
 
