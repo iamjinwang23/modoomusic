@@ -83,12 +83,50 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         } else {
           track(EVENTS.LOGIN, { provider })
         }
+
+        // Design Ref: referral §7.3 + Decision #11 — isNewUser 60s 가드, 기존 회원 차단
+        const refCode = (typeof window !== 'undefined') ? sessionStorage.getItem('mono.referral.code') : null
+        if (refCode && isNewUser) {
+          fetch('/api/referral/redeem', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ code: refCode }),
+          }).then(r => r.json()).then(d => {
+            sessionStorage.removeItem('mono.referral.code')
+            if (d.data?.bonus_credits) {
+              toast.success(`친구 초대 보너스 ${d.data.bonus_credits}크레딧 받았어요!`)
+              track(EVENTS.REFERRAL_REDEEM_SUCCESS, { invitee_bonus: d.data.bonus_credits })
+            } else if (d.error === 'abuse_blocked') {
+              track(EVENTS.REFERRAL_ABUSE_BLOCKED, { reason: d.reason })
+            }
+          }).catch((e) => {
+            console.warn('[referral.redeem] failed:', e)
+            sessionStorage.removeItem('mono.referral.code')
+          })
+        } else if (refCode && !isNewUser) {
+          // 기존 회원이 referral 링크로 로그인 — 보너스 무효, 정리만
+          sessionStorage.removeItem('mono.referral.code')
+        }
       } else if (event === 'SIGNED_OUT') {
         clearUserId()
       }
     })
 
     return () => subscription.unsubscribe()
+  }, [])
+
+  // Design Ref: referral §7.1 — `?ref=` 쿼리 sessionStorage 보존 (OAuth callback까지)
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    const url = new URL(window.location.href)
+    const ref = url.searchParams.get('ref')
+    if (ref && /^[a-z0-9]{8}$/.test(ref)) {
+      sessionStorage.setItem('mono.referral.code', ref)
+      track(EVENTS.REFERRAL_CLICK_IN, { code: ref })
+      // URL 정리 (사용자 UX)
+      url.searchParams.delete('ref')
+      window.history.replaceState({}, '', url.toString())
+    }
   }, [])
 
   // 유저 바뀌면 프로필 1회 fetch + GA4 user_id sync

@@ -14,6 +14,7 @@ import { SongRealtimeBridge } from '@/components/SongRealtimeBridge'
 import { GlobalMiniBar } from '@/components/GlobalMiniBar'
 import { BottomNav } from '@/components/BottomNav'
 import { NotificationPanel } from '@/components/NotificationPanel'
+import { ReferralModal } from '@/components/ReferralModal'
 import { useAuth } from '@/components/AuthProvider'
 import { notificationService } from '@/services/notification.service'
 
@@ -41,6 +42,7 @@ export default function MainShellLayout({ children }: { children: React.ReactNod
   const [loginOpen, setLoginOpen] = useState(false)
   const [userMenuOpen, setUserMenuOpen] = useState(false)
   const [legalMenuOpen, setLegalMenuOpen] = useState(false)
+  const [referralOpen, setReferralOpen] = useState(false)
   const [onboardingOpen, setOnboardingOpen] = useState(false)
   const [comingSoon, setComingSoon] = useState<null | 'sidebar' | 'locked-model' | 'daily-limit'>(null)
   const [songOverlayOpen, setSongOverlayOpen] = useState(false)
@@ -249,12 +251,26 @@ export default function MainShellLayout({ children }: { children: React.ReactNod
                 </Link>
               )
             })}
-            {/* 혜택 — 준비 중 */}
-            <div className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-base text-zinc-600 cursor-default select-none">
-              <Image src="/Gift-Card.svg" alt="" width={18} height={18} style={{ filter: 'invert(0.25)' }} />
-              혜택
-              <span className="ml-auto text-[10px] px-1.5 py-0.5 rounded bg-zinc-800 text-zinc-500 leading-none">준비 중</span>
-            </div>
+            {/* 혜택 — 친구 초대 (Phase 2: 출석·미션 추가 예정) */}
+            {user ? (
+              <button
+                onClick={() => setReferralOpen(true)}
+                className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-base text-white hover:bg-white/[0.04] transition-colors"
+              >
+                <Image src="/Gift-Card.svg" alt="" width={18} height={18} style={{ filter: 'invert(0.4)' }} />
+                혜택
+                <span className="ml-auto text-[10px] px-1.5 py-0.5 rounded bg-violet-600/20 text-violet-300 leading-none">친구 초대</span>
+              </button>
+            ) : (
+              <button
+                onClick={() => window.dispatchEvent(new Event('open-login'))}
+                className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-base text-zinc-400 hover:text-white hover:bg-white/[0.04] transition-colors"
+              >
+                <Image src="/Gift-Card.svg" alt="" width={18} height={18} style={{ filter: 'invert(0.4)' }} />
+                혜택
+                <span className="ml-auto text-[10px] px-1.5 py-0.5 rounded bg-violet-600/20 text-violet-300 leading-none">친구 초대</span>
+              </button>
+            )}
           </nav>
           <div className="p-3 space-y-2">
             {/* 더보기 — 클릭 시 위로 팝업 */}
@@ -345,6 +361,9 @@ export default function MainShellLayout({ children }: { children: React.ReactNod
               </div>
             )}
           </div>
+
+          {/* referral §5.1 — 친구 초대 모달 */}
+          <ReferralModal open={referralOpen} onClose={() => setReferralOpen(false)} />
 
           {/* Global Mini Player */}
           <GlobalMiniBar />

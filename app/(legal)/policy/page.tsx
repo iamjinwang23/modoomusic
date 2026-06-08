@@ -9,7 +9,7 @@ export default function PolicyPage() {
     <article className="space-y-8 text-zinc-300 leading-relaxed">
       <header className="space-y-2">
         <h1 className="text-3xl font-bold text-white">운영정책</h1>
-        <p className="text-sm text-zinc-500">시행일: 2026년 5월 29일</p>
+        <p className="text-sm text-zinc-500">시행일: 2026년 6월 8일</p>
       </header>
 
       <p className="text-sm">
@@ -173,7 +173,65 @@ export default function PolicyPage() {
         </p>
       </Section>
 
-      <Section title="제7조 (최종 안내)">
+      <Section title="제7조 (회원 탈퇴 시 데이터 처리)">
+        <p className="mb-3">
+          회원이 탈퇴를 요청하면 회사는 관련 법령 및 「개인정보 처리방침」에 따라 다음 기준으로 데이터를 처리합니다.
+        </p>
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm border border-white/[0.08] rounded">
+            <thead>
+              <tr className="bg-white/[0.04]">
+                <th className="text-left p-2 border-b border-white/[0.08] w-[40%]">데이터 종류</th>
+                <th className="text-left p-2 border-b border-white/[0.08]">처리 방식</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td className="p-2 border-b border-white/[0.06]">개인 식별 정보 (이메일·이름·아바타·OAuth 식별자)</td>
+                <td className="p-2 border-b border-white/[0.06]">즉시 파기</td>
+              </tr>
+              <tr>
+                <td className="p-2 border-b border-white/[0.06]">공개 게시한 곡</td>
+                <td className="p-2 border-b border-white/[0.06]">작성자 표시를 "(탈퇴한 회원)"으로 익명화 후 서비스 내 유지</td>
+              </tr>
+              <tr>
+                <td className="p-2 border-b border-white/[0.06]">비공개 곡</td>
+                <td className="p-2 border-b border-white/[0.06]">즉시 파기</td>
+              </tr>
+              <tr>
+                <td className="p-2 border-b border-white/[0.06]">본인이 작성한 댓글·답글</td>
+                <td className="p-2 border-b border-white/[0.06]">작성자 표시를 "(탈퇴한 회원)"으로 익명화 후 유지 (대화 맥락 보존)</td>
+              </tr>
+              <tr>
+                <td className="p-2 border-b border-white/[0.06]">좋아요·팔로우·컬렉션</td>
+                <td className="p-2 border-b border-white/[0.06]">즉시 파기</td>
+              </tr>
+              <tr>
+                <td className="p-2 border-b border-white/[0.06]">알림 수신 기록</td>
+                <td className="p-2 border-b border-white/[0.06]">즉시 파기</td>
+              </tr>
+              <tr>
+                <td className="p-2 border-b border-white/[0.06]">크레딧·보너스 잔액</td>
+                <td className="p-2 border-b border-white/[0.06]">영구 소실 (환불·이체 불가)</td>
+              </tr>
+              <tr>
+                <td className="p-2 border-b border-white/[0.06]">친구 초대 관계</td>
+                <td className="p-2 border-b border-white/[0.06]">초대자 카운터·통계는 익명화 후 유지, 본인 측 정보는 파기</td>
+              </tr>
+              <tr>
+                <td className="p-2">법령상 보존이 필요한 정보</td>
+                <td className="p-2">관련 법령에서 정한 기간 동안 별도 보관 후 파기</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <List items={[
+          '회원이 직접 삭제하지 않은 공개 게시물은 탈퇴 이후에도 익명화된 상태로 서비스 내에 유지될 수 있습니다.',
+          '탈퇴 후에도 동일 이메일·동일 OAuth 식별자로 재가입은 가능하나, 이전 계정과 연결되지 않은 신규 회원으로 처리됩니다.',
+        ]} />
+      </Section>
+
+      <Section title="제8조 (최종 안내)">
         <p>
           본 운영정책은 회사의 정책 및 서비스 운영 환경에 따라 변경될 수 있으며, 변경 사항은 별도 공지를 통해 안내됩니다.
           이용자는 본 운영정책을 숙지하고 준수해야 하며, 이를 위반할 경우 서비스 이용에 제한이 있을 수 있습니다.

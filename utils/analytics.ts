@@ -24,6 +24,10 @@ export const EVENTS = {
   SONG_PLAY: 'song_play',
   SEARCH_PERFORM: 'search_perform',
   SEARCH_RESULT_CLICK: 'search_result_click',
+  REFERRAL_SHARE: 'referral_share',
+  REFERRAL_CLICK_IN: 'referral_click_in',
+  REFERRAL_REDEEM_SUCCESS: 'referral_redeem_success',
+  REFERRAL_ABUSE_BLOCKED: 'referral_abuse_blocked',
 } as const
 
 export type EventName = (typeof EVENTS)[keyof typeof EVENTS]
