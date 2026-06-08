@@ -9,6 +9,7 @@ import { ExploreFeedFilter } from './ExploreFeedFilter'
 import { ExploreHero } from './ExploreHero'
 import { AuroraBackground } from './AuroraBackground'
 import { RecommendedCreators } from './RecommendedCreators'
+import { GenreSection } from './GenreSection'
 import { SearchPanel } from './SearchPanel'
 import type { SearchTag } from '@/services/search.service'
 import type { PublicSong, Song } from '@/types/domain'
@@ -281,6 +282,11 @@ export function ExplorePanel() {
     setAllView({ tab: 'latest', label: '새로운 음악', initialFilters: [tag.label] })
   }
 
+  // GenreSection의 "더보기" → 해당 장르 필터 자동 적용한 전체보기로 진입
+  function openGenreView(genre: string) {
+    setAllView({ tab: 'latest', label: '새로운 음악', initialFilters: [genre] })
+  }
+
   useEffect(() => {
     let cancelled = false
     setLoading(true)
@@ -345,6 +351,7 @@ export function ExplorePanel() {
         <div className="space-y-8">
           {HOME_SECTIONS.map((s) => <SectionCarouselSkeleton key={s.id} label={s.label} />)}
           <RecommendedCreators />
+          <GenreSection currentUserId={currentUserId} onMore={openGenreView} />
         </div>
       </div>
     )
@@ -367,6 +374,7 @@ export function ExplorePanel() {
             <p className="text-xs">첫 번째로 곡을 게시해보세요 ✨</p>
           </div>
           <RecommendedCreators />
+          <GenreSection currentUserId={currentUserId} onMore={openGenreView} />
         </div>
       ) : (
         <div className="space-y-8">
@@ -380,6 +388,7 @@ export function ExplorePanel() {
             />
           ))}
           <RecommendedCreators />
+          <GenreSection currentUserId={currentUserId} onMore={openGenreView} />
         </div>
       )}
     </div>

@@ -656,39 +656,63 @@ function SelfSettingsMenu() {
 
 function ProfilePanelSkeleton() {
   return (
-    <div className="flex-1 overflow-y-auto">
-      {/* 커버 배너 — 1064/368 비율 */}
-      <div className="w-full max-w-[1064px] mx-auto" style={{ aspectRatio: '1064/368' }}>
-        <div className="w-full h-full bg-white/[0.04] shimmer md:rounded-b-xl" />
-      </div>
-      {/* 본문 영역 */}
-      <div className="max-w-[1064px] mx-auto px-5 pb-10">
-        {/* 아바타 + 이름 행 */}
-        <div className="flex items-end gap-4 -mt-12 mb-5">
-          <div className="w-24 h-24 rounded-full bg-white/[0.04] shimmer border-4 border-[#171A20] shrink-0" />
-          <div className="flex-1 min-w-0 space-y-2 pb-2">
-            <div className="h-5 w-40 rounded bg-white/[0.04] shimmer" />
-            <div className="h-3 w-28 rounded bg-white/[0.04] shimmer" />
-          </div>
-          <div className="h-9 w-24 rounded-full bg-white/[0.04] shimmer shrink-0" />
-        </div>
-        {/* 스탯/링크 행 */}
-        <div className="flex items-center gap-3 mb-6">
-          <div className="h-3 w-16 rounded bg-white/[0.04] shimmer" />
-          <div className="h-3 w-16 rounded bg-white/[0.04] shimmer" />
-          <div className="h-3 w-16 rounded bg-white/[0.04] shimmer" />
-        </div>
-        {/* 곡 grid */}
-        <div className="grid gap-3 [grid-template-columns:repeat(auto-fill,minmax(150px,1fr))] md:[grid-template-columns:repeat(auto-fill,minmax(200px,1fr))]">
-          {Array.from({ length: 8 }).map((_, i) => (
-            <div key={i}>
-              <div className="aspect-[2/3] w-full rounded-xl bg-white/[0.04] shimmer" />
-              <div className="pt-2 space-y-1.5">
-                <div className="h-4 w-3/4 rounded bg-white/[0.04] shimmer" />
-                <div className="h-3 w-1/2 rounded bg-white/[0.04] shimmer" />
+    <div className="flex flex-col h-full overflow-hidden">
+      <div className="flex-1 overflow-y-auto">
+        <div className="max-w-[1064px] mx-auto md:pt-4">
+
+          {/* 커버 + 아바타+이름 (좌하단 absolute) + 편집/팔로우 버튼 — 실제 디자인과 동일 */}
+          <div className="relative w-full rounded-none md:rounded-3xl overflow-hidden aspect-video md:aspect-[1064/368] bg-white/[0.04] shimmer">
+            {/* 하단 그라데이션 (실제에 있는 스크림) */}
+            <div className="absolute inset-x-0 bottom-0 h-1/2 bg-gradient-to-t from-black/40 to-transparent pointer-events-none" />
+
+            {/* 아바타 + 이름 좌하단 */}
+            <div className="absolute left-5 bottom-4 z-10 flex items-center gap-4">
+              <div className="w-[80px] h-[80px] md:w-[100px] md:h-[100px] rounded-full bg-white/[0.10] shimmer shrink-0" />
+              <div className="space-y-2">
+                <div className="h-6 md:h-7 w-40 rounded bg-white/[0.10] shimmer" />
+                <div className="h-3 w-24 rounded bg-white/[0.10] shimmer" />
               </div>
             </div>
-          ))}
+
+            {/* 편집/팔로우 버튼 — 모바일 우상단 / 데스크톱 우하단 */}
+            <div className="absolute top-3 right-3 md:top-auto md:bottom-4 md:right-5 z-10">
+              <div className="h-9 w-28 rounded-full bg-white/[0.10] shimmer" />
+            </div>
+          </div>
+
+          {/* 프로필 헤더 — 스탯·bio 영역 */}
+          <div className="relative px-5 pb-5">
+            <div className="mt-6 space-y-5">
+              <div className="flex gap-6">
+                <div className="h-4 w-12 rounded bg-white/[0.04] shimmer" />
+                <div className="h-4 w-16 rounded bg-white/[0.04] shimmer" />
+                <div className="h-4 w-16 rounded bg-white/[0.04] shimmer" />
+              </div>
+              <div className="space-y-1.5">
+                <div className="h-3 w-3/4 rounded bg-white/[0.04] shimmer" />
+                <div className="h-3 w-2/5 rounded bg-white/[0.04] shimmer" />
+              </div>
+            </div>
+          </div>
+
+          {/* 탭 바 (음악 / 뮤직비디오) */}
+          <div className="pt-4">
+            <div className="flex border-b border-white/10 mb-px">
+              <div className="flex-1 py-2.5 flex items-center justify-center border-b-2 border-white">
+                <div className="h-4 w-12 rounded bg-white/[0.06] shimmer" />
+              </div>
+              <div className="flex-1 py-2.5 flex items-center justify-center">
+                <div className="h-4 w-20 rounded bg-white/[0.04] shimmer" />
+              </div>
+            </div>
+
+            {/* 곡 그리드 — 3 cols 모바일 / 5 cols 데스크톱, gap-1, 2:3 aspect (Instagram 패턴) */}
+            <div className="grid grid-cols-3 md:grid-cols-5 gap-1">
+              {Array.from({ length: 15 }).map((_, i) => (
+                <div key={i} className="aspect-[2/3] bg-white/[0.04] shimmer" />
+              ))}
+            </div>
+          </div>
         </div>
       </div>
     </div>

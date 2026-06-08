@@ -303,6 +303,23 @@ export const exploreService = {
     }
   },
 
+  // 장르별 공개 곡 수 (장르 칩 정렬·기본 선택 결정에 사용)
+  async getGenreCounts(): Promise<Record<string, number>> {
+    const supabase = createClient()
+    const { data, error } = await supabase
+      .from('songs')
+      .select('genre')
+      .eq('is_public', true)
+      .not('genre', 'is', null)
+    if (error) { console.error('[exploreService.getGenreCounts]', error.message); return {} }
+    const counts: Record<string, number> = {}
+    for (const row of data ?? []) {
+      const g = (row as { genre?: string | null }).genre?.trim()
+      if (g) counts[g] = (counts[g] ?? 0) + 1
+    }
+    return counts
+  },
+
   async getPopularProfiles(limit = 12): Promise<UserProfile[]> {
     const supabase = createClient()
     const { data, error } = await supabase

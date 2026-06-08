@@ -287,7 +287,13 @@ export default function MainShellLayout({ children }: { children: React.ReactNod
                         <Image src="/External-Link.svg" alt="" width={14} height={14} style={{ filter: 'invert(0.4)' }} />
                       </Link>
                     ))}
-                    <a href="mailto:bee202408@gmail.com" onClick={() => setLegalMenuOpen(false)} className="block px-4 py-2.5 text-sm text-zinc-300 hover:text-white hover:bg-white/[0.04] transition-colors border-t border-white/[0.06]">문의하기</a>
+                    <div
+                      aria-disabled="true"
+                      className="block px-4 py-2.5 text-sm text-zinc-500 border-t border-white/[0.06] cursor-not-allowed"
+                    >
+                      자주 묻는 질문
+                    </div>
+                    <a href="mailto:bee202408@gmail.com" onClick={() => setLegalMenuOpen(false)} className="block px-4 py-2.5 text-sm text-zinc-300 hover:text-white hover:bg-white/[0.04] transition-colors">문의하기</a>
                   </div>
                 </>
               )}

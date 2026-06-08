@@ -63,18 +63,18 @@ export function BottomNav() {
           <Comp
             key={it.label}
             {...linkProps}
-            className="flex flex-col items-center justify-center gap-1 py-2 transition-colors"
+            className="flex flex-col items-center justify-center gap-0.5 py-1.5 transition-colors"
           >
             <div className="relative">
               <Image
                 src={it.icon}
                 alt=""
-                width={22}
-                height={22}
+                width={26}
+                height={26}
                 style={{ filter: active ? VIOLET_FILTER : 'invert(0.45)' }}
               />
               {it.label === '알림' && unread > 0 && (
-                <span className="absolute -top-0.5 -right-0.5 w-1.5 h-1.5 rounded-full bg-red-500" />
+                <span className="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full bg-red-500" />
               )}
             </div>
             <span className={`text-[10px] font-medium ${active ? 'text-white' : 'text-zinc-500'}`}>

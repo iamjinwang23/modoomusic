@@ -77,11 +77,12 @@ export const metadata: Metadata = {
   },
   icons: {
     icon: [
+      { url: '/favicon.ico', sizes: 'any' },
       { url: '/favicon-16x16.png', sizes: '16x16', type: 'image/png' },
       { url: '/logo-512.png', sizes: '512x512', type: 'image/png' },
     ],
     apple: '/logo-512.png',
-    shortcut: '/logo-512.png',
+    shortcut: '/favicon.ico',
   },
   verification: {
     ...(process.env.GOOGLE_SITE_VERIFICATION ? { google: process.env.GOOGLE_SITE_VERIFICATION } : {}),
