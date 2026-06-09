@@ -5,6 +5,7 @@ import Image from 'next/image'
 import { songService } from '@/services/song.service'
 import { toast } from '@/components/toast/toast'
 import { uploadSongCover } from '@/utils/imageUpload'
+import { CropModal } from '@/components/CropModal'
 import { useAuth } from '@/components/AuthProvider'
 import type { Song } from '@/types/domain'
 
@@ -30,7 +31,8 @@ export function SongEditModal({ song, onClose }: Props) {
   const [title, setTitle] = useState(song.title ?? '')
   const [hue, setHue] = useState(song.coverHue ?? baseHue(song.id))
   const [coverImage, setCoverImage] = useState<string | null>(song.coverImage ?? null)
-  const [pendingFile, setPendingFile] = useState<File | null>(null)  // 저장 시점에 업로드 트랜잭션
+  const [pendingFile, setPendingFile] = useState<File | Blob | null>(null)  // 저장 시점에 업로드 (crop된 Blob 또는 File)
+  const [cropFile, setCropFile] = useState<File | null>(null)
   const [previewUrl, setPreviewUrl] = useState<string | null>(null)  // objectURL — 즉시 프리뷰
   const [showPicker, setShowPicker] = useState(false)
   const [visible, setVisible] = useState(false)
@@ -72,13 +74,18 @@ export function SongEditModal({ song, onClose }: Props) {
   }
 
   function handleFile(file: File) {
-    // 즉시 프리뷰만 — 실제 업로드는 저장 시점
+    // CropModal에 위임 — 위치 조정 후 confirm
+    setCropFile(file)
+    setShowPicker(false)
+  }
+
+  function handleCropConfirm(blob: Blob) {
     if (previewUrl) URL.revokeObjectURL(previewUrl)
-    const objectUrl = URL.createObjectURL(file)
+    const objectUrl = URL.createObjectURL(blob)
     setPreviewUrl(objectUrl)
     setCoverImage(objectUrl)
-    setPendingFile(file)
-    setShowPicker(false)
+    setPendingFile(blob)
+    setCropFile(null)
   }
 
   return (
@@ -194,6 +201,16 @@ export function SongEditModal({ song, onClose }: Props) {
           </button>
         </div>
       </div>
+
+      {/* 업로드 시 위치 조정 — 카드·곡 상세 표시 기준 2:3 세로 */}
+      <CropModal
+        open={!!cropFile}
+        imageFile={cropFile}
+        aspect={2 / 3}
+        title="커버 위치 조정"
+        onCancel={() => setCropFile(null)}
+        onConfirm={handleCropConfirm}
+      />
     </div>
   )
 }

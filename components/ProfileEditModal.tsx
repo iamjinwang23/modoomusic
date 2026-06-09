@@ -221,7 +221,7 @@ export function ProfileEditModal({ userId, initial, images, onClose, onSaved }: 
               {/* 커버 */}
               <div>
                 <div
-                  className="relative w-full aspect-video rounded-xl overflow-hidden"
+                  className="relative w-full aspect-[1064/368] rounded-xl overflow-hidden"
                   style={{ background: profileColor(images.avatarHue).bg }}
                 >
                   {images.coverUrl && (

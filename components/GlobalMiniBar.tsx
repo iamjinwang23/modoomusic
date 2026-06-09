@@ -94,7 +94,20 @@ export function GlobalMiniBar() {
 
   return (
     <>
-      <div className="relative shrink-0 bg-[#111318] border-t border-white/[0.06] select-none px-4 py-[11px] md:py-3">
+      <div className="relative shrink-0 bg-[#111318] border-t border-white/[0.06] select-none px-4 py-[11px] md:py-3 overflow-hidden isolate">
+        {/* 커버 색감 배경 레이어 — SongDetailPage와 동일 패턴 */}
+        <div
+          aria-hidden
+          className="absolute inset-0 z-0 scale-125 blur-3xl opacity-70 pointer-events-none"
+          style={song.coverImage ? undefined : { background: coverGradient(song) }}
+        >
+          {song.coverImage && (
+            <Image src={song.coverImage} alt="" fill className="object-cover" unoptimized priority={false} />
+          )}
+        </div>
+        {/* 가독성용 스크림 */}
+        <div aria-hidden className="absolute inset-0 z-0 bg-[#111318]/80 pointer-events-none" />
+
         {/* 모바일 상단 프로그레스 — 탭/드래그로 시크 */}
         <div
           ref={trackRef}
@@ -109,7 +122,7 @@ export function GlobalMiniBar() {
             try { (e.currentTarget as HTMLElement).releasePointerCapture(e.pointerId) } catch {}
           }}
           onPointerCancel={() => setDragging(false)}
-          className="md:hidden absolute top-0 left-0 right-0 h-3 cursor-pointer touch-none"
+          className="md:hidden absolute top-0 left-0 right-0 h-3 cursor-pointer touch-none z-10"
           style={{ touchAction: 'none' }}
         >
           {/* 라인 — 드래그 중이면 두꺼워짐 */}
@@ -126,7 +139,7 @@ export function GlobalMiniBar() {
           />
         </div>
 
-        <div className="grid grid-cols-[minmax(0,1fr)_auto] md:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-2 mb-1">
+        <div className="relative z-10 grid grid-cols-[minmax(0,1fr)_auto] md:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-2 mb-1">
           {/* Left: thumbnail + title — click opens detail
               md+: 프로그레스 바(560px 중앙) 좌측 경계까지로 폭 제한 */}
           <div
@@ -259,7 +272,7 @@ export function GlobalMiniBar() {
         </div>
 
         {/* 프로그레스 바 (데스크톱) — 모바일은 상단 라인이 대체 */}
-        <div className="hidden md:flex items-center gap-2 max-w-[560px] mx-auto">
+        <div className="relative z-10 hidden md:flex items-center gap-2 max-w-[560px] mx-auto">
           <span className="text-xs text-zinc-500 w-7 text-right tabular-nums shrink-0">{formatTime(currentTime)}</span>
           <input
             type="range"

@@ -16,6 +16,7 @@ import { SoundWaveIcon } from '@/components/SoundWaveIcon'
 import type { PublicSong, Song, UserProfile, SocialLinks } from '@/types/domain'
 import { profileColor } from '@/utils/profileColor'
 import { toWebp } from '@/utils/imageUpload'
+import { CropModal } from '@/components/CropModal'
 
 function coverGradient(hue: number) {
   const h2 = (hue + 55) % 360
@@ -90,9 +91,16 @@ function toSong(pub: PublicSong): Song {
 // ── 이미지 업로드 유틸 ────────────────────────────────────────────
 const MAX_PX = { avatar: 400, cover: 1200 }
 
-async function uploadProfileImage(userId: string, file: File, type: 'avatar' | 'cover'): Promise<string | null> {
+async function uploadProfileImage(
+  userId: string,
+  fileOrBlob: File | Blob,
+  type: 'avatar' | 'cover',
+): Promise<string | null> {
   const supabase = createClient()
-  const blob = await toWebp(file, MAX_PX[type])
+  // Blob(이미 WebP, CropModal에서 옴)이면 그대로, File이면 toWebp
+  const blob = fileOrBlob instanceof File
+    ? await toWebp(fileOrBlob, MAX_PX[type])
+    : fileOrBlob
   const path = `${userId}/${type}.webp`
   const { error } = await supabase.storage
     .from('profile-images')
@@ -263,8 +271,10 @@ export function ProfilePanel({ username }: Props) {
   // 모달 편집 이미지 스테이징 — 저장 시에만 storage 업로드 + DB 커밋, 취소 시 스냅샷 복원.
   // (인라인 배너 즉시 편집은 예외 — handleAvatarUpload/handleCoverUpload 유지)
   const imgSnapshotRef = useRef<{ avatar: string | null; cover: string | null }>({ avatar: null, cover: null })
-  const pendingAvatarRef = useRef<File | 'delete' | null>(null)
-  const pendingCoverRef = useRef<File | 'delete' | null>(null)
+  const pendingAvatarRef = useRef<File | Blob | 'delete' | null>(null)
+  const pendingCoverRef = useRef<File | Blob | 'delete' | null>(null)
+  // CropModal — 모든 upload entry를 인터셉트
+  const [cropState, setCropState] = useState<{ file: File; type: 'avatar' | 'cover'; mode: 'inline' | 'stage' } | null>(null)
 
   useEffect(() => {
     if (!isSelf || !user) return
@@ -275,10 +285,14 @@ export function ProfilePanel({ username }: Props) {
       })
   }, [isSelf, user?.id])
 
-  async function handleAvatarUpload(file: File) {
+  function handleAvatarUpload(file: File) {
+    setCropState({ file, type: 'avatar', mode: 'inline' })
+  }
+
+  async function doAvatarUploadInline(blob: Blob) {
     if (!user) return
     setUploading('avatar')
-    const url = await uploadProfileImage(user.id, file, 'avatar')
+    const url = await uploadProfileImage(user.id, blob, 'avatar')
     if (url) {
       setAvatarUrl(url)
       await createClient().from('profiles').update({ avatar_url: url }).eq('id', user.id)
@@ -292,18 +306,21 @@ export function ProfilePanel({ username }: Props) {
 
   // ── 모달 편집 스테이징 (저장 시 커밋) ──
   function handleAvatarStage(file: File) {
-    pendingAvatarRef.current = file
-    setAvatarUrl(URL.createObjectURL(file))  // objectURL 미리보기 (업로드는 저장 시)
+    setCropState({ file, type: 'avatar', mode: 'stage' })
   }
   function handleAvatarDelete() {
     pendingAvatarRef.current = 'delete'
     setAvatarUrl(null)
   }
 
-  async function handleCoverUpload(file: File) {
+  function handleCoverUpload(file: File) {
+    setCropState({ file, type: 'cover', mode: 'inline' })
+  }
+
+  async function doCoverUploadInline(blob: Blob) {
     if (!user) return
     setUploading('cover')
-    const url = await uploadProfileImage(user.id, file, 'cover')
+    const url = await uploadProfileImage(user.id, blob, 'cover')
     if (url) {
       setCoverUrl(url)
       await createClient().from('profiles').update({ cover_url: url }).eq('id', user.id)
@@ -315,8 +332,25 @@ export function ProfilePanel({ username }: Props) {
   }
 
   function handleCoverStage(file: File) {
-    pendingCoverRef.current = file
-    setCoverUrl(URL.createObjectURL(file))
+    setCropState({ file, type: 'cover', mode: 'stage' })
+  }
+
+  // CropModal confirm 라우터
+  function handleCropConfirm(blob: Blob) {
+    if (!cropState) return
+    const { type, mode } = cropState
+    if (mode === 'inline') {
+      type === 'avatar' ? doAvatarUploadInline(blob) : doCoverUploadInline(blob)
+    } else {
+      if (type === 'avatar') {
+        pendingAvatarRef.current = blob
+        setAvatarUrl(URL.createObjectURL(blob))
+      } else {
+        pendingCoverRef.current = blob
+        setCoverUrl(URL.createObjectURL(blob))
+      }
+    }
+    setCropState(null)
   }
   function handleCoverDelete() {
     pendingCoverRef.current = 'delete'
@@ -569,7 +603,7 @@ export function ProfilePanel({ username }: Props) {
             if (user && (pendingAvatarRef.current !== null || pendingCoverRef.current !== null)) {
               const patch: Record<string, unknown> = {}
               const pa = pendingAvatarRef.current
-              if (pa instanceof File) {
+              if (pa instanceof Blob) {
                 const url = await uploadProfileImage(user.id, pa, 'avatar')
                 if (url) { setAvatarUrl(url); patch.avatar_url = url }
               } else if (pa === 'delete') {
@@ -577,7 +611,7 @@ export function ProfilePanel({ username }: Props) {
                 patch.avatar_url = null
               }
               const pc = pendingCoverRef.current
-              if (pc instanceof File) {
+              if (pc instanceof Blob) {
                 const url = await uploadProfileImage(user.id, pc, 'cover')
                 if (url) { setCoverUrl(url); patch.cover_url = url }
               } else if (pc === 'delete') {
@@ -608,6 +642,17 @@ export function ProfilePanel({ username }: Props) {
           }}
         />
       )}
+
+      {/* 업로드 시 위치 조정 */}
+      <CropModal
+        open={!!cropState}
+        imageFile={cropState?.file ?? null}
+        aspect={cropState?.type === 'cover' ? 1064 / 368 : 1}
+        title={cropState?.type === 'cover' ? '커버 위치 조정' : '프로필 사진 위치 조정'}
+        outputMaxPx={cropState?.type === 'cover' ? 1200 : 400}
+        onCancel={() => setCropState(null)}
+        onConfirm={handleCropConfirm}
+      />
     </div>
   )
 }

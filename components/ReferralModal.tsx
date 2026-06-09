@@ -113,7 +113,7 @@ export function ReferralModal({ open, onClose }: Props) {
             <p className="text-xs text-zinc-400">받은 보너스</p>
             <p className="text-2xl font-bold text-violet-400 mt-2">
               {loading ? '–' : data?.bonus_received ?? 0}
-              <span className="text-base text-zinc-500">크레딧</span>
+              <span className="text-base text-zinc-500">/100크레딧</span>
             </p>
           </div>
         </div>

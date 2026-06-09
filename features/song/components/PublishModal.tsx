@@ -7,6 +7,7 @@ import { useAuth } from '@/components/AuthProvider'
 import { toast } from '@/components/toast/toast'
 import { uploadSongCover } from '@/utils/imageUpload'
 import { track, EVENTS } from '@/utils/analytics'
+import { CropModal } from '@/components/CropModal'
 import type { Song } from '@/types/domain'
 
 interface Props {
@@ -22,19 +23,27 @@ export function PublishModal({ song, onClose }: Props) {
 
   const [coverPreview, setCoverPreview] = useState<string | null>(song.publishCoverImage ?? song.coverImage ?? null)
   const [comment, setComment] = useState(song.publishComment ?? '')
-  const [pendingFile, setPendingFile] = useState<File | null>(null)  // 게시 시점에 Storage 업로드
+  const [pendingFile, setPendingFile] = useState<File | Blob | null>(null)  // 게시 시점에 Storage 업로드 (crop된 Blob 또는 File)
   const [previewUrl, setPreviewUrl] = useState<string | null>(null)
   const [publishing, setPublishing] = useState(false)
   const fileRef = useRef<HTMLInputElement>(null)
+  // CropModal 통합
+  const [cropFile, setCropFile] = useState<File | null>(null)
 
   useEffect(() => () => { if (previewUrl) URL.revokeObjectURL(previewUrl) }, [previewUrl])
 
   function handleFile(file: File) {
+    // 사용자 업로드 → CropModal 열기
+    setCropFile(file)
+  }
+
+  function handleCropConfirm(blob: Blob) {
     if (previewUrl) URL.revokeObjectURL(previewUrl)
-    const objectUrl = URL.createObjectURL(file)
+    const objectUrl = URL.createObjectURL(blob)
     setPreviewUrl(objectUrl)
     setCoverPreview(objectUrl)
-    setPendingFile(file)
+    setPendingFile(blob)
+    setCropFile(null)
   }
 
   function handleDrop(e: React.DragEvent) {
@@ -182,6 +191,16 @@ export function PublishModal({ song, onClose }: Props) {
           </button>
         </div>
       </div>
+
+      {/* 업로드 시 위치 조정 — 카드·곡 상세 표시 기준 2:3 세로 */}
+      <CropModal
+        open={!!cropFile}
+        imageFile={cropFile}
+        aspect={2 / 3}
+        title="커버 위치 조정"
+        onCancel={() => setCropFile(null)}
+        onConfirm={handleCropConfirm}
+      />
     </div>
   )
 }

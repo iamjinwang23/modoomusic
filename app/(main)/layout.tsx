@@ -146,7 +146,7 @@ export default function MainShellLayout({ children }: { children: React.ReactNod
 
   return (
     <div
-      className="flex flex-col bg-[#171A20] text-white overflow-hidden select-none h-[calc(100dvh-68px-env(safe-area-inset-bottom,0px))] md:h-screen"
+      className="flex flex-col bg-[#111318] text-white overflow-hidden select-none h-[calc(100dvh-68px-env(safe-area-inset-bottom,0px))] md:h-screen"
     >
 
       {/* ── Header — 항상 상단 고정 ── */}
@@ -220,7 +220,7 @@ export default function MainShellLayout({ children }: { children: React.ReactNod
       <div className="flex flex-1 min-h-0 overflow-hidden">
 
         {/* Left sidebar */}
-        <aside className="hidden md:flex w-60 shrink-0 flex-col border-r border-white/[0.06] bg-gradient-to-b from-[#111318] from-50% to-[#12151E]">
+        <aside className="hidden md:flex w-60 shrink-0 flex-col border-r border-white/[0.06] bg-[#111318]">
           <nav className="flex-1 px-3 py-3 space-y-0.5">
             {NAV_ITEMS.map(({ href, label, icon }) => {
               // notifications §5.4 — 알림은 데스크톱에서 패널 토글 (라우팅 X)
