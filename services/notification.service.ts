@@ -17,7 +17,7 @@ interface Row {
 
 const SELECT = `
   id, type, actor_id, song_id, payload, read_at, created_at,
-  actor:profiles!notifications_actor_id_fkey!inner ( username, display_name, avatar_url, avatar_hue ),
+  actor:profiles!notifications_actor_id_fkey ( username, display_name, avatar_url, avatar_hue ),
   song:songs!notifications_song_id_fkey ( title, cover_image, cover_hue )
 `
 
