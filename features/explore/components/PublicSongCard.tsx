@@ -99,19 +99,19 @@ export function PublicSongCard({ song, onPlay, onThumbPlay, hideArtist = false }
 
       {/* 정보 */}
       <div className="pt-2 space-y-1">
-        <div className="flex items-start gap-1.5 min-w-0">
-          <p className="text-sm font-medium text-zinc-100 leading-snug flex-1 line-clamp-2">{displayTitle}</p>
+        <p className="text-sm font-medium text-zinc-100 leading-snug line-clamp-2 min-w-0">
+          {displayTitle}
           {song.model && (
-            <span className="shrink-0 mt-0.5 text-[9px] font-semibold text-violet-300 bg-violet-600/20 px-1.5 py-0.5 rounded leading-none">
+            <span className="inline-block align-middle ml-1.5 text-[9px] font-semibold text-violet-300 bg-violet-600/20 px-1.5 py-0.5 rounded leading-none">
               {`v${song.model.replace(/^music-/, '')}`}
             </span>
           )}
           {song.instrumental && (
-            <span className="shrink-0 mt-0.5 text-[9px] bg-white/[0.08] text-zinc-400 px-1.5 py-0.5 rounded border border-white/[0.08]">
+            <span className="inline-block align-middle ml-1.5 text-[9px] bg-white/[0.08] text-zinc-400 px-1.5 py-0.5 rounded border border-white/[0.08] leading-none">
               Inst.
             </span>
           )}
-        </div>
+        </p>
         {!hideArtist && (
           <button
             onClick={(e) => {

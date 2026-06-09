@@ -593,7 +593,12 @@ function SongWorkItem({ song, onOpen, onEdit, onDelete, onCollect, onPublish, on
               className={`flex-1 min-w-0 text-left ${isGenerating ? 'cursor-default' : ''}`}
             >
               <div className="flex items-center gap-1.5 min-w-0">
-                <p className="text-sm font-medium text-white truncate">{displayTitle}</p>
+                <p className="text-sm font-medium text-white truncate min-w-0">{displayTitle}</p>
+                {song.model && (
+                  <span className="shrink-0 text-[10px] font-semibold text-violet-300 bg-violet-600/20 px-1.5 py-0.5 rounded leading-none">
+                    {`v${song.model.replace(/^music-/, '')}`}
+                  </span>
+                )}
                 {song.instrumental && !isGenerating && (
                   <span className="shrink-0 text-[10px] text-zinc-400 bg-zinc-800 px-1.5 py-0.5 rounded border border-white/[0.06] leading-none">
                     Inst.
