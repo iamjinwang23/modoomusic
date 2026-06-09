@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { createPortal } from 'react-dom'
 import Image from 'next/image'
 import { collectionService } from '@/services/collection.service'
 import { songService } from '@/services/song.service'
@@ -111,7 +112,11 @@ export function CollectionPickerModal({ song, onClose }: Props) {
   const songGradient = `linear-gradient(135deg, hsl(${songHue},65%,48%) 0%, hsl(${songH2},55%,32%) 100%)`
   const songTitle = song.title || song.prompt.slice(0, 30)
 
-  return (
+  if (typeof document === 'undefined') return null
+
+  // Portal로 body에 렌더 — SongDetailPage 내부 stacking context로 인한 미니바 아래로
+  // 빠지는 문제 회피
+  return createPortal(
     <div className="fixed inset-0 z-[70] flex items-end md:items-center justify-center md:p-6">
       <div
         className={`absolute inset-0 bg-black/70 backdrop-blur-sm transition-opacity duration-280 ${visible ? 'opacity-100' : 'opacity-0'}`}
@@ -206,6 +211,7 @@ export function CollectionPickerModal({ song, onClose }: Props) {
           )}
         </div>
       </div>
-    </div>
+    </div>,
+    document.body,
   )
 }

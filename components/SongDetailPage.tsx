@@ -1,6 +1,7 @@
 'use client'
 
 import { useRef, useState, useEffect } from 'react'
+import { createPortal } from 'react-dom'
 import Image from 'next/image'
 import { songService } from '@/services/song.service'
 import { SongEditModal } from '@/components/SongEditModal'
@@ -521,7 +522,7 @@ export function SongDetailPage({ onBack, profile }: Props) {
         />
       )}
 
-      {confirmDelete && (
+      {confirmDelete && typeof document !== 'undefined' && createPortal(
         <div className="fixed inset-0 z-[70] flex items-center justify-center p-6">
           <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={() => setConfirmDelete(false)} />
           <div className="relative bg-[#21252E] border border-white/[0.10] rounded-2xl p-5 w-full max-w-[320px] shadow-2xl">
@@ -532,14 +533,15 @@ export function SongDetailPage({ onBack, profile }: Props) {
               <button onClick={handleDelete} className="px-5 py-2 rounded-xl text-sm font-semibold bg-red-600 hover:bg-red-500 text-white transition-colors">네</button>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body,
       )}
 
       {publishOpen && song && (
         <PublishModal song={song} onClose={() => setPublishOpen(false)} />
       )}
 
-      {confirmUnpublish && song && (
+      {confirmUnpublish && song && typeof document !== 'undefined' && createPortal(
         <div className="fixed inset-0 z-[70] flex items-center justify-center p-6">
           <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={() => setConfirmUnpublish(false)} />
           <div className="relative bg-[#21252E] border border-white/[0.10] rounded-2xl p-5 w-full max-w-[320px] shadow-2xl">
@@ -561,7 +563,8 @@ export function SongDetailPage({ onBack, profile }: Props) {
               </button>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body,
       )}
     </div>
   )

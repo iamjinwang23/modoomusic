@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, useRef } from 'react'
+import { createPortal } from 'react-dom'
 import Image from 'next/image'
 import { songService } from '@/services/song.service'
 import { toast } from '@/components/toast/toast'
@@ -88,7 +89,12 @@ export function SongEditModal({ song, onClose }: Props) {
     setCropFile(null)
   }
 
-  return (
+  if (typeof document === 'undefined') return null
+
+  // Portal로 body에 렌더링 — SongDetailPage가 모바일에서 fixed z-[55] isolate로
+  // 자체 stacking context를 만들고 미니바 영역(148px)을 비워둔 채 그 안에 모달이
+  // 갇혀 미니바 아래로 들어가는 문제 해결.
+  return createPortal(
     <div className="fixed inset-0 z-[60] flex items-end md:items-center justify-center md:p-6">
       <div
         className={`absolute inset-0 bg-black/70 backdrop-blur-sm transition-opacity duration-280 ${visible ? 'opacity-100' : 'opacity-0'}`}
@@ -211,6 +217,7 @@ export function SongEditModal({ song, onClose }: Props) {
         onCancel={() => setCropFile(null)}
         onConfirm={handleCropConfirm}
       />
-    </div>
+    </div>,
+    document.body,
   )
 }

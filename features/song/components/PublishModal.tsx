@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useRef, useEffect } from 'react'
+import { createPortal } from 'react-dom'
 import Image from 'next/image'
 import { songService } from '@/services/song.service'
 import { useAuth } from '@/components/AuthProvider'
@@ -82,7 +83,10 @@ export function PublishModal({ song, onClose }: Props) {
     }
   }
 
-  return (
+  if (typeof document === 'undefined') return null
+
+  // Portal로 body에 렌더 — SongDetailPage 내부 stacking context 회피
+  return createPortal(
     <div className="fixed inset-0 z-[70] flex items-center justify-center p-6">
       <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={onClose} />
       <div className="relative bg-[#21252E] border border-white/[0.10] rounded-2xl w-full max-w-[520px] p-5 shadow-2xl">
@@ -201,6 +205,7 @@ export function PublishModal({ song, onClose }: Props) {
         onCancel={() => setCropFile(null)}
         onConfirm={handleCropConfirm}
       />
-    </div>
+    </div>,
+    document.body,
   )
 }
