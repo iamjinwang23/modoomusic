@@ -11,6 +11,7 @@ import { OnboardingModal } from '@/components/OnboardingModal'
 import { ComingSoonModal } from '@/components/ComingSoonModal'
 import { CreditIndicator } from '@/components/CreditIndicator'
 import { SongRealtimeBridge } from '@/components/SongRealtimeBridge'
+import { NotificationRealtimeBridge } from '@/components/NotificationRealtimeBridge'
 import { GlobalMiniBar } from '@/components/GlobalMiniBar'
 import { BottomNav } from '@/components/BottomNav'
 import { NotificationPanel } from '@/components/NotificationPanel'
@@ -393,6 +394,9 @@ export default function MainShellLayout({ children }: { children: React.ReactNod
 
       {/* 곡 생성 완료/실패 realtime 구독 (로그인 시) */}
       {user && <SongRealtimeBridge />}
+
+      {/* 알림 INSERT realtime 구독 — 배지 누락 race 방지 (로그인 시) */}
+      {user && <NotificationRealtimeBridge />}
 
       {/* Modals */}
       {loginOpen && <LoginModal onClose={() => setLoginOpen(false)} />}
