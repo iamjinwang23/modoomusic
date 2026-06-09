@@ -17,7 +17,7 @@ import type { PublicSong, Song } from '@/types/domain'
 // 동적 칩으로 전환 — DB 집계 결과에서 set 구성 (SectionAllView 안에서 사용)
 
 const HOME_SECTIONS: { id: FeedTab; label: string }[] = [
-  { id: 'recommended', label: '에디터 추천' },
+  { id: 'recommended', label: '추천 음악' },
   { id: 'latest',      label: '새로운 음악' },
 ]
 
