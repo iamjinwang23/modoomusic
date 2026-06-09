@@ -1,7 +1,9 @@
 'use client'
 
 import { useState, useEffect, useRef } from 'react'
+import { createPortal } from 'react-dom'
 import Image from 'next/image'
+import Link from 'next/link'
 import { exploreService } from '@/services/explore.service'
 import { songService } from '@/services/song.service'
 import { useAuth } from '@/components/AuthProvider'
@@ -657,14 +659,38 @@ export function ProfilePanel({ username }: Props) {
   )
 }
 
-// 본인 프로필 우상단 설정 아이콘 → 이메일·로그아웃 드롭다운
+// 본인 프로필 우상단 설정 아이콘 → 이메일·법적 메뉴·로그아웃 드롭다운
+// 커버의 overflow-hidden 경계를 탈출하기 위해 React Portal로 body에 렌더링.
 function SelfSettingsMenu() {
   const [open, setOpen] = useState(false)
+  const [pos, setPos] = useState<{ top: number; right: number } | null>(null)
+  const btnRef = useRef<HTMLButtonElement>(null)
   const { user, signOut } = useAuth()
+
+  function toggle() {
+    if (open) { setOpen(false); return }
+    const r = btnRef.current?.getBoundingClientRect()
+    if (r) setPos({ top: r.bottom + 8, right: window.innerWidth - r.right })
+    setOpen(true)
+  }
+
+  // 스크롤·리사이즈 시 닫기 (메뉴 위치가 더 이상 버튼과 정렬되지 않음)
+  useEffect(() => {
+    if (!open) return
+    const close = () => setOpen(false)
+    window.addEventListener('scroll', close, true)
+    window.addEventListener('resize', close)
+    return () => {
+      window.removeEventListener('scroll', close, true)
+      window.removeEventListener('resize', close)
+    }
+  }, [open])
+
   return (
     <div className="relative">
       <button
-        onClick={() => setOpen((v) => !v)}
+        ref={btnRef}
+        onClick={toggle}
         className="w-10 h-10 rounded-full bg-black/25 backdrop-blur-sm text-white hover:bg-black/40 flex items-center justify-center transition-colors"
         title="설정"
       >
@@ -673,14 +699,47 @@ function SelfSettingsMenu() {
           <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z" />
         </svg>
       </button>
-      {open && (
+      {open && pos && typeof document !== 'undefined' && createPortal(
         <>
           <div className="fixed inset-0 z-[54]" onClick={() => setOpen(false)} />
-          <div className="absolute right-0 top-11 z-[55] w-52 bg-[#21252E] border border-white/[0.08] rounded-xl shadow-xl overflow-hidden">
+          <div
+            className="fixed z-[55] w-60 bg-[#21252E] border border-white/[0.08] rounded-xl shadow-xl overflow-hidden"
+            style={{ top: pos.top, right: pos.right }}
+          >
             <div className="px-4 py-3 border-b border-white/[0.06]">
               <p className="text-[11px] text-zinc-500">로그인 계정</p>
               <p className="text-xs text-white truncate mt-1">{user?.email}</p>
             </div>
+            {/* 모바일 전용 — 더보기 메뉴 (데스크톱은 사이드바 "더보기"에 있음) */}
+            {[
+              { href: '/terms', label: '이용약관', icon: '/terms.png' },
+              { href: '/privacy', label: '개인정보처리방침', icon: '/security-policy.png' },
+              { href: '/policy', label: '운영정책', icon: '/policy.png' },
+              { href: '/faq', label: '자주 묻는 질문', icon: '/faq.png' },
+            ].map(({ href, label, icon }) => (
+              <Link
+                key={href}
+                href={href}
+                target="_blank"
+                rel="noopener noreferrer"
+                onClick={() => setOpen(false)}
+                className="flex items-center justify-between gap-2 px-4 py-2.5 text-sm text-zinc-300 hover:text-white hover:bg-white/[0.04] transition-colors"
+              >
+                <span className="flex items-center gap-2.5">
+                  <Image src={icon} alt="" width={16} height={16} style={{ filter: 'invert(1) brightness(0.85)' }} />
+                  {label}
+                </span>
+                <Image src="/External-Link.svg" alt="" width={14} height={14} style={{ filter: 'invert(0.4)' }} />
+              </Link>
+            ))}
+            <a
+              href="mailto:bee202408@gmail.com"
+              onClick={() => setOpen(false)}
+              className="flex items-center gap-2.5 px-4 py-2.5 text-sm text-zinc-300 hover:text-white hover:bg-white/[0.04] transition-colors border-b border-white/[0.06]"
+            >
+              <Image src="/costumer.png" alt="" width={16} height={16} style={{ filter: 'invert(1) brightness(0.85)' }} />
+              문의하기
+            </a>
             <button
               onClick={() => {
                 setOpen(false)
@@ -693,7 +752,8 @@ function SelfSettingsMenu() {
               로그아웃
             </button>
           </div>
-        </>
+        </>,
+        document.body,
       )}
     </div>
   )

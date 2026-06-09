@@ -8,7 +8,7 @@ import { createAdminClient } from '@/lib/supabase/admin'
 const SONG_SHARE_SELECT = `
   id, title, prompt, genre, mood, instrumental, audio_url, cover_hue, cover_image, publish_cover_image,
   duration, lyrics, publish_comment, is_public, status, created_at, like_count, play_count, comment_count, user_id,
-  profiles!songs_user_id_fkey ( username, display_name, avatar_hue, avatar_url )
+  profiles!songs_user_id_fkey!inner ( username, display_name, avatar_hue, avatar_url )
 `
 
 export async function GET(_req: Request, { params }: { params: Promise<{ id: string }> }) {

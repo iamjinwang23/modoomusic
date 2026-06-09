@@ -28,6 +28,8 @@ export const EVENTS = {
   REFERRAL_CLICK_IN: 'referral_click_in',
   REFERRAL_REDEEM_SUCCESS: 'referral_redeem_success',
   REFERRAL_ABUSE_BLOCKED: 'referral_abuse_blocked',
+  ACCOUNT_DELETION_REQUEST: 'account_deletion_request',
+  ACCOUNT_DELETION_RESTORED: 'account_deletion_restored',
 } as const
 
 export type EventName = (typeof EVENTS)[keyof typeof EVENTS]

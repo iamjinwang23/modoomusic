@@ -6,6 +6,7 @@ import { createClient } from '@/lib/supabase/client'
 import { toast } from '@/components/toast/toast'
 import { profileColor } from '@/utils/profileColor'
 import type { SocialLinks } from '@/types/domain'
+import { AccountDeletionModal } from '@/components/AccountDeletionModal'
 
 const NAME_MAX = 30
 const USERNAME_MAX = 30
@@ -93,6 +94,7 @@ export function ProfileEditModal({ userId, initial, images, onClose, onSaved }: 
   const [usernameOk, setUsernameOk] = useState(true)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [deletionOpen, setDeletionOpen] = useState(false)
   const checkTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
   const coverFileRef = useRef<HTMLInputElement>(null)
   const avatarFileRef = useRef<HTMLInputElement>(null)
@@ -363,7 +365,20 @@ export function ProfileEditModal({ userId, initial, images, onClose, onSaved }: 
           </div>
 
           {error && <p className="text-xs text-red-400">{error}</p>}
+
+          {/* Design Ref: account-deletion §5.1 — 조용한 회색 링크 */}
+          <div className="pt-2 pb-1">
+            <button
+              type="button"
+              onClick={() => setDeletionOpen(true)}
+              className="text-xs text-zinc-500 hover:text-zinc-300 transition-colors"
+            >
+              회원 탈퇴
+            </button>
+          </div>
         </div>
+
+        <AccountDeletionModal open={deletionOpen} onClose={() => setDeletionOpen(false)} />
 
         <div className="flex items-center gap-3 px-6 py-4 border-t border-white/[0.06]">
           <button

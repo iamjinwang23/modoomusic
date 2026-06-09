@@ -123,7 +123,7 @@ function SectionCarousel({
         onMouseLeave={() => setHovered(false)}
       >
         {fadeLeft && (
-          <div className="absolute left-0 top-0 bottom-0 w-8 bg-gradient-to-r from-[#171A20] via-[#171A20]/60 to-transparent z-10 pointer-events-none" />
+          <div className="absolute left-0 top-0 bottom-0 w-8 bg-gradient-to-r from-[#111318] via-[#111318]/60 to-transparent z-10 pointer-events-none" />
         )}
         {fadeLeft && hovered && (
           <button
@@ -147,7 +147,7 @@ function SectionCarousel({
         </div>
 
         {fadeRight && (
-          <div className="absolute right-0 top-0 bottom-0 w-4 bg-gradient-to-l from-[#171A20] via-[#171A20]/60 to-transparent z-10 pointer-events-none" />
+          <div className="absolute right-0 top-0 bottom-0 w-4 bg-gradient-to-l from-[#111318] via-[#111318]/60 to-transparent z-10 pointer-events-none" />
         )}
         {fadeRight && hovered && (
           <button

@@ -287,10 +287,10 @@ export default function MainShellLayout({ children }: { children: React.ReactNod
                   <div className="fixed inset-0 z-[54]" onClick={() => setLegalMenuOpen(false)} />
                   <div className="absolute bottom-full left-10 mb-2 z-[55] w-56 bg-[#21252E] border border-white/[0.08] rounded-xl shadow-xl overflow-hidden py-1">
                     {[
-                      { href: '/terms', label: '이용약관' },
-                      { href: '/privacy', label: '개인정보처리방침' },
-                      { href: '/policy', label: '운영정책' },
-                    ].map(({ href, label }) => (
+                      { href: '/terms', label: '이용약관', icon: '/terms.png' },
+                      { href: '/privacy', label: '개인정보처리방침', icon: '/security-policy.png' },
+                      { href: '/policy', label: '운영정책', icon: '/policy.png' },
+                    ].map(({ href, label, icon }) => (
                       <Link
                         key={href}
                         href={href}
@@ -299,7 +299,10 @@ export default function MainShellLayout({ children }: { children: React.ReactNod
                         onClick={() => setLegalMenuOpen(false)}
                         className="flex items-center justify-between gap-2 px-4 py-2.5 text-sm text-zinc-300 hover:text-white hover:bg-white/[0.04] transition-colors"
                       >
-                        {label}
+                        <span className="flex items-center gap-2.5">
+                          <Image src={icon} alt="" width={16} height={16} style={{ filter: 'invert(1) brightness(0.85)' }} />
+                          {label}
+                        </span>
                         <Image src="/External-Link.svg" alt="" width={14} height={14} style={{ filter: 'invert(0.4)' }} />
                       </Link>
                     ))}
@@ -310,10 +313,20 @@ export default function MainShellLayout({ children }: { children: React.ReactNod
                       onClick={() => setLegalMenuOpen(false)}
                       className="flex items-center justify-between gap-2 px-4 py-2.5 text-sm text-zinc-300 hover:text-white hover:bg-white/[0.04] transition-colors border-t border-white/[0.06]"
                     >
-                      자주 묻는 질문
+                      <span className="flex items-center gap-2.5">
+                        <Image src="/faq.png" alt="" width={16} height={16} style={{ filter: 'invert(1) brightness(0.85)' }} />
+                        자주 묻는 질문
+                      </span>
                       <Image src="/External-Link.svg" alt="" width={14} height={14} style={{ filter: 'invert(0.4)' }} />
                     </Link>
-                    <a href="mailto:bee202408@gmail.com" onClick={() => setLegalMenuOpen(false)} className="block px-4 py-2.5 text-sm text-zinc-300 hover:text-white hover:bg-white/[0.04] transition-colors">문의하기</a>
+                    <a
+                      href="mailto:bee202408@gmail.com"
+                      onClick={() => setLegalMenuOpen(false)}
+                      className="flex items-center gap-2.5 px-4 py-2.5 text-sm text-zinc-300 hover:text-white hover:bg-white/[0.04] transition-colors"
+                    >
+                      <Image src="/costumer.png" alt="" width={16} height={16} style={{ filter: 'invert(1) brightness(0.85)' }} />
+                      문의하기
+                    </a>
                   </div>
                 </>
               )}

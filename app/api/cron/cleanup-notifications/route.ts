@@ -1,9 +1,10 @@
-// 90일 이상 된 알림 일괄 삭제 + 좀비 generating 곡 회수. Vercel Cron이 nightly 호출.
-// Hobby cron 한도(2개·daily) 안에 묶기 위해 두 cleanup 작업을 한 cron에 통합.
+// 90일 이상 된 알림 일괄 삭제 + 좀비 generating 곡 회수 + 7일+ 회원 탈퇴 영구 파기.
+// Vercel Hobby cron 한도(2개·daily) 안에 묶기 위해 세 cleanup 작업을 한 cron에 통합.
 // 보안: CRON_SECRET 헤더 검증.
 import { NextResponse } from 'next/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { cleanupGeneratingZombies } from '../cleanup-generating/route'
+import { finalizeDeletions } from '@/services/account.service'
 
 export async function GET(req: Request) {
   const authHeader = req.headers.get('authorization')
@@ -19,7 +20,7 @@ export async function GET(req: Request) {
     .delete({ count: 'exact' })
     .lt('created_at', cutoff)
 
-  // 좀비 generating 곡도 같이 회수 (실패해도 알림 정리 결과는 반환)
+  // 좀비 generating 곡 회수
   let zombies: { cleaned: number; refundFailed: number } | { error: string }
   try {
     const r = await cleanupGeneratingZombies()
@@ -28,9 +29,17 @@ export async function GET(req: Request) {
     zombies = { error: e instanceof Error ? e.message : 'unknown' }
   }
 
+  // Design Ref: account-deletion §7.2 — 7일+ 회원 탈퇴 영구 파기 (운영정책 §7 적용)
+  let deletions: { finalized: number; errors: number } | { error: string }
+  try {
+    deletions = await finalizeDeletions()
+  } catch (e) {
+    deletions = { error: e instanceof Error ? e.message : 'unknown' }
+  }
+
   if (error) {
     console.error('[cron cleanup-notifications]', error.message)
-    return NextResponse.json({ error: error.message, zombies }, { status: 500 })
+    return NextResponse.json({ error: error.message, zombies, deletions }, { status: 500 })
   }
-  return NextResponse.json({ ok: true, deletedNotifications: count ?? 0, cutoff, zombies })
+  return NextResponse.json({ ok: true, deletedNotifications: count ?? 0, cutoff, zombies, deletions })
 }

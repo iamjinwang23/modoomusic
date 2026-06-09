@@ -9,7 +9,7 @@ export default function PolicyPage() {
     <article className="space-y-8 text-zinc-300 leading-relaxed">
       <header className="space-y-2">
         <h1 className="text-3xl font-bold text-white">운영정책</h1>
-        <p className="text-sm text-zinc-500">시행일: 2026년 6월 8일</p>
+        <p className="text-sm text-zinc-500">시행일: 2026년 6월 9일</p>
       </header>
 
       <p className="text-sm">
@@ -229,6 +229,11 @@ export default function PolicyPage() {
           '회원이 직접 삭제하지 않은 공개 게시물은 탈퇴 이후에도 익명화된 상태로 서비스 내에 유지될 수 있습니다.',
           '탈퇴 후에도 동일 이메일·동일 OAuth 식별자로 재가입은 가능하나, 이전 계정과 연결되지 않은 신규 회원으로 처리됩니다.',
         ]} />
+        <p className="mt-3 text-sm">
+          <span className="text-white font-medium">※ 7일 유예 기간(grace period):</span>{' '}
+          회원 탈퇴 후 7일 이내에 동일한 OAuth 계정으로 다시 로그인하면 자동으로 탈퇴가 취소되고 모든 데이터가 복원됩니다.
+          7일이 경과하면 위 표에 명시된 데이터 처리 방식에 따라 영구 파기됩니다.
+        </p>
       </Section>
 
       <Section title="제8조 (최종 안내)">

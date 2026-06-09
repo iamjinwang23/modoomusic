@@ -81,7 +81,7 @@ function sortRecommended(songs: PublicSong[]): PublicSong[] {
 export const SONG_SELECT = `
   id, title, prompt, genre, mood, instrumental, audio_url, cover_hue, cover_image, publish_cover_image,
   duration, lyrics, publish_comment, is_public, created_at, like_count, play_count, comment_count, user_id,
-  profiles!songs_user_id_fkey ( username, display_name, avatar_hue, avatar_url )
+  profiles!songs_user_id_fkey!inner ( username, display_name, avatar_hue, avatar_url )
 `
 
 // social-actions §4.3 — 본인 좋아요 상태 후처리 (song_ids in 쿼리 1번으로 N+1 회피)

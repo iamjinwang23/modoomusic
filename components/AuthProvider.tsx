@@ -78,6 +78,29 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         // 신규 가입 판별: created_at 이 60초 이내면 sign_up
         const createdAt = u.created_at ? new Date(u.created_at).getTime() : 0
         const isNewUser = createdAt > 0 && Date.now() - createdAt < 60_000
+
+        // Design Ref: account-deletion §5.5 — grace period 내 재로그인 시 자동 복원
+        ;(async () => {
+          const { data: prof } = await supabase
+            .from('profiles')
+            .select('deleted_at')
+            .eq('id', u.id)
+            .maybeSingle()
+          if (!prof?.deleted_at) return
+          const elapsed = Date.now() - new Date(prof.deleted_at).getTime()
+          const GRACE_MS = 7 * 24 * 60 * 60 * 1000
+          if (elapsed < GRACE_MS) {
+            const r = await fetch('/api/account/cancel-deletion', { method: 'POST' })
+            if (r.ok) {
+              toast.success('다시 오신 걸 환영해요. 계정이 복원되었어요')
+              track(EVENTS.ACCOUNT_DELETION_RESTORED)
+              refreshProfile()
+            }
+          } else {
+            await supabase.auth.signOut()
+            toast.info('탈퇴 후 일정 기간이 경과되어 데이터가 곧 정리됩니다')
+          }
+        })()
         if (isNewUser) {
           track(EVENTS.SIGN_UP, { provider })
         } else {

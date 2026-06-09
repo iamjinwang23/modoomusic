@@ -25,7 +25,7 @@ type CommentRow = {
 
 const COMMENT_SELECT = `
   id, song_id, user_id, parent_id, body, like_count, created_at, edited_at,
-  profiles!comments_user_id_fkey ( username, display_name, avatar_url, avatar_hue )
+  profiles!comments_user_id_fkey!inner ( username, display_name, avatar_url, avatar_hue )
 `
 
 function toComment(r: CommentRow, likedSet: Set<string>): Comment {
