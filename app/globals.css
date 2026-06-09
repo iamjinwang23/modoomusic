@@ -96,3 +96,23 @@ html, body {
   animation: shimmer 1.4s ease-in-out infinite;
 }
 
+
+/* FAQ 아코디언 펼침 애니메이션 — interpolate-size로 height: auto 트랜지션 활성 */
+html {
+  interpolate-size: allow-keywords;
+}
+.faq-answer-wrap {
+  overflow: hidden;
+  height: 0;
+  opacity: 0;
+  transition:
+    height 320ms cubic-bezier(0.32, 0.72, 0.24, 1),
+    opacity 240ms ease-out 60ms;
+}
+details[open] > .faq-answer-wrap {
+  height: auto;
+  opacity: 1;
+}
+@media (prefers-reduced-motion: reduce) {
+  .faq-answer-wrap { transition: none; }
+}

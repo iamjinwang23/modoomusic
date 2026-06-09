@@ -183,18 +183,42 @@ export default function FaqPage() {
         </p>
       </header>
 
-      <div className="space-y-12">
+      <div className="space-y-10">
         {SECTIONS.map((section) => (
           <section key={section.title}>
-            <h2 className="text-xl font-semibold text-white mb-5 pb-2 border-b border-white/[0.06]">
+            <h2 className="text-xl font-semibold text-white mb-3">
               {section.title}
             </h2>
-            <div className="space-y-6">
+            <div className="rounded-xl border border-white/[0.06] overflow-hidden divide-y divide-white/[0.06]">
               {section.items.map(({ q, a }) => (
-                <div key={q}>
-                  <h3 className="text-base font-semibold text-white mb-2">Q. {q}</h3>
-                  <p className="text-sm text-zinc-300 leading-relaxed whitespace-pre-line">{a}</p>
-                </div>
+                <details
+                  key={q}
+                  name="faq-accordion"
+                  className="group bg-white/[0.02] hover:bg-white/[0.04] transition-colors [&_summary::-webkit-details-marker]:hidden"
+                >
+                  <summary className="flex items-center justify-between gap-3 px-5 py-4 cursor-pointer list-none">
+                    <span className="text-sm md:text-base font-medium text-white">{q}</span>
+                    <svg
+                      width="14"
+                      height="14"
+                      viewBox="0 0 12 12"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      className="shrink-0 text-zinc-400 transition-transform duration-200 group-open:rotate-180"
+                      aria-hidden
+                    >
+                      <path d="M2 4l4 4 4-4" />
+                    </svg>
+                  </summary>
+                  <div className="faq-answer-wrap">
+                    <div className="px-5 pb-4 -mt-1 text-sm text-zinc-300 leading-relaxed whitespace-pre-line">
+                      {a}
+                    </div>
+                  </div>
+                </details>
               ))}
             </div>
           </section>
