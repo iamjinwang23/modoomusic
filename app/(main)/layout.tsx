@@ -118,6 +118,7 @@ export default function MainShellLayout({ children }: { children: React.ReactNod
               genre: pub.genre, mood: pub.mood, customLyrics: null, lyrics: pub.lyrics,
               instrumental: pub.instrumental, audioUrl: pub.audioUrl, duration: pub.duration ?? null,
               liked: pub.isLiked, coverHue: pub.coverHue, coverImage: pub.coverImage,
+              model: pub.model,
             }],
             idx: 0,
             isOwner: !!user && pub.userId === user.id,

@@ -75,6 +75,7 @@ export function NotificationPanel({ mode, onClose }: Props) {
               publishComment: pub.publishComment,
               published: pub.published,
               commentCount: pub.commentCount,
+              model: pub.model,
             }],
             idx: 0,
             isOwner: !!user && pub.userId === user.id,

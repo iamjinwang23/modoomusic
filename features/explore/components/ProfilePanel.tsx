@@ -87,6 +87,7 @@ function toSong(pub: PublicSong): Song {
     commentCount: pub.commentCount,
     publishComment: pub.publishComment,
     published: pub.published,
+    model: pub.model,
   }
 }
 
