@@ -68,14 +68,32 @@ function feedOrderColumn(tab: FeedTab): string {
   }
 }
 
-// 에디터 추천: 점수 = 좋아요 × 3 + 재생수. 동점은 최신순(이미 fetch가 published_at desc)
+// 추천 음악: Hacker News 식 시간 감쇠 점수 + 같은 크리에이터 최상위 1곡만 채택 (작가 다양성).
+//   raw = likes × 3 + plays
+//   score = raw / (ageHours + 2) ^ 1.5
+// → 신곡 자연 등장, 옛 인기곡 점진 강등. 한 사람 여러 인기곡이 상위 클러스터링되는 현상 차단.
 function sortRecommended(songs: PublicSong[]): PublicSong[] {
-  return [...songs].sort((a, b) => {
-    const sa = (a.likeCount ?? 0) * 3 + (a.playCount ?? 0)
-    const sb = (b.likeCount ?? 0) * 3 + (b.playCount ?? 0)
-    if (sb !== sa) return sb - sa
-    return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+  const now = Date.now()
+  const scored = songs.map((s) => {
+    const raw = (s.likeCount ?? 0) * 3 + (s.playCount ?? 0)
+    const ageHours = Math.max(0, (now - new Date(s.createdAt).getTime()) / 3_600_000)
+    const score = raw / Math.pow(ageHours + 2, 1.5)
+    return { song: s, score }
   })
+  scored.sort((a, b) => {
+    if (b.score !== a.score) return b.score - a.score
+    return new Date(b.song.createdAt).getTime() - new Date(a.song.createdAt).getTime()
+  })
+  // 작가 다양성: 같은 user_id는 최상위 1곡만. 부족하면 두 번째 패스로 보충.
+  const seen = new Set<string>()
+  const primary: PublicSong[] = []
+  const rest: PublicSong[] = []
+  for (const { song } of scored) {
+    if (seen.has(song.userId)) { rest.push(song); continue }
+    seen.add(song.userId)
+    primary.push(song)
+  }
+  return [...primary, ...rest]
 }
 
 export const SONG_SELECT = `
@@ -106,8 +124,9 @@ async function fillIsLiked(
 export const exploreService = {
   async getFeed(tab: FeedTab, limit = 60): Promise<PublicSong[]> {
     const supabase = createClient()
-    // recommended는 점수 정렬을 위해 넉넉히 fetch한 뒤 클라이언트에서 재정렬
-    const fetchLimit = tab === 'recommended' ? Math.max(limit, 60) : limit
+    // recommended는 시간 감쇠 + 작가 다양성 적용 위해 더 큰 풀에서 후처리.
+    // 200으로 넓혀야 오래된 인기곡 외에 신곡·다양한 작가가 후보로 들어옴.
+    const fetchLimit = tab === 'recommended' ? Math.max(limit, 200) : limit
     const { data, error } = await supabase
       .from('songs')
       .select(SONG_SELECT)
@@ -121,7 +140,7 @@ export const exploreService = {
 
   async getByFilter(tab: FeedTab, genres: string[], moods: string[], limit = 60): Promise<PublicSong[]> {
     const supabase = createClient()
-    const fetchLimit = tab === 'recommended' ? Math.max(limit, 60) : limit
+    const fetchLimit = tab === 'recommended' ? Math.max(limit, 200) : limit
     // 필터가 있으면 DB .in()으로 1차 좁히지 X — inferTags 추출값 매칭이 클라이언트에서 일어나므로
     // 모두 fetch한 뒤 후처리 필터 (곡 500개 이내 가정. 기존 곡 genre/mood NULL인 케이스 흡수)
     const { data, error } = await supabase
