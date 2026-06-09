@@ -565,6 +565,7 @@ export const EVENTS = {
 | 11 | **cron 번들링** — 별도 등록 대신 `cleanup-notifications`에 통합 | Vercel Hobby 2 cron 한도. 시간대(KST 03:00) 동일 유지 |
 | 12 | **REST 의미상 status code** — 400 대신 409 (already_deleted) · 410 (grace_period_expired) | 자원 상태 충돌·소실을 더 정확히 표현. 클라이언트는 `!r.ok` 분기로 안전 |
 | 13 | **공개 SELECT은 `profiles!fkey!inner` 강제** | FR-02 보장. PostgREST embed는 LEFT OUTER 기본이라 탈퇴자 행이 author=null로 노출됨. RLS는 본인 자기 곡은 계속 보여주므로 라이브러리 영향 없음 |
+| **14** | **Option A — 즉시 익명화 (migration 025)** | 운영정책 §7 "공개 곡 익명화 후 유지"와 grace 동작 일관성. 기존(024): grace 7일간 곡 사라짐 → cron 후 익명 노출. 변경(025): 탈퇴 시점 즉시 `user_id` → placeholder + `original_user_id`에 원본 백업 → Day 0부터 "(탈퇴한 회원)" 노출. 복원 시 user_id revert. |
 
 ---
 

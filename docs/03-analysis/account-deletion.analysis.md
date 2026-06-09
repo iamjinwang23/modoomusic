@@ -134,9 +134,32 @@ Runtime 미실행 (테스트 인프라 없음) → static-only 공식 적용.
 - `services/notification.service.ts:20` (actor)
 - `app/api/songs/[id]/share/route.ts:11` (SONG_SHARE_SELECT)
 
-## 8. Version History
+## 8. Post-QA Discovery (2026-06-09)
+
+prod QA 직전 사용자 직감으로 발견된 일관성 결함:
+
+| 시점 | songs.user_id | 노출 결과 (수정 전) |
+|---|---|---|
+| Day 0~6 (grace) | 탈퇴자 원본 ID | 프로필 RLS 차단 + `!inner` → **곡 사라짐** |
+| Day 7+ (cron 이후) | placeholder | "(탈퇴한 회원)" 노출 |
+
+운영정책 §7은 "공개 곡 익명화 후 **유지**" — grace 7일간 유지 위반.
+
+### 해결 — Migration 025 (Option A 즉시 익명화)
+- `songs.original_user_id` · `comments.original_user_id` 컬럼 추가
+- `request_account_deletion`: 공개 곡·댓글 즉시 `user_id` → placeholder, `original_user_id`에 원본 백업
+- `restore_account`: revert (user_id ← original_user_id)
+- `finalize_account_deletion`: 공개 곡 추가 처리 불필요 (이미 placeholder). 비공개 곡 DELETE + 관계 정리만
+
+### 결과
+- Day 0부터 일관되게 "(탈퇴한 회원)" 노출 — 정책 §7 100% 일치
+- 7일 내 복원: user_id 복귀 → 본인 라이브러리·공개 노출 모두 원상복구
+- Decision Record #14 추가
+
+## 9. Version History
 
 | Version | Date | Author | Notes |
 |---|---|---|---|
 | 0.1 | 2026-06-09 | iamjinwang@gmail.com | Initial gap analysis. Match Rate 94%. 2 Important + 3 Minor 발견 |
 | 0.2 | 2026-06-09 | iamjinwang@gmail.com | Important 2건 모두 수정. Match Rate ~98%. `/farewell` 페이지 추가 |
+| 0.3 | 2026-06-09 | iamjinwang@gmail.com | Migration 025 — Option A 즉시 익명화. grace 일관성 결함 해소 |
