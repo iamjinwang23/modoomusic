@@ -201,7 +201,7 @@ export function MyWorkPanel({ showCollections = false }: { showCollections?: boo
               title="곧 출시될 기능이에요"
             >
               내 뮤직비디오
-              <span className="text-[10px] font-medium text-violet-300 bg-violet-500/15 px-1.5 py-0.5 rounded-full leading-none">곧 출시</span>
+              <span className="text-[10px] font-medium text-violet-300 bg-violet-600/20 px-1.5 py-1 rounded-md leading-none">곧 출시</span>
             </button>
           </div>
         ) : (
@@ -595,12 +595,12 @@ function SongWorkItem({ song, onOpen, onEdit, onDelete, onCollect, onPublish, on
               <div className="flex items-center gap-1.5 min-w-0">
                 <p className="text-sm font-medium text-white truncate min-w-0">{displayTitle}</p>
                 {song.model && (
-                  <span className="shrink-0 text-[10px] font-semibold text-violet-300 bg-violet-600/20 px-1.5 py-0.5 rounded leading-none">
+                  <span className="shrink-0 text-[10px] font-medium text-violet-300 bg-violet-600/20 px-1.5 py-1 rounded-md leading-none">
                     {`v${song.model.replace(/^music-/, '')}`}
                   </span>
                 )}
                 {song.instrumental && !isGenerating && (
-                  <span className="shrink-0 text-[10px] text-zinc-400 bg-zinc-800 px-1.5 py-0.5 rounded border border-white/[0.06] leading-none">
+                  <span className="shrink-0 text-[10px] font-medium text-zinc-400 bg-zinc-800 px-1.5 py-1 rounded-md border border-white/[0.06] leading-none">
                     Inst.
                   </span>
                 )}

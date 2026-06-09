@@ -161,7 +161,7 @@ export function GlobalMiniBar() {
                   <p className="text-sm font-medium text-white leading-tight truncate min-w-0">
                     {song.title || 'Untitled'}
                   </p>
-                  <span className="shrink-0 text-[9px] font-semibold text-violet-300 bg-violet-600/20 px-1.5 py-0.5 rounded leading-none">
+                  <span className="shrink-0 text-[10px] font-medium text-violet-300 bg-violet-600/20 px-1.5 py-1 rounded-md leading-none">
                     {`v${song.model.replace(/^music-/, '')}`}
                   </span>
                 </div>
