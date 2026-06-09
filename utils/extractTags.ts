@@ -19,8 +19,12 @@ const GENRE_DICT: Record<string, string[]> = {
   // 2) 일반 장르
   '발라드':     ['발라드', 'ballad'],
   '팝':         ['팝', '팝송', 'pop', 'city pop', 'citypop', 'synth-pop', 'synthpop'],
-  'R&B':        ['알앤비', '소울', 'r&b', 'rnb', 'rhythm and blues', 'soul'],
-  '힙합':       ['힙합', '랩', 'hip-hop', 'hiphop', 'hip hop', 'rap'],
+  // 힙합을 R&B보다 먼저 검사 — 'soul'이 가사·설명에 흔해 R&B로 잘못 분류되던 버그.
+  // 힙합 곡 텍스트엔 'rap'/'힙합'/'hip-hop' 등 특정 토큰이 더 단단해 먼저 잡아야 정확함.
+  '힙합':       ['힙합', '랩', 'hip-hop', 'hiphop', 'hip hop', 'rap', '트랩', 'trap', '드릴', 'drill'],
+  // 'soul'/'소울' 단독은 'soulful', 'soul mate', '소울메이트' 같은 가사·구문에 너무 자주 등장
+  // → 힙합/팝/발라드 곡이 R&B로 오분류되던 원인. 합성형으로만 매칭.
+  'R&B':        ['알앤비', 'r&b', 'rnb', 'rhythm and blues', 'neo soul', '네오 소울', 'soul music', '소울 음악', '소울 발라드', 'r-and-b', 'rhythm-and-blues'],
   '재즈':       ['재즈', '보사노바', 'jazz', 'bossa'],
   '포크':       ['포크', '어쿠스틱', 'folk', 'acoustic'],
   '락':         ['락', '록', '하드락', '메탈', 'rock', 'hard rock', 'metal'],
