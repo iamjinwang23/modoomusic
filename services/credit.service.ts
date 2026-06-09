@@ -5,7 +5,9 @@ import { createAdminClient } from '@/lib/supabase/admin'
 
 // 1차(Free Only) 정책: 일 10크레딧, KST 자정 리셋, 이월 X
 // Design Ref: referral §6.4 — bonus_credits 별도 컬럼, 보너스 → 일일 순서 소진
+// 관리자(profiles.is_admin = true)는 일 100크레딧으로 분기 (mig 027)
 export const FREE_DAILY_CREDITS = 10
+export const ADMIN_DAILY_CREDITS = 100
 
 // KST(=UTC+9) 기준 오늘 0시 0분 0초 (UTC ISO 문자열)
 function kstTodayStartUtcIso(): string {
@@ -33,10 +35,11 @@ export async function getCreditState(userId: string): Promise<CreditState> {
   const supabase = createAdminClient()
   const { data } = await supabase
     .from('profiles')
-    .select('daily_credits_used, last_credit_reset_at, bonus_credits')
+    .select('daily_credits_used, last_credit_reset_at, bonus_credits, is_admin')
     .eq('id', userId)
     .maybeSingle()
 
+  const limit = data?.is_admin ? ADMIN_DAILY_CREDITS : FREE_DAILY_CREDITS
   const todayStartUtc = kstTodayStartUtcIso()
   const lastReset = data?.last_credit_reset_at ?? null
   const needsReset = !lastReset || new Date(lastReset) < new Date(todayStartUtc)
@@ -49,20 +52,20 @@ export async function getCreditState(userId: string): Promise<CreditState> {
     const bonus = (data?.bonus_credits as number | null) ?? 0
     return {
       used: 0,
-      limit: FREE_DAILY_CREDITS,
-      remaining: FREE_DAILY_CREDITS,
+      limit,
+      remaining: limit,
       bonus,
-      total: FREE_DAILY_CREDITS + bonus,
+      total: limit + bonus,
       resetAt: nextKstMidnightIso(),
     }
   }
 
   const used = (data?.daily_credits_used as number | null) ?? 0
   const bonus = (data?.bonus_credits as number | null) ?? 0
-  const remaining = Math.max(0, FREE_DAILY_CREDITS - used)
+  const remaining = Math.max(0, limit - used)
   return {
     used,
-    limit: FREE_DAILY_CREDITS,
+    limit,
     remaining,
     bonus,
     total: remaining + bonus,
@@ -99,7 +102,7 @@ export async function tryConsumeCredits(userId: string, amount: number): Promise
     })
     .eq('id', userId)
 
-  const nextRemaining = Math.max(0, FREE_DAILY_CREDITS - nextUsed)
+  const nextRemaining = Math.max(0, state.limit - nextUsed)
   return {
     ok: true,
     state: {
