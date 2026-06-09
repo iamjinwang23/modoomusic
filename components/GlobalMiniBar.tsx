@@ -155,12 +155,19 @@ export function GlobalMiniBar() {
               )}
             </div>
             <div className="flex-1 min-w-0 overflow-hidden">
-              <MarqueeText
-                text={song.title || 'Untitled'}
-                className="text-sm font-medium text-white leading-tight"
-                speed={10}
-                threshold={20}
-              />
+              <div className="flex items-center gap-1.5 min-w-0">
+                <MarqueeText
+                  text={song.title || 'Untitled'}
+                  className="text-sm font-medium text-white leading-tight flex-1 min-w-0"
+                  speed={10}
+                  threshold={20}
+                />
+                {song.model && (
+                  <span className="shrink-0 text-[9px] font-semibold text-violet-300 bg-violet-600/20 px-1.5 py-0.5 rounded leading-none">
+                    {`v${song.model.replace(/^music-/, '')}`}
+                  </span>
+                )}
+              </div>
               {ownerName && <p className="text-xs text-zinc-500 truncate mt-0.5">{ownerName}</p>}
             </div>
           </div>
