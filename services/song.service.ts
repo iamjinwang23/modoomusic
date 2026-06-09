@@ -32,6 +32,7 @@ interface DbSong {
   like_count: number
   comment_count: number
   status: SongStatus | null
+  model: string | null
 }
 
 function rowToSong(r: DbSong): Song {
@@ -59,6 +60,7 @@ function rowToSong(r: DbSong): Song {
     likeCount: r.like_count ?? 0,
     commentCount: r.comment_count ?? 0,
     status: r.status ?? 'done',
+    model: r.model ?? null,
   }
 }
 

@@ -24,6 +24,7 @@ export interface Song {
   likeCount?: number
   commentCount?: number
   status?: SongStatus
+  model?: string | null  // 'music-2.0' | 'music-2.5+' | 'music-2.6' (mig 029)
 }
 
 export type Genre = '발라드' | '팝' | 'R&B' | '포크' | '힙합' | '재즈'
@@ -57,6 +58,7 @@ export interface PublicSong {
   playCount: number
   commentCount: number
   isLiked?: boolean
+  model?: string | null
 }
 
 // Design Ref: comments §3.3 — 댓글 + 작성자 메타 (단일 GET으로 top+replies)

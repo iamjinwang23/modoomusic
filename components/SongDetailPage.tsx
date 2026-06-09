@@ -27,6 +27,13 @@ interface SongProfile {
   avatarHue?: number
 }
 
+// 'music-2.6' → 'v2.6' 등 모델 라벨 변환
+function modelLabel(model: string | null | undefined): string {
+  if (!model) return ''
+  const m = model.replace(/^music-/, '')
+  return `v${m}`
+}
+
 interface Props {
   onBack: () => void
   profile?: SongProfile
@@ -299,6 +306,11 @@ export function SongDetailPage({ onBack, profile }: Props) {
               text={displayTitle}
               className="text-2xl font-bold text-white leading-snug flex-1 min-w-0"
             />
+            {song.model && (
+              <span className="shrink-0 text-[10px] font-semibold text-violet-300 bg-violet-600/20 px-1.5 py-0.5 rounded leading-none">
+                {modelLabel(song.model)}
+              </span>
+            )}
             {song.instrumental && (
               <span className="shrink-0 text-[10px] text-zinc-400 bg-zinc-800 px-2 py-0.5 rounded border border-white/[0.06] leading-none">
                 Inst.
@@ -400,6 +412,11 @@ export function SongDetailPage({ onBack, profile }: Props) {
               {/* 제목 */}
               <div className="flex items-center gap-2">
                 <h2 className="text-2xl font-bold text-white leading-snug">{displayTitle}</h2>
+                {song.model && (
+                  <span className="shrink-0 text-xs font-semibold text-violet-300 bg-violet-600/20 px-1.5 py-0.5 rounded leading-none">
+                    {modelLabel(song.model)}
+                  </span>
+                )}
                 {song.instrumental && (
                   <span className="shrink-0 text-xs text-zinc-400 bg-zinc-800 px-2 py-1 rounded border border-white/[0.06] leading-none">
                     Inst.

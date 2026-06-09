@@ -25,6 +25,7 @@ export interface SongRow {
   play_count: number | null
   comment_count: number | null
   user_id: string
+  model: string | null
   profiles: { username: string; display_name: string | null; avatar_hue: number | null; avatar_url: string | null } | null
 }
 
@@ -54,6 +55,7 @@ export function rowToPublicSong(r: SongRow): PublicSong {
     playCount: r.play_count ?? 0,
     commentCount: r.comment_count ?? 0,
     isLiked: false,  // fillIsLiked가 후처리로 덮어씀 (default false)
+    model: r.model ?? null,
   }
 }
 
@@ -98,7 +100,7 @@ function sortRecommended(songs: PublicSong[]): PublicSong[] {
 
 export const SONG_SELECT = `
   id, title, prompt, genre, mood, instrumental, audio_url, cover_hue, cover_image, publish_cover_image,
-  duration, lyrics, publish_comment, is_public, created_at, like_count, play_count, comment_count, user_id,
+  duration, lyrics, publish_comment, is_public, created_at, like_count, play_count, comment_count, user_id, model,
   profiles!songs_user_id_fkey!inner ( username, display_name, avatar_hue, avatar_url )
 `
 

@@ -99,6 +99,7 @@ export async function POST(req: NextRequest) {
     is_new: true,
     is_public: false,
     status: 'generating' as const,
+    model: model as string,  // 생성 모델 기록 (배지 노출용, mig 029)
     created_at: nowIso,
   }
 
