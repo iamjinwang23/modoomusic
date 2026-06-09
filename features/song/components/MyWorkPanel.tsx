@@ -194,15 +194,7 @@ export function MyWorkPanel({ showCollections = false }: { showCollections?: boo
             >
               내 컬렉션
             </button>
-            <button
-              type="button"
-              onClick={() => window.dispatchEvent(new CustomEvent('open-coming-soon', { detail: 'sidebar' }))}
-              className="pb-1.5 flex items-center gap-1.5 text-zinc-600 cursor-not-allowed hover:text-zinc-500 transition-colors"
-              title="곧 출시될 기능이에요"
-            >
-              내 뮤직비디오
-              <span className="text-[10px] font-medium text-violet-300 bg-violet-600/20 px-1.5 py-1 rounded-md leading-none">곧 출시</span>
-            </button>
+            {/* 내 뮤직비디오 — 실제 기능 도입 전까지 숨김 */}
           </div>
         ) : (
           <h2 className="text-xl font-semibold text-white">내 음악</h2>
