@@ -123,7 +123,11 @@ export async function generateCoverImage(stylePrompt: string): Promise<string | 
     return MOCK_COVER_URL
   }
 
-  const imagePrompt = `Album cover art. ${stylePrompt}. Digital art, high quality, music album artwork, cinematic, atmospheric.`
+  // 고정 템플릿("Album cover art... cinematic, atmospheric")이 가사와 결합되면
+  // 실루엣 포트레이트로 수렴하는 문제 발견. MiniMax `prompt_optimizer: true`가 이미
+  // album cover 스타일 보강을 자동 수행하므로 사용자 컨텐츠(스타일·무드·가사)를
+  // 그대로 흘려보내고 최소 prefix만 유지해 다양성 복구.
+  const imagePrompt = `Album cover artwork: ${stylePrompt}`
 
   const res = await fetch('https://api.minimax.io/v1/image_generation', {
     method: 'POST',
