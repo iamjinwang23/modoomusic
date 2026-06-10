@@ -590,13 +590,13 @@ function SongWorkItem({ song, onOpen, onEdit, onDelete, onCollect, onPublish, on
                   <span className={`shrink-0 text-[10px] font-medium px-1.5 py-1 rounded-md leading-none ${
                     song.model === 'music-2.6'
                       ? 'text-violet-300 bg-violet-600/20'
-                      : 'text-zinc-400 bg-zinc-800 border border-white/[0.06]'
+                      : 'text-zinc-400 bg-zinc-800 ring-1 ring-inset ring-white/[0.06]'
                   }`}>
                     {`v${song.model.replace(/^music-/, '')}`}
                   </span>
                 )}
                 {song.instrumental && !isGenerating && (
-                  <span className="shrink-0 text-[10px] font-medium text-zinc-400 bg-zinc-800 px-1.5 py-1 rounded-md border border-white/[0.06] leading-none">
+                  <span className="shrink-0 text-[10px] font-medium text-zinc-400 bg-zinc-800 px-1.5 py-1 rounded-md ring-1 ring-inset ring-white/[0.06] leading-none">
                     Inst.
                   </span>
                 )}
