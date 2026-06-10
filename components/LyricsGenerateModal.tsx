@@ -10,18 +10,21 @@ interface Props {
   open: boolean
   onClose: () => void
   onGenerated: (lyrics: string, songTitle?: string) => void
+  // 모달 열릴 때 미리 채울 프롬프트 — 가사 textarea에 이미 입력한 내용을 이어 쓰고 싶을 때
+  initialPrompt?: string
 }
 
-export function LyricsGenerateModal({ open, onClose, onGenerated }: Props) {
+export function LyricsGenerateModal({ open, onClose, onGenerated, initialPrompt }: Props) {
   const [prompt, setPrompt] = useState('')
   const [loading, setLoading] = useState(false)
   const [visible, setVisible] = useState(false)
 
   useEffect(() => {
     if (!open) return
+    setPrompt(initialPrompt ?? '')
     const t = setTimeout(() => setVisible(true), 10)
     return () => clearTimeout(t)
-  }, [open])
+  }, [open, initialPrompt])
 
   if (!open) return null
 
@@ -101,7 +104,7 @@ export function LyricsGenerateModal({ open, onClose, onGenerated }: Props) {
             placeholder={`어떤 노래를 만들까요? 자유롭게 적어주세요\n예) 비 오는 날 헤어진 연인을 그리워하는 잔잔한 발라드`}
             disabled={loading}
             autoFocus
-            className="w-full h-32 bg-white/[0.06] border border-white/[0.08] focus:border-violet-500/50 rounded-xl px-3 py-2.5 text-sm text-white placeholder:text-zinc-600 focus:outline-none transition-colors resize-none leading-relaxed"
+            className="w-full h-[480px] max-h-[60vh] bg-white/[0.06] border border-white/[0.08] focus:border-violet-500/50 rounded-xl px-3 py-2.5 text-sm text-white placeholder:text-zinc-600 focus:outline-none transition-colors resize-none leading-relaxed"
           />
           <p className="text-xs text-zinc-500">입력한 내용을 바탕으로 멋진 가사를 만들어드려요. 크레딧은 소모되지 않아요.</p>
         </div>
