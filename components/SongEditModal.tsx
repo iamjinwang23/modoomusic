@@ -223,8 +223,9 @@ export function SongEditModal({ song, onClose }: Props) {
             )}
           </div>
 
-          {/* 우: 제목 입력 */}
+          {/* 우: 제목 + 코멘트 + 가사 편집 — 커버 우측에 세로로 정렬 */}
           <div className="flex-1 flex flex-col gap-3 min-w-0">
+            {/* 제목 */}
             <div className="space-y-1.5">
               <label className="text-xs text-zinc-500">제목</label>
               <input
@@ -236,43 +237,37 @@ export function SongEditModal({ song, onClose }: Props) {
                 autoFocus
                 className="w-full bg-white/[0.06] border border-white/[0.08] focus:border-violet-500/50 rounded-xl px-3 py-2.5 text-sm text-white placeholder:text-zinc-600 focus:outline-none transition-colors"
               />
-              <p className={`text-xs text-right tabular-nums ${title.length >= 100 ? 'text-red-400' : 'text-zinc-600'}`}>
-                {title.length}/100
-              </p>
             </div>
+
+            {/* 코멘트 */}
+            <div className="space-y-1.5">
+              <label className="text-xs text-zinc-500">코멘트</label>
+              <textarea
+                value={comment}
+                onChange={(e) => setComment(e.target.value)}
+                placeholder="이 곡에 대한 짧은 한마디나 소개"
+                rows={4}
+                maxLength={300}
+                className="w-full bg-white/[0.06] border border-white/[0.08] focus:border-violet-500/50 rounded-xl px-3 py-2.5 text-sm text-white placeholder:text-zinc-600 focus:outline-none transition-colors resize-none leading-relaxed"
+              />
+            </div>
+
+            {/* 가사 편집 메뉴 — 클릭 시 서브 화면 */}
+            <button
+              type="button"
+              onClick={() => setView('lyrics')}
+              className="w-full flex items-center justify-between bg-white/[0.04] hover:bg-white/[0.08] border border-white/[0.08] rounded-xl px-3 py-2.5 transition-colors"
+            >
+              <span className="flex items-center gap-2 text-sm text-white">
+                <Image src="/Ai-Generate-Text.svg" alt="" width={16} height={16} style={{ filter: 'invert(1)' }} />
+                가사 편집
+              </span>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="text-zinc-500">
+                <path d="M9 6l6 6-6 6" />
+              </svg>
+            </button>
           </div>
         </div>
-
-        {/* 코멘트 */}
-        <div className="space-y-1.5 mb-3">
-          <label className="text-xs text-zinc-500">코멘트</label>
-          <textarea
-            value={comment}
-            onChange={(e) => setComment(e.target.value)}
-            placeholder="이 곡에 대한 짧은 한마디나 소개를 적어보세요"
-            rows={3}
-            maxLength={300}
-            className="w-full bg-white/[0.06] border border-white/[0.08] focus:border-violet-500/50 rounded-xl px-3 py-2.5 text-sm text-white placeholder:text-zinc-600 focus:outline-none transition-colors resize-none leading-relaxed"
-          />
-          <p className={`text-xs text-right tabular-nums ${comment.length >= 300 ? 'text-red-400' : 'text-zinc-600'}`}>
-            {comment.length}/300
-          </p>
-        </div>
-
-        {/* 가사 편집 메뉴 — 클릭 시 서브 화면 */}
-        <button
-          type="button"
-          onClick={() => setView('lyrics')}
-          className="w-full flex items-center justify-between bg-white/[0.04] hover:bg-white/[0.08] border border-white/[0.08] rounded-xl px-4 py-3 mb-4 transition-colors"
-        >
-          <span className="flex items-center gap-2 text-sm text-white">
-            <Image src="/Ai-Generate-Text.svg" alt="" width={16} height={16} style={{ filter: 'invert(1)' }} />
-            가사 편집
-          </span>
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="text-zinc-500">
-            <path d="M9 6l6 6-6 6" />
-          </svg>
-        </button>
 
         {/* 버튼 */}
         <div className="flex gap-2">
