@@ -126,6 +126,51 @@ export default function HelpPage() {
                 'AI 가사는 15초 / 1분 사이 쿨다운이 있어요. 크레딧은 소모되지 않아요.',
                 '가사에 `[Verse]`, `[Chorus]` 같은 구조 태그를 직접 적어도 잘 인식해요.',
               ]} />
+
+              <p className="text-xs text-zinc-500 mt-4 mb-2">가사를 직접 쓰는 게 가장 까다롭게 느껴질 수 있어요. 아래는 필요할 때 펼쳐 보세요.</p>
+
+              <div className="space-y-2 mt-3">
+                <Accordion summary="구조 태그로 곡 흐름 잡기">
+                  <p className="mb-2">대괄호 안에 구조 태그를 적으면 AI가 본절·후렴 등을 구분해서 곡을 짜요. 직접 적지 않아도 잘 동작하지만, 명확히 적으면 의도한 흐름이 더 잘 잡혀요.</p>
+                  <ul className="space-y-1 list-disc pl-5 marker:text-zinc-500">
+                    <li><code className="text-violet-300">[Verse]</code> 본절 — 이야기 전개·디테일</li>
+                    <li><code className="text-violet-300">[Chorus]</code> 후렴 — 반복되는 감정 정점</li>
+                    <li><code className="text-violet-300">[Pre-Chorus]</code> 후렴 직전 — 긴장 빌드업</li>
+                    <li><code className="text-violet-300">[Bridge]</code> 변주 — 가사 전환·새 시점</li>
+                    <li><code className="text-violet-300">[Hook]</code> 짧고 강한 반복 구절 (랩·팝)</li>
+                    <li><code className="text-violet-300">[Intro] / [Outro]</code> 도입·아웃트로</li>
+                  </ul>
+                  <p className="mt-3 text-xs text-zinc-400">전형적인 구성 예시: Verse → Pre-Chorus → Chorus → Verse → Pre-Chorus → Chorus → Bridge → Chorus</p>
+                  <p className="mt-3 text-xs text-amber-300/80">⚠️ <strong className="font-medium">구조 태그 외의 대괄호 내용은 가사로 불릴 수 있어요.</strong> 위 6개(Verse·Chorus·Pre-Chorus·Bridge·Hook·Intro·Outro)만 안전한 편이고, 그 외 <code>[drum solo]</code>·<code>[guitar riff]</code> 같은 건 텍스트 자체가 노래로 발음될 수 있습니다.</p>
+                </Accordion>
+
+                <Accordion summary="잘 만드는 팁">
+                  <ul className="space-y-1.5 list-disc pl-5 marker:text-zinc-500">
+                    <li>한 줄 <strong className="text-white font-medium">8~14자 권장</strong> — 너무 길면 박자가 흩어져요.</li>
+                    <li>후렴은 반복할수록 좋아요. AI가 멜로디로 기억하기 쉬워요.</li>
+                    <li>같은 자음·모음을 활용하면 자연스러운 라임이 만들어져요. <span className="text-zinc-400">예: "비가 내려 / 마음이 베어"</span></li>
+                    <li><strong className="text-white font-medium">감정 단어 + 구체적인 장면</strong>을 섞으세요. "슬퍼" 보다 "창가에 비친 네 그림자"가 더 강력해요.</li>
+                    <li>한국어 가사는 종성(받침)을 적당히 섞어 주세요. 너무 많으면 발음이 무거워져요.</li>
+                  </ul>
+                </Accordion>
+
+                <Accordion summary="자주 묻는 실수">
+                  <ul className="space-y-1.5 list-disc pl-5 marker:text-zinc-500">
+                    <li><strong className="text-white font-medium">너무 추상적</strong> — 시 같은 표현만 있으면 멜로디가 잘 안 붙어요. 적어도 한 줄은 장면·동작으로.</li>
+                    <li><strong className="text-white font-medium">같은 단어 한 줄에 3번 이상</strong> — 부자연스러운 발음을 유발해요.</li>
+                    <li><strong className="text-white font-medium">영어·한국어 한 줄 안 혼용</strong> — 발음이 끊겨요. 줄 단위로는 섞어도 OK.</li>
+                    <li><strong className="text-white font-medium">대괄호·괄호 안 효과·지문</strong> — <code className="text-violet-300">[whispers]</code>·<code className="text-violet-300">[drum solo]</code>·<code className="text-violet-300">(ad-lib)</code> 같은 건 무시되지 않고 <strong className="text-amber-300/90">"위스퍼스"·"드럼 솔로"·"애드립"</strong> 처럼 노래로 발음될 수 있어요. 구조 태그(Verse·Chorus·Hook 등)만 안전한 편이니 나머지는 빼는 게 안전해요.</li>
+                  </ul>
+                </Accordion>
+
+                <Accordion summary="AI 가사가 마음에 안 들 때">
+                  <ul className="space-y-1.5 list-disc pl-5 marker:text-zinc-500">
+                    <li>AI 가사 버튼은 매번 다른 결과를 만들어요. <strong className="text-white font-medium">마음에 들 때까지 다시 누르세요.</strong> 크레딧은 소모되지 않아요.</li>
+                    <li>부분만 마음에 들면 그 부분만 남기고 나머지를 직접 다시 쓰면 돼요.</li>
+                    <li>스타일 textarea에 <span className="text-zinc-400">"발라드의 슬픈 사랑"</span> 처럼 분위기를 명시하면 가사도 그 분위기에 맞춰서 만들어 줘요.</li>
+                  </ul>
+                </Accordion>
+              </div>
             </Section>
 
             <Section id="share" title="공유·게시">
@@ -187,6 +232,26 @@ function Section({ id, title, children }: { id: string; title: string; children:
 
 function SubTitle({ children }: { children: React.ReactNode }) {
   return <h3 className="text-base font-semibold text-zinc-200 mt-4 mb-1">{children}</h3>
+}
+
+// 펼쳐서 보는 심층 가이드 — FAQ와 동일 패턴 (.faq-answer-wrap CSS 재사용, single-open name)
+function Accordion({ summary, children }: { summary: string; children: React.ReactNode }) {
+  return (
+    <details name="help-lyrics" className="group rounded-xl bg-white/[0.04] border border-white/[0.06] overflow-hidden">
+      <summary className="cursor-pointer list-none px-4 py-3 flex items-center justify-between text-sm text-white hover:bg-white/[0.04] transition-colors">
+        <span className="font-medium">{summary}</span>
+        <svg
+          width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
+          className="text-zinc-500 shrink-0 transition-transform duration-200 group-open:rotate-180"
+        >
+          <polyline points="6 9 12 15 18 9" />
+        </svg>
+      </summary>
+      <div className="faq-answer-wrap">
+        <div className="px-4 pb-4 pt-1 text-sm text-zinc-300 leading-relaxed">{children}</div>
+      </div>
+    </details>
+  )
 }
 
 function TableRow({ badge, desc, credit }: { badge: string; desc: string; credit: string }) {
