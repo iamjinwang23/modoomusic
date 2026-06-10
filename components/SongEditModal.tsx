@@ -30,6 +30,10 @@ export function SongEditModal({ song, onClose }: Props) {
   const { user } = useAuth()
   const songId = useRef(song.id)  // 모달 오픈 시점 ID 고정 — 재생 중 곡 변경돼도 영향 없음
   const [title, setTitle] = useState(song.title ?? '')
+  const [comment, setComment] = useState(song.publishComment ?? '')
+  const [lyrics, setLyrics] = useState(song.lyrics ?? '')
+  // 'main' = 제목·커버·코멘트, 'lyrics' = 가사 편집 서브 화면 (뒤로가기로 main 복귀)
+  const [view, setView] = useState<'main' | 'lyrics'>('main')
   const [hue, setHue] = useState(song.coverHue ?? baseHue(song.id))
   const [coverImage, setCoverImage] = useState<string | null>(song.coverImage ?? null)
   const [pendingFile, setPendingFile] = useState<File | Blob | null>(null)  // 저장 시점에 업로드 (crop된 Blob 또는 File)
@@ -68,6 +72,8 @@ export function SongEditModal({ song, onClose }: Props) {
       title: title.trim() || null,
       coverHue: hue,
       coverImage: finalCoverImage ?? undefined,
+      publishComment: comment.trim() || undefined,
+      lyrics: lyrics.trim() || null,
     })
     window.dispatchEvent(new CustomEvent('song-updated'))
     toast.success('곡 정보가 저장되었어요')
@@ -108,14 +114,62 @@ export function SongEditModal({ song, onClose }: Props) {
           paddingBottom: 'calc(1.25rem + env(safe-area-inset-bottom, 0px))',
         }}
       >
-        {/* 헤더 */}
+        {/* 헤더 — main: 닫기 / lyrics: 뒤로가기 + 타이틀 */}
         <div className="flex items-center justify-between mb-5">
-          <p className="text-xl font-semibold text-white">곡 정보 편집</p>
-          <button onClick={handleClose} className="w-7 h-7 rounded-full hover:bg-white/[0.08] flex items-center justify-center transition-colors">
-            <Image src="/Close-Fill.svg" alt="닫기" width={14} height={14} style={{ filter: 'invert(0.5)' }} />
-          </button>
+          {view === 'main' ? (
+            <>
+              <p className="text-xl font-semibold text-white">곡 정보 편집</p>
+              <button onClick={handleClose} className="w-7 h-7 rounded-full hover:bg-white/[0.08] flex items-center justify-center transition-colors">
+                <Image src="/Close-Fill.svg" alt="닫기" width={14} height={14} style={{ filter: 'invert(0.5)' }} />
+              </button>
+            </>
+          ) : (
+            <>
+              <button
+                onClick={() => setView('main')}
+                className="flex items-center gap-2 text-white hover:text-zinc-300 transition-colors"
+                aria-label="뒤로 가기"
+              >
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M15 18l-6-6 6-6" />
+                </svg>
+                <span className="text-xl font-semibold">가사 편집</span>
+              </button>
+              <button onClick={handleClose} className="w-7 h-7 rounded-full hover:bg-white/[0.08] flex items-center justify-center transition-colors">
+                <Image src="/Close-Fill.svg" alt="닫기" width={14} height={14} style={{ filter: 'invert(0.5)' }} />
+              </button>
+            </>
+          )}
         </div>
 
+        {view === 'lyrics' ? (
+          /* 가사 편집 서브 화면 — 텍스트영역 + 뒤로가기/저장 */
+          <>
+            <textarea
+              value={lyrics}
+              onChange={(e) => setLyrics(e.target.value)}
+              placeholder="가사를 자유롭게 수정하세요. [Verse] [Chorus] [Bridge] 같은 구조 태그도 사용할 수 있어요."
+              className="w-full h-[480px] max-h-[60vh] bg-white/[0.06] border border-white/[0.08] focus:border-violet-500/50 rounded-xl px-3 py-2.5 text-sm text-white placeholder:text-zinc-600 focus:outline-none transition-colors resize-none leading-relaxed mb-4"
+            />
+            <div className="flex gap-2">
+              <button
+                type="button"
+                onClick={() => setView('main')}
+                className="flex-1 py-2.5 rounded-xl border border-white/[0.10] text-zinc-400 hover:text-white hover:border-white/20 text-sm transition-colors"
+              >
+                뒤로
+              </button>
+              <button
+                type="button"
+                onClick={() => setView('main')}
+                className="flex-1 py-2.5 rounded-xl bg-violet-600 hover:bg-violet-500 text-white text-sm font-semibold transition-colors"
+              >
+                확인
+              </button>
+            </div>
+          </>
+        ) : (
+        <>
         {/* 2열 레이아웃 */}
         <div className="flex gap-4 mb-4">
           {/* 좌: 커버 */}
@@ -189,6 +243,37 @@ export function SongEditModal({ song, onClose }: Props) {
           </div>
         </div>
 
+        {/* 코멘트 */}
+        <div className="space-y-1.5 mb-3">
+          <label className="text-xs text-zinc-500">코멘트</label>
+          <textarea
+            value={comment}
+            onChange={(e) => setComment(e.target.value)}
+            placeholder="이 곡에 대한 짧은 한마디나 소개를 적어보세요"
+            rows={3}
+            maxLength={300}
+            className="w-full bg-white/[0.06] border border-white/[0.08] focus:border-violet-500/50 rounded-xl px-3 py-2.5 text-sm text-white placeholder:text-zinc-600 focus:outline-none transition-colors resize-none leading-relaxed"
+          />
+          <p className={`text-xs text-right tabular-nums ${comment.length >= 300 ? 'text-red-400' : 'text-zinc-600'}`}>
+            {comment.length}/300
+          </p>
+        </div>
+
+        {/* 가사 편집 메뉴 — 클릭 시 서브 화면 */}
+        <button
+          type="button"
+          onClick={() => setView('lyrics')}
+          className="w-full flex items-center justify-between bg-white/[0.04] hover:bg-white/[0.08] border border-white/[0.08] rounded-xl px-4 py-3 mb-4 transition-colors"
+        >
+          <span className="flex items-center gap-2 text-sm text-white">
+            <Image src="/Ai-Generate-Text.svg" alt="" width={16} height={16} style={{ filter: 'invert(1)' }} />
+            가사 편집
+          </span>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="text-zinc-500">
+            <path d="M9 6l6 6-6 6" />
+          </svg>
+        </button>
+
         {/* 버튼 */}
         <div className="flex gap-2">
           <button
@@ -206,6 +291,8 @@ export function SongEditModal({ song, onClose }: Props) {
             저장
           </button>
         </div>
+        </>
+        )}
       </div>
 
       {/* 업로드 시 위치 조정 — 카드·곡 상세 표시 기준 2:3 세로 */}
