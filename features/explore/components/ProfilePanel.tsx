@@ -716,6 +716,7 @@ function SelfSettingsMenu() {
               { href: '/terms', label: '이용약관', icon: '/terms.png' },
               { href: '/privacy', label: '개인정보처리방침', icon: '/security-policy.png' },
               { href: '/policy', label: '운영정책', icon: '/policy.png' },
+              { href: '/help', label: '도움말', icon: '/Help.png' },
               { href: '/faq', label: '자주 묻는 질문', icon: '/faq.png' },
             ].map(({ href, label, icon }) => (
               <Link

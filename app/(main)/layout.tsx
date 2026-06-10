@@ -309,11 +309,24 @@ export default function MainShellLayout({ children }: { children: React.ReactNod
                       </Link>
                     ))}
                     <Link
-                      href="/faq"
+                      href="/help"
                       target="_blank"
                       rel="noopener noreferrer"
                       onClick={() => setLegalMenuOpen(false)}
                       className="flex items-center justify-between gap-2 px-4 py-2.5 text-sm text-zinc-300 hover:text-white hover:bg-white/[0.04] transition-colors border-t border-white/[0.06]"
+                    >
+                      <span className="flex items-center gap-2.5">
+                        <Image src="/Help.png" alt="" width={16} height={16} style={{ filter: 'invert(1) brightness(0.85)' }} />
+                        도움말
+                      </span>
+                      <Image src="/External-Link.svg" alt="" width={14} height={14} style={{ filter: 'invert(0.4)' }} />
+                    </Link>
+                    <Link
+                      href="/faq"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      onClick={() => setLegalMenuOpen(false)}
+                      className="flex items-center justify-between gap-2 px-4 py-2.5 text-sm text-zinc-300 hover:text-white hover:bg-white/[0.04] transition-colors"
                     >
                       <span className="flex items-center gap-2.5">
                         <Image src="/faq.png" alt="" width={16} height={16} style={{ filter: 'invert(1) brightness(0.85)' }} />
