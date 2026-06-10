@@ -395,8 +395,9 @@ export function SongForm() {
         onChange={(e) => { const f = e.target.files?.[0]; if (f) handleRefAudioFile(f) }}
       />
 
-      {/* Simple/Advanced 토글(중앙) + 모델 선택(우, 고급 모드만) — 좌측은 grid 균형용 빈칸 */}
-      <div className={`grid grid-cols-3 items-center ${lyricsFullscreen ? 'hidden' : ''}`}>
+      {/* Simple/Advanced 토글(중앙) + 모델 선택(우, 고급 모드만) — 좌측은 grid 균형용 빈칸.
+          중앙 칸은 auto(콘텐츠 크기)로 두어 모바일 좁은 폭에서 토글 텍스트 줄바꿈 방지. */}
+      <div className={`grid grid-cols-[1fr_auto_1fr] items-center ${lyricsFullscreen ? 'hidden' : ''}`}>
         <div />
         <div className="justify-self-center relative inline-flex rounded-full bg-white/[0.06] p-1">
           {/* 슬라이딩 활성 표시 — 두 버튼은 동일 폭(2글자+px-5)이라 50% 기준으로 이동 */}
@@ -411,7 +412,7 @@ export function SongForm() {
               type="button"
               disabled={isGenerating}
               onClick={() => changeMode(m)}
-              className={`relative z-10 px-5 py-1.5 rounded-full text-sm font-medium transition-colors disabled:opacity-40 ${
+              className={`relative z-10 px-5 py-1.5 rounded-full text-sm font-medium whitespace-nowrap transition-colors disabled:opacity-40 ${
                 mode === m ? 'text-black' : 'text-zinc-400 hover:text-white'
               }`}
             >
