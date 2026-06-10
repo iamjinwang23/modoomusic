@@ -6,6 +6,7 @@ import Image from 'next/image'
 import { songService } from '@/services/song.service'
 import { SongEditModal } from '@/components/SongEditModal'
 import { SongReportModal } from '@/components/SongReportModal'
+import { DownloadDialog } from '@/components/DownloadDialog'
 import { CollectionPickerModal } from '@/features/song/components/CollectionPickerModal'
 import { PublishModal } from '@/features/song/components/PublishModal'
 import { collectionService } from '@/services/collection.service'
@@ -129,6 +130,7 @@ export function SongDetailPage({ onBack, profile }: Props) {
   const [publishOpen, setPublishOpen] = useState(false)
   const [confirmUnpublish, setConfirmUnpublish] = useState(false)
   const [reportOpen, setReportOpen] = useState(false)
+  const [downloadOpen, setDownloadOpen] = useState(false)
   const [blinded, setBlinded] = useState(false)
   const [liked, setLiked] = useState(song?.liked ?? false)
 
@@ -411,6 +413,7 @@ export function SongDetailPage({ onBack, profile }: Props) {
               onPublish={isOwner && !song.published ? () => setPublishOpen(true) : undefined}
               onUnpublish={isOwner && song.published ? () => setConfirmUnpublish(true) : undefined}
               onReport={!isOwner ? () => setReportOpen(true) : undefined}
+              onDownload={isOwner && song.audioUrl ? () => setDownloadOpen(true) : undefined}
             />
           </div>
           </div> {/* /커버 아래 컨테이너 */}
@@ -523,6 +526,7 @@ export function SongDetailPage({ onBack, profile }: Props) {
                 onPublish={isOwner && !song.published ? () => setPublishOpen(true) : undefined}
                 onUnpublish={isOwner && song.published ? () => setConfirmUnpublish(true) : undefined}
                 onReport={!isOwner ? () => setReportOpen(true) : undefined}
+                onDownload={isOwner && song.audioUrl ? () => setDownloadOpen(true) : undefined}
               />
             </div>
           </div>
@@ -579,6 +583,13 @@ export function SongDetailPage({ onBack, profile }: Props) {
           onSubmitted={() => setBlinded(true)}
         />
       )}
+
+      <DownloadDialog
+        open={downloadOpen}
+        onClose={() => setDownloadOpen(false)}
+        audioUrl={song.audioUrl ?? ''}
+        title={displayTitle}
+      />
 
       {confirmDelete && typeof document !== 'undefined' && createPortal(
         <div className="fixed inset-0 z-[70] flex items-center justify-center p-6">
@@ -683,7 +694,7 @@ function ActionBtn({ title, icon, active, count, onClick }: { title: string; ico
   )
 }
 
-function SongMoreMenu({ isOwner, inCollection, onCollect, onPublish, onUnpublish, onEdit, onDelete, onReport }: {
+function SongMoreMenu({ isOwner, inCollection, onCollect, onPublish, onUnpublish, onEdit, onDelete, onReport, onDownload }: {
   isOwner: boolean
   inCollection: boolean
   onCollect: () => void
@@ -692,6 +703,7 @@ function SongMoreMenu({ isOwner, inCollection, onCollect, onPublish, onUnpublish
   onEdit?: () => void
   onDelete?: () => void
   onReport?: () => void
+  onDownload?: () => void
 }) {
   const [open, setOpen] = useState(false)
   const ref = useRef<HTMLDivElement>(null)
@@ -739,9 +751,11 @@ function SongMoreMenu({ isOwner, inCollection, onCollect, onPublish, onUnpublish
                   <Image src="/Publish.svg" alt="" width={14} height={14} style={{ filter: 'invert(0.55)' }} /> 게시 취소
                 </button>
               )}
-              <button onClick={() => { setOpen(false); window.dispatchEvent(new CustomEvent('open-coming-soon', { detail: 'sidebar' })) }} className="w-full flex items-center gap-2.5 px-3 py-2.5 text-sm text-white hover:bg-white/[0.06] transition-colors">
-                <Image src="/Arrow-To-Down.svg" alt="" width={14} height={14} style={{ filter: 'invert(0.55)' }} /> 저장
-              </button>
+              {onDownload && (
+                <button onClick={() => { setOpen(false); onDownload() }} className="w-full flex items-center gap-2.5 px-3 py-2.5 text-sm text-white hover:bg-white/[0.06] transition-colors">
+                  <Image src="/Arrow-To-Down.svg" alt="" width={14} height={14} style={{ filter: 'invert(0.55)' }} /> 다운로드
+                </button>
+              )}
               <div className="my-1 h-px bg-white/[0.06]" />
               {onEdit && (
                 <button onClick={() => { setOpen(false); onEdit() }} className="w-full flex items-center gap-2.5 px-3 py-2.5 text-sm text-white hover:bg-white/[0.06] transition-colors">
