@@ -9,7 +9,7 @@ export default function PolicyPage() {
     <article className="space-y-8 text-zinc-300 leading-relaxed">
       <header className="space-y-2">
         <h1 className="text-3xl font-bold text-white">운영정책</h1>
-        <p className="text-sm text-zinc-500">시행일: 2026년 6월 9일</p>
+        <p className="text-sm text-zinc-500">시행일: 2026년 6월 10일</p>
       </header>
 
       <p className="text-sm">

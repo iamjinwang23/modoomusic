@@ -1,20 +1,22 @@
 'use client'
-// Design Ref: comments §5.4 — 댓글 신고 모달. 8 사유 라디오 + 제출
-// SongEditModal 컨벤션(`[[project-ui-conventions]]`): 모바일 바텀시트·데스크톱 중앙
+
+// CommentReportModal 패턴 그대로 차용. 곡 신고 = 같은 사유 8개.
+
 import { useState, useEffect } from 'react'
+import { createPortal } from 'react-dom'
 import Image from 'next/image'
-import { commentService, COMMENT_REPORT_REASONS, type CommentReportReason } from '@/services/comment.service'
+import { reportSong, REPORT_REASONS, type ReportReason } from '@/services/report.service'
 import { toast } from '@/components/toast/toast'
-import type { Comment } from '@/types/domain'
 
 interface Props {
-  comment: Comment
+  songId: string
+  songTitle?: string | null
   onClose: () => void
   onSubmitted?: () => void
 }
 
-export function CommentReportModal({ comment, onClose, onSubmitted }: Props) {
-  const [reason, setReason] = useState<CommentReportReason | null>(null)
+export function SongReportModal({ songId, songTitle, onClose, onSubmitted }: Props) {
+  const [reason, setReason] = useState<ReportReason | null>(null)
   const [submitting, setSubmitting] = useState(false)
   const [visible, setVisible] = useState(false)
 
@@ -33,7 +35,7 @@ export function CommentReportModal({ comment, onClose, onSubmitted }: Props) {
     if (!reason || submitting) return
     setSubmitting(true)
     try {
-      await commentService.report(comment.id, reason)
+      await reportSong(songId, reason)
       toast.success('신고가 접수되었어요')
       onSubmitted?.()
       setVisible(false)
@@ -46,7 +48,9 @@ export function CommentReportModal({ comment, onClose, onSubmitted }: Props) {
     }
   }
 
-  return (
+  if (typeof document === 'undefined') return null
+
+  return createPortal(
     <div className="fixed inset-0 z-[80] flex items-end md:items-center justify-center md:p-6">
       <div
         className={`absolute inset-0 bg-black/70 backdrop-blur-sm transition-opacity duration-280 ${visible ? 'opacity-100' : 'opacity-0'}`}
@@ -63,17 +67,20 @@ export function CommentReportModal({ comment, onClose, onSubmitted }: Props) {
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-2">
             <Image src="/Flag.svg" alt="" width={18} height={18} style={{ filter: 'invert(1)' }} />
-            <p className="text-xl font-semibold text-white">댓글 신고</p>
+            <p className="text-xl font-semibold text-white">곡 신고</p>
           </div>
           <button onClick={handleClose} className="w-7 h-7 rounded-full hover:bg-white/[0.08] flex items-center justify-center transition-colors">
             <Image src="/Close-Fill.svg" alt="닫기" width={14} height={14} style={{ filter: 'invert(0.5)' }} />
           </button>
         </div>
 
-        <p className="text-xs text-zinc-500 mb-4">신고 사유를 선택해 주세요. 동일 댓글을 두 번 이상 신고해도 한 번만 접수됩니다.</p>
+        {songTitle && (
+          <p className="text-xs text-zinc-400 mb-3 truncate">"{songTitle}"</p>
+        )}
+        <p className="text-xs text-zinc-500 mb-4">신고 사유를 선택해 주세요. 동일 곡을 두 번 이상 신고해도 한 번만 접수됩니다.</p>
 
         <div className="space-y-1 mb-5">
-          {COMMENT_REPORT_REASONS.map((r) => {
+          {REPORT_REASONS.map((r) => {
             const active = reason === r
             return (
               <button
@@ -107,6 +114,7 @@ export function CommentReportModal({ comment, onClose, onSubmitted }: Props) {
           ) : '신고하기'}
         </button>
       </div>
-    </div>
+    </div>,
+    document.body,
   )
 }

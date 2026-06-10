@@ -102,7 +102,11 @@ export function PublicSongCard({ song, onPlay, onThumbPlay, hideArtist = false }
         <p className="text-sm font-medium text-zinc-100 leading-snug line-clamp-2 min-w-0">
           {displayTitle}
           {song.model && (
-            <span className="inline-block align-middle ml-1.5 text-[10px] font-medium text-violet-300 bg-violet-600/20 px-1.5 py-1 rounded-md leading-none">
+            <span className={`inline-block align-middle ml-1.5 text-[10px] font-medium px-1.5 py-1 rounded-md leading-none ${
+              song.model === 'music-2.6'
+                ? 'text-violet-300 bg-violet-600/20'
+                : 'text-zinc-400 bg-zinc-800 border border-white/[0.06]'
+            }`}>
               {`v${song.model.replace(/^music-/, '')}`}
             </span>
           )}

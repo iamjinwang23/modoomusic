@@ -123,6 +123,25 @@ async function fillIsLiked(
   return songs.map((s) => ({ ...s, isLiked: likedSet.has(s.id) }))
 }
 
+// 신고 후 새로고침 시 신고자 본인 list에서 곡 자동 숨김.
+// song_reports 테이블에 SELECT(own) RLS 있어 reporter_id = me인 row만 반환됨.
+async function filterMyReported(
+  supabase: ReturnType<typeof createClient>,
+  songs: PublicSong[],
+): Promise<PublicSong[]> {
+  if (songs.length === 0) return songs
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return songs
+  const songIds = songs.map((s) => s.id)
+  const { data: myReports } = await supabase
+    .from('song_reports')
+    .select('song_id')
+    .eq('reporter_id', user.id)
+    .in('song_id', songIds)
+  const reportedSet = new Set((myReports ?? []).map((r) => r.song_id as string))
+  return songs.filter((s) => !reportedSet.has(s.id))
+}
+
 export const exploreService = {
   async getFeed(tab: FeedTab, limit = 60): Promise<PublicSong[]> {
     const supabase = createClient()
@@ -137,7 +156,8 @@ export const exploreService = {
       .limit(fetchLimit)
     if (error) { console.error('[exploreService.getFeed]', error.message); return [] }
     const mapped = await fillIsLiked(supabase, (data as unknown as SongRow[]).map(rowToPublicSong))
-    return tab === 'recommended' ? sortRecommended(mapped).slice(0, limit) : mapped
+    const filtered = await filterMyReported(supabase, mapped)
+    return tab === 'recommended' ? sortRecommended(filtered).slice(0, limit) : filtered
   },
 
   async getByFilter(tab: FeedTab, genres: string[], moods: string[], limit = 60): Promise<PublicSong[]> {
@@ -153,6 +173,7 @@ export const exploreService = {
       .limit(fetchLimit)
     if (error) { console.error('[exploreService.getByFilter]', error.message); return [] }
     let mapped = await fillIsLiked(supabase, (data as unknown as SongRow[]).map(rowToPublicSong))
+    mapped = await filterMyReported(supabase, mapped)
     if (genres.length > 0 || moods.length > 0) {
       const { inferTags } = await import('@/utils/extractTags')
       const songRows = data as unknown as Array<SongRow & { prompt?: string | null; title?: string | null; lyrics?: string | null }>
@@ -237,7 +258,8 @@ export const exploreService = {
       .order('published_at', { ascending: false, nullsFirst: false })
       .limit(limit)
     if (error) { console.error('[exploreService.getUserSongs]', error.message); return [] }
-    return fillIsLiked(supabase, (data as unknown as SongRow[]).map(rowToPublicSong))
+    const liked = await fillIsLiked(supabase, (data as unknown as SongRow[]).map(rowToPublicSong))
+    return filterMyReported(supabase, liked)
   },
 
   async getPublicSongById(id: string): Promise<PublicSong | null> {

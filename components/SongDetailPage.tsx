@@ -5,6 +5,7 @@ import { createPortal } from 'react-dom'
 import Image from 'next/image'
 import { songService } from '@/services/song.service'
 import { SongEditModal } from '@/components/SongEditModal'
+import { SongReportModal } from '@/components/SongReportModal'
 import { CollectionPickerModal } from '@/features/song/components/CollectionPickerModal'
 import { PublishModal } from '@/features/song/components/PublishModal'
 import { collectionService } from '@/services/collection.service'
@@ -127,6 +128,8 @@ export function SongDetailPage({ onBack, profile }: Props) {
   const [confirmDelete, setConfirmDelete] = useState(false)
   const [publishOpen, setPublishOpen] = useState(false)
   const [confirmUnpublish, setConfirmUnpublish] = useState(false)
+  const [reportOpen, setReportOpen] = useState(false)
+  const [blinded, setBlinded] = useState(false)
   const [liked, setLiked] = useState(song?.liked ?? false)
 
   // 댓글 작성/삭제 시 액션 행 댓글 수 즉시 갱신
@@ -227,6 +230,25 @@ export function SongDetailPage({ onBack, profile }: Props) {
     }
     setConfirmDelete(false)
     onBack()
+  }
+
+  // 신고 직후 블라인드 view — 새로고침 시엔 list에서 자동 숨김
+  if (blinded) {
+    return (
+      <div className="fixed inset-x-0 top-0 bottom-[calc(148px+env(safe-area-inset-bottom,0px))] z-[55] bg-[#171A20] flex flex-col items-center justify-center md:relative md:inset-auto md:bottom-auto md:z-auto md:h-full">
+        <div className="text-center px-8">
+          <Image src="/Flag.svg" alt="" width={32} height={32} style={{ filter: 'invert(0.4)' }} className="mx-auto mb-3 opacity-60" />
+          <p className="text-base font-medium text-zinc-300 mb-2">신고된 게시물입니다</p>
+          <p className="text-xs text-zinc-500 mb-6">운영자 검토 후 처리됩니다. 더 이상 이 곡이 보이지 않아요.</p>
+          <button
+            onClick={onBack}
+            className="px-5 py-2.5 rounded-xl bg-white/[0.08] hover:bg-white/[0.12] text-sm text-white transition-colors"
+          >
+            돌아가기
+          </button>
+        </div>
+      </div>
+    )
   }
 
   return (
@@ -384,6 +406,7 @@ export function SongDetailPage({ onBack, profile }: Props) {
               onDelete={isOwner ? () => setConfirmDelete(true) : undefined}
               onPublish={isOwner && !song.published ? () => setPublishOpen(true) : undefined}
               onUnpublish={isOwner && song.published ? () => setConfirmUnpublish(true) : undefined}
+              onReport={!isOwner ? () => setReportOpen(true) : undefined}
             />
           </div>
           </div> {/* /커버 아래 컨테이너 */}
@@ -491,6 +514,7 @@ export function SongDetailPage({ onBack, profile }: Props) {
                 onDelete={isOwner ? () => setConfirmDelete(true) : undefined}
                 onPublish={isOwner && !song.published ? () => setPublishOpen(true) : undefined}
                 onUnpublish={isOwner && song.published ? () => setConfirmUnpublish(true) : undefined}
+                onReport={!isOwner ? () => setReportOpen(true) : undefined}
               />
             </div>
           </div>
@@ -536,6 +560,15 @@ export function SongDetailPage({ onBack, profile }: Props) {
         <SongEditModal
           song={song}
           onClose={() => setEditOpen(false)}
+        />
+      )}
+
+      {reportOpen && (
+        <SongReportModal
+          songId={song.id}
+          songTitle={displayTitle}
+          onClose={() => setReportOpen(false)}
+          onSubmitted={() => setBlinded(true)}
         />
       )}
 
@@ -642,7 +675,7 @@ function ActionBtn({ title, icon, active, count, onClick }: { title: string; ico
   )
 }
 
-function SongMoreMenu({ isOwner, inCollection, onCollect, onPublish, onUnpublish, onEdit, onDelete }: {
+function SongMoreMenu({ isOwner, inCollection, onCollect, onPublish, onUnpublish, onEdit, onDelete, onReport }: {
   isOwner: boolean
   inCollection: boolean
   onCollect: () => void
@@ -650,6 +683,7 @@ function SongMoreMenu({ isOwner, inCollection, onCollect, onPublish, onUnpublish
   onUnpublish?: () => void
   onEdit?: () => void
   onDelete?: () => void
+  onReport?: () => void
 }) {
   const [open, setOpen] = useState(false)
   const ref = useRef<HTMLDivElement>(null)
@@ -676,6 +710,14 @@ function SongMoreMenu({ isOwner, inCollection, onCollect, onPublish, onUnpublish
           <button onClick={() => { setOpen(false); onCollect() }} className={`w-full flex items-center gap-2.5 px-3 py-2.5 text-sm hover:bg-white/[0.06] transition-colors ${inCollection ? 'text-violet-400' : 'text-white'}`}>
             <Image src="/Collection.svg" alt="" width={14} height={14} style={{ filter: inCollection ? 'brightness(0) saturate(100%) invert(44%) sepia(51%) saturate(1569%) hue-rotate(221deg) brightness(101%) contrast(96%)' : 'invert(0.55)' }} /> 컬렉션
           </button>
+          {!isOwner && onReport && (
+            <>
+              <div className="my-1 h-px bg-white/[0.06]" />
+              <button onClick={() => { setOpen(false); onReport() }} className="w-full flex items-center gap-2.5 px-3 py-2.5 text-sm text-red-400 hover:bg-red-500/10 transition-colors">
+                <Image src="/Flag.svg" alt="" width={14} height={14} style={{ filter: 'invert(0.4) sepia(1) saturate(3) hue-rotate(300deg)' }} /> 신고
+              </button>
+            </>
+          )}
           {isOwner && (
             <>
               <div className="my-1 h-px bg-white/[0.06]" />

@@ -219,7 +219,9 @@ export function CommentItem({
                         setMoreOpen(false)
                         if (!currentUserId) { onLoginRequired(); return }
                         onReport(comment)
-                      }} className="w-full text-left px-3 py-2 text-sm text-zinc-300 hover:text-white hover:bg-white/[0.06] transition-colors">신고</button>
+                      }} className="w-full flex items-center gap-2 px-3 py-2 text-sm text-red-400 hover:bg-red-500/10 transition-colors">
+                        <Image src="/Flag.svg" alt="" width={12} height={12} style={{ filter: 'invert(0.4) sepia(1) saturate(3) hue-rotate(300deg)' }} /> 신고
+                      </button>
                     )}
                   </div>
                 </>

@@ -8,6 +8,7 @@ import { useAuth } from '@/components/AuthProvider'
 import { profileColor } from '@/utils/profileColor'
 import { CommentItem } from './CommentItem'
 import { CommentReportModal } from './CommentReportModal'
+import { getMyReportedCommentIds } from '@/services/report.service'
 import { EmojiHotkeyBar } from './EmojiHotkeyBar'
 import type { Comment } from '@/types/domain'
 
@@ -33,8 +34,15 @@ export function CommentsPanel({ songId, songOwnerId, songIsPublic }: Props) {
     if (!songIsPublic) { setLoading(false); setComments([]); return }
     let cancelled = false
     setLoading(true)
-    commentService.listForSong(songId)
-      .then((list) => { if (!cancelled) setComments(list) })
+    Promise.all([
+      commentService.listForSong(songId),
+      getMyReportedCommentIds(),
+    ])
+      .then(([list, reportedSet]) => {
+        if (cancelled) return
+        // 신고자 본인이 신고한 댓글(top·reply 무관)은 새로고침 후 목록에서 제외
+        setComments(list.filter((c) => !reportedSet.has(c.id)))
+      })
       .catch((e) => {
         if (cancelled) return
         console.error('[CommentsPanel fetch]', e)
@@ -211,6 +219,11 @@ export function CommentsPanel({ songId, songOwnerId, songIsPublic }: Props) {
         <CommentReportModal
           comment={reporting}
           onClose={() => setReporting(null)}
+          onSubmitted={() => {
+            // 신고 즉시 본인 view에서 해당 댓글 제거 (블라인드 처리)
+            const reportedId = reporting.id
+            setComments((prev) => prev.filter((c) => c.id !== reportedId))
+          }}
         />
       )}
     </div>
