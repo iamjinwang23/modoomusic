@@ -160,7 +160,7 @@
 |------|------|------|
 | M1 | Supabase 프로젝트 + 환경변수 | 프로젝트 생성, `.env.local` 설정 |
 | M2 | DB 스키마 + RLS | SQL 마이그레이션, trigger |
-| M3 | Auth 미들웨어 + 클라이언트 유틸 | `lib/supabase/`, middleware.ts |
+| M3 | Auth 미들웨어 + 클라이언트 유틸 | `lib/supabase/`, proxy.ts (Next.js 16) |
 | M4 | Google OAuth 로그인 UI 연결 | LoginModal → Supabase signInWithOAuth |
 | M5 | songService 교체 | localStorage → DB + Storage |
 | M6 | MiniMax → Storage 파이프라인 | 서버 액션에서 오디오 다운로드 후 Storage 업로드 |

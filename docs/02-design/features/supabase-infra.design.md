@@ -44,7 +44,7 @@
 
 **읽기**: 클라이언트에서 `createBrowserClient` + RLS로 직접 쿼리  
 **쓰기**: 항상 Server Actions 경유 (Supabase Service Key는 서버에만 존재)  
-**Auth**: `middleware.ts`에서 세션 갱신, `AuthProvider`가 클라이언트에 user 공급
+**Auth**: `proxy.ts`에서 세션 갱신(Next.js 16: `middleware.ts` → `proxy.ts` 리네임), `AuthProvider`가 클라이언트에 user 공급
 
 ---
 
@@ -52,7 +52,7 @@
 
 ```
 minimax-test/
-├── middleware.ts                          # 세션 갱신 (Supabase SSR)
+├── proxy.ts                               # 세션 갱신 + admin 가드 (Next.js 16: middleware.ts deprecated)
 ├── supabase/
 │   └── migrations/
 │       └── 001_initial_schema.sql         # profiles/songs/follows/likes + RLS
@@ -60,7 +60,7 @@ minimax-test/
 │   ├── supabase/
 │   │   ├── client.ts                      # createBrowserClient (클라이언트용)
 │   │   ├── server.ts                      # createServerClient (서버 액션용)
-│   │   └── middleware.ts                  # createMiddlewareClient
+│   │   └── admin.ts                       # createAdminClient (service_role, RLS 우회)
 │   └── repositories/
 │       ├── song.repository.ts             # CRUD + is_public 쿼리
 │       ├── profile.repository.ts          # getByUsername, upsert
@@ -249,12 +249,12 @@ export async function createClient() {
 }
 ```
 
-### `middleware.ts`
+### `proxy.ts` (Next.js 16: 기존 `middleware.ts` 리네임)
 ```ts
 import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
-export async function middleware(request: NextRequest) {
-  // 세션 쿠키 갱신
+export async function proxy(request: NextRequest) {
+  // 세션 쿠키 갱신 + /admin/* 라우트 가드(ROUTE_PERMISSION 매핑)
 }
 export const config = { matcher: ['/((?!_next/static|_next/image|favicon.ico).*)'] }
 ```
@@ -422,7 +422,7 @@ MINIMAX_MOCK=false
 |------|------|-----------|
 | M1 | Supabase 프로젝트 생성 + `.env.local` | 30분 |
 | M2 | `supabase/migrations/001_initial_schema.sql` 작성 + 적용 | 1시간 |
-| M3 | `lib/supabase/client.ts`, `server.ts`, `middleware.ts` | 30분 |
+| M3 | `lib/supabase/client.ts`, `server.ts`, `proxy.ts`(Next.js 16) | 30분 |
 | M4 | `app/actions/auth.actions.ts` + `LoginModal` 연결 | 1시간 |
 | M5 | `AuthProvider.tsx` + `app/layout.tsx` 래핑 | 30분 |
 | M6 | `lib/repositories/storage.repository.ts` + `song.actions.ts` | 1.5시간 |

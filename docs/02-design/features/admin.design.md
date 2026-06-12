@@ -362,7 +362,7 @@ toast.success + 결과 카드 업데이트 + 감사 로그 자동
 ## 7. Security Considerations
 
 - **3중 가드**:
-  1. `middleware.ts` — `/admin/*` 경로 진입 시 세션 확인
+  1. `proxy.ts` — `/admin/*` 경로 진입 시 세션 확인 + `admin_permissions` 매칭 (Next.js 16: `middleware.ts` → `proxy.ts`로 통합, 56ebc24)
   2. `app/(admin)/admin/layout.tsx` — server component에서 `is_admin` 확인 후 redirect
   3. 모든 `/api/admin/*` route handler — `await guard()` 호출
 - **service_role 키 격리** — 클라이언트 번들에 절대 포함 X (이미 분리되어 있음)
@@ -503,7 +503,7 @@ toast.success + 결과 카드 업데이트 + 감사 로그 자동
 - `components/admin/{AdminPanel,AdminConfirm,AdminSidebar,DataTable,UserSearchInput}.tsx`
 
 **Modify**:
-- `middleware.ts` — `/admin/*` 경로 인증 가드 (이미 있으면 확장)
+- `proxy.ts` — `/admin/*` 경로 인증 가드 + `ROUTE_PERMISSION` 매핑 (Next.js 16: `middleware.ts` 사용 금지, `proxy.ts`만 허용)
 - `app/(main)/layout.tsx` — 본체 layout이 `/admin` 진입 차단 (불필요할 듯, route group이 알아서)
 
 ### 11.3 Session Guide
