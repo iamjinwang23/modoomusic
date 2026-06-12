@@ -10,7 +10,7 @@ const DAILY_LIMIT = parseInt(process.env.ADMIN_DAILY_GRANT_LIMIT_CR ?? '1000', 1
 const PER_REQUEST_LIMIT = 1000  // 단일 요청 최대 ±1000cr
 
 export async function POST(req: NextRequest) {
-  const auth = await requireAdminApi()
+  const auth = await requireAdminApi('credits')
   if (!auth.ok) return NextResponse.json({ error: auth.error }, { status: auth.status })
 
   let body: { userId?: unknown; amount?: unknown; reason?: unknown }

@@ -6,7 +6,7 @@ import { requireAdminApi } from '@/lib/admin/guard'
 import { createAdminClient } from '@/lib/supabase/admin'
 
 export async function GET(req: NextRequest) {
-  const auth = await requireAdminApi()
+  const auth = await requireAdminApi('users')
   if (!auth.ok) return NextResponse.json({ error: auth.error }, { status: auth.status })
 
   const q = (req.nextUrl.searchParams.get('q') ?? '').trim()

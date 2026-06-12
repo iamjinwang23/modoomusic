@@ -25,7 +25,7 @@ function csvEscape(v: unknown): string {
 }
 
 export async function GET(req: NextRequest) {
-  const auth = await requireAdminApi()
+  const auth = await requireAdminApi('audit')
   if (!auth.ok) return NextResponse.json({ error: auth.error }, { status: auth.status })
 
   const sp = req.nextUrl.searchParams

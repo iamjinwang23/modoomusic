@@ -7,7 +7,7 @@ import { createAdminClient } from '@/lib/supabase/admin'
 interface RouteParams { params: Promise<{ id: string }> }
 
 export async function GET(_req: NextRequest, { params }: RouteParams) {
-  const auth = await requireAdminApi()
+  const auth = await requireAdminApi('users')
   if (!auth.ok) return NextResponse.json({ error: auth.error }, { status: auth.status })
 
   const { id } = await params

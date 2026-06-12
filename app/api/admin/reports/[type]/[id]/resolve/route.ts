@@ -11,7 +11,7 @@ interface RouteParams {
 }
 
 export async function POST(req: NextRequest, { params }: RouteParams) {
-  const auth = await requireAdminApi()
+  const auth = await requireAdminApi('reports')
   if (!auth.ok) return NextResponse.json({ error: auth.error }, { status: auth.status })
 
   const { type, id } = await params

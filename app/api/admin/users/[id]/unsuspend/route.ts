@@ -8,7 +8,7 @@ import { withAudit, AuditError } from '@/services/admin.service'
 interface RouteParams { params: Promise<{ id: string }> }
 
 export async function POST(req: NextRequest, { params }: RouteParams) {
-  const auth = await requireAdminApi()
+  const auth = await requireAdminApi('users')
   if (!auth.ok) return NextResponse.json({ error: auth.error }, { status: auth.status })
 
   const { id } = await params

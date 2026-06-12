@@ -10,7 +10,7 @@ const ALLOWED_SORT = new Set([
 ])
 
 export async function GET(req: NextRequest) {
-  const auth = await requireAdminApi()
+  const auth = await requireAdminApi('users')
   if (!auth.ok) return NextResponse.json({ error: auth.error }, { status: auth.status })
 
   const sp = req.nextUrl.searchParams

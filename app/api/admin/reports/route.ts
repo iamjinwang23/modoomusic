@@ -29,7 +29,7 @@ interface CommentReportRaw {
 }
 
 export async function GET(req: NextRequest) {
-  const auth = await requireAdminApi()
+  const auth = await requireAdminApi('reports')
   if (!auth.ok) return NextResponse.json({ error: auth.error }, { status: auth.status })
 
   const status = req.nextUrl.searchParams.get('status') ?? 'pending'
