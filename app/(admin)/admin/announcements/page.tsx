@@ -19,7 +19,7 @@ export default function AdminAnnouncementsPage() {
             🛠
           </div>
           <p className="text-base font-semibold text-zinc-900">준비 중</p>
-          <p className="text-sm text-zinc-500 mt-2 max-w-md mx-auto leading-relaxed">
+          <p className="text-sm text-zinc-500 mt-2 max-w-lg mx-auto leading-relaxed break-keep">
             공지를 알림으로 보내려면 사용자가 클릭했을 때 도착할 <span className="text-zinc-700 font-medium">공지 랜딩 페이지</span>가 먼저 필요해요.
             <br />랜딩 페이지 구현 후 이 모듈을 활성화합니다.
           </p>

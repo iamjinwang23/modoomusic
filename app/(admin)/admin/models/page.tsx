@@ -19,7 +19,7 @@ export default function AdminModelsPage() {
             🛠
           </div>
           <p className="text-base font-semibold text-zinc-900">준비 중</p>
-          <p className="text-sm text-zinc-500 mt-2 max-w-md mx-auto leading-relaxed">
+          <p className="text-sm text-zinc-500 mt-2 max-w-lg mx-auto leading-relaxed break-keep">
             현재 모델 정의는 <span className="text-zinc-700 font-medium">services/minimax.service.ts</span>의 상수로 관리 중이에요.
             <br />DB 테이블로 이전 후 이 모듈에서 단가·잠금 토글이 가능해집니다.
           </p>

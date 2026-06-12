@@ -19,6 +19,9 @@ interface SongRow {
   commentCount: number
   model: string | null
   status: string | null
+  audioUrl: string | null
+  coverImage: string | null
+  coverHue: number | null
   createdAt: string
 }
 
@@ -235,10 +238,48 @@ function SongDetailModal({ song, onClose, onAction }: {
         </header>
 
         <div className="p-6 space-y-4 text-sm">
-          <div>
-            <p className="text-base font-semibold text-zinc-900">{song.title}</p>
-            <p className="text-xs text-zinc-500 mt-1">소유자: {song.ownerUsername} · {new Date(song.createdAt).toLocaleString('ko-KR')}</p>
+          {/* 곡 카드 — 신고 상세와 동일 패턴 (커버 + 제목 + 프롬프트 + 오디오 플레이어) */}
+          <div className="border border-zinc-200 rounded-xl overflow-hidden bg-zinc-50">
+            <div className="flex gap-3 p-3">
+              <div
+                className="w-20 h-20 rounded-lg shrink-0 overflow-hidden"
+                style={!song.coverImage && song.coverHue != null ? {
+                  background: `linear-gradient(135deg, hsl(${song.coverHue},65%,48%) 0%, hsl(${(song.coverHue + 55) % 360},55%,32%) 100%)`,
+                } : undefined}
+              >
+                {song.coverImage && (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={song.coverImage} alt="" className="w-full h-full object-cover" />
+                )}
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="font-semibold text-zinc-900 truncate">{song.title}</p>
+                {song.prompt && (
+                  <p className="text-xs text-zinc-600 mt-1 line-clamp-2">{song.prompt}</p>
+                )}
+                <a
+                  href={`/song/${song.id}`}
+                  target="_blank"
+                  rel="noopener"
+                  className="inline-block mt-2 text-[11px] font-semibold text-violet-700 hover:text-violet-900"
+                >
+                  곡 페이지 열기 ↗
+                </a>
+              </div>
+            </div>
+            {song.audioUrl && (
+              <div className="border-t border-zinc-200 p-3 bg-white">
+                <audio controls preload="none" src={song.audioUrl} className="w-full">
+                  브라우저가 audio를 지원하지 않아요
+                </audio>
+              </div>
+            )}
+            {!song.audioUrl && (
+              <p className="text-xs text-zinc-500 px-3 pb-3">오디오 없음 (생성 중이거나 삭제됨)</p>
+            )}
           </div>
+
+          <p className="text-xs text-zinc-500">소유자: <span className="text-zinc-900">{song.ownerUsername}</span> · {new Date(song.createdAt).toLocaleString('ko-KR')}</p>
 
           <Field label="상태" value={
             <>
@@ -264,18 +305,6 @@ function SongDetailModal({ song, onClose, onAction }: {
               <dd className="text-base font-semibold text-zinc-900 tabular-nums">{song.commentCount}</dd>
             </div>
           </dl>
-
-          {song.prompt && (
-            <Field label="프롬프트" value={
-              <p className="text-zinc-700 whitespace-pre-wrap leading-relaxed bg-zinc-50 border border-zinc-200 rounded-lg p-3">{song.prompt}</p>
-            } />
-          )}
-
-          <Field label="곡 페이지" value={
-            <a href={`/song/${song.id}`} target="_blank" rel="noopener" className="inline-block text-[11px] font-semibold text-violet-700 hover:text-violet-900">
-              새 탭에서 열기 ↗
-            </a>
-          } />
 
           <Field label="곡 ID" value={<span className="text-xs font-mono text-zinc-500 break-all">{song.id}</span>} />
 

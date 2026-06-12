@@ -5,6 +5,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { AdminPanel } from '@/components/admin/AdminPanel'
 import { AdminConfirm } from '@/components/admin/AdminConfirm'
+import { ADMIN_MODULES, MODULE_LABELS, type AdminModule } from '@/lib/admin/modules'
 
 interface UserRow {
   id: string
@@ -38,6 +39,16 @@ export default function AdminUsersPage() {
 
   // 상세 모달
   const [detailId, setDetailId] = useState<string | null>(null)
+  // 관리자 등록 모달 (최고관리자만)
+  const [grantOpen, setGrantOpen] = useState(false)
+  const [isSuperAdmin, setIsSuperAdmin] = useState(false)
+
+  // 본인 권한 조회 — 관리자 등록 버튼 노출 여부
+  useEffect(() => {
+    fetch('/api/admin/me').then((r) => r.json()).then((d) => {
+      setIsSuperAdmin(!!d.data?.isSuperAdmin)
+    }).catch(() => {})
+  }, [])
 
   // 전체 목록 (페이지네이션·정렬)
   const [page, setPage] = useState(1)
@@ -98,9 +109,19 @@ export default function AdminUsersPage() {
 
   return (
     <div className="space-y-6">
-      <header>
-        <h1 className="text-xl font-semibold text-zinc-900">사용자</h1>
-        <p className="text-sm text-zinc-500 mt-1">검색 또는 전체 목록에서 사용자 클릭 → 상세에서 정지·강제 탈퇴 가능</p>
+      <header className="flex items-start gap-4">
+        <div className="flex-1 min-w-0">
+          <h1 className="text-xl font-semibold text-zinc-900">사용자</h1>
+          <p className="text-sm text-zinc-500 mt-1">검색 또는 전체 목록에서 사용자 클릭 → 상세에서 정지·강제 탈퇴 가능</p>
+        </div>
+        {isSuperAdmin && (
+          <button
+            onClick={() => setGrantOpen(true)}
+            className="shrink-0 px-3 py-2 rounded-lg text-xs font-semibold bg-violet-600 hover:bg-violet-500 text-white transition-colors"
+          >
+            + 관리자 등록
+          </button>
+        )}
       </header>
 
       <AdminPanel title="사용자 검색" description="username 또는 email (2자 이상)">
@@ -237,8 +258,183 @@ export default function AdminUsersPage() {
           userId={detailId}
           onClose={() => setDetailId(null)}
           onChanged={() => { loadList() }}
+          isSuperAdmin={isSuperAdmin}
         />
       )}
+
+      {grantOpen && (
+        <GrantAdminModal
+          onClose={() => setGrantOpen(false)}
+          onGranted={() => { setGrantOpen(false); loadList() }}
+        />
+      )}
+    </div>
+  )
+}
+
+function GrantAdminModal({ onClose, onGranted }: { onClose: () => void; onGranted: () => void }) {
+  const [query, setQuery] = useState('')
+  const [results, setResults] = useState<UserRow[]>([])
+  const [selected, setSelected] = useState<UserRow | null>(null)
+  const [permissions, setPermissions] = useState<AdminModule[]>(['users'])
+  const [reason, setReason] = useState('')
+  const [busy, setBusy] = useState(false)
+  const [error, setError] = useState('')
+
+  // 디바운스 검색
+  useEffect(() => {
+    const q = query.trim()
+    if (q.length < 2) { setResults([]); return }
+    const t = setTimeout(async () => {
+      const res = await fetch(`/api/admin/users/search?q=${encodeURIComponent(q)}`)
+      const data = await res.json()
+      setResults(data.data ?? [])
+    }, 300)
+    return () => clearTimeout(t)
+  }, [query])
+
+  function togglePerm(p: AdminModule) {
+    setPermissions((cur) => cur.includes(p) ? cur.filter((x) => x !== p) : [...cur, p])
+  }
+
+  async function handleGrant() {
+    if (!selected || permissions.length === 0 || reason.trim().length < 5) return
+    setBusy(true); setError('')
+    try {
+      const res = await fetch(`/api/admin/users/${selected.id}/grant-admin`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ permissions, reason: reason.trim() }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.message ?? data.error ?? '처리 실패')
+      onGranted()
+    } catch (e) {
+      setError(e instanceof Error ? e.message : '처리 중 오류')
+      setBusy(false)
+    }
+  }
+
+  return (
+    <div className="fixed inset-0 z-[60] flex items-center justify-center p-6">
+      <div className="absolute inset-0 bg-black/40" onClick={busy ? undefined : onClose} />
+      <div className="relative bg-white border border-zinc-200 rounded-2xl w-full max-w-[480px] max-h-[85vh] overflow-y-auto shadow-2xl">
+        <header className="flex items-center justify-between px-6 py-4 border-b border-zinc-100 sticky top-0 bg-white rounded-t-2xl">
+          <div>
+            <h3 className="text-base font-semibold text-zinc-900">관리자 등록</h3>
+            <p className="text-xs text-zinc-500 mt-0.5">사용자 검색 → 권한 선택 → 등록</p>
+          </div>
+          <button onClick={onClose} className="w-7 h-7 rounded-full hover:bg-zinc-100 flex items-center justify-center text-zinc-500">✕</button>
+        </header>
+
+        <div className="p-6 space-y-5">
+          {/* 사용자 검색 */}
+          {!selected ? (
+            <>
+              <div>
+                <label className="text-xs text-zinc-500">대상 사용자</label>
+                <input
+                  type="text"
+                  value={query}
+                  onChange={(e) => setQuery(e.target.value)}
+                  placeholder="username 또는 email (2자 이상)"
+                  autoFocus
+                  className="mt-1 w-full bg-zinc-50 border border-zinc-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-violet-500"
+                />
+              </div>
+              <div className="space-y-2 max-h-[200px] overflow-y-auto">
+                {results.map((u) => (
+                  <button
+                    key={u.id}
+                    onClick={() => setSelected(u)}
+                    className="w-full flex items-center gap-3 bg-zinc-50 hover:bg-white hover:border-violet-300 border border-zinc-200 rounded-lg px-3 py-2 text-left transition-colors"
+                  >
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-semibold text-zinc-900 truncate">
+                        {u.username}
+                        {u.isAdmin && <Badge color="violet">이미 관리자</Badge>}
+                      </p>
+                      <p className="text-xs text-zinc-500 truncate">{u.email ?? '—'}</p>
+                    </div>
+                  </button>
+                ))}
+              </div>
+            </>
+          ) : (
+            <div className="bg-violet-50 border border-violet-200 rounded-lg px-3 py-2.5 flex items-center gap-3">
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-semibold text-violet-900">{selected.username}</p>
+                <p className="text-xs text-violet-700">{selected.email ?? '—'}</p>
+              </div>
+              <button onClick={() => setSelected(null)} className="text-xs text-violet-700 hover:text-violet-900">변경</button>
+            </div>
+          )}
+
+          {/* 권한 선택 */}
+          {selected && (
+            <>
+              <div>
+                <p className="text-xs text-zinc-500 mb-2">메뉴 권한 (최소 1개)</p>
+                <div className="grid grid-cols-2 gap-1.5">
+                  {ADMIN_MODULES.map((m) => {
+                    const checked = permissions.includes(m)
+                    return (
+                      <label
+                        key={m}
+                        className={`flex items-center gap-2 px-3 py-2 rounded-lg border cursor-pointer transition-colors ${
+                          checked ? 'bg-violet-50 border-violet-300' : 'bg-white border-zinc-200 hover:bg-zinc-50'
+                        }`}
+                      >
+                        <input
+                          type="checkbox"
+                          checked={checked}
+                          onChange={() => togglePerm(m)}
+                          className="rounded accent-violet-600"
+                        />
+                        <span className="text-sm text-zinc-900">{MODULE_LABELS[m]}</span>
+                      </label>
+                    )
+                  })}
+                </div>
+                <p className="text-[11px] text-zinc-400 mt-2">대시보드는 모든 관리자 기본 접근 가능</p>
+              </div>
+
+              <div>
+                <label className="text-xs text-zinc-500">사유 (5자 이상)</label>
+                <textarea
+                  value={reason}
+                  onChange={(e) => setReason(e.target.value)}
+                  rows={2}
+                  maxLength={200}
+                  placeholder="감사 로그에 기록됩니다"
+                  className="mt-1 w-full bg-zinc-50 border border-zinc-200 rounded-lg px-3 py-2 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-violet-500"
+                />
+              </div>
+
+              {error && (
+                <p className="text-xs text-red-700 bg-red-50 border border-red-200 rounded-lg px-3 py-2">{error}</p>
+              )}
+
+              <div className="flex justify-end gap-2">
+                <button
+                  onClick={onClose}
+                  disabled={busy}
+                  className="px-4 py-2 rounded-lg text-sm text-zinc-700 hover:bg-zinc-100 disabled:opacity-40"
+                >
+                  취소
+                </button>
+                <button
+                  onClick={handleGrant}
+                  disabled={busy || permissions.length === 0 || reason.trim().length < 5}
+                  className="px-4 py-2 rounded-lg text-sm font-semibold bg-violet-600 hover:bg-violet-500 text-white disabled:opacity-40 disabled:cursor-not-allowed"
+                >
+                  {busy ? '등록 중…' : '관리자 등록'}
+                </button>
+              </div>
+            </>
+          )}
+        </div>
+      </div>
     </div>
   )
 }
@@ -253,6 +449,7 @@ interface UserDetail {
   bonusCredits: number
   dailyCreditsUsed: number
   isAdmin: boolean
+  adminPermissions: string[] | null
   suspendedAt: string | null
   suspendedReason: string | null
   deletedAt: string | null
@@ -262,12 +459,13 @@ interface UserDetail {
   createdAt: string
 }
 
-type ActionKind = 'suspend' | 'unsuspend' | 'force-delete' | null
+type ActionKind = 'suspend' | 'unsuspend' | 'force-delete' | 'revoke-admin' | null
 
-function UserDetailModal({ userId, onClose, onChanged }: {
+function UserDetailModal({ userId, onClose, onChanged, isSuperAdmin }: {
   userId: string
   onClose: () => void
   onChanged: () => void
+  isSuperAdmin: boolean
 }) {
   const [user, setUser] = useState<UserDetail | null>(null)
   const [loading, setLoading] = useState(true)
@@ -287,9 +485,7 @@ function UserDetailModal({ userId, onClose, onChanged }: {
 
   async function handle(reason: string) {
     if (!action) return
-    const url = action === 'force-delete'
-      ? `/api/admin/users/${userId}/force-delete`
-      : `/api/admin/users/${userId}/${action}`
+    const url = `/api/admin/users/${userId}/${action}`
     const res = await fetch(url, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -305,10 +501,12 @@ function UserDetailModal({ userId, onClose, onChanged }: {
       setTimeout(onClose, 800)
       return
     }
-    setFeedback({
-      type: 'success',
-      msg: action === 'suspend' ? '정지 처리됨' : '정지 해제됨',
-    })
+    const msgMap: Record<Exclude<ActionKind, 'force-delete' | null>, string> = {
+      'suspend': '정지 처리됨',
+      'unsuspend': '정지 해제됨',
+      'revoke-admin': '관리자 권한 회수됨',
+    }
+    setFeedback({ type: 'success', msg: msgMap[action as Exclude<ActionKind, 'force-delete' | null>] })
     setAction(null)
     load()
   }
@@ -368,7 +566,7 @@ function UserDetailModal({ userId, onClose, onChanged }: {
                 ) : user.deletedAt ? (
                   <p className="text-xs text-zinc-500">이미 탈퇴 처리된 계정입니다.</p>
                 ) : (
-                  <div className="flex gap-2">
+                  <div className="flex flex-wrap gap-2">
                     {user.suspendedAt ? (
                       <button
                         onClick={() => setAction('unsuspend')}
@@ -382,6 +580,15 @@ function UserDetailModal({ userId, onClose, onChanged }: {
                         className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-amber-100 hover:bg-amber-200 text-amber-900"
                       >
                         정지
+                      </button>
+                    )}
+                    {/* 관리자 권한 회수 — 최고관리자만, 대상이 일반 관리자(NULL 아님)일 때 */}
+                    {isSuperAdmin && user.isAdmin && user.adminPermissions !== null && (
+                      <button
+                        onClick={() => setAction('revoke-admin')}
+                        className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-violet-100 hover:bg-violet-200 text-violet-700"
+                      >
+                        관리자 권한 회수
                       </button>
                     )}
                     <button
@@ -404,18 +611,22 @@ function UserDetailModal({ userId, onClose, onChanged }: {
           title={
             action === 'suspend' ? `${user.username} 정지` :
             action === 'unsuspend' ? `${user.username} 정지 해제` :
-            action === 'force-delete' ? `${user.username} 강제 탈퇴` : ''
+            action === 'force-delete' ? `${user.username} 강제 탈퇴` :
+            action === 'revoke-admin' ? `${user.username} 관리자 권한 회수` : ''
           }
           description={
             action === 'force-delete'
               ? '계정 즉시 익명화 + 로그인 차단. 되돌릴 수 없습니다.'
               : action === 'suspend'
-              ? '사용자는 정지된 상태가 됩니다 (현재는 표식만, 차단 로직은 추후 추가).'
+              ? '사용자는 정지된 상태가 됩니다 (정지 사용자는 로그인 시 자동 로그아웃).'
+              : action === 'revoke-admin'
+              ? '관리자 권한과 모든 메뉴 권한이 회수됩니다. 일반 사용자로 돌아갑니다.'
               : '정지를 해제하고 정상 상태로 복구합니다.'
           }
           confirmLabel={
             action === 'force-delete' ? '강제 탈퇴' :
-            action === 'suspend' ? '정지' : '정지 해제'
+            action === 'suspend' ? '정지' :
+            action === 'revoke-admin' ? '권한 회수' : '정지 해제'
           }
           variant={action === 'force-delete' ? 'danger' : 'default'}
           onClose={() => setAction(null)}

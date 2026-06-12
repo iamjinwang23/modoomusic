@@ -27,6 +27,8 @@ const ACTION_KO: Record<string, string> = {
   delete_song:       '곡 삭제',
   send_announcement: '공지 송출',
   update_model:      '모델 변경',
+  grant_admin:       '관리자 등록',
+  revoke_admin:      '관리자 권한 회수',
 }
 
 /**
@@ -72,6 +74,16 @@ function summarizePayload(action: string, payload: Record<string, unknown>): str
       case 'update_model': {
         const id = payload.modelId as string ?? ''
         return id ? `${id} 변경` : '변경'
+      }
+      case 'grant_admin': {
+        const u = payload.username as string ?? ''
+        const after = payload.after as { permissions?: string[] } | undefined
+        const perms = after?.permissions ?? []
+        return u ? `${u} 등록 (${perms.length}개 권한)` : '관리자 등록'
+      }
+      case 'revoke_admin': {
+        const u = payload.username as string ?? ''
+        return u ? `${u} 권한 회수` : '권한 회수'
       }
       default:
         return ''

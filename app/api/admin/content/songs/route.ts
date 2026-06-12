@@ -23,7 +23,7 @@ export async function GET(req: NextRequest) {
 
   let query = supabase
     .from('songs')
-    .select('id, title, prompt, user_id, is_public, like_count, play_count, comment_count, created_at, model, status', { count: 'exact' })
+    .select('id, title, prompt, user_id, is_public, like_count, play_count, comment_count, created_at, model, status, audio_url, cover_image, cover_hue', { count: 'exact' })
     .order('created_at', { ascending: false })
     .range(from, to)
 
@@ -59,6 +59,9 @@ export async function GET(req: NextRequest) {
     commentCount: s.comment_count ?? 0,
     model: s.model,
     status: s.status,
+    audioUrl: s.audio_url ?? null,
+    coverImage: s.cover_image ?? null,
+    coverHue: s.cover_hue ?? null,
     createdAt: s.created_at,
   }))
 

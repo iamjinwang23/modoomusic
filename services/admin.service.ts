@@ -37,6 +37,8 @@ export type AdminAction =
   | 'delete_comment'
   | 'send_announcement'
   | 'update_model'
+  | 'grant_admin'
+  | 'revoke_admin'
 
 export type AdminTargetType = 'user' | 'song' | 'comment' | 'report' | 'system'
 

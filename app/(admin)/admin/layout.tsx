@@ -14,13 +14,13 @@ export const metadata = {
 
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {
   // Design Ref: §7 — server-side is_admin 가드. 통과 못하면 redirect('/')
-  await requireAdminOrRedirect()
+  const ctx = await requireAdminOrRedirect()
 
   return (
-    // 본체(다크) 글로벌 스타일을 명시 클래스로 덮어씀.
+    // viewport 높이 고정 + flex column → 사이드바·헤더 고정, 본문만 스크롤.
     // Design Ref: §10.4 라이트 모드 토큰 — 페이지 단위 명시
-    <div className="min-h-screen bg-zinc-50 text-zinc-900" data-theme="admin">
-      <header className="h-12 bg-white border-b border-zinc-200 flex items-center px-5 sticky top-0 z-30">
+    <div className="h-screen flex flex-col bg-zinc-50 text-zinc-900 overflow-hidden" data-theme="admin">
+      <header className="h-12 shrink-0 bg-white border-b border-zinc-200 flex items-center px-5">
         <Link href="/admin" className="flex items-center gap-2">
           {/* 라이트 모드라 원본 검정 로고 그대로 사용 (invert 미적용) */}
           <Image src="/logo.svg" alt="모두의 노래" width={72} height={16} priority />
@@ -31,9 +31,9 @@ export default async function AdminLayout({ children }: { children: React.ReactN
         </div>
       </header>
 
-      <div className="flex">
-        <AdminSidebar />
-        <main className="flex-1 min-w-0 p-6">
+      <div className="flex flex-1 min-h-0">
+        <AdminSidebar permissions={ctx.permissions} />
+        <main className="flex-1 min-w-0 overflow-y-auto p-6">
           {children}
         </main>
       </div>

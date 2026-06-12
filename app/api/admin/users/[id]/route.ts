@@ -16,7 +16,7 @@ export async function GET(_req: NextRequest, { params }: RouteParams) {
   const [profileRes, userRes, songsCountRes] = await Promise.all([
     supabase
       .from('profiles')
-      .select('id, username, display_name, bio, avatar_url, bonus_credits, daily_credits_used, is_admin, suspended_at, suspended_reason, suspended_by, deleted_at, created_at, song_count, follower_count, following_count')
+      .select('id, username, display_name, bio, avatar_url, bonus_credits, daily_credits_used, is_admin, admin_permissions, suspended_at, suspended_reason, suspended_by, deleted_at, created_at, song_count, follower_count, following_count')
       .eq('id', id)
       .maybeSingle(),
     supabase.auth.admin.getUserById(id),
@@ -43,6 +43,7 @@ export async function GET(_req: NextRequest, { params }: RouteParams) {
       bonusCredits: p.bonus_credits ?? 0,
       dailyCreditsUsed: p.daily_credits_used ?? 0,
       isAdmin: p.is_admin ?? false,
+      adminPermissions: (p.admin_permissions as string[] | null) ?? null,
       suspendedAt: p.suspended_at,
       suspendedReason: p.suspended_reason,
       suspendedBy: p.suspended_by,
