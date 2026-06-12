@@ -1,7 +1,7 @@
 'use client'
 
 // Design Ref: §5.2, §4.2 — 신고 큐 + 처리 (upheld/dismissed)
-// Plan SC: (1) SQL 없이 신고 처리 (2) admin_actions 기록 (3) 사유 필수
+// 테이블 + 상세 모달 패턴 (사용자·감사 로그와 동일 톤)
 
 import { useState, useEffect, useCallback } from 'react'
 import { AdminPanel } from '@/components/admin/AdminPanel'
@@ -14,11 +14,18 @@ interface Report {
   targetTitle: string
   targetPreview: string
   targetOwnerId: string | null
+  // song 전용
+  targetAudioUrl?: string | null
+  targetCoverImage?: string | null
+  targetCoverHue?: number | null
+  // comment 전용
+  targetSongId?: string | null
   reporterUsername: string
   reason: string
   createdAt: string
   resolvedAt: string | null
   resolution: string | null
+  resolutionMemo: string | null
 }
 
 type ResolveAction = { report: Report; resolution: 'upheld' | 'dismissed' }
@@ -27,6 +34,7 @@ export default function AdminReportsPage() {
   const [tab, setTab] = useState<'pending' | 'resolved'>('pending')
   const [reports, setReports] = useState<Report[]>([])
   const [loading, setLoading] = useState(false)
+  const [detail, setDetail] = useState<Report | null>(null)
   const [action, setAction] = useState<ResolveAction | null>(null)
   const [feedback, setFeedback] = useState<{ type: 'success' | 'error'; msg: string } | null>(null)
 
@@ -53,9 +61,8 @@ export default function AdminReportsPage() {
       body: JSON.stringify({ resolution: action.resolution, memo }),
     })
     const data = await res.json()
-    if (!res.ok) {
-      throw new Error(data.message ?? data.error ?? '처리 실패')
-    }
+    if (!res.ok) throw new Error(data.message ?? data.error ?? '처리 실패')
+
     setFeedback({
       type: 'success',
       msg: action.resolution === 'upheld'
@@ -63,14 +70,15 @@ export default function AdminReportsPage() {
         : '신고 기각 처리됨',
     })
     setAction(null)
+    setDetail(null)
     load()
   }
 
   return (
     <div className="space-y-6">
       <header>
-        <h1 className="text-xl font-semibold text-zinc-900">신고 처리</h1>
-        <p className="text-sm text-zinc-500 mt-1">곡·댓글 신고 큐. 인정 시 콘텐츠 자동 조치(곡: 비공개 / 댓글: 삭제)</p>
+        <h1 className="text-xl font-semibold text-zinc-900">신고</h1>
+        <p className="text-sm text-zinc-500 mt-1">곡·댓글 신고 큐. 인정 시 자동 조치(곡: 비공개 / 댓글: 삭제)</p>
       </header>
 
       {feedback && (
@@ -96,60 +104,81 @@ export default function AdminReportsPage() {
         ))}
       </div>
 
-      <AdminPanel title={tab === 'pending' ? '미처리 신고' : '처리된 신고'} description={loading ? '불러오는 중…' : `${reports.length}건`}>
-        {!loading && reports.length === 0 && (
-          <p className="text-sm text-zinc-500">신고가 없어요</p>
-        )}
-
-        <div className="space-y-3">
-          {reports.map((r) => (
-            <div key={`${r.type}-${r.id}`} className="border border-zinc-200 rounded-xl p-4 bg-zinc-50">
-              <div className="flex items-start gap-3">
-                <span className={`text-[10px] font-semibold px-2 py-0.5 rounded ${r.type === 'song' ? 'bg-violet-100 text-violet-700' : 'bg-blue-100 text-blue-700'}`}>
-                  {r.type === 'song' ? '곡' : '댓글'}
-                </span>
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-semibold text-zinc-900 truncate">{r.targetTitle}</p>
-                  {r.targetPreview && (
-                    <p className="text-xs text-zinc-600 mt-1 line-clamp-2 whitespace-pre-wrap">{r.targetPreview}</p>
-                  )}
-                  <div className="flex items-center gap-3 mt-2 text-xs text-zinc-500">
-                    <span>신고자: <span className="text-zinc-700">{r.reporterUsername}</span></span>
-                    <span>사유: <span className="text-zinc-700">{r.reason}</span></span>
-                    <span>{new Date(r.createdAt).toLocaleString('ko-KR')}</span>
-                  </div>
-                  {r.resolution && (
-                    <p className="text-xs mt-2">
-                      <span className={`font-semibold ${r.resolution === 'upheld' ? 'text-red-700' : 'text-zinc-600'}`}>
-                        {r.resolution === 'upheld' ? '인정됨' : '기각됨'}
-                      </span>
-                      {r.resolvedAt && <span className="text-zinc-400 ml-2">{new Date(r.resolvedAt).toLocaleString('ko-KR')}</span>}
-                    </p>
-                  )}
-                </div>
-                {tab === 'pending' && (
-                  <div className="flex flex-col gap-1.5 shrink-0">
+      <AdminPanel
+        title={tab === 'pending' ? '미처리 신고' : '처리된 신고'}
+        description={loading ? '불러오는 중…' : `${reports.length}건`}
+      >
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="text-xs text-zinc-500 border-b border-zinc-200">
+                <th className="text-left py-2 pr-3 font-medium">시각</th>
+                <th className="text-left py-2 pr-3 font-medium">유형</th>
+                <th className="text-left py-2 pr-3 font-medium">신고자</th>
+                <th className="text-left py-2 pr-3 font-medium">대상</th>
+                <th className="text-left py-2 pr-3 font-medium">사유</th>
+                <th className="text-left py-2 pr-3 font-medium">상태</th>
+                <th className="text-right py-2 pr-3 font-medium"></th>
+              </tr>
+            </thead>
+            <tbody>
+              {reports.map((r) => (
+                <tr key={`${r.type}-${r.id}`} className="border-b border-zinc-100 hover:bg-zinc-50">
+                  <td className="py-2.5 pr-3 text-xs text-zinc-700 tabular-nums whitespace-nowrap">
+                    {new Date(r.createdAt).toLocaleString('ko-KR')}
+                  </td>
+                  <td className="py-2.5 pr-3">
+                    <span className={`text-[10px] font-semibold px-2 py-0.5 rounded ${
+                      r.type === 'song' ? 'bg-violet-100 text-violet-700' : 'bg-blue-100 text-blue-700'
+                    }`}>
+                      {r.type === 'song' ? '곡' : '댓글'}
+                    </span>
+                  </td>
+                  <td className="py-2.5 pr-3 text-zinc-900 truncate max-w-[120px]" title={r.reporterUsername}>
+                    {r.reporterUsername}
+                  </td>
+                  <td className="py-2.5 pr-3 text-zinc-900 truncate max-w-[260px]" title={r.targetTitle}>
+                    {r.targetTitle}
+                  </td>
+                  <td className="py-2.5 pr-3 text-xs text-zinc-700 truncate max-w-[120px]" title={r.reason}>
+                    {r.reason}
+                  </td>
+                  <td className="py-2.5 pr-3">
+                    {r.resolution === 'upheld' && (
+                      <span className="text-[10px] font-medium bg-red-100 text-red-700 px-1.5 py-0.5 rounded">인정됨</span>
+                    )}
+                    {r.resolution === 'dismissed' && (
+                      <span className="text-[10px] font-medium bg-zinc-200 text-zinc-700 px-1.5 py-0.5 rounded">기각됨</span>
+                    )}
+                    {!r.resolution && (
+                      <span className="text-[10px] font-medium bg-amber-100 text-amber-800 px-1.5 py-0.5 rounded">미처리</span>
+                    )}
+                  </td>
+                  <td className="py-2.5 pr-3 text-right">
                     <button
-                      type="button"
-                      onClick={() => setAction({ report: r, resolution: 'upheld' })}
-                      className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-red-600 hover:bg-red-500 text-white transition-colors"
+                      onClick={() => setDetail(r)}
+                      className="inline-block px-2.5 py-1 rounded-md text-[11px] font-semibold bg-violet-100 hover:bg-violet-200 text-violet-700 transition-colors"
                     >
-                      인정
+                      보기
                     </button>
-                    <button
-                      type="button"
-                      onClick={() => setAction({ report: r, resolution: 'dismissed' })}
-                      className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-zinc-200 hover:bg-zinc-300 text-zinc-700 transition-colors"
-                    >
-                      기각
-                    </button>
-                  </div>
-                )}
-              </div>
-            </div>
-          ))}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+          {!loading && reports.length === 0 && (
+            <p className="text-sm text-zinc-500 py-6 text-center">신고가 없어요</p>
+          )}
         </div>
       </AdminPanel>
+
+      {detail && (
+        <ReportDetailModal
+          report={detail}
+          onClose={() => setDetail(null)}
+          onAction={(resolution) => setAction({ report: detail, resolution })}
+        />
+      )}
 
       <AdminConfirm
         open={!!action}
@@ -170,6 +199,150 @@ export default function AdminReportsPage() {
         onClose={() => setAction(null)}
         onConfirm={handleResolve}
       />
+    </div>
+  )
+}
+
+function ReportDetailModal({ report, onClose, onAction }: {
+  report: Report
+  onClose: () => void
+  onAction: (resolution: 'upheld' | 'dismissed') => void
+}) {
+  const isPending = !report.resolvedAt
+
+  return (
+    <div className="fixed inset-0 z-[60] flex items-center justify-center p-6">
+      <div className="absolute inset-0 bg-black/40" onClick={onClose} />
+      <div className="relative bg-white border border-zinc-200 rounded-2xl w-full max-w-[560px] max-h-[85vh] overflow-y-auto shadow-2xl">
+        <header className="flex items-center justify-between px-6 py-4 border-b border-zinc-100 sticky top-0 bg-white rounded-t-2xl">
+          <h3 className="text-base font-semibold text-zinc-900">신고 상세</h3>
+          <button onClick={onClose} className="w-7 h-7 rounded-full hover:bg-zinc-100 flex items-center justify-center text-zinc-500">✕</button>
+        </header>
+
+        <div className="p-6 space-y-4 text-sm">
+          <Field label="신고 시각" value={new Date(report.createdAt).toLocaleString('ko-KR')} />
+          <Field label="유형" value={
+            <span className={`inline-block text-[10px] font-semibold px-2 py-0.5 rounded ${
+              report.type === 'song' ? 'bg-violet-100 text-violet-700' : 'bg-blue-100 text-blue-700'
+            }`}>
+              {report.type === 'song' ? '곡' : '댓글'}
+            </span>
+          } />
+          <Field label="신고자" value={report.reporterUsername} />
+          <Field label="사유" value={<span className="font-medium">{report.reason}</span>} />
+          {report.type === 'song' ? (
+            <Field label="신고된 곡" value={
+              <div className="border border-zinc-200 rounded-xl overflow-hidden bg-zinc-50">
+                <div className="flex gap-3 p-3">
+                  {/* 커버 */}
+                  <div
+                    className="w-20 h-20 rounded-lg shrink-0 overflow-hidden"
+                    style={!report.targetCoverImage && report.targetCoverHue != null ? {
+                      background: `linear-gradient(135deg, hsl(${report.targetCoverHue},65%,48%) 0%, hsl(${(report.targetCoverHue + 55) % 360},55%,32%) 100%)`,
+                    } : undefined}
+                  >
+                    {report.targetCoverImage && (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img src={report.targetCoverImage} alt="" className="w-full h-full object-cover" />
+                    )}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="font-semibold text-zinc-900 truncate">{report.targetTitle}</p>
+                    {report.targetPreview && (
+                      <p className="text-xs text-zinc-600 mt-1 line-clamp-2">{report.targetPreview}</p>
+                    )}
+                    <a
+                      href={`/song/${report.targetId}`}
+                      target="_blank"
+                      rel="noopener"
+                      className="inline-block mt-2 text-[11px] font-semibold text-violet-700 hover:text-violet-900"
+                    >
+                      곡 페이지 열기 ↗
+                    </a>
+                  </div>
+                </div>
+                {/* 오디오 플레이어 */}
+                {report.targetAudioUrl && (
+                  <div className="border-t border-zinc-200 p-3 bg-white">
+                    <audio
+                      controls
+                      preload="none"
+                      src={report.targetAudioUrl}
+                      className="w-full"
+                    >
+                      브라우저가 audio를 지원하지 않아요
+                    </audio>
+                  </div>
+                )}
+                {!report.targetAudioUrl && (
+                  <p className="text-xs text-zinc-500 px-3 pb-3">오디오 없음 (생성 중이거나 삭제됨)</p>
+                )}
+              </div>
+            } />
+          ) : (
+            <Field label="신고된 댓글" value={
+              <div className="border border-zinc-200 rounded-xl overflow-hidden bg-zinc-50 p-3">
+                <p className="text-sm text-zinc-900 whitespace-pre-wrap break-all leading-relaxed">{report.targetPreview || '(삭제됨)'}</p>
+                {report.targetSongId && (
+                  <a
+                    href={`/song/${report.targetSongId}`}
+                    target="_blank"
+                    rel="noopener"
+                    className="inline-block mt-2 text-[11px] font-semibold text-violet-700 hover:text-violet-900"
+                  >
+                    댓글이 달린 곡 페이지 ↗
+                  </a>
+                )}
+              </div>
+            } />
+          )}
+          <Field label="대상 ID" value={<span className="text-xs font-mono text-zinc-500 break-all">{report.targetId}</span>} />
+
+          {report.resolvedAt && (
+            <div className="border-t border-zinc-100 pt-4 space-y-3">
+              <Field label="처리 결과" value={
+                <span className={`text-xs font-semibold ${report.resolution === 'upheld' ? 'text-red-700' : 'text-zinc-700'}`}>
+                  {report.resolution === 'upheld' ? '인정됨 (대상 조치 완료)' : '기각됨'}
+                </span>
+              } />
+              <Field label="처리 시각" value={new Date(report.resolvedAt).toLocaleString('ko-KR')} />
+              {report.resolutionMemo && (
+                <Field label="처리 메모" value={<p className="whitespace-pre-wrap">{report.resolutionMemo}</p>} />
+              )}
+            </div>
+          )}
+
+          {isPending && (
+            <div className="border-t border-zinc-100 pt-4">
+              <p className="text-xs text-zinc-500 mb-2">처리 결정</p>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => onAction('upheld')}
+                  className="px-4 py-2 rounded-lg text-sm font-semibold bg-red-600 hover:bg-red-500 text-white"
+                >
+                  인정 + 조치
+                </button>
+                <button
+                  onClick={() => onAction('dismissed')}
+                  className="px-4 py-2 rounded-lg text-sm font-semibold bg-zinc-200 hover:bg-zinc-300 text-zinc-700"
+                >
+                  기각
+                </button>
+              </div>
+              <p className="text-[11px] text-zinc-500 mt-2">인정 시 곡은 비공개, 댓글은 삭제됩니다.</p>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function Field({ label, value }: { label: string; value: React.ReactNode }) {
+  return (
+    <div className="space-y-1">
+      <dt className="text-xs text-zinc-500">{label}</dt>
+      <dd className="text-sm text-zinc-900">{value}</dd>
     </div>
   )
 }

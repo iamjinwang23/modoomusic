@@ -99,7 +99,7 @@ export default function AdminUsersPage() {
   return (
     <div className="space-y-6">
       <header>
-        <h1 className="text-xl font-semibold text-zinc-900">사용자 관리</h1>
+        <h1 className="text-xl font-semibold text-zinc-900">사용자</h1>
         <p className="text-sm text-zinc-500 mt-1">검색 또는 전체 목록에서 사용자 클릭 → 상세에서 정지·강제 탈퇴 가능</p>
       </header>
 

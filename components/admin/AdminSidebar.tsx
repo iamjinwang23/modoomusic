@@ -9,9 +9,9 @@ interface NavItem { href: string; label: string; exact?: boolean }
 
 const ITEMS: NavItem[] = [
   { href: '/admin',                label: '대시보드',   exact: true },
-  { href: '/admin/credits',        label: '크레딧 지급' },
-  { href: '/admin/reports',        label: '신고 처리' },
-  { href: '/admin/users',          label: '사용자 관리' },
+  { href: '/admin/credits',        label: '크레딧' },
+  { href: '/admin/reports',        label: '신고' },
+  { href: '/admin/users',          label: '사용자' },
   { href: '/admin/content',        label: '콘텐츠' },
   { href: '/admin/announcements',  label: '공지' },
   { href: '/admin/models',         label: '모델' },

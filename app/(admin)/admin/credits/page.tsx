@@ -69,7 +69,7 @@ export default function AdminCreditsPage() {
   return (
     <div className="space-y-6">
       <header>
-        <h1 className="text-xl font-semibold text-zinc-900">크레딧 지급</h1>
+        <h1 className="text-xl font-semibold text-zinc-900">크레딧</h1>
         <p className="text-sm text-zinc-500 mt-1">사용자 검색 후 보너스 크레딧 지급 또는 차감 (모든 동작은 감사 로그에 기록됩니다)</p>
       </header>
 

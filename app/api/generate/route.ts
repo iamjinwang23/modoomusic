@@ -2,6 +2,7 @@ import { NextRequest, NextResponse, after } from 'next/server'
 import { generateSong, generateCoverImage, MOCK_MODE, MODELS, creditsForModel, type MusicModelId } from '@/services/minimax.service'
 import { uploadFromUrl } from '@/services/storage.service'
 import { createUserClient } from '@/lib/supabase/server'
+import { requireActiveUser } from '@/lib/auth/active-user'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { tryConsumeCredits, refundCredits } from '@/services/credit.service'
 import { generateLyrics } from '@/services/lyrics.service'
@@ -40,7 +41,21 @@ export async function POST(req: NextRequest) {
     )
   }
 
-  // ── 1) 인증
+  // ── 1) 인증 + 정지·탈퇴 차단
+  // Design Ref: admin Module 4 — 정지 사용자가 곡 생성 못 하도록 서버 가드.
+  const activeAuth = await requireActiveUser()
+  if (!activeAuth.ok) {
+    if (activeAuth.error === 'account_suspended') {
+      return NextResponse.json(
+        { error: '계정이 정지되어 곡을 만들 수 없어요', code: 'ACCOUNT_SUSPENDED', reason: activeAuth.reason },
+        { status: 403 },
+      )
+    }
+    if (activeAuth.error === 'account_deleted') {
+      return NextResponse.json({ error: '탈퇴 처리된 계정이에요', code: 'ACCOUNT_DELETED' }, { status: 410 })
+    }
+    return NextResponse.json({ error: '로그인이 필요해요' }, { status: 401 })
+  }
   const userClient = await createUserClient()
   const { data: { user } } = await userClient.auth.getUser()
   if (!user) {

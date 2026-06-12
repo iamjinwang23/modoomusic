@@ -80,12 +80,23 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         const isNewUser = createdAt > 0 && Date.now() - createdAt < 60_000
 
         // Design Ref: account-deletion §5.5 — grace period 내 재로그인 시 자동 복원
+        // Design Ref: admin §FR-06 — 정지 사용자는 즉시 signOut + 사유 안내
         ;(async () => {
           const { data: prof } = await supabase
             .from('profiles')
-            .select('deleted_at')
+            .select('deleted_at, suspended_at, suspended_reason')
             .eq('id', u.id)
             .maybeSingle()
+
+          // 1) 정지 우선 처리 — 강제 로그아웃 + 사유 토스트
+          if (prof?.suspended_at) {
+            await supabase.auth.signOut()
+            const reason = prof.suspended_reason ? ` 사유: ${prof.suspended_reason}` : ''
+            toast.error('계정이 정지되었어요', { description: `관리자에 의해 정지된 계정입니다.${reason}` })
+            return
+          }
+
+          // 2) 탈퇴 처리 (기존 로직)
           if (!prof?.deleted_at) return
           const elapsed = Date.now() - new Date(prof.deleted_at).getTime()
           const GRACE_MS = 7 * 24 * 60 * 60 * 1000

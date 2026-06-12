@@ -1,5 +1,5 @@
 // Design Ref: §4.2 — POST /api/admin/reports/[type]/[id]/resolve { resolution, memo }
-// upheld: songs.published=false 또는 comment DELETE / dismissed: 상태만 기록
+// upheld: songs.is_public=false 또는 comment DELETE / dismissed: 상태만 기록
 
 import { NextRequest, NextResponse } from 'next/server'
 import { requireAdminApi } from '@/lib/admin/guard'
@@ -77,7 +77,7 @@ export async function POST(req: NextRequest, { params }: RouteParams) {
           if (type === 'song') {
             const { error } = await supabase
               .from('songs')
-              .update({ published: false })
+              .update({ is_public: false })
               .eq('id', targetId)
             if (error) throw new Error(`song unpublish: ${error.message}`)
           } else {

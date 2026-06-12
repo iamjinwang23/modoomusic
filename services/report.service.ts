@@ -28,20 +28,25 @@ export async function reportSong(songId: string, reason: ReportReason): Promise<
   }
 }
 
-// 새로고침 후 list 필터링용 — 본인이 신고한 곡 ID set
+// 새로고침 후 list 필터링용 — 본인이 신고한 곡 ID set.
+// 어드민 '기각(dismissed)' 신고는 제외 — 어드민이 문제 없다고 판단했으므로 사용자에게 다시 보여줌.
 export async function getMyReportedSongIds(): Promise<Set<string>> {
   const supabase = createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return new Set()
   const { data, error } = await supabase
     .from('song_reports')
-    .select('song_id')
+    .select('song_id, resolved_at, resolution')
     .eq('reporter_id', user.id)
   if (error) {
     console.error('[reportService.getMyReportedSongIds]', error.message)
     return new Set()
   }
-  return new Set((data ?? []).map((r) => r.song_id as string))
+  return new Set(
+    (data ?? [])
+      .filter((r) => !r.resolved_at || r.resolution !== 'dismissed')
+      .map((r) => r.song_id as string),
+  )
 }
 
 // 댓글도 동일 패턴 — CommentsPanel에서 호출
@@ -51,11 +56,15 @@ export async function getMyReportedCommentIds(): Promise<Set<string>> {
   if (!user) return new Set()
   const { data, error } = await supabase
     .from('comment_reports')
-    .select('comment_id')
+    .select('comment_id, resolved_at, resolution')
     .eq('reporter_id', user.id)
   if (error) {
     console.error('[reportService.getMyReportedCommentIds]', error.message)
     return new Set()
   }
-  return new Set((data ?? []).map((r) => r.comment_id as string))
+  return new Set(
+    (data ?? [])
+      .filter((r) => !r.resolved_at || r.resolution !== 'dismissed')
+      .map((r) => r.comment_id as string),
+  )
 }

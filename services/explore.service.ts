@@ -125,6 +125,8 @@ async function fillIsLiked(
 
 // 신고 후 새로고침 시 신고자 본인 list에서 곡 자동 숨김.
 // song_reports 테이블에 SELECT(own) RLS 있어 reporter_id = me인 row만 반환됨.
+// 어드민이 '기각(dismissed)'한 신고는 더이상 숨기지 않음 — 어드민 판단을 반영.
+// pending(resolved_at IS NULL) 또는 upheld만 숨김 (upheld는 곡 자체가 is_public=false라 어차피 안 보이지만 방어선).
 async function filterMyReported(
   supabase: ReturnType<typeof createClient>,
   songs: PublicSong[],
@@ -135,10 +137,14 @@ async function filterMyReported(
   const songIds = songs.map((s) => s.id)
   const { data: myReports } = await supabase
     .from('song_reports')
-    .select('song_id')
+    .select('song_id, resolved_at, resolution')
     .eq('reporter_id', user.id)
     .in('song_id', songIds)
-  const reportedSet = new Set((myReports ?? []).map((r) => r.song_id as string))
+  const reportedSet = new Set(
+    (myReports ?? [])
+      .filter((r) => !r.resolved_at || r.resolution !== 'dismissed')
+      .map((r) => r.song_id as string),
+  )
   return songs.filter((s) => !reportedSet.has(s.id))
 }
 
