@@ -26,18 +26,8 @@ export function NotificationPanel({ mode, onClose }: Props) {
 
   useEffect(() => { load() }, [load])
 
-  // 패널/페이지 열림 = "확인했다"로 간주 → 자동으로 모두 읽음 처리해 배지 즉시 클리어.
-  // items 로컬 state는 readAt=null을 유지하므로 보라색 하이라이트는 화면에서 그대로 보임.
-  // 다음 방문 시엔 정상 읽음 상태로 표시됨.
-  useEffect(() => {
-    if (!user) return
-    let cancelled = false
-    notificationService.markAllAsRead().then(() => {
-      if (cancelled) return
-      window.dispatchEvent(new Event('notifications-changed'))
-    })
-    return () => { cancelled = true }
-  }, [user])
+  // 자동 일괄 읽음 처리는 제거 — 사용자 의도와 안 맞음.
+  // 개별 알림을 누르면 그 알림만 읽음 처리(handleClick). 일괄 처리는 헤더의 "모두 읽음" 버튼으로.
 
   // overlay: ESC로 닫기 + notifications-changed로 재로드
   useEffect(() => {
