@@ -76,13 +76,13 @@ export const metadata: Metadata = {
     },
   },
   icons: {
+    // app/favicon.ico는 Next.js가 자동 처리 (16x16+32x32 멀티 ICO).
+    // 추가 사이즈만 명시.
     icon: [
-      { url: '/favicon.ico', sizes: 'any' },
       { url: '/favicon-16x16.png', sizes: '16x16', type: 'image/png' },
       { url: '/logo-512.png', sizes: '512x512', type: 'image/png' },
     ],
     apple: '/logo-512.png',
-    shortcut: '/favicon.ico',
   },
   verification: {
     ...(process.env.GOOGLE_SITE_VERIFICATION ? { google: process.env.GOOGLE_SITE_VERIFICATION } : {}),
