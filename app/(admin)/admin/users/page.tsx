@@ -150,7 +150,7 @@ export default function AdminUsersPage() {
                     {u.isAdmin && <Badge color="violet">admin</Badge>}
                     {u.suspendedAt && <Badge color="red">정지</Badge>}
                   </p>
-                  <p className="text-xs text-zinc-500 truncate">{u.email ?? u.displayName ?? '—'}</p>
+                  <p className="text-xs text-zinc-500 truncate">{u.displayName ?? '—'}</p>
                 </div>
                 <div className="text-xs text-zinc-400 shrink-0">
                   {new Date(u.createdAt).toLocaleDateString('ko-KR')}
@@ -354,7 +354,7 @@ function GrantAdminModal({ onClose, onGranted }: { onClose: () => void; onGrante
                         {u.username}
                         {u.isAdmin && <Badge color="violet">이미 관리자</Badge>}
                       </p>
-                      <p className="text-xs text-zinc-500 truncate">{u.email ?? '—'}</p>
+                      <p className="text-xs text-zinc-500 truncate">{u.displayName ?? '—'}</p>
                     </div>
                   </button>
                 ))}
@@ -364,7 +364,7 @@ function GrantAdminModal({ onClose, onGranted }: { onClose: () => void; onGrante
             <div className="bg-violet-50 border border-violet-200 rounded-lg px-3 py-2.5 flex items-center gap-3">
               <div className="flex-1 min-w-0">
                 <p className="text-sm font-semibold text-violet-900">{selected.username}</p>
-                <p className="text-xs text-violet-700">{selected.email ?? '—'}</p>
+                <p className="text-xs text-violet-700">{selected.displayName ?? '—'}</p>
               </div>
               <button onClick={() => setSelected(null)} className="text-xs text-violet-700 hover:text-violet-900">변경</button>
             </div>
