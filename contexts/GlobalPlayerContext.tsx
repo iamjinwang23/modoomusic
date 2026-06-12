@@ -1,6 +1,6 @@
 'use client'
 
-import { createContext, useContext, useReducer, useRef, useEffect, useCallback } from 'react'
+import { createContext, useContext, useReducer, useRef, useState, useEffect, useCallback } from 'react'
 import { songService } from '@/services/song.service'
 import { track, EVENTS } from '@/utils/analytics'
 import type { Song } from '@/types/domain'
@@ -61,12 +61,15 @@ interface PlayerCtx {
   prev: () => void
   seekTo: (t: number) => void
   patchSong: (patch: Partial<Song>) => void
+  repeatOne: boolean              // 1곡 반복 재생 (HTMLAudioElement loop)
+  toggleRepeatOne: () => void
 }
 
 const Ctx = createContext<PlayerCtx | null>(null)
 
 export function GlobalPlayerProvider({ children }: { children: React.ReactNode }) {
   const [state, dispatch] = useReducer(reducer, INIT)
+  const [repeatOne, setRepeatOne] = useState(false)
   const audioRef = useRef<HTMLAudioElement | null>(null)
   const stateRef = useRef(state)
   stateRef.current = state
@@ -226,6 +229,7 @@ export function GlobalPlayerProvider({ children }: { children: React.ReactNode }
   const prev = useCallback(() => dispatch({ type: 'PREV' }), [])
   const seekTo = useCallback((t: number) => { if (audioRef.current) audioRef.current.currentTime = t }, [])
   const patchSong = useCallback((patch: Partial<Song>) => dispatch({ type: 'PATCH', patch }), [])
+  const toggleRepeatOne = useCallback(() => setRepeatOne((v) => !v), [])
 
   return (
     <Ctx.Provider value={{
@@ -233,10 +237,12 @@ export function GlobalPlayerProvider({ children }: { children: React.ReactNode }
       hasPrev: state.idx > 0, hasNext: state.idx < state.feed.length - 1,
       isPlaying: state.isPlaying, currentTime: state.currentTime, duration: state.duration,
       togglePlay, next, prev, seekTo, patchSong,
+      repeatOne, toggleRepeatOne,
     }}>
       {children}
       <audio
         ref={audioRef}
+        loop={repeatOne}
         onPlay={() => {
           dispatch({ type: 'PLAYING', v: true })
           // 인라인 카드들에게 정지 신호

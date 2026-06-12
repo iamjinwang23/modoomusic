@@ -30,7 +30,7 @@ function coverGradient(song: Song) {
 }
 
 export function GlobalMiniBar() {
-  const { song, feed, idx, isOwner, ownerName, ownerUserId, ownerAvatarUrl, ownerAvatarHue, hasPrev, hasNext, isPlaying, currentTime, duration, togglePlay, next, prev, seekTo, patchSong } = useGlobalPlayer()
+  const { song, feed, idx, isOwner, ownerName, ownerUserId, ownerAvatarUrl, ownerAvatarHue, hasPrev, hasNext, isPlaying, currentTime, duration, togglePlay, next, prev, seekTo, patchSong, repeatOne, toggleRepeatOne } = useGlobalPlayer()
   const { user } = useAuth()
   const trackRef = useRef<HTMLDivElement>(null)
   const likeInflight = useRef(false)
@@ -184,9 +184,16 @@ export function GlobalMiniBar() {
           {/* Center: playback controls — truly centered */}
           <div className="flex items-center gap-5">
             <button
-              onClick={prev}
-              disabled={!hasPrev}
-              className={`transition-opacity ${hasPrev ? 'hover:opacity-70' : 'opacity-30 cursor-default'}`}
+              onClick={() => {
+                // 음악 플레이어 표준 UX (iOS/Spotify): 재생 3초 넘었으면 현재 곡 처음으로,
+                // 3초 이내면 이전 곡으로. 첫 곡이라 이전이 없으면 그냥 처음으로 (idempotent).
+                if (currentTime > 3 || !hasPrev) {
+                  seekTo(0)
+                } else {
+                  prev()
+                }
+              }}
+              className="transition-opacity hover:opacity-70"
             >
               <Image src="/Skip-Previous.svg" alt="이전" width={22} height={22} style={{ filter: 'invert(1)' }} />
             </button>
@@ -208,6 +215,21 @@ export function GlobalMiniBar() {
               className={`transition-opacity ${hasNext ? 'hover:opacity-70' : 'opacity-30 cursor-default'}`}
             >
               <Image src="/Skip-Forward.svg" alt="다음" width={22} height={22} style={{ filter: 'invert(1)' }} />
+            </button>
+            {/* 1곡 반복 — 활성 시 보라색, 비활성 시 흰색 */}
+            <button
+              onClick={toggleRepeatOne}
+              title={repeatOne ? '1곡 반복 끄기' : '1곡 반복'}
+              aria-pressed={repeatOne}
+              className="transition-opacity hover:opacity-70"
+            >
+              <Image
+                src="/Repeat-One.svg"
+                alt="1곡 반복"
+                width={22}
+                height={22}
+                style={{ filter: repeatOne ? 'brightness(0) saturate(100%) invert(44%) sepia(51%) saturate(1569%) hue-rotate(221deg) brightness(101%) contrast(96%)' : 'brightness(0) saturate(100%) invert(55%)' }}
+              />
             </button>
           </div>
 
