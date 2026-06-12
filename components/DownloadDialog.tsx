@@ -3,20 +3,51 @@
 import { useState, useEffect } from 'react'
 import { createPortal } from 'react-dom'
 import Image from 'next/image'
+import { ID3Writer } from 'browser-id3-writer'
 import { toast } from '@/components/toast/toast'
 
 // 다운로드 안내 다이얼로그 — Suno 패턴 참고.
 // 현재(Free Only): 본인 곡만 다운로드 가능, 매번 안내 표시.
 // 추후 유료 티어 생기면 유료 사용자에게만 다이얼로그 건너뛰기 옵션 추가.
+// ID3v2 태그(제목·아티스트·앨범·커버)를 mp3에 주입 — macOS Finder·QuickLook·뮤직 플레이어에서 메타 표시.
 
 interface Props {
   open: boolean
   onClose: () => void
   audioUrl: string
   title: string
+  artist?: string         // 아티스트 표시명 (보통 곡 소유자의 displayName)
+  coverUrl?: string       // APIC 프레임에 들어갈 커버 이미지 URL
 }
 
-export function DownloadDialog({ open, onClose, audioUrl, title }: Props) {
+// WebP·JPG·PNG 등 어떤 포맷이든 canvas로 JPEG 재인코딩 → ID3 APIC 호환성 최대화.
+async function coverToJpegArrayBuffer(url: string): Promise<ArrayBuffer | null> {
+  try {
+    const res = await fetch(url)
+    if (!res.ok) return null
+    const blob = await res.blob()
+    const bitmap = await createImageBitmap(blob)
+    // 너무 큰 이미지는 1000px 이하로 축소 (음악 플레이어 표시엔 충분, 파일 크기 절감)
+    const maxSide = 1000
+    const scale = Math.min(1, maxSide / Math.max(bitmap.width, bitmap.height))
+    const w = Math.round(bitmap.width * scale)
+    const h = Math.round(bitmap.height * scale)
+    const canvas = document.createElement('canvas')
+    canvas.width = w
+    canvas.height = h
+    const ctx = canvas.getContext('2d')
+    if (!ctx) return null
+    ctx.drawImage(bitmap, 0, 0, w, h)
+    const jpegBlob: Blob | null = await new Promise((r) => canvas.toBlob((b) => r(b), 'image/jpeg', 0.9))
+    if (!jpegBlob) return null
+    return await jpegBlob.arrayBuffer()
+  } catch (e) {
+    console.warn('[download] cover convert failed:', e)
+    return null
+  }
+}
+
+export function DownloadDialog({ open, onClose, audioUrl, title, artist, coverUrl }: Props) {
   const [visible, setVisible] = useState(false)
   const [downloading, setDownloading] = useState(false)
 
@@ -32,15 +63,30 @@ export function DownloadDialog({ open, onClose, audioUrl, title }: Props) {
     setTimeout(onClose, 280)
   }
 
-  // fetch → blob → download 방식 — Cross-origin storage URL도 강제로 파일 저장 트리거.
+  // fetch → ID3 태그 주입 → blob → download.
+  // 커버 fetch는 병렬, 실패해도 mp3만으로 진행 (커버 없는 곡 대비).
   async function handleDownload() {
     if (!audioUrl || downloading) return
     setDownloading(true)
     try {
-      const res = await fetch(audioUrl)
-      if (!res.ok) throw new Error(`fetch failed: ${res.status}`)
-      const blob = await res.blob()
-      const url = URL.createObjectURL(blob)
+      const [mp3Res, coverJpeg] = await Promise.all([
+        fetch(audioUrl),
+        coverUrl ? coverToJpegArrayBuffer(coverUrl) : Promise.resolve(null),
+      ])
+      if (!mp3Res.ok) throw new Error(`mp3 fetch ${mp3Res.status}`)
+      const mp3Buf = await mp3Res.arrayBuffer()
+
+      const writer = new ID3Writer(mp3Buf)
+      writer.setFrame('TIT2', title || '제목 없음')
+            .setFrame('TPE1', [artist || 'MONO'])
+            .setFrame('TALB', 'MONO (모두의 노래)')
+      if (coverJpeg) {
+        writer.setFrame('APIC', { type: 3, data: coverJpeg, description: 'Cover' })
+      }
+      writer.addTag()
+      const taggedBlob = writer.getBlob()
+
+      const url = URL.createObjectURL(taggedBlob)
       const safeTitle = (title || '제목 없음').replace(/[\\/:*?"<>|]/g, '_').trim()
       const a = document.createElement('a')
       a.href = url

@@ -5,6 +5,7 @@ import Image from 'next/image'
 import Link from 'next/link'
 import { songService } from '@/services/song.service'
 import { SongEditModal } from '@/components/SongEditModal'
+import { DownloadDialog } from '@/components/DownloadDialog'
 import { CollectionPickerModal } from './CollectionPickerModal'
 import { MyCollectionPanel } from './MyCollectionPanel'
 import { PublishModal } from './PublishModal'
@@ -97,6 +98,7 @@ export function MyWorkPanel({ showCollections = false }: { showCollections?: boo
   const [collecting, setCollecting] = useState<Song | null>(null)
   const [publishing, setPublishing] = useState<Song | null>(null)
   const [unpublishing, setUnpublishing] = useState<Song | null>(null)
+  const [downloading, setDownloading] = useState<Song | null>(null)
   const [filter, setFilter] = useState<'all' | 'liked' | 'published'>('all')
   const [query, setQuery] = useState('')
   const [searchOpen, setSearchOpen] = useState(false)  // 모바일: 검색 아이콘→폭 모핑 오버레이
@@ -307,6 +309,7 @@ export function MyWorkPanel({ showCollections = false }: { showCollections?: boo
                   onCollect={() => setCollecting(song)}
                   onPublish={() => setPublishing(song)}
                   onUnpublish={() => setUnpublishing(song)}
+                  onDownload={() => setDownloading(song)}
                   onThumbPlay={() => handleThumbPlay(song)}
                 />
               ))}
@@ -341,6 +344,15 @@ export function MyWorkPanel({ showCollections = false }: { showCollections?: boo
           onCancel={() => setDeleting(null)}
         />
       )}
+
+      <DownloadDialog
+        open={!!downloading}
+        onClose={() => setDownloading(null)}
+        audioUrl={downloading?.audioUrl ?? ''}
+        title={downloading?.title ?? '제목 없음'}
+        artist={profile?.displayName ?? profile?.username ?? undefined}
+        coverUrl={downloading?.coverImage ?? undefined}
+      />
     </div>
   )
 }
@@ -371,7 +383,7 @@ function IconBtn({ src, title, filter, active, count, onClick, size = 'md' }: { 
   )
 }
 
-function MoreMenu({ onEdit, onDelete, onPublish, disableEdit = false, onCollect, inCollection = false }: { onEdit: () => void; onDelete: () => void; onPublish?: () => void; disableEdit?: boolean; onCollect?: () => void; inCollection?: boolean }) {
+function MoreMenu({ onEdit, onDelete, onPublish, onDownload, disableEdit = false, onCollect, inCollection = false }: { onEdit: () => void; onDelete: () => void; onPublish?: () => void; onDownload?: () => void; disableEdit?: boolean; onCollect?: () => void; inCollection?: boolean }) {
   const [pos, setPos] = useState<{ top: number; right: number } | null>(null)
   const btnRef = useRef<HTMLButtonElement>(null)
 
@@ -446,6 +458,15 @@ function MoreMenu({ onEdit, onDelete, onPublish, disableEdit = false, onCollect,
                 편집
               </button>
             )}
+            {onDownload && (
+              <button
+                onClick={() => { close(); onDownload() }}
+                className="w-full flex items-center gap-2.5 px-3 py-2.5 text-sm text-white hover:bg-white/[0.06] transition-colors"
+              >
+                <Image src="/Arrow-To-Down.svg" alt="" width={14} height={14} style={{ filter: ICON_FILTER }} />
+                다운로드
+              </button>
+            )}
             <button
               onClick={() => { close(); onDelete() }}
               className="w-full flex items-center gap-2.5 px-3 py-2.5 text-sm text-red-400 hover:bg-red-500/10 transition-colors"
@@ -460,7 +481,7 @@ function MoreMenu({ onEdit, onDelete, onPublish, disableEdit = false, onCollect,
   )
 }
 
-function SongWorkItem({ song, onOpen, onEdit, onDelete, onCollect, onPublish, onUnpublish, onThumbPlay }: { song: Song; onOpen: () => void; onEdit: () => void; onDelete: () => void; onCollect: () => void; onPublish: () => void; onUnpublish: () => void; onThumbPlay: () => void }) {
+function SongWorkItem({ song, onOpen, onEdit, onDelete, onCollect, onPublish, onUnpublish, onDownload, onThumbPlay }: { song: Song; onOpen: () => void; onEdit: () => void; onDelete: () => void; onCollect: () => void; onPublish: () => void; onUnpublish: () => void; onDownload: () => void; onThumbPlay: () => void }) {
   const player = useGlobalPlayer()
   const isCurrentSong = player.song?.id === song.id
   const playing = isCurrentSong && player.isPlaying
@@ -610,6 +631,7 @@ function SongWorkItem({ song, onOpen, onEdit, onDelete, onCollect, onPublish, on
               onEdit={onEdit}
               onDelete={onDelete}
               onPublish={!song.published && !isGenerating && !isFailed ? onPublish : undefined}
+              onDownload={!isGenerating && !isFailed && song.audioUrl ? onDownload : undefined}
               disableEdit={isGenerating || isFailed}
               onCollect={!isGenerating && !isFailed ? onCollect : undefined}
               inCollection={inCollection}

@@ -261,7 +261,7 @@ export default function MainShellLayout({ children }: { children: React.ReactNod
               >
                 <Image src="/Gift-Card.svg" alt="" width={18} height={18} style={{ filter: 'invert(0.4)' }} />
                 혜택
-                <span className="ml-auto text-[10px] font-medium px-1.5 py-1 rounded-md bg-violet-600/20 text-violet-300 leading-none">친구 초대</span>
+                <span className="ml-auto text-[10px] font-medium px-1.5 py-1 rounded-md bg-[#3aabed]/20 text-[#7dc8f1] leading-none">친구 초대</span>
               </button>
             ) : (
               <button
@@ -270,7 +270,7 @@ export default function MainShellLayout({ children }: { children: React.ReactNod
               >
                 <Image src="/Gift-Card.svg" alt="" width={18} height={18} style={{ filter: 'invert(0.4)' }} />
                 혜택
-                <span className="ml-auto text-[10px] font-medium px-1.5 py-1 rounded-md bg-violet-600/20 text-violet-300 leading-none">친구 초대</span>
+                <span className="ml-auto text-[10px] font-medium px-1.5 py-1 rounded-md bg-[#3aabed]/20 text-[#7dc8f1] leading-none">친구 초대</span>
               </button>
             )}
           </nav>

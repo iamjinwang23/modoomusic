@@ -268,22 +268,6 @@ export function GlobalMiniBar() {
               />
             </button>
 
-            {/* More (owner only) */}
-            {isOwner && (
-              <button
-                title="더보기"
-                onClick={openDetail}
-                className="w-8 h-8 rounded-full flex items-center justify-center bg-white/[0.06] hover:bg-white/[0.12] transition-colors"
-              >
-                <Image
-                  src="/More.svg"
-                  alt="더보기"
-                  width={16}
-                  height={16}
-                  style={{ filter: 'invert(0.45)' }}
-                />
-              </button>
-            )}
           </div>
         </div>
 

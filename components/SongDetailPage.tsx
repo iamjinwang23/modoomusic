@@ -589,6 +589,8 @@ export function SongDetailPage({ onBack, profile }: Props) {
         onClose={() => setDownloadOpen(false)}
         audioUrl={song.audioUrl ?? ''}
         title={displayTitle}
+        artist={ownerName ?? undefined}
+        coverUrl={song.coverImage ?? undefined}
       />
 
       {confirmDelete && typeof document !== 'undefined' && createPortal(
