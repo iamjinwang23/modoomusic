@@ -42,7 +42,7 @@ export async function uploadSongCover(
     const path = `${userId}/${songId}-${variant}.webp`
     const { error } = await supabase.storage
       .from('songs-covers')
-      .upload(path, blob, { upsert: true, contentType: 'image/webp' })
+      .upload(path, blob, { upsert: true, contentType: 'image/webp', cacheControl: '31536000, immutable' })
     if (error) {
       console.error('[song cover upload]', error.message)
       return null

@@ -107,7 +107,7 @@ async function uploadProfileImage(
   const path = `${userId}/${type}.webp`
   const { error } = await supabase.storage
     .from('profile-images')
-    .upload(path, blob, { upsert: true, contentType: 'image/webp' })
+    .upload(path, blob, { upsert: true, contentType: 'image/webp', cacheControl: '31536000, immutable' })
   if (error) { console.error('[profile upload]', error.message); return null }
   const baseUrl = supabase.storage.from('profile-images').getPublicUrl(path).data.publicUrl
   return `${baseUrl}?v=${Date.now()}`

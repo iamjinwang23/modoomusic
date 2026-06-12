@@ -57,6 +57,12 @@ export default function PrivacyPage() {
             수집 목적: 서비스 이용 패턴 분석, 기능 개선, 추천 알고리즘 최적화 · 보존 기간: 최대 14개월 (Google Analytics 정책) · 제3자 제공: Google LLC (Google Analytics 운영) · 거부 방법: <a href="https://tools.google.com/dlpage/gaoptout" target="_blank" rel="noopener noreferrer" className="underline">Google Analytics Opt-out 브라우저 확장</a> 또는 광고 차단기 사용
           </p>
         </SubSection>
+
+        <SubSection title="브라우저 캐시 (정적 콘텐츠)">
+          <p className="text-sm text-zinc-300 leading-relaxed">
+            음원·커버 이미지 등 정적 콘텐츠는 빠른 재생을 위해 표준 HTTP 캐시(Cache-Control) 헤더로 사용자 브라우저에 일정 기간 저장됩니다. 개인을 식별하거나 행동을 추적하지 않으며, 사용자는 언제든 브라우저 설정에서 캐시를 삭제하거나 차단할 수 있습니다.
+          </p>
+        </SubSection>
       </Section>
 
       <Section title="제2조 (개인정보의 수집·이용 목적)">

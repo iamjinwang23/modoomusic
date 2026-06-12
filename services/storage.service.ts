@@ -40,9 +40,12 @@ export async function uploadFromUrl(
     }
 
     const supabase = getAdminClient()
+    // cacheControl: 1년 + immutable — URL이 UUID 기반이라 콘텐츠 절대 안 바뀜.
+    // 브라우저 캐시 적극 활용 → Supabase Cached Egress 직접 절감.
     const { error } = await supabase.storage.from(bucket).upload(path, finalBuffer, {
       contentType: finalContentType,
       upsert: true,
+      cacheControl: '31536000, immutable',
     })
 
     if (error) {
