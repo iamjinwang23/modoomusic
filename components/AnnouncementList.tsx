@@ -66,7 +66,7 @@ export function AnnouncementList({ items }: { items: Announcement[] }) {
         </div>
       </div>
 
-      <div className="flex-1 overflow-y-auto px-5 py-4">
+      <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain px-5 py-4">
         {filtered.length === 0 ? (
           <div className="text-center text-zinc-500 py-20 text-sm">아직 등록된 소식이 없어요</div>
         ) : (

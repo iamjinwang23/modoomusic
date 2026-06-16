@@ -45,7 +45,7 @@ export default async function AnnouncementDetailPage({ params }: PageProps) {
         <p className="text-sm font-semibold text-white">What&apos;s New</p>
       </div>
 
-      <div className="flex-1 overflow-y-auto">
+      <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain">
         <article className="max-w-3xl mx-auto px-5 pt-6 pb-24">
           {a.imageUrl && (
             <div className="relative aspect-video rounded-xl overflow-hidden mb-6 bg-[#21252E]">
