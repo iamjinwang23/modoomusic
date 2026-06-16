@@ -6,6 +6,8 @@
 > **Date**: 2026-06-04
 > **Status**: Design
 
+> ⚠️ **갱신 (2026-06-15)**: 가격·모델·저장소가 재확정됨 → **`video-cover.plan.md` 상단 "갱신" 섹션이 우선**. 본문의 "15cr 단일 Hailuo-2.3-Fast 768P" 표기는 **2티어(기본 512P=10cr / 고화질 768P=20cr)**로 대체. 단가 기준 1cr=$0.015. 저장소(Supabase Pro vs R2)는 회사 논의 보류. 구현 시 `model`/`resolution`/차감 cr은 티어별로 분기 필요.
+
 ---
 
 ## Context Anchor

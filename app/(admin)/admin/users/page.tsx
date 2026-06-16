@@ -117,7 +117,7 @@ export default function AdminUsersPage() {
         {isSuperAdmin && (
           <button
             onClick={() => setGrantOpen(true)}
-            className="shrink-0 px-3 py-2 rounded-lg text-xs font-semibold bg-violet-600 hover:bg-violet-500 text-white transition-colors"
+            className="shrink-0 px-3 py-2 rounded-lg text-xs font-semibold bg-[#171717] hover:bg-[#383838] text-white transition-colors"
           >
             + 관리자 등록
           </button>
@@ -130,7 +130,7 @@ export default function AdminUsersPage() {
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           placeholder="예: na5892 또는 user@example.com"
-          className="w-full bg-zinc-50 border border-zinc-200 rounded-xl px-4 py-3 text-sm text-zinc-900 placeholder:text-zinc-400 focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-violet-500 transition-colors"
+          className="w-full bg-zinc-50 border border-[#ebebeb] rounded-lg px-4 py-3 text-sm text-zinc-900 placeholder:text-zinc-400 focus:outline-none focus:ring-2 focus:ring-[#0070f3] focus:border-[#0070f3] transition-colors"
         />
         {isSearching && searching && <p className="text-xs text-zinc-500 mt-3">검색 중…</p>}
         {isSearching && !searching && searchResults.length === 0 && (
@@ -142,7 +142,7 @@ export default function AdminUsersPage() {
               <button
                 key={u.id}
                 onClick={() => setDetailId(u.id)}
-                className="w-full flex items-center gap-3 bg-zinc-50 hover:bg-white hover:border-violet-300 border border-zinc-200 rounded-xl px-4 py-3 transition-colors text-left"
+                className="w-full flex items-center gap-3 bg-zinc-50 hover:bg-white hover:border-zinc-300 border border-[#ebebeb] rounded-lg px-4 py-3 transition-colors text-left"
               >
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-semibold text-zinc-900 truncate">
@@ -169,7 +169,7 @@ export default function AdminUsersPage() {
             <select
               value={filter}
               onChange={(e) => { setFilter(e.target.value as FilterKey); setPage(1) }}
-              className="bg-zinc-50 border border-zinc-200 rounded-lg px-2.5 py-1.5 text-xs text-zinc-700 focus:outline-none focus:ring-2 focus:ring-violet-500"
+              className="bg-zinc-50 border border-[#ebebeb] rounded-lg px-2.5 py-1.5 text-xs text-zinc-700 focus:outline-none focus:ring-2 focus:ring-[#0070f3]"
             >
               <option value="all">전체</option>
               <option value="admin">관리자만</option>
@@ -179,7 +179,7 @@ export default function AdminUsersPage() {
             <select
               value={limit}
               onChange={(e) => { setLimit(parseInt(e.target.value, 10) as 25 | 50 | 100); setPage(1) }}
-              className="bg-zinc-50 border border-zinc-200 rounded-lg px-2.5 py-1.5 text-xs text-zinc-700 focus:outline-none focus:ring-2 focus:ring-violet-500"
+              className="bg-zinc-50 border border-[#ebebeb] rounded-lg px-2.5 py-1.5 text-xs text-zinc-700 focus:outline-none focus:ring-2 focus:ring-[#0070f3]"
             >
               {PAGE_SIZES.map((n) => (
                 <option key={n} value={n}>{n}명</option>
@@ -191,7 +191,7 @@ export default function AdminUsersPage() {
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
-              <tr className="text-xs text-zinc-500 border-b border-zinc-200">
+              <tr className="text-xs text-zinc-500 border-b border-[#ebebeb]">
                 <ThSort label="username" sort={sort} dir={dir} k="username" onClick={toggleSort} />
                 <ThSort label="가입일" sort={sort} dir={dir} k="created_at" onClick={toggleSort} />
                 <ThSort label="보너스 cr" sort={sort} dir={dir} k="bonus_credits" onClick={toggleSort} align="right" />
@@ -223,7 +223,7 @@ export default function AdminUsersPage() {
                   <td className="py-2.5 px-3 text-right">
                     <button
                       onClick={() => setDetailId(u.id)}
-                      className="inline-block px-2.5 py-1 rounded-md text-[11px] font-semibold bg-violet-100 hover:bg-violet-200 text-violet-700 transition-colors"
+                      className="inline-block px-2.5 py-1 rounded-md text-[11px] font-semibold bg-[#eef4ff] hover:bg-[#d3e5ff] text-[#0761d1] transition-colors"
                     >
                       보기
                     </button>
@@ -318,8 +318,8 @@ function GrantAdminModal({ onClose, onGranted }: { onClose: () => void; onGrante
   return (
     <div className="fixed inset-0 z-[60] flex items-center justify-center p-6">
       <div className="absolute inset-0 bg-black/40" onClick={busy ? undefined : onClose} />
-      <div className="relative bg-white border border-zinc-200 rounded-2xl w-full max-w-[480px] max-h-[85vh] overflow-y-auto shadow-2xl">
-        <header className="flex items-center justify-between px-6 py-4 border-b border-zinc-100 sticky top-0 bg-white rounded-t-2xl">
+      <div className="relative bg-white border border-[#ebebeb] rounded-lg w-full max-w-[480px] max-h-[85vh] overflow-y-auto shadow-xl">
+        <header className="flex items-center justify-between px-6 py-4 border-b border-zinc-100 sticky top-0 bg-white rounded-t-lg">
           <div>
             <h3 className="text-base font-semibold text-zinc-900">관리자 등록</h3>
             <p className="text-xs text-zinc-500 mt-0.5">사용자 검색 → 권한 선택 → 등록</p>
@@ -339,7 +339,7 @@ function GrantAdminModal({ onClose, onGranted }: { onClose: () => void; onGrante
                   onChange={(e) => setQuery(e.target.value)}
                   placeholder="username 또는 email (2자 이상)"
                   autoFocus
-                  className="mt-1 w-full bg-zinc-50 border border-zinc-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-violet-500"
+                  className="mt-1 w-full bg-zinc-50 border border-[#ebebeb] rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#0070f3]"
                 />
               </div>
               <div className="space-y-2 max-h-[200px] overflow-y-auto">
@@ -347,7 +347,7 @@ function GrantAdminModal({ onClose, onGranted }: { onClose: () => void; onGrante
                   <button
                     key={u.id}
                     onClick={() => setSelected(u)}
-                    className="w-full flex items-center gap-3 bg-zinc-50 hover:bg-white hover:border-violet-300 border border-zinc-200 rounded-lg px-3 py-2 text-left transition-colors"
+                    className="w-full flex items-center gap-3 bg-zinc-50 hover:bg-white hover:border-zinc-300 border border-[#ebebeb] rounded-lg px-3 py-2 text-left transition-colors"
                   >
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-semibold text-zinc-900 truncate">
@@ -361,12 +361,12 @@ function GrantAdminModal({ onClose, onGranted }: { onClose: () => void; onGrante
               </div>
             </>
           ) : (
-            <div className="bg-violet-50 border border-violet-200 rounded-lg px-3 py-2.5 flex items-center gap-3">
+            <div className="bg-zinc-100 border border-[#ebebeb] rounded-lg px-3 py-2.5 flex items-center gap-3">
               <div className="flex-1 min-w-0">
-                <p className="text-sm font-semibold text-violet-900">{selected.username}</p>
-                <p className="text-xs text-violet-700">{selected.displayName ?? '—'}</p>
+                <p className="text-sm font-semibold text-zinc-900">{selected.username}</p>
+                <p className="text-xs text-zinc-900">{selected.displayName ?? '—'}</p>
               </div>
-              <button onClick={() => setSelected(null)} className="text-xs text-violet-700 hover:text-violet-900">변경</button>
+              <button onClick={() => setSelected(null)} className="text-xs text-zinc-900 hover:text-zinc-900">변경</button>
             </div>
           )}
 
@@ -382,14 +382,14 @@ function GrantAdminModal({ onClose, onGranted }: { onClose: () => void; onGrante
                       <label
                         key={m}
                         className={`flex items-center gap-2 px-3 py-2 rounded-lg border cursor-pointer transition-colors ${
-                          checked ? 'bg-violet-50 border-violet-300' : 'bg-white border-zinc-200 hover:bg-zinc-50'
+                          checked ? 'bg-zinc-100 border-zinc-300' : 'bg-white border-[#ebebeb] hover:bg-zinc-50'
                         }`}
                       >
                         <input
                           type="checkbox"
                           checked={checked}
                           onChange={() => togglePerm(m)}
-                          className="rounded accent-violet-600"
+                          className="rounded accent-zinc-900"
                         />
                         <span className="text-sm text-zinc-900">{MODULE_LABELS[m]}</span>
                       </label>
@@ -407,7 +407,7 @@ function GrantAdminModal({ onClose, onGranted }: { onClose: () => void; onGrante
                   rows={2}
                   maxLength={200}
                   placeholder="감사 로그에 기록됩니다"
-                  className="mt-1 w-full bg-zinc-50 border border-zinc-200 rounded-lg px-3 py-2 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-violet-500"
+                  className="mt-1 w-full bg-zinc-50 border border-[#ebebeb] rounded-lg px-3 py-2 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-[#0070f3]"
                 />
               </div>
 
@@ -426,7 +426,7 @@ function GrantAdminModal({ onClose, onGranted }: { onClose: () => void; onGrante
                 <button
                   onClick={handleGrant}
                   disabled={busy || permissions.length === 0 || reason.trim().length < 5}
-                  className="px-4 py-2 rounded-lg text-sm font-semibold bg-violet-600 hover:bg-violet-500 text-white disabled:opacity-40 disabled:cursor-not-allowed"
+                  className="px-4 py-2 rounded-lg text-sm font-semibold bg-[#171717] hover:bg-[#383838] text-white disabled:opacity-40 disabled:cursor-not-allowed"
                 >
                   {busy ? '등록 중…' : '관리자 등록'}
                 </button>
@@ -514,8 +514,8 @@ function UserDetailModal({ userId, onClose, onChanged, isSuperAdmin }: {
   return (
     <div className="fixed inset-0 z-[60] flex items-center justify-center p-6">
       <div className="absolute inset-0 bg-black/40" onClick={onClose} />
-      <div className="relative bg-white border border-zinc-200 rounded-2xl w-full max-w-[520px] max-h-[85vh] overflow-y-auto shadow-2xl">
-        <header className="flex items-center justify-between px-6 py-4 border-b border-zinc-100 sticky top-0 bg-white rounded-t-2xl">
+      <div className="relative bg-white border border-[#ebebeb] rounded-lg w-full max-w-[520px] max-h-[85vh] overflow-y-auto shadow-xl">
+        <header className="flex items-center justify-between px-6 py-4 border-b border-zinc-100 sticky top-0 bg-white rounded-t-lg">
           <h3 className="text-base font-semibold text-zinc-900">사용자 상세</h3>
           <button onClick={onClose} className="w-7 h-7 rounded-full hover:bg-zinc-100 flex items-center justify-center text-zinc-500">✕</button>
         </header>
@@ -535,7 +535,7 @@ function UserDetailModal({ userId, onClose, onChanged, isSuperAdmin }: {
                 <p className="text-xs text-zinc-500 mt-1">{user.email ?? '—'} · {user.provider ?? 'unknown'} · 가입 {new Date(user.createdAt).toLocaleDateString('ko-KR')}</p>
               </div>
 
-              <dl className="grid grid-cols-2 gap-3 text-sm bg-zinc-50 rounded-xl p-4">
+              <dl className="grid grid-cols-2 gap-3 text-sm bg-zinc-50 rounded-lg p-4">
                 <Row label="display name" value={user.displayName ?? '—'} />
                 <Row label="bio" value={user.bio ?? '—'} />
                 <Row label="보너스 크레딧" value={`${user.bonusCredits}cr`} />
@@ -545,14 +545,14 @@ function UserDetailModal({ userId, onClose, onChanged, isSuperAdmin }: {
               </dl>
 
               {user.suspendedAt && (
-                <div className="border border-red-200 bg-red-50 rounded-xl p-4">
+                <div className="border border-red-200 bg-red-50 rounded-lg p-4">
                   <p className="text-xs text-red-700">정지 시각: {new Date(user.suspendedAt).toLocaleString('ko-KR')}</p>
                   <p className="text-xs text-red-700 mt-1">사유: {user.suspendedReason ?? '—'}</p>
                 </div>
               )}
 
               {feedback && (
-                <div className={`rounded-xl px-3 py-2 text-xs ${
+                <div className={`rounded-lg px-3 py-2 text-xs ${
                   feedback.type === 'success' ? 'bg-green-50 text-green-700 border border-green-200' : 'bg-red-50 text-red-700 border border-red-200'
                 }`}>
                   {feedback.msg}
@@ -586,14 +586,14 @@ function UserDetailModal({ userId, onClose, onChanged, isSuperAdmin }: {
                     {isSuperAdmin && user.isAdmin && user.adminPermissions !== null && (
                       <button
                         onClick={() => setAction('revoke-admin')}
-                        className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-violet-100 hover:bg-violet-200 text-violet-700"
+                        className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-[#eef4ff] hover:bg-[#d3e5ff] text-[#0761d1]"
                       >
                         관리자 권한 회수
                       </button>
                     )}
                     <button
                       onClick={() => setAction('force-delete')}
-                      className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-red-600 hover:bg-red-500 text-white"
+                      className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-[#ee0000] hover:bg-[#c50000] text-white"
                     >
                       강제 탈퇴
                     </button>
@@ -659,7 +659,7 @@ function ThSort({ label, sort, dir, k, onClick, align = 'left' }: {
     <th className={`py-2 px-3 font-medium ${align === 'right' ? 'text-right' : 'text-left'}`}>
       <button
         onClick={() => onClick(k)}
-        className={`inline-flex items-center gap-1 ${active ? 'text-violet-700' : 'text-zinc-500 hover:text-zinc-900'}`}
+        className={`inline-flex items-center gap-1 ${active ? 'text-zinc-900' : 'text-zinc-500 hover:text-zinc-900'}`}
       >
         {label}
         <span className="text-[10px]">{active ? (dir === 'asc' ? '▲' : '▼') : '↕'}</span>
@@ -673,7 +673,7 @@ function PageBtn({ onClick, disabled, children }: { onClick: () => void; disable
     <button
       onClick={onClick}
       disabled={disabled}
-      className="w-8 h-8 rounded-lg border border-zinc-200 bg-white hover:bg-zinc-50 text-zinc-700 disabled:opacity-30 disabled:cursor-not-allowed transition-colors flex items-center justify-center"
+      className="w-8 h-8 rounded-lg border border-[#ebebeb] bg-white hover:bg-zinc-50 text-zinc-700 disabled:opacity-30 disabled:cursor-not-allowed transition-colors flex items-center justify-center"
     >
       {children}
     </button>
@@ -682,7 +682,7 @@ function PageBtn({ onClick, disabled, children }: { onClick: () => void; disable
 
 function Badge({ color, children }: { color: 'violet' | 'red' | 'zinc'; children: React.ReactNode }) {
   const cls = color === 'violet'
-    ? 'bg-violet-100 text-violet-700'
+    ? 'bg-[#eef4ff] text-[#0761d1]'
     : color === 'red'
     ? 'bg-red-100 text-red-700'
     : 'bg-zinc-200 text-zinc-700'

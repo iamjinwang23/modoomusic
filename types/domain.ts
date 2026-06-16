@@ -120,6 +120,27 @@ export interface Notification {
   createdAt: string
 }
 
+// Design Ref: §5.2 Module 7 — 공지(What's New)
+export type AnnouncementCategory = 'notice' | 'promotion'
+export type AnnouncementStatus = 'published' | 'hidden'
+
+export interface Announcement {
+  id: string
+  title: string
+  category: AnnouncementCategory
+  content: string          // 마크다운
+  imageUrl: string | null
+  status: AnnouncementStatus
+  publishAt: string | null   // 예약 발행 시각 (null = 즉시)
+  createdAt: string
+  updatedAt: string
+}
+
+export const ANNOUNCEMENT_CATEGORY_LABEL: Record<AnnouncementCategory, string> = {
+  notice: '공지',
+  promotion: '프로모션',
+}
+
 export interface SocialLinks {
   instagram?: string | null
   tiktok?: string | null

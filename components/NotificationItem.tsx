@@ -38,7 +38,7 @@ function renderText(n: Notification): React.ReactNode {
       return (
         <>
           <span className="text-white font-medium">{p.title || '공지'}</span>
-          {p.body && <span className="block text-zinc-400 text-xs mt-1 leading-relaxed break-words">{p.body}</span>}
+          {p.body && <span className="block text-zinc-400 text-xs mt-1 leading-relaxed truncate">{p.body}</span>}
         </>
       )
     }

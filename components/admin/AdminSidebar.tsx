@@ -50,7 +50,7 @@ export function AdminSidebar({ permissions }: { permissions: string[] | null }) 
   })).filter((g) => g.items.length > 0)
 
   return (
-    <aside className="w-[200px] shrink-0 border-r border-zinc-200 bg-white overflow-y-auto">
+    <aside className="w-[200px] shrink-0 border-r border-[#ebebeb] bg-white overflow-y-auto">
       <nav className="py-3 px-2 space-y-4">
         {filteredGroups.map((group, gi) => (
           <div key={gi} className="space-y-0.5">
@@ -69,7 +69,7 @@ export function AdminSidebar({ permissions }: { permissions: string[] | null }) 
                   href={item.href}
                   className={`block rounded-lg px-3 py-2 text-sm transition-colors ${
                     active
-                      ? 'bg-violet-50 text-violet-700 font-semibold'
+                      ? 'bg-zinc-100 text-zinc-900 font-semibold'
                       : 'text-zinc-600 hover:bg-zinc-100 hover:text-zinc-900'
                   }`}
                 >

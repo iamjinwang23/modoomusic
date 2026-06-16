@@ -288,6 +288,15 @@ export default function MainShellLayout({ children }: { children: React.ReactNod
                 <>
                   <div className="fixed inset-0 z-[54]" onClick={() => setLegalMenuOpen(false)} />
                   <div className="absolute bottom-full left-10 mb-2 z-[55] w-56 bg-[#21252E] border border-white/[0.08] rounded-xl shadow-xl overflow-hidden py-1">
+                    {/* What's New — 공지(앱 내부 이동) */}
+                    <Link
+                      href="/announcements"
+                      onClick={() => setLegalMenuOpen(false)}
+                      className="flex items-center gap-2.5 px-4 py-2.5 text-sm text-zinc-300 hover:text-white hover:bg-white/[0.04] transition-colors border-b border-white/[0.06]"
+                    >
+                      <Image src="/Sparkles.svg" alt="" width={16} height={16} style={{ filter: 'invert(1) brightness(0.85)' }} />
+                      What&apos;s New
+                    </Link>
                     {[
                       { href: '/terms', label: '이용약관', icon: '/terms.png' },
                       { href: '/privacy', label: '개인정보처리방침', icon: '/security-policy.png' },

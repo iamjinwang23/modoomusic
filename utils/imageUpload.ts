@@ -54,3 +54,31 @@ export async function uploadSongCover(
     return null
   }
 }
+
+// 공지 이미지 업로드 — announcements-images 버킷의 {announcementId}/{slot}.webp
+// 썸네일/본문 삽입 이미지 모두 사용. 배너용으로 더 넓게(최대 1600px) 저장.
+// RLS는 is_admin만 검사하므로 경로 prefix는 공지 id로 충분.
+// slot: 'thumb' | 'img-<timestamp>' (본문 인라인 이미지 다중 지원)
+export async function uploadAnnouncementImage(
+  announcementId: string,
+  fileOrBlob: File | Blob,
+  slot: string = 'thumb',
+): Promise<string | null> {
+  try {
+    const supabase = createClient()
+    const blob = fileOrBlob instanceof File ? await toWebp(fileOrBlob, 1600) : fileOrBlob
+    const path = `${announcementId}/${slot}.webp`
+    const { error } = await supabase.storage
+      .from('announcements-images')
+      .upload(path, blob, { upsert: true, contentType: 'image/webp', cacheControl: '31536000, immutable' })
+    if (error) {
+      console.error('[announcement image upload]', error.message)
+      return null
+    }
+    const baseUrl = supabase.storage.from('announcements-images').getPublicUrl(path).data.publicUrl
+    return `${baseUrl}?v=${Date.now()}`
+  } catch (e) {
+    console.error('[announcement image upload] failed:', e)
+    return null
+  }
+}

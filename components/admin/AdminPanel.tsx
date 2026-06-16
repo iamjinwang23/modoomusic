@@ -10,7 +10,7 @@ interface Props {
 
 export function AdminPanel({ title, description, actions, children, className = '' }: Props) {
   return (
-    <section className={`bg-white rounded-2xl border border-zinc-200 ${className}`}>
+    <section className={`bg-white rounded-lg border border-[#ebebeb] ${className}`}>
       {(title || actions) && (
         <header className="flex items-center gap-3 px-6 py-4 border-b border-zinc-100">
           {title && (

@@ -74,7 +74,7 @@ export default function AdminCreditsPage() {
       </header>
 
       {feedback && (
-        <div className={`rounded-xl px-4 py-3 text-sm ${
+        <div className={`rounded-lg px-4 py-3 text-sm ${
           feedback.type === 'success' ? 'bg-green-50 text-green-700 border border-green-200' : 'bg-red-50 text-red-700 border border-red-200'
         }`}>
           {feedback.msg}
@@ -89,7 +89,7 @@ export default function AdminCreditsPage() {
           onChange={(e) => setQuery(e.target.value)}
           placeholder="예: na5892 또는 user@example.com"
           autoFocus
-          className="w-full bg-zinc-50 border border-zinc-200 rounded-xl px-4 py-3 text-sm text-zinc-900 placeholder:text-zinc-400 focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-violet-500 transition-colors"
+          className="w-full bg-zinc-50 border border-[#ebebeb] rounded-lg px-4 py-3 text-sm text-zinc-900 placeholder:text-zinc-400 focus:outline-none focus:ring-2 focus:ring-[#0070f3] focus:border-[#0070f3] transition-colors"
         />
 
         {loading && <p className="text-xs text-zinc-500 mt-3">검색 중…</p>}
@@ -100,11 +100,11 @@ export default function AdminCreditsPage() {
 
         <div className="mt-4 space-y-2">
           {users.map((u) => (
-            <div key={u.id} className="flex items-center gap-3 bg-zinc-50 border border-zinc-200 rounded-xl px-4 py-3">
+            <div key={u.id} className="flex items-center gap-3 bg-zinc-50 border border-[#ebebeb] rounded-lg px-4 py-3">
               <div className="flex-1 min-w-0">
                 <p className="text-sm font-semibold text-zinc-900 truncate">
                   {u.username}
-                  {u.isAdmin && <span className="ml-2 text-[10px] font-medium text-violet-700 bg-violet-100 px-1.5 py-0.5 rounded">admin</span>}
+                  {u.isAdmin && <span className="ml-2 text-[10px] font-medium text-zinc-900 bg-zinc-100 px-1.5 py-0.5 rounded">admin</span>}
                   {u.suspendedAt && <span className="ml-2 text-[10px] font-medium text-red-700 bg-red-100 px-1.5 py-0.5 rounded">정지</span>}
                 </p>
                 <p className="text-xs text-zinc-500 truncate">{u.email ?? u.displayName ?? '—'}</p>
@@ -117,7 +117,7 @@ export default function AdminCreditsPage() {
               <button
                 type="button"
                 onClick={() => { setTarget(u); setAmount(10) }}
-                className="shrink-0 px-3 py-1.5 rounded-lg text-xs font-semibold bg-violet-600 hover:bg-violet-500 text-white transition-colors"
+                className="shrink-0 px-3 py-1.5 rounded-lg text-xs font-semibold bg-[#171717] hover:bg-[#383838] text-white transition-colors"
               >
                 지급
               </button>
@@ -144,7 +144,7 @@ export default function AdminCreditsPage() {
               min={-1000}
               max={1000}
               step={10}
-              className="w-full bg-zinc-50 border border-zinc-200 rounded-lg px-3 py-2 text-sm text-zinc-900 tabular-nums focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-violet-500"
+              className="w-full bg-zinc-50 border border-[#ebebeb] rounded-lg px-3 py-2 text-sm text-zinc-900 tabular-nums focus:outline-none focus:ring-2 focus:ring-[#0070f3] focus:border-[#0070f3]"
             />
             {target && (
               <p className="text-[11px] text-zinc-500">

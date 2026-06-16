@@ -3,6 +3,7 @@
 
 import Link from 'next/link'
 import { AdminPanel } from '@/components/admin/AdminPanel'
+import { SignupTrendChart, SongTrendChart, type DailyPoint } from '@/components/admin/AdminCharts'
 import { createAdminClient } from '@/lib/supabase/admin'
 
 export const metadata = { title: '대시보드 — MONO Admin' }
@@ -49,7 +50,6 @@ async function fetchStats() {
     signupsToday,    signupsYesterday,
     signupsWeek,     signupsWeekPrev,
     signupsMonth,    signupsMonthPrev,
-    suspended, deleted,
     totalSongs,
     songsToday,      songsYesterday,
     songsWeek,       songsWeekPrev,
@@ -63,8 +63,6 @@ async function fetchStats() {
     countFrom(supabase, 'profiles', weekPrev.toISOString(), week.toISOString()),
     countFrom(supabase, 'profiles', month.toISOString()),
     countFrom(supabase, 'profiles', monthPrev.toISOString(), month.toISOString()),
-    supabase.from('profiles').select('id', { count: 'exact', head: true }).not('suspended_at', 'is', null).then((r) => r.count ?? 0),
-    supabase.from('profiles').select('id', { count: 'exact', head: true }).not('deleted_at', 'is', null).then((r) => r.count ?? 0),
     countFrom(supabase, 'songs'),
     countFrom(supabase, 'songs', todayStart.toISOString()),
     countFrom(supabase, 'songs', yesterdayStart.toISOString(), todayStart.toISOString()),
@@ -92,7 +90,6 @@ async function fetchStats() {
       today: signupsToday,       todayPrev: signupsYesterday,
       week: signupsWeek,         weekPrev: signupsWeekPrev,
       month: signupsMonth,       monthPrev: signupsMonthPrev,
-      suspended, deleted,
     },
     songs: {
       total: totalSongs,
@@ -114,8 +111,63 @@ async function fetchStats() {
   }
 }
 
+// 최근 30일 일별 추이. created_at 행을 가져와 JS로 버킷팅.
+// 주의: ROW_CAP까지만 집계 — MVP 규모(30일 윈도우 <1000행)에선 안전하나
+// 볼륨이 커지면 SQL date_trunc 집계(RPC)로 이전 필요. cap 초과 시 콘솔 경고.
+const ROW_CAP = 10000
+const DAYS = 30
+
+interface ChartData {
+  signups: DailyPoint[]
+  songs: DailyPoint[]
+}
+
+async function fetchCharts(): Promise<ChartData> {
+  const supabase = createAdminClient()
+  const day = 24 * 60 * 60 * 1000
+  const now = new Date()
+  const todayStart = new Date(now.getTime())
+  todayStart.setUTCHours(0, 0, 0, 0)
+  const since = new Date(todayStart.getTime() - (DAYS - 1) * day)
+
+  // 빈 버킷 30개 미리 생성 (오래된→최신)
+  const keys: string[] = []
+  const labels = new Map<string, string>()
+  for (let i = 0; i < DAYS; i++) {
+    const d = new Date(since.getTime() + i * day)
+    const key = d.toISOString().slice(0, 10) // YYYY-MM-DD (UTC)
+    keys.push(key)
+    labels.set(key, `${d.getUTCMonth() + 1}/${d.getUTCDate()}`)
+  }
+  const emptyBuckets = () => new Map<string, number>(keys.map((k) => [k, 0]))
+
+  const [signupRes, songRes] = await Promise.all([
+    supabase.from('profiles').select('created_at').gte('created_at', since.toISOString()).limit(ROW_CAP),
+    supabase.from('songs').select('created_at').gte('created_at', since.toISOString()).limit(ROW_CAP),
+  ])
+
+  if ((signupRes.data?.length ?? 0) >= ROW_CAP || (songRes.data?.length ?? 0) >= ROW_CAP) {
+    console.warn('[admin/charts] ROW_CAP 도달 — 집계가 일부 누락될 수 있음. SQL 집계(RPC)로 이전 권장.')
+  }
+
+  const bucketByDay = (rows: { created_at: string | null }[] | null): DailyPoint[] => {
+    const m = emptyBuckets()
+    for (const r of rows ?? []) {
+      if (!r.created_at) continue
+      const k = r.created_at.slice(0, 10)
+      if (m.has(k)) m.set(k, (m.get(k) ?? 0) + 1)
+    }
+    return keys.map((k) => ({ label: labels.get(k)!, count: m.get(k) ?? 0 }))
+  }
+
+  return {
+    signups: bucketByDay(signupRes.data),
+    songs: bucketByDay(songRes.data),
+  }
+}
+
 export default async function AdminDashboardPage() {
-  const stats = await fetchStats()
+  const [stats, charts] = await Promise.all([fetchStats(), fetchCharts()])
   const totalPendingReports = stats.reports.pendingSongs + stats.reports.pendingComments
 
   return (
@@ -128,7 +180,7 @@ export default async function AdminDashboardPage() {
       {totalPendingReports > 0 && (
         <Link
           href="/admin/reports"
-          className="block bg-amber-50 border border-amber-200 rounded-xl px-4 py-3 hover:bg-amber-100 transition-colors"
+          className="block bg-amber-50 border border-amber-200 rounded-lg px-4 py-3 hover:bg-amber-100 transition-colors"
         >
           <p className="text-sm text-amber-900">
             <span className="font-semibold">미처리 신고 {totalPendingReports}건</span> — 곡 {stats.reports.pendingSongs} / 댓글 {stats.reports.pendingComments}. 클릭해서 처리하세요.
@@ -139,13 +191,11 @@ export default async function AdminDashboardPage() {
       {/* 사용자 */}
       <section>
         <h2 className="text-sm font-semibold text-zinc-700 mb-3 px-1">사용자</h2>
-        <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
           <Stat label="총 사용자" value={stats.users.total} />
           <Stat label="오늘 가입" value={stats.users.today} prev={stats.users.todayPrev} period="어제 대비" accent="violet" />
           <Stat label="최근 7일 가입" value={stats.users.week} prev={stats.users.weekPrev} period="이전 7일 대비" />
           <Stat label="최근 30일 가입" value={stats.users.month} prev={stats.users.monthPrev} period="이전 30일 대비" />
-          <Stat label="정지" value={stats.users.suspended} accent={stats.users.suspended > 0 ? 'red' : undefined} />
-          <Stat label="탈퇴" value={stats.users.deleted} />
         </div>
       </section>
 
@@ -159,11 +209,21 @@ export default async function AdminDashboardPage() {
         </div>
       </section>
 
+      {/* 추이 그래프 — 최근 30일 */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        <AdminPanel title="가입 추이" description="최근 30일 일별 신규 가입">
+          <SignupTrendChart data={charts.signups} />
+        </AdminPanel>
+        <AdminPanel title="곡 생성 추이" description="최근 30일 일별 생성 곡">
+          <SongTrendChart data={charts.songs} />
+        </AdminPanel>
+      </div>
+
       <AdminPanel title="인기 곡 Top 20" description="공개 곡 재생수 순">
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
-              <tr className="text-xs text-zinc-500 border-b border-zinc-200">
+              <tr className="text-xs text-zinc-500 border-b border-[#ebebeb]">
                 <th className="text-left py-2 pr-3 font-medium w-8">#</th>
                 <th className="text-left py-2 pr-3 font-medium">제목</th>
                 <th className="text-left py-2 pr-3 font-medium">소유자</th>
@@ -187,7 +247,7 @@ export default async function AdminDashboardPage() {
                       href={`/song/${s.id}`}
                       target="_blank"
                       rel="noopener"
-                      className="inline-block px-2.5 py-1 rounded-md text-[11px] font-semibold bg-violet-100 hover:bg-violet-200 text-violet-700 transition-colors"
+                      className="inline-block px-2.5 py-1 rounded-md text-[11px] font-semibold bg-[#eef4ff] hover:bg-[#d3e5ff] text-[#0761d1] transition-colors"
                     >
                       보기
                     </a>
@@ -219,7 +279,7 @@ function Stat({
   period?: string
   accent?: 'violet' | 'red'
 }) {
-  const valueColor = accent === 'violet' ? 'text-violet-700' : accent === 'red' ? 'text-red-700' : 'text-zinc-900'
+  const valueColor = accent === 'violet' ? 'text-[#0070f3]' : accent === 'red' ? 'text-red-700' : 'text-zinc-900'
 
   let delta: { sign: 'up' | 'down' | 'flat'; text: string } | null = null
   if (prev !== undefined && period) {
@@ -238,7 +298,7 @@ function Stat({
   const deltaColor = delta?.sign === 'up' ? 'text-green-600' : delta?.sign === 'down' ? 'text-red-600' : 'text-zinc-400'
 
   return (
-    <div className="bg-white border border-zinc-200 rounded-xl px-5 py-4">
+    <div className="bg-white border border-[#ebebeb] rounded-lg px-5 py-4">
       <p className="text-xs text-zinc-500 font-medium">{label}</p>
       <p className={`text-3xl font-semibold tabular-nums mt-2 leading-none ${valueColor}`}>
         {value.toLocaleString()}

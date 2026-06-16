@@ -82,7 +82,7 @@ export default function AdminReportsPage() {
       </header>
 
       {feedback && (
-        <div className={`rounded-xl px-4 py-3 text-sm ${
+        <div className={`rounded-lg px-4 py-3 text-sm ${
           feedback.type === 'success' ? 'bg-green-50 text-green-700 border border-green-200' : 'bg-red-50 text-red-700 border border-red-200'
         }`}>
           {feedback.msg}
@@ -96,7 +96,7 @@ export default function AdminReportsPage() {
             key={t}
             onClick={() => setTab(t)}
             className={`px-4 py-2 rounded-full text-sm transition-colors ${
-              tab === t ? 'bg-violet-600 text-white' : 'bg-white border border-zinc-200 text-zinc-700 hover:bg-zinc-50'
+              tab === t ? 'bg-zinc-900 text-white' : 'bg-white border border-[#ebebeb] text-zinc-700 hover:bg-zinc-50'
             }`}
           >
             {t === 'pending' ? '미처리' : '처리 완료'}
@@ -111,7 +111,7 @@ export default function AdminReportsPage() {
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
-              <tr className="text-xs text-zinc-500 border-b border-zinc-200">
+              <tr className="text-xs text-zinc-500 border-b border-[#ebebeb]">
                 <th className="text-left py-2 pr-3 font-medium">시각</th>
                 <th className="text-left py-2 pr-3 font-medium">유형</th>
                 <th className="text-left py-2 pr-3 font-medium">신고자</th>
@@ -129,7 +129,7 @@ export default function AdminReportsPage() {
                   </td>
                   <td className="py-2.5 pr-3">
                     <span className={`text-[10px] font-semibold px-2 py-0.5 rounded ${
-                      r.type === 'song' ? 'bg-violet-100 text-violet-700' : 'bg-blue-100 text-blue-700'
+                      r.type === 'song' ? 'bg-[#f3ebfb] text-[#4c2889]' : 'bg-blue-100 text-blue-700'
                     }`}>
                       {r.type === 'song' ? '곡' : '댓글'}
                     </span>
@@ -157,7 +157,7 @@ export default function AdminReportsPage() {
                   <td className="py-2.5 pr-3 text-right">
                     <button
                       onClick={() => setDetail(r)}
-                      className="inline-block px-2.5 py-1 rounded-md text-[11px] font-semibold bg-violet-100 hover:bg-violet-200 text-violet-700 transition-colors"
+                      className="inline-block px-2.5 py-1 rounded-md text-[11px] font-semibold bg-[#eef4ff] hover:bg-[#d3e5ff] text-[#0761d1] transition-colors"
                     >
                       보기
                     </button>
@@ -213,8 +213,8 @@ function ReportDetailModal({ report, onClose, onAction }: {
   return (
     <div className="fixed inset-0 z-[60] flex items-center justify-center p-6">
       <div className="absolute inset-0 bg-black/40" onClick={onClose} />
-      <div className="relative bg-white border border-zinc-200 rounded-2xl w-full max-w-[560px] max-h-[85vh] overflow-y-auto shadow-2xl">
-        <header className="flex items-center justify-between px-6 py-4 border-b border-zinc-100 sticky top-0 bg-white rounded-t-2xl">
+      <div className="relative bg-white border border-[#ebebeb] rounded-lg w-full max-w-[560px] max-h-[85vh] overflow-y-auto shadow-xl">
+        <header className="flex items-center justify-between px-6 py-4 border-b border-zinc-100 sticky top-0 bg-white rounded-t-lg">
           <h3 className="text-base font-semibold text-zinc-900">신고 상세</h3>
           <button onClick={onClose} className="w-7 h-7 rounded-full hover:bg-zinc-100 flex items-center justify-center text-zinc-500">✕</button>
         </header>
@@ -223,7 +223,7 @@ function ReportDetailModal({ report, onClose, onAction }: {
           <Field label="신고 시각" value={new Date(report.createdAt).toLocaleString('ko-KR')} />
           <Field label="유형" value={
             <span className={`inline-block text-[10px] font-semibold px-2 py-0.5 rounded ${
-              report.type === 'song' ? 'bg-violet-100 text-violet-700' : 'bg-blue-100 text-blue-700'
+              report.type === 'song' ? 'bg-[#f3ebfb] text-[#4c2889]' : 'bg-blue-100 text-blue-700'
             }`}>
               {report.type === 'song' ? '곡' : '댓글'}
             </span>
@@ -232,7 +232,7 @@ function ReportDetailModal({ report, onClose, onAction }: {
           <Field label="사유" value={<span className="font-medium">{report.reason}</span>} />
           {report.type === 'song' ? (
             <Field label="신고된 곡" value={
-              <div className="border border-zinc-200 rounded-xl overflow-hidden bg-zinc-50">
+              <div className="border border-[#ebebeb] rounded-lg overflow-hidden bg-zinc-50">
                 <div className="flex gap-3 p-3">
                   {/* 커버 */}
                   <div
@@ -255,7 +255,7 @@ function ReportDetailModal({ report, onClose, onAction }: {
                       href={`/song/${report.targetId}`}
                       target="_blank"
                       rel="noopener"
-                      className="inline-block mt-2 text-[11px] font-semibold text-violet-700 hover:text-violet-900"
+                      className="inline-block mt-2 text-[11px] font-semibold text-zinc-900 hover:text-zinc-900"
                     >
                       곡 페이지 열기 ↗
                     </a>
@@ -263,7 +263,7 @@ function ReportDetailModal({ report, onClose, onAction }: {
                 </div>
                 {/* 오디오 플레이어 */}
                 {report.targetAudioUrl && (
-                  <div className="border-t border-zinc-200 p-3 bg-white">
+                  <div className="border-t border-[#ebebeb] p-3 bg-white">
                     <audio
                       controls
                       preload="none"
@@ -281,14 +281,14 @@ function ReportDetailModal({ report, onClose, onAction }: {
             } />
           ) : (
             <Field label="신고된 댓글" value={
-              <div className="border border-zinc-200 rounded-xl overflow-hidden bg-zinc-50 p-3">
+              <div className="border border-[#ebebeb] rounded-lg overflow-hidden bg-zinc-50 p-3">
                 <p className="text-sm text-zinc-900 whitespace-pre-wrap break-all leading-relaxed">{report.targetPreview || '(삭제됨)'}</p>
                 {report.targetSongId && (
                   <a
                     href={`/song/${report.targetSongId}`}
                     target="_blank"
                     rel="noopener"
-                    className="inline-block mt-2 text-[11px] font-semibold text-violet-700 hover:text-violet-900"
+                    className="inline-block mt-2 text-[11px] font-semibold text-zinc-900 hover:text-zinc-900"
                   >
                     댓글이 달린 곡 페이지 ↗
                   </a>
@@ -318,7 +318,7 @@ function ReportDetailModal({ report, onClose, onAction }: {
               <div className="flex gap-2">
                 <button
                   onClick={() => onAction('upheld')}
-                  className="px-4 py-2 rounded-lg text-sm font-semibold bg-red-600 hover:bg-red-500 text-white"
+                  className="px-4 py-2 rounded-lg text-sm font-semibold bg-[#ee0000] hover:bg-[#c50000] text-white"
                 >
                   인정 + 조치
                 </button>

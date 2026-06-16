@@ -25,7 +25,10 @@ const ACTION_KO: Record<string, string> = {
   force_delete_user: '강제 탈퇴',
   unpublish_song:    '곡 강제 비공개',
   delete_song:       '곡 삭제',
-  send_announcement: '공지 송출',
+  send_announcement: '공지 알림 발송',
+  create_announcement: '공지 작성',
+  update_announcement: '공지 수정',
+  delete_announcement: '공지 삭제',
   update_model:      '모델 변경',
   grant_admin:       '관리자 등록',
   revoke_admin:      '관리자 권한 회수',
@@ -159,7 +162,7 @@ export default function AdminAuditPage() {
         actions={
           <button
             onClick={exportCsv}
-            className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-violet-600 hover:bg-violet-500 text-white"
+            className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-[#171717] hover:bg-[#383838] text-white"
           >
             CSV 내보내기
           </button>
@@ -171,7 +174,7 @@ export default function AdminAuditPage() {
             <select
               value={action}
               onChange={(e) => setAction(e.target.value)}
-              className="mt-1 w-full bg-zinc-50 border border-zinc-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-violet-500"
+              className="mt-1 w-full bg-zinc-50 border border-[#ebebeb] rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#0070f3]"
             >
               {ACTIONS.map((a) => (
                 <option key={a.value} value={a.value}>{a.label}</option>
@@ -184,7 +187,7 @@ export default function AdminAuditPage() {
               type="date"
               value={from}
               onChange={(e) => setFrom(e.target.value)}
-              className="mt-1 w-full bg-zinc-50 border border-zinc-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-violet-500"
+              className="mt-1 w-full bg-zinc-50 border border-[#ebebeb] rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#0070f3]"
             />
           </div>
           <div>
@@ -193,7 +196,7 @@ export default function AdminAuditPage() {
               type="date"
               value={to}
               onChange={(e) => setTo(e.target.value)}
-              className="mt-1 w-full bg-zinc-50 border border-zinc-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-violet-500"
+              className="mt-1 w-full bg-zinc-50 border border-[#ebebeb] rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#0070f3]"
             />
           </div>
         </div>
@@ -203,7 +206,7 @@ export default function AdminAuditPage() {
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
-              <tr className="text-xs text-zinc-500 border-b border-zinc-200">
+              <tr className="text-xs text-zinc-500 border-b border-[#ebebeb]">
                 <th className="text-left py-2 pr-3 font-medium">시각</th>
                 <th className="text-left py-2 pr-3 font-medium">어드민</th>
                 <th className="text-left py-2 pr-3 font-medium">동작</th>
@@ -221,7 +224,7 @@ export default function AdminAuditPage() {
                   <td className="py-2 pr-3 text-zinc-900">{r.adminUsername}</td>
                   <td className="py-2 pr-3">
                     <span
-                      className="text-[10px] font-medium bg-violet-100 text-violet-700 px-1.5 py-0.5 rounded"
+                      className="text-[10px] font-medium bg-[#eef4ff] text-[#0761d1] px-1.5 py-0.5 rounded"
                       title={r.action}
                     >
                       {ACTION_KO[r.action] ?? r.action}
@@ -243,7 +246,7 @@ export default function AdminAuditPage() {
                   <td className="py-2 pr-3 text-right">
                     <button
                       onClick={() => setDetail(r)}
-                      className="inline-block px-2.5 py-1 rounded-md text-[11px] font-semibold bg-violet-100 hover:bg-violet-200 text-violet-700 transition-colors"
+                      className="inline-block px-2.5 py-1 rounded-md text-[11px] font-semibold bg-[#eef4ff] hover:bg-[#d3e5ff] text-[#0761d1] transition-colors"
                     >
                       보기
                     </button>
@@ -267,8 +270,8 @@ function AuditDetailModal({ row, onClose }: { row: AuditRow; onClose: () => void
   return (
     <div className="fixed inset-0 z-[60] flex items-center justify-center p-6">
       <div className="absolute inset-0 bg-black/40" onClick={onClose} />
-      <div className="relative bg-white border border-zinc-200 rounded-2xl w-full max-w-[560px] max-h-[85vh] overflow-y-auto shadow-2xl">
-        <header className="flex items-center justify-between px-6 py-4 border-b border-zinc-100 sticky top-0 bg-white rounded-t-2xl">
+      <div className="relative bg-white border border-[#ebebeb] rounded-lg w-full max-w-[560px] max-h-[85vh] overflow-y-auto shadow-xl">
+        <header className="flex items-center justify-between px-6 py-4 border-b border-zinc-100 sticky top-0 bg-white rounded-t-lg">
           <h3 className="text-base font-semibold text-zinc-900">감사 로그 상세</h3>
           <button onClick={onClose} className="w-7 h-7 rounded-full hover:bg-zinc-100 flex items-center justify-center text-zinc-500">✕</button>
         </header>
@@ -296,7 +299,7 @@ function AuditDetailModal({ row, onClose }: { row: AuditRow; onClose: () => void
           <Field label="요약" value={summarizePayload(row.action, row.payload) || <span className="text-zinc-400">—</span>} />
           <Field label="사유" value={<p className="whitespace-pre-wrap leading-relaxed">{row.reason}</p>} />
           <Field label="payload (raw)" value={
-            <pre className="text-[11px] bg-zinc-50 border border-zinc-200 rounded-lg p-3 overflow-x-auto whitespace-pre-wrap break-all">
+            <pre className="text-[11px] bg-zinc-50 border border-[#ebebeb] rounded-lg p-3 overflow-x-auto whitespace-pre-wrap break-all">
               {JSON.stringify(row.payload, null, 2)}
             </pre>
           } />

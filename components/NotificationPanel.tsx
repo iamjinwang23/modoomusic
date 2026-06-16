@@ -91,11 +91,19 @@ export function NotificationPanel({ mode, onClose }: Props) {
 
   // overlay 모드: main 본문 좌측에서 고정 폭(400px)으로 슬라이드인. 우측은 본문 보임
   const containerClass = mode === 'overlay'
-    ? 'absolute inset-y-0 left-0 w-[400px] z-[58] bg-gradient-to-b from-[#111318] from-50% to-[#12151E] border-r border-white/[0.06] flex flex-col shadow-2xl animate-[slideInLeft_200ms_ease-out]'
+    ? 'absolute inset-y-0 left-0 w-[400px] z-[58] bg-gradient-to-b from-[#111318] from-50% to-[#12151E] border-r border-white/[0.06] flex flex-col shadow-2xl notif-slide-in'
     : 'flex flex-col h-full'
 
   return (
     <>
+      {/* notifications §5.1 — 데스크톱 오버레이: 우측 본문 dim scrim. 클릭 시 패널 닫힘 (패널 z-[58]보다 한 단계 아래) */}
+      {mode === 'overlay' && (
+        <div
+          className="absolute inset-0 z-[57] bg-black/40 animate-[fadeIn_320ms_ease-out]"
+          onClick={() => onClose?.()}
+          aria-hidden="true"
+        />
+      )}
       <div className={containerClass} role={mode === 'overlay' ? 'dialog' : undefined} aria-label="알림">
         {/* 헤더 — 페이지 헤더 톤 (text-xl), 하단 border 없음 + "모두 읽음" 버튼 (미읽음 있을 때만) */}
         <div className="px-6 py-5 shrink-0 flex items-center justify-between">

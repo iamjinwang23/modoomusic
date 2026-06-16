@@ -65,7 +65,7 @@ export function AdminConfirm({
   return createPortal(
     <div className="fixed inset-0 z-[60] flex items-center justify-center p-6">
       <div className="absolute inset-0 bg-black/40" onClick={!busy ? onClose : undefined} />
-      <div className="relative bg-white border border-zinc-200 rounded-2xl w-full max-w-[420px] shadow-2xl p-6">
+      <div className="relative bg-white border border-[#ebebeb] rounded-lg w-full max-w-[420px] shadow-xl p-6">
         <h3 className="text-base font-semibold text-zinc-900">{title}</h3>
         {description && <p className="text-sm text-zinc-600 mt-1.5">{description}</p>}
 
@@ -81,7 +81,7 @@ export function AdminConfirm({
               maxLength={200}
               autoFocus
               placeholder="감사 로그에 기록됩니다"
-              className="w-full bg-zinc-50 border border-zinc-200 rounded-lg px-3 py-2 text-sm text-zinc-900 placeholder:text-zinc-400 focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-violet-500 transition-colors resize-none"
+              className="w-full bg-zinc-50 border border-[#ebebeb] rounded-lg px-3 py-2 text-sm text-zinc-900 placeholder:text-zinc-400 focus:outline-none focus:ring-2 focus:ring-[#0070f3] focus:border-[#0070f3] transition-colors resize-none"
             />
             <p className="text-[11px] text-zinc-400 text-right tabular-nums">{reason.length}/200</p>
           </div>
@@ -96,7 +96,7 @@ export function AdminConfirm({
             type="button"
             disabled={busy}
             onClick={onClose}
-            className="px-4 py-2 rounded-xl text-sm text-zinc-700 hover:bg-zinc-100 transition-colors disabled:opacity-40"
+            className="px-4 py-2 rounded-lg text-sm text-zinc-700 hover:bg-zinc-100 transition-colors disabled:opacity-40"
           >
             취소
           </button>
@@ -104,10 +104,10 @@ export function AdminConfirm({
             type="button"
             disabled={!canSubmit || busy}
             onClick={handleConfirm}
-            className={`px-4 py-2 rounded-xl text-sm font-semibold text-white transition-colors disabled:opacity-40 disabled:cursor-not-allowed ${
+            className={`px-4 py-2 rounded-lg text-sm font-semibold text-white transition-colors disabled:opacity-40 disabled:cursor-not-allowed ${
               variant === 'danger'
-                ? 'bg-red-600 hover:bg-red-500'
-                : 'bg-violet-600 hover:bg-violet-500'
+                ? 'bg-[#ee0000] hover:bg-[#c50000]'
+                : 'bg-[#171717] hover:bg-[#383838]'
             }`}
           >
             {busy ? '처리 중…' : confirmLabel}

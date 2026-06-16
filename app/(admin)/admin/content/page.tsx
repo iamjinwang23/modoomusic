@@ -90,7 +90,7 @@ export default function AdminContentPage() {
       </header>
 
       {feedback && (
-        <div className={`rounded-xl px-4 py-3 text-sm ${
+        <div className={`rounded-lg px-4 py-3 text-sm ${
           feedback.type === 'success' ? 'bg-green-50 text-green-700 border border-green-200' : 'bg-red-50 text-red-700 border border-red-200'
         }`}>
           {feedback.msg}
@@ -106,7 +106,7 @@ export default function AdminContentPage() {
             <select
               value={filter}
               onChange={(e) => { setFilter(e.target.value as typeof filter); setPage(1) }}
-              className="bg-zinc-50 border border-zinc-200 rounded-lg px-2.5 py-1.5 text-xs"
+              className="bg-zinc-50 border border-[#ebebeb] rounded-lg px-2.5 py-1.5 text-xs"
             >
               <option value="all">전체</option>
               <option value="public">공개</option>
@@ -115,7 +115,7 @@ export default function AdminContentPage() {
             <select
               value={limit}
               onChange={(e) => { setLimit(parseInt(e.target.value, 10) as 25 | 50 | 100); setPage(1) }}
-              className="bg-zinc-50 border border-zinc-200 rounded-lg px-2.5 py-1.5 text-xs"
+              className="bg-zinc-50 border border-[#ebebeb] rounded-lg px-2.5 py-1.5 text-xs"
             >
               {[25, 50, 100].map((n) => <option key={n} value={n}>{n}곡</option>)}
             </select>
@@ -127,14 +127,14 @@ export default function AdminContentPage() {
           value={query}
           onChange={(e) => { setQuery(e.target.value); setPage(1) }}
           placeholder="예: 사랑 (제목 또는 프롬프트)"
-          className="w-full bg-zinc-50 border border-zinc-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-violet-500"
+          className="w-full bg-zinc-50 border border-[#ebebeb] rounded-lg px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#0070f3]"
         />
         <p className="text-xs text-zinc-500 mt-2">{loading ? '불러오는 중…' : `총 ${pagination.total.toLocaleString()}곡 · ${pagination.page}/${pagination.totalPages} 페이지`}</p>
 
         <div className="mt-4 overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
-              <tr className="text-xs text-zinc-500 border-b border-zinc-200">
+              <tr className="text-xs text-zinc-500 border-b border-[#ebebeb]">
                 <th className="text-left py-2 pr-3 font-medium">제목</th>
                 <th className="text-left py-2 pr-3 font-medium">소유자</th>
                 <th className="text-right py-2 pr-3 font-medium">재생</th>
@@ -166,7 +166,7 @@ export default function AdminContentPage() {
                   <td className="py-2.5 pr-3 text-right">
                     <button
                       onClick={() => setDetail(s)}
-                      className="inline-block px-2.5 py-1 rounded-md text-[11px] font-semibold bg-violet-100 hover:bg-violet-200 text-violet-700"
+                      className="inline-block px-2.5 py-1 rounded-md text-[11px] font-semibold bg-[#eef4ff] hover:bg-[#d3e5ff] text-[#0761d1]"
                     >
                       보기
                     </button>
@@ -231,15 +231,15 @@ function SongDetailModal({ song, onClose, onAction }: {
   return (
     <div className="fixed inset-0 z-[60] flex items-center justify-center p-6">
       <div className="absolute inset-0 bg-black/40" onClick={onClose} />
-      <div className="relative bg-white border border-zinc-200 rounded-2xl w-full max-w-[520px] max-h-[85vh] overflow-y-auto shadow-2xl">
-        <header className="flex items-center justify-between px-6 py-4 border-b border-zinc-100 sticky top-0 bg-white rounded-t-2xl">
+      <div className="relative bg-white border border-[#ebebeb] rounded-lg w-full max-w-[520px] max-h-[85vh] overflow-y-auto shadow-xl">
+        <header className="flex items-center justify-between px-6 py-4 border-b border-zinc-100 sticky top-0 bg-white rounded-t-lg">
           <h3 className="text-base font-semibold text-zinc-900">곡 상세</h3>
           <button onClick={onClose} className="w-7 h-7 rounded-full hover:bg-zinc-100 flex items-center justify-center text-zinc-500">✕</button>
         </header>
 
         <div className="p-6 space-y-4 text-sm">
           {/* 곡 카드 — 신고 상세와 동일 패턴 (커버 + 제목 + 프롬프트 + 오디오 플레이어) */}
-          <div className="border border-zinc-200 rounded-xl overflow-hidden bg-zinc-50">
+          <div className="border border-[#ebebeb] rounded-lg overflow-hidden bg-zinc-50">
             <div className="flex gap-3 p-3">
               <div
                 className="w-20 h-20 rounded-lg shrink-0 overflow-hidden"
@@ -261,14 +261,14 @@ function SongDetailModal({ song, onClose, onAction }: {
                   href={`/song/${song.id}`}
                   target="_blank"
                   rel="noopener"
-                  className="inline-block mt-2 text-[11px] font-semibold text-violet-700 hover:text-violet-900"
+                  className="inline-block mt-2 text-[11px] font-semibold text-zinc-900 hover:text-zinc-900"
                 >
                   곡 페이지 열기 ↗
                 </a>
               </div>
             </div>
             {song.audioUrl && (
-              <div className="border-t border-zinc-200 p-3 bg-white">
+              <div className="border-t border-[#ebebeb] p-3 bg-white">
                 <audio controls preload="none" src={song.audioUrl} className="w-full">
                   브라우저가 audio를 지원하지 않아요
                 </audio>
@@ -291,7 +291,7 @@ function SongDetailModal({ song, onClose, onAction }: {
             </>
           } />
 
-          <dl className="grid grid-cols-3 gap-3 bg-zinc-50 rounded-xl p-4">
+          <dl className="grid grid-cols-3 gap-3 bg-zinc-50 rounded-lg p-4">
             <div>
               <dt className="text-xs text-zinc-500">재생</dt>
               <dd className="text-base font-semibold text-zinc-900 tabular-nums">{song.playCount}</dd>
@@ -321,7 +321,7 @@ function SongDetailModal({ song, onClose, onAction }: {
               )}
               <button
                 onClick={() => onAction('delete')}
-                className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-red-600 hover:bg-red-500 text-white"
+                className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-[#ee0000] hover:bg-[#c50000] text-white"
               >
                 강제 삭제
               </button>
@@ -347,7 +347,7 @@ function PageBtn({ onClick, disabled, children }: { onClick: () => void; disable
     <button
       onClick={onClick}
       disabled={disabled}
-      className="w-8 h-8 rounded-lg border border-zinc-200 bg-white hover:bg-zinc-50 text-zinc-700 disabled:opacity-30 disabled:cursor-not-allowed transition-colors flex items-center justify-center"
+      className="w-8 h-8 rounded-lg border border-[#ebebeb] bg-white hover:bg-zinc-50 text-zinc-700 disabled:opacity-30 disabled:cursor-not-allowed transition-colors flex items-center justify-center"
     >
       {children}
     </button>
