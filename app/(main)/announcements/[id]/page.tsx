@@ -31,7 +31,7 @@ export default async function AnnouncementDetailPage({ params }: PageProps) {
     : 'bg-[#ff0080]/15 text-[#ff66b2]'
 
   return (
-    <div className="flex flex-col h-full overflow-hidden">
+    <div className="flex flex-1 flex-col min-h-0 overflow-hidden">
       <div className="shrink-0 flex items-center gap-3 px-5 h-14">
         <Link
           href="/announcements"

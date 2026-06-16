@@ -45,7 +45,7 @@ export function AnnouncementList({ items }: { items: Announcement[] }) {
   )
 
   return (
-    <div className="flex flex-col h-full overflow-hidden">
+    <div className="flex flex-1 flex-col min-h-0 overflow-hidden">
       <div className="shrink-0 px-5 pt-5 pb-3">
         <h1 className="text-xl font-semibold text-white">What&apos;s New</h1>
         <p className="text-sm text-zinc-400 mt-1">새로운 소식과 업데이트를 확인하세요</p>
