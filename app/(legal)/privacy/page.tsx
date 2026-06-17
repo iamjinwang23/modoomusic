@@ -231,12 +231,12 @@ export default function PrivacyPage() {
           <p className="text-zinc-200 font-medium mb-1">개인정보 보호책임자</p>
           <p><span className="text-zinc-500">성명</span> &nbsp; 박진왕</p>
           <p><span className="text-zinc-500">직위</span> &nbsp; 과장</p>
-          <p><span className="text-zinc-500">연락처</span> &nbsp; <a href="mailto:jinwang@g-insu.com" className="text-violet-400 hover:text-violet-300 transition-colors">jinwang@g-insu.com</a></p>
+          <p><span className="text-zinc-500">연락처</span> &nbsp; <a href="mailto:bee202408@gmail.com" className="text-violet-400 hover:text-violet-300 transition-colors">bee202408@gmail.com</a></p>
         </div>
         <div className="mt-3 p-4 rounded-lg border border-white/[0.08] bg-white/[0.03] text-sm space-y-1">
           <p className="text-zinc-200 font-medium mb-1">개인정보보호 담당부서</p>
           <p><span className="text-zinc-500">부서명</span> &nbsp; AX팀</p>
-          <p><span className="text-zinc-500">연락처</span> &nbsp; <a href="mailto:marketing@g-insu.com" className="text-violet-400 hover:text-violet-300 transition-colors">marketing@g-insu.com</a></p>
+          <p><span className="text-zinc-500">연락처</span> &nbsp; <a href="mailto:bee202408@gmail.com" className="text-violet-400 hover:text-violet-300 transition-colors">bee202408@gmail.com</a></p>
         </div>
       </Section>
 
