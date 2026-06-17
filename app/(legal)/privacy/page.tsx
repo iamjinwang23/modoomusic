@@ -223,17 +223,37 @@ export default function PrivacyPage() {
         ]} />
       </Section>
 
-      <Section title="제10조 (개인정보 보호 책임자)">
+      <Section title="제10조 (개인정보 보호책임자)">
         <p>
-          회사는 회원의 개인정보를 보호하고 관련 불만을 처리하기 위해 다음과 같이 책임자를 지정하고 있습니다.
+          회사는 이용자의 개인정보가 훼손되거나 침해되지 않도록 최선을 다하고 있으며, 아래와 같이 개인정보의 처리에 관한 업무를 총괄하여 책임질 개인정보 보호책임자 및 개인정보 보호 관련 고충사항과 개인정보 열람청구를 접수·처리하는 담당부서를 두고 있습니다. 다만, 회사는 법률상 요구되는 기술적·물리적·관리적 조치를 다하였음에도 불구하고, 이용자 본인의 부주의나 회사가 관리하지 않는 영역에서의 사고 등 회사의 귀책에 기인하지 않은 손해에 대해서는 책임을 지지 않습니다.
         </p>
         <div className="mt-3 p-4 rounded-lg border border-white/[0.08] bg-white/[0.03] text-sm space-y-1">
-          <p><span className="text-zinc-500">소속</span> &nbsp; 주식회사 비누컴퍼니</p>
-          <p><span className="text-zinc-500">이메일</span> &nbsp; <a href="mailto:bee202408@gmail.com" className="text-violet-400 hover:text-violet-300 transition-colors">bee202408@gmail.com</a></p>
+          <p className="text-zinc-200 font-medium mb-1">개인정보 보호책임자</p>
+          <p><span className="text-zinc-500">성명</span> &nbsp; 박진왕</p>
+          <p><span className="text-zinc-500">직위</span> &nbsp; 과장</p>
+          <p><span className="text-zinc-500">연락처</span> &nbsp; <a href="mailto:jinwang@g-insu.com" className="text-violet-400 hover:text-violet-300 transition-colors">jinwang@g-insu.com</a></p>
+        </div>
+        <div className="mt-3 p-4 rounded-lg border border-white/[0.08] bg-white/[0.03] text-sm space-y-1">
+          <p className="text-zinc-200 font-medium mb-1">개인정보보호 담당부서</p>
+          <p><span className="text-zinc-500">부서명</span> &nbsp; AX팀</p>
+          <p><span className="text-zinc-500">연락처</span> &nbsp; <a href="mailto:marketing@g-insu.com" className="text-violet-400 hover:text-violet-300 transition-colors">marketing@g-insu.com</a></p>
         </div>
       </Section>
 
-      <Section title="제11조 (개인정보처리방침의 변경)">
+      <Section title="제11조 (권익침해 구제방법)">
+        <p>개인정보 침해에 대한 신고나 상담이 필요한 경우 아래 기관에 문의하실 수 있습니다.</p>
+        <List items={[
+          '개인정보분쟁조정위원회: www.kopico.go.kr (국번없이 1833-6972)',
+          '개인정보침해신고센터: privacy.kisa.or.kr (국번없이 118)',
+          '대검찰청 사이버수사과: www.spo.go.kr (국번없이 1301)',
+          '경찰청 사이버수사국: ecrm.police.go.kr (국번없이 182)',
+        ]} />
+        <p className="mt-3">
+          개인정보 보호법 제35조(열람), 제36조(정정·삭제), 제37조(처리정지) 등의 규정에 의한 요구에 대하여 공공기관의 장이 행한 처분 또는 부작위로 권리 또는 이익을 침해받은 경우, 행정심판법이 정하는 바에 따라 행정심판을 청구할 수 있습니다. (중앙행정심판위원회: www.simpan.go.kr, 국번없이 110)
+        </p>
+      </Section>
+
+      <Section title="제12조 (개인정보처리방침의 변경)">
         <List items={[
           '본 방침은 법령·정책 또는 보안 기술의 변경에 따라 내용이 추가·삭제·수정될 수 있습니다.',
           '변경이 있을 경우 변경 사유와 시행일을 명시하여 시행일 7일 이전(중대한 변경은 30일 이전)에 서비스 내에 공지합니다.',
