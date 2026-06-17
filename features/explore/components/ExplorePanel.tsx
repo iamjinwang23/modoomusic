@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect, useCallback } from 'react'
 import Image from 'next/image'
 import { exploreService, type FeedTab } from '@/services/explore.service'
+import { Footer } from '@/components/Footer'
 import { useAuth } from '@/components/AuthProvider'
 import { PublicSongCard } from './PublicSongCard'
 import { ExploreFeedFilter } from './ExploreFeedFilter'
@@ -390,6 +391,13 @@ export function ExplorePanel() {
           ))}
           <RecommendedCreators />
           <GenreSection currentUserId={currentUserId} onMore={openGenreView} />
+        </div>
+      )}
+
+      {/* 본문 푸터 — 사업자정보·사이트맵·정책 (PG/전자상거래법 표시) */}
+      {!inSearchMode && (
+        <div className="-mx-5 mt-12">
+          <Footer />
         </div>
       )}
     </div>

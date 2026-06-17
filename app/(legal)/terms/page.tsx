@@ -9,7 +9,7 @@ export default function TermsPage() {
     <article className="space-y-8 text-zinc-300 leading-relaxed">
       <header className="space-y-2">
         <h1 className="text-3xl font-bold text-white">이용약관</h1>
-        <p className="text-sm text-zinc-500">시행일: 2026년 5월 27일</p>
+        <p className="text-sm text-zinc-500">시행일: 2026년 5월 27일 · 개정: 2026년 6월 17일 (유료서비스 조항 신설)</p>
       </header>
 
       <Section title="제1조 (목적)">
@@ -112,7 +112,20 @@ export default function TermsPage() {
         ]} />
       </Section>
 
-      <Section title="제12조 (책임 제한)">
+      <Section id="payment" title="제12조 (유료서비스 결제, 정기구독 및 청약철회·환불)">
+        <List items={[
+          '회사는 유료서비스로 정기결제 방식의 구독제(예: Plus, Pro)와 크레딧 구매 상품을 제공할 수 있으며, 각 상품의 명칭·가격·제공 내용·이용 기간은 결제 화면에 표시합니다. 유료서비스의 이용대금은 선불을 원칙으로 합니다.',
+          '(정기구독) 구독제는 회원이 선택한 결제수단으로 매 결제주기 시작일에 자동으로 결제되며, 회원이 해지하지 않는 한 동일 조건으로 자동 갱신됩니다. 회원은 서비스 내 설정 또는 고객센터를 통해 언제든지 해지를 신청할 수 있고, 해지 시 다음 결제주기부터 결제되지 않으며 이미 결제된 이용기간 종료 시까지는 서비스가 유지됩니다.',
+          '(청약철회) 회원은 결제일로부터 7일 이내에 청약을 철회할 수 있습니다. 다만 「전자상거래 등에서의 소비자보호에 관한 법률」 제17조에 따라, 디지털 콘텐츠(생성된 음원·가사·이미지 등)의 제공이 개시되었거나 크레딧을 사용(곡 생성 등)한 경우 그 부분에 대해서는 청약철회가 제한됩니다. 사용하지 않은 크레딧 및 제공이 개시되지 않은 구독에 한하여 환불이 가능합니다.',
+          '(정기구독 중도해지) 이미 시작된 구독 기간에 대해서는 원칙적으로 환불되지 않으나, 회사의 귀책사유로 서비스를 정상적으로 이용하지 못한 경우 등 관련 법령이 정하는 사유가 있으면 잔여 기간을 일할 계산하여 환불합니다.',
+          '(크레딧) 무상으로 제공된 크레딧은 환불·환전되지 않습니다. 유상 구매한 크레딧 중 미사용분은 본 조에 따라 환불받을 수 있으며, 회원이 환불을 신청하지 않고 자진 탈퇴하는 경우 회사는 잔여 크레딧의 복구나 부분 환불 책임을 부담하지 않습니다.',
+          '(환불 처리) 회사는 청약철회·환불 요청을 접수한 날부터 3영업일 이내에 동일한 결제수단으로 환급하며(신용카드 등 결제업자를 통한 경우 결제업자의 처리기간을 포함합니다), 동일 수단 환급이 불가능한 경우 회원과 협의된 방법으로 환급합니다.',
+          '(미성년자 결제) 만 19세 미만 미성년자의 결제는 법정대리인의 동의를 받아야 하며, 동의 없이 이루어진 결제는 본인 또는 법정대리인이 취소할 수 있습니다.',
+          '(결제대행) 회사는 결제대행사(PG)를 통해 결제를 처리할 수 있으며, 결제 과정에서 필요한 정보는 개인정보처리방침 및 결제대행사의 정책에 따라 처리됩니다.',
+        ]} />
+      </Section>
+
+      <Section title="제13조 (책임 제한)">
         <List items={[
           'AI를 통해 생성된 결과물은 무작위성과 불완전성을 가지며, 회사는 그 정확성·적합성·법적 안전성을 보장하지 않습니다.',
           '외부 서비스(Supabase, MiniMax 등)의 장애·정책 변경으로 인해 발생하는 불가피한 손해에 대해 회사는 책임을 지지 않습니다.',
@@ -120,23 +133,26 @@ export default function TermsPage() {
         ]} />
       </Section>
 
-      <Section title="제13조 (분쟁 해결)">
+      <Section title="제14조 (분쟁 해결)">
         <List items={[
           '본 약관은 대한민국 법령에 따라 해석됩니다.',
           '회사와 회원 간 발생한 분쟁은 우선 상호 협의를 통해 해결하며, 협의가 이루어지지 않을 경우 서울중앙지방법원을 제1심 관할 법원으로 합니다.',
         ]} />
       </Section>
 
-      <Section title="제14조 (부칙)">
-        <p>본 약관은 2026년 5월 27일부터 시행됩니다.</p>
+      <Section title="제15조 (부칙)">
+        <List items={[
+          '본 약관은 2026년 5월 27일부터 시행됩니다.',
+          '유료서비스 관련 조항(제12조)은 2026년 6월 17일부터 시행됩니다.',
+        ]} />
       </Section>
     </article>
   )
 }
 
-function Section({ title, children }: { title: string; children: React.ReactNode }) {
+function Section({ title, children, id }: { title: string; children: React.ReactNode; id?: string }) {
   return (
-    <section className="space-y-3">
+    <section id={id} className="space-y-3 scroll-mt-20">
       <h2 className="text-lg font-semibold text-white">{title}</h2>
       <div className="text-sm">{children}</div>
     </section>
