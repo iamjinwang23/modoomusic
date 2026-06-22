@@ -739,27 +739,56 @@ function SongMoreMenu({ isOwner, inCollection, onCollect, onPublish, onUnpublish
   onVideoCover?: () => void
 }) {
   const [open, setOpen] = useState(false)
-  const ref = useRef<HTMLDivElement>(null)
+  // portal+fixed로 띄워 조상 overflow에 잘리지 않게. 공간 따라 위/아래로 연다.
+  const [pos, setPos] = useState<{ right: number; top?: number; bottom?: number } | null>(null)
+  const btnRef = useRef<HTMLButtonElement>(null)
+  const menuRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     if (!open) return
     function handler(e: MouseEvent) {
-      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false)
+      const t = e.target as Node
+      if (btnRef.current?.contains(t) || menuRef.current?.contains(t)) return
+      setOpen(false)
     }
+    function close() { setOpen(false) }
     document.addEventListener('mousedown', handler)
-    return () => document.removeEventListener('mousedown', handler)
+    window.addEventListener('scroll', close, true)
+    window.addEventListener('resize', close)
+    return () => {
+      document.removeEventListener('mousedown', handler)
+      window.removeEventListener('scroll', close, true)
+      window.removeEventListener('resize', close)
+    }
   }, [open])
 
+  function toggle() {
+    if (open) { setOpen(false); return }
+    const r = btnRef.current?.getBoundingClientRect()
+    if (r) {
+      const right = Math.max(8, window.innerWidth - r.right)
+      // 위 공간(360px)이 충분하면 위로, 아니면 아래로
+      if (r.top > 360) setPos({ right, bottom: window.innerHeight - r.top + 8 })
+      else setPos({ right, top: r.bottom + 8 })
+    }
+    setOpen(true)
+  }
+
   return (
-    <div ref={ref} className="relative">
+    <>
       <button
-        onClick={() => setOpen(!open)}
+        ref={btnRef}
+        onClick={toggle}
         className="w-10 h-10 rounded-full bg-white/[0.06] hover:bg-white/[0.12] flex items-center justify-center transition-colors"
       >
         <Image src="/More.svg" alt="더보기" width={18} height={18} style={{ filter: 'invert(0.55)' }} />
       </button>
-      {open && (
-        <div className="absolute right-0 bottom-full mb-2 bg-[#282D38] border border-white/[0.08] rounded-xl py-1 min-w-[140px] shadow-xl z-20">
+      {open && pos && typeof document !== 'undefined' && createPortal(
+        <div
+          ref={menuRef}
+          style={{ position: 'fixed', right: pos.right, top: pos.top, bottom: pos.bottom }}
+          className="bg-[#282D38] border border-white/[0.08] rounded-xl py-1 min-w-[160px] max-h-[70vh] overflow-y-auto shadow-xl z-[90]"
+        >
           <button onClick={() => { setOpen(false); onCollect() }} className={`w-full flex items-center gap-2.5 px-3 py-2.5 text-sm hover:bg-white/[0.06] transition-colors ${inCollection ? 'text-violet-400' : 'text-white'}`}>
             <Image src="/Collection.svg" alt="" width={14} height={14} style={{ filter: inCollection ? 'brightness(0) saturate(100%) invert(44%) sepia(51%) saturate(1569%) hue-rotate(221deg) brightness(101%) contrast(96%)' : 'invert(0.55)' }} /> 컬렉션
           </button>
@@ -807,8 +836,9 @@ function SongMoreMenu({ isOwner, inCollection, onCollect, onPublish, onUnpublish
               )}
             </>
           )}
-        </div>
+        </div>,
+        document.body
       )}
-    </div>
+    </>
   )
 }
