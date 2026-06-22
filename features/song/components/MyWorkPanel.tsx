@@ -573,7 +573,7 @@ function SongWorkItem({ song, onOpen, onEdit, onDelete, onCollect, onPublish, on
           >
             {!isGenerating && (song.videoCoverUrl || song.coverImage) && (
               <VideoCoverPlayer
-                videoCoverUrl={song.videoCoverStatus === 'done' ? song.videoCoverUrl : undefined}
+                videoCoverUrl={playing && song.videoCoverStatus === 'done' ? song.videoCoverUrl : undefined}
                 fallbackImageUrl={song.coverImage}
               />
             )}

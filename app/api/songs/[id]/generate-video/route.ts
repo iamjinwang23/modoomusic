@@ -6,6 +6,7 @@ import { createUserClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { consumeVideoTrial, refundVideoTrial, tryConsumeCredits, refundCredits } from '@/services/credit.service'
 import { createVideoTask, VIDEO_TIERS } from '@/services/video.service'
+import { uploadFromUrl } from '@/services/storage.service'
 import type { VideoCoverMode, VideoCoverTier } from '@/types/domain'
 
 interface Params { id: string }
@@ -43,10 +44,17 @@ export async function POST(req: NextRequest, { params }: { params: Promise<Param
   if (song.user_id !== uid) return NextResponse.json({ error: 'forbidden' }, { status: 403 })
   if (song.video_cover_status === 'generating') return NextResponse.json({ error: 'already_generating' }, { status: 409 })
 
-  // image_to_video 소스: 교체 이미지 우선 → 발행 커버 → 원본 커버
-  const imageUrl: string | null = (mode === 'image_to_video' && imageData)
-    ? imageData
-    : (song.publish_cover_image || song.cover_image || null)
+  // image_to_video 소스 결정. 교체 이미지가 있으면 Storage에 올려 곡 커버로도 교체
+  // → 정지 썸네일(=커버)과 생성 영상의 소스가 일치하게 한다.
+  let imageUrl: string | null
+  let newCover: string | null = null
+  if (mode === 'image_to_video' && imageData) {
+    const uploaded = await uploadFromUrl(imageData, 'songs-covers', `${songId}-${Date.now()}.webp`, { toWebp: { maxPx: 800, quality: 85 } })
+    imageUrl = uploaded ?? imageData  // 업로드 실패 시 base64로 폴백(생성은 진행)
+    newCover = uploaded               // 업로드 성공 시에만 커버 교체
+  } else {
+    imageUrl = song.publish_cover_image || song.cover_image || null
+  }
   if (mode === 'image_to_video' && !imageUrl) return NextResponse.json({ error: 'no_cover_image' }, { status: 400 })
 
   // 결제: 체험권 우선 → 크레딧
@@ -75,7 +83,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<Param
     return NextResponse.json({ error: 'minimax_failed', message: (e as Error).message }, { status: 502 })
   }
 
-  await admin.from('songs').update({
+  const patch: Record<string, unknown> = {
     video_cover_status: 'generating',
     video_cover_mode: mode,
     video_cover_prompt: mode === 'text_to_video' ? textPrompt : (motionPrompt || null),
@@ -83,7 +91,13 @@ export async function POST(req: NextRequest, { params }: { params: Promise<Param
     video_cover_task_id: taskId,
     video_cover_charge: charge,
     video_cover_started_at: new Date().toISOString(),
-  }).eq('id', songId)
+  }
+  // 교체 이미지를 곡 커버로 반영 (정지 썸네일=영상 소스 일치). 발행된 곡이면 공개 커버도 갱신.
+  if (newCover) {
+    patch.cover_image = newCover
+    if (song.publish_cover_image) patch.publish_cover_image = newCover
+  }
+  await admin.from('songs').update(patch).eq('id', songId)
 
-  return NextResponse.json({ status: 'generating', charge })
+  return NextResponse.json({ status: 'generating', charge, coverImage: newCover ?? undefined })
 }

@@ -142,6 +142,8 @@ export function VideoCoverModal({ open, songId, title, coverImage, onClose, onCo
       if (res.status === 409) { setPhase('generating'); startPolling(); return } // 이미 생성 중 → 폴링 합류
       if (!res.ok) { setPhase('failed'); setError(d.message || '생성 요청에 실패했어요'); return }
       refreshProfile() // 체험권 차감 반영
+      // 교체 이미지를 커버로 반영했으면 캐시도 즉시 갱신(썸네일=영상 소스 일치)
+      if (d.coverImage) songService.applyRowPatch(activeSongId, { coverImage: d.coverImage })
       startPolling()
     } catch {
       setPhase('failed'); setError('네트워크 오류가 발생했어요')
