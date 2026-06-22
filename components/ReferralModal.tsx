@@ -32,7 +32,7 @@ export function ReferralModal({ open, onClose }: Props) {
       .catch(() => setLoading(false))
   }, [open])
 
-  const link = data ? `https://modoomusic.com/?ref=${data.code}` : ''
+  const link = data ? `https://modoonorae.com/?ref=${data.code}` : ''
 
   async function copy() {
     if (!link) return

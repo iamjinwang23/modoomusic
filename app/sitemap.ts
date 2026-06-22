@@ -1,7 +1,7 @@
 import type { MetadataRoute } from 'next'
 import { createAdminClient } from '@/lib/supabase/admin'
 
-const SITE_URL = 'https://modoomusic.com'
+const SITE_URL = 'https://modoonorae.com'
 
 // 곡 게시·탈퇴가 반영되도록 1시간마다 재생성 (ISR). 빌드 시 고정되면 신규 곡이 색인 안 됨.
 export const revalidate = 3600

@@ -10,7 +10,7 @@ interface Props {
   params: Promise<{ id: string }>
 }
 
-const SITE_URL = 'https://modoomusic.com'
+const SITE_URL = 'https://modoonorae.com'
 
 interface SongMetaRow {
   id: string
