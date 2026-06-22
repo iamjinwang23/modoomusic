@@ -28,6 +28,8 @@ export default async function AnnouncementDetailPage({ params }: PageProps) {
 
   const chip = a.category === 'notice'
     ? 'bg-[#0070f3]/15 text-[#5b9dff]'
+    : a.category === 'feature'
+    ? 'bg-[#7c3aed]/15 text-[#a78bfa]'
     : 'bg-[#ff0080]/15 text-[#ff66b2]'
 
   return (

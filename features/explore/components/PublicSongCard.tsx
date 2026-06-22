@@ -3,6 +3,7 @@
 import Image from 'next/image'
 import { useGlobalPlayer } from '@/contexts/GlobalPlayerContext'
 import { SoundWaveIcon } from '@/components/SoundWaveIcon'
+import { VideoCoverPlayer } from '@/components/VideoCoverPlayer'
 import { useOptimisticToggle } from '@/hooks/useOptimisticToggle'
 import { useAuth } from '@/components/AuthProvider'
 import { toast } from '@/components/toast/toast'
@@ -79,17 +80,24 @@ export function PublicSongCard({ song, onPlay, onThumbPlay, hideArtist = false }
           className="absolute inset-0 transition-transform duration-300 ease-out group-hover:scale-[1.05]"
           style={{ background: coverGradient(song.coverHue) }}
         >
-          {song.coverImage && (
-            <Image src={song.coverImage} alt={displayTitle} fill className="object-cover" sizes="160px" />
+          {(song.videoCoverUrl || song.coverImage) && (
+            <VideoCoverPlayer
+              videoCoverUrl={isThisPlaying && song.videoCoverStatus === 'done' ? song.videoCoverUrl : undefined}
+              fallbackImageUrl={song.coverImage}
+              sizes="160px"
+            />
           )}
         </div>
         {isThisPlaying ? (
-          <>
-            <div className="absolute inset-0 bg-black/30 pointer-events-none" />
-            <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-              <SoundWaveIcon size={32} />
-            </div>
-          </>
+          // 비디오 커버 재생 중이면 영상 자체가 '재생 중'을 보여주므로 dim 생략. 정적 커버면 dim+웨이브.
+          song.videoCoverStatus === 'done' && song.videoCoverUrl ? null : (
+            <>
+              <div className="absolute inset-0 bg-black/30 pointer-events-none" />
+              <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                <SoundWaveIcon size={32} />
+              </div>
+            </>
+          )
         ) : (
           <div className="absolute inset-0 flex items-center justify-center transition-opacity duration-150 opacity-0 group-hover:opacity-80">
             <Image src="/Play.svg" alt="재생" width={32} height={32} style={{ filter: 'invert(1)' }} />

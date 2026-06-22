@@ -560,3 +560,41 @@ export function VideoCoverPlayer({ videoCoverUrl, fallbackImageUrl, coverHue, cl
    - Plus tier 이상 권장
 5. **handle_new_user 트리거에 video_trial_remaining 추가 시 RLS 영향**
    - SECURITY DEFINER 함수이므로 OK이지만 마이그레이션 003 패턴 그대로 따름
+
+---
+
+## 13. 구현 노트 (2026-06-19) — Status: 구현 완료(S1–S4 코드), 미배포
+
+> 본 설계 초안 대비 **실제 구현에서 바뀐 핵심**과 결정 사항. 충돌 시 본 섹션 우선.
+
+### 13.1 핵심 아키텍처 변경 — MiniMax 영상은 비동기
+설계 초안의 "동기 즉시 URL 반환"은 **오류**. 실측(운영 키 직접 curl) 확인:
+- `POST /v1/video_generation` → **`task_id` 반환** (URL 아님)
+- `GET /v1/query/video_generation?task_id=` → `{ status, file_id }`, 완료 시 `status:"Success"`
+- `GET /v1/files/retrieve?file_id=` → `{ file: { download_url } }` — **GroupId 불필요**
+- 생성 영상은 **세로(portrait)** 512×768/918. 소요 수 분.
+→ 음악처럼 `after()` 한 번으로 못 끝냄. **마무리(finalize)는 폴링으로**:
+  - 즉시: `POST /api/songs/[id]/generate-video`가 task 생성 후 `video_cover_task_id` 저장하고 즉시 응답(generating).
+  - 클라 폴링: `GET /api/songs/[id]/video-status`(5초) → 서버가 query→retrieve→Storage 업로드→done.
+  - 백그라운드 재개: `components/VideoCoverPoller.tsx`(레이아웃 마운트, 8초)로 모달 닫혀도/앱 재진입/서버재시작 시 generating 비디오 자동 마무리.
+  - 야간 회수: `cleanup-notifications` 크론이 `sweepVideoCovers()` 호출.
+  - 공통 로직: `services/video-finalize.service.ts:finalizeVideoCover/sweepVideoCovers`. **timeout(12분)은 query 후 검사** — 완성된 영상은 시간 지나도 저장.
+
+### 13.2 마이그레이션
+설계의 020 → 실제 **035_video_cover.sql** (번호 이동). `video_cover_task_id`·`charge`·`started_at` 컬럼 추가. `handle_new_user` 미수정 — `video_trial_remaining smallint NOT NULL DEFAULT 1`로 기존·신규 자동 부여.
+
+### 13.3 가격 2티어 (plan §갱신 반영)
+basic 512P=10cr(Hailuo-02) / hd 768P=20cr(Hailuo-2.3-Fast). `services/video.service.ts:VIDEO_TIERS`. **model 식별자 문자열은 콘솔 확정 필요**(추정값으로 동작 중).
+
+### 13.4 §12 Open Questions 해소
+1. 응답 포맷 → **비동기 task_id 폴링** (위 13.1). 2. model 식별자 → TIERS 상수 분리(콘솔 확정 TODO). 3. Vercel after() → **사용 안 함**, 폴링/크론 방식. 4. Storage egress → **Supabase Pro 전환 완료**(100GB/250GB) + 공개 그리드는 재생중만 자동재생으로 egress 절감. 5. trial 트리거 → 컬럼 DEFAULT로 대체(트리거 미변경).
+
+### 13.5 UI
+- 모달: Suno 참고 구성(미리보기 240px·언더라인 탭·프롬프트 썸네일칩·티어 세그먼트). CTA는 음악 만들기 버튼 구성(Sparkles+크레딧). `document.body` 포털(미니바 위). **연 시점 곡 스냅샷 고정**(재생곡 바뀌어도 불변).
+- VideoCoverPlayer(video→image→gradient 3단 폴백). 곡상세 커버·라이브러리는 자동재생, **탐색·프로필 그리드는 재생중인 곡만** 재생(egress).
+- 진입점: 곡상세 커버 하단 버튼 + 상세/리스트 ⋮ 메뉴.
+- 알림: NotificationItem song_complete를 payload.kind로 분기(video_cover / video_cover_failed). **실패 시 알림 INSERT**.
+
+### 13.6 남은 것
+- 실기기 자동재생 QA, MiniMax model 식별자 콘솔 확정, **커밋·배포**(더 다듬은 뒤).
+- **음악(노래) 생성 실패 알림 추가** — 현재 음악은 성공만 알림, 실패는 토스트만. 비디오와 동일하게 실패 알림 적용 필요.

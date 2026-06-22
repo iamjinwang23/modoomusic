@@ -5,6 +5,7 @@ import { NextResponse } from 'next/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { cleanupGeneratingZombies } from '../cleanup-generating/route'
 import { finalizeDeletions } from '@/services/account.service'
+import { sweepVideoCovers } from '@/services/video-finalize.service'
 
 export async function GET(req: Request) {
   const authHeader = req.headers.get('authorization')
@@ -37,9 +38,17 @@ export async function GET(req: Request) {
     deletions = { error: e instanceof Error ? e.message : 'unknown' }
   }
 
+  // video-cover §4 — 진행중 비디오 task 회수 (이탈/서버재시작으로 폴링 끊긴 건 마무리)
+  let videos: { checked: number; done: number; failed: number } | { error: string }
+  try {
+    videos = await sweepVideoCovers()
+  } catch (e) {
+    videos = { error: e instanceof Error ? e.message : 'unknown' }
+  }
+
   if (error) {
     console.error('[cron cleanup-notifications]', error.message)
-    return NextResponse.json({ error: error.message, zombies, deletions }, { status: 500 })
+    return NextResponse.json({ error: error.message, zombies, deletions, videos }, { status: 500 })
   }
-  return NextResponse.json({ ok: true, deletedNotifications: count ?? 0, cutoff, zombies, deletions })
+  return NextResponse.json({ ok: true, deletedNotifications: count ?? 0, cutoff, zombies, deletions, videos })
 }

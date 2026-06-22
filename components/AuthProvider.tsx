@@ -14,6 +14,7 @@ export interface AuthProfile {
   avatarUrl: string | null
   avatarHue: number
   onboardingDone: boolean
+  videoTrialRemaining: number  // 비디오 커버 무료 체험권 (mig 035)
 }
 
 interface AuthContextValue {
@@ -42,7 +43,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const supabase = createClient()
     const { data } = await supabase
       .from('profiles')
-      .select('username, display_name, avatar_url, avatar_hue, onboarding_done')
+      .select('username, display_name, avatar_url, avatar_hue, onboarding_done, video_trial_remaining')
       .eq('id', user.id)
       .maybeSingle()
     if (!data) { setProfile(null); return }
@@ -52,6 +53,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       avatarUrl: data.avatar_url,
       avatarHue: data.avatar_hue ?? 0,
       onboardingDone: !!data.onboarding_done,
+      videoTrialRemaining: data.video_trial_remaining ?? 0,
     })
   }, [user])
 

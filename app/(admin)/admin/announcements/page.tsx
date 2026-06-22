@@ -14,7 +14,13 @@ type ConfirmState =
   | { kind: 'hide'; item: Announcement }
   | { kind: 'show'; item: Announcement }
   | { kind: 'delete'; item: Announcement }
+  | { kind: 'notify'; item: Announcement }
   | null
+
+// 공개 + 노출 가능(예약 시각 지남) → 알림 발송 가능
+function isVisible(a: Announcement): boolean {
+  return a.status === 'published' && (!a.publishAt || new Date(a.publishAt).getTime() <= Date.now())
+}
 
 function fmtDate(iso: string): string {
   const d = new Date(iso)
@@ -42,6 +48,10 @@ export default function AdminAnnouncementsPage() {
       ? await fetch(`/api/admin/announcements/${item.id}`, {
           method: 'DELETE', headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ reason }),
+        })
+      : kind === 'notify'
+      ? await fetch(`/api/admin/announcements/${item.id}/notify`, {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
         })
       : await fetch(`/api/admin/announcements/${item.id}`, {
           method: 'PATCH', headers: { 'Content-Type': 'application/json' },
@@ -86,7 +96,7 @@ export default function AdminAnnouncementsPage() {
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2">
-                    <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded ${a.category === 'notice' ? 'bg-[#eef4ff] text-[#0761d1]' : 'bg-[#f9e8f3] text-[#b3146b]'}`}>
+                    <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded ${a.category === 'notice' ? 'bg-[#eef4ff] text-[#0761d1]' : a.category === 'feature' ? 'bg-[#f1ecfe] text-[#6d28d9]' : 'bg-[#f9e8f3] text-[#b3146b]'}`}>
                       {ANNOUNCEMENT_CATEGORY_LABEL[a.category]}
                     </span>
                     {a.status === 'hidden' && (
@@ -99,9 +109,20 @@ export default function AdminAnnouncementsPage() {
                     )}
                   </div>
                   <p className="mt-1 text-sm font-medium text-zinc-900 truncate">{a.title}</p>
-                  <p className="text-xs text-zinc-400">{fmtDate(a.createdAt)}</p>
+                  <p className="text-xs text-zinc-400">
+                    {fmtDate(a.createdAt)}
+                    {a.notifiedAt && <span className="ml-2 text-[#0761d1]">· 알림 발송됨</span>}
+                  </p>
                 </div>
                 <div className="flex items-center gap-1.5 shrink-0">
+                  {isVisible(a) && (
+                    <button
+                      onClick={() => setConfirm({ kind: 'notify', item: a })}
+                      className="px-2.5 py-1 rounded-md text-[11px] font-semibold bg-[#0070f3] hover:bg-[#0761d1] text-white"
+                    >
+                      {a.notifiedAt ? '재발송' : '알림 보내기'}
+                    </button>
+                  )}
                   <button onClick={() => setEditor({ mode: 'edit', item: a })} className="px-2.5 py-1 rounded-md text-[11px] font-semibold bg-[#eef4ff] hover:bg-[#d3e5ff] text-[#0761d1]">수정</button>
                   {a.status === 'published' ? (
                     <button onClick={() => setConfirm({ kind: 'hide', item: a })} className="px-2.5 py-1 rounded-md text-[11px] font-semibold bg-zinc-100 hover:bg-zinc-200 text-zinc-700">숨김</button>
@@ -130,15 +151,19 @@ export default function AdminAnnouncementsPage() {
         title={
           confirm?.kind === 'delete' ? '공지 삭제'
           : confirm?.kind === 'hide' ? '공지 숨김'
+          : confirm?.kind === 'notify' ? '전체 알림 보내기'
           : '공지 공개'
         }
         description={
           confirm
-            ? `“${confirm.item.title}” ${confirm.kind === 'delete' ? '— 삭제하면 복구할 수 없어요' : confirm.kind === 'hide' ? '— What’s New에서 숨깁니다' : '— What’s New에 다시 게시합니다'}`
+            ? confirm.kind === 'notify'
+              ? `“${confirm.item.title}” — 탈퇴하지 않은 전체 사용자에게 알림을 보냅니다.${confirm.item.notifiedAt ? ' 이미 받은 사용자는 제외돼요.' : ''}`
+              : `“${confirm.item.title}” ${confirm.kind === 'delete' ? '— 삭제하면 복구할 수 없어요' : confirm.kind === 'hide' ? '— What’s New에서 숨깁니다' : '— What’s New에 다시 게시합니다'}`
             : ''
         }
-        confirmLabel={confirm?.kind === 'delete' ? '삭제' : confirm?.kind === 'hide' ? '숨김' : '공개'}
+        confirmLabel={confirm?.kind === 'delete' ? '삭제' : confirm?.kind === 'hide' ? '숨김' : confirm?.kind === 'notify' ? '알림 발송' : '공개'}
         variant={confirm?.kind === 'delete' ? 'danger' : 'default'}
+        requireReason={confirm?.kind !== 'notify'}
         onClose={() => setConfirm(null)}
         onConfirm={handleConfirm}
       />

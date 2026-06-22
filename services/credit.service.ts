@@ -133,3 +133,27 @@ export async function refundCredits(userId: string, amount: number): Promise<voi
     })
     .eq('id', userId)
 }
+
+// Design Ref: video-cover §4.3 — 비디오 체험권 (크레딧과 분리)
+// 잔량 1 이상이면 0으로 차감하고 true, 0이면 false. 동시성 안전(.gt 조건부 UPDATE).
+export async function consumeVideoTrial(userId: string): Promise<boolean> {
+  const supabase = createAdminClient()
+  const { data, error } = await supabase
+    .from('profiles')
+    .update({ video_trial_remaining: 0, video_trial_used_at: new Date().toISOString() })
+    .eq('id', userId)
+    .gt('video_trial_remaining', 0)
+    .select('id')
+    .maybeSingle()
+  return !!data && !error
+}
+
+// 생성 실패 시 체험권 복원
+export async function refundVideoTrial(userId: string): Promise<void> {
+  const supabase = createAdminClient()
+  await supabase
+    .from('profiles')
+    .update({ video_trial_remaining: 1, video_trial_used_at: null })
+    .eq('id', userId)
+    .eq('video_trial_remaining', 0)
+}

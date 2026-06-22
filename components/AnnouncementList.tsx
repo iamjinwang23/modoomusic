@@ -12,14 +12,15 @@ type Filter = 'all' | AnnouncementCategory
 const CHIPS: { key: Filter; label: string }[] = [
   { key: 'all', label: '전체' },
   { key: 'notice', label: '공지' },
+  { key: 'feature', label: '새로운 기능' },
   { key: 'promotion', label: '프로모션' },
 ]
 
 // 카테고리 칩 색 (다크 배경) — 브랜드 팔레트
 function chipClass(cat: AnnouncementCategory): string {
-  return cat === 'notice'
-    ? 'bg-[#0070f3]/15 text-[#5b9dff]'
-    : 'bg-[#ff0080]/15 text-[#ff66b2]'
+  if (cat === 'notice') return 'bg-[#0070f3]/15 text-[#5b9dff]'
+  if (cat === 'feature') return 'bg-[#7c3aed]/15 text-[#a78bfa]'
+  return 'bg-[#ff0080]/15 text-[#ff66b2]'
 }
 
 // 마크다운 문법 제거 → 미리보기 평문

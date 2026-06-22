@@ -5,12 +5,12 @@ import { NextRequest, NextResponse } from 'next/server'
 import { requireAdminApi } from '@/lib/admin/guard'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { withAudit, AuditError } from '@/services/admin.service'
-import { rowToAnnouncement } from '@/services/announcement.service'
+import { rowToAnnouncement, ANNOUNCEMENT_SELECT } from '@/services/announcement.service'
 
 interface RouteParams { params: Promise<{ id: string }> }
 
-const SELECT = 'id, title, category, content, image_url, status, publish_at, created_at, updated_at'
-const CATEGORIES = ['notice', 'promotion'] as const
+const SELECT = ANNOUNCEMENT_SELECT
+const CATEGORIES = ['notice', 'promotion', 'feature'] as const
 
 export async function PATCH(req: NextRequest, { params }: RouteParams) {
   const auth = await requireAdminApi('announcements')

@@ -1,5 +1,10 @@
 export type SongStatus = 'generating' | 'done' | 'failed'
 
+// Design Ref: video-cover §3 — 비디오 커버 (MiniMax Hailuo, 비동기)
+export type VideoCoverStatus = 'generating' | 'done' | 'failed'
+export type VideoCoverMode = 'image_to_video' | 'text_to_video'
+export type VideoCoverTier = 'basic' | 'hd'  // basic=512P 10cr, hd=768P 20cr
+
 export interface Song {
   id: string
   createdAt: string
@@ -25,6 +30,11 @@ export interface Song {
   commentCount?: number
   status?: SongStatus
   model?: string | null  // 'music-2.0' | 'music-2.5+' | 'music-2.6' (mig 029)
+  // 비디오 커버 (mig 035)
+  videoCoverUrl?: string
+  videoCoverStatus?: VideoCoverStatus
+  videoCoverMode?: VideoCoverMode
+  videoCoverGeneratedAt?: string
 }
 
 export type Genre = '발라드' | '팝' | 'R&B' | '포크' | '힙합' | '재즈'
@@ -59,6 +69,9 @@ export interface PublicSong {
   commentCount: number
   isLiked?: boolean
   model?: string | null
+  // 비디오 커버 (mig 035) — 공개 표면에서 자동재생 루프
+  videoCoverUrl?: string
+  videoCoverStatus?: VideoCoverStatus
 }
 
 // Design Ref: comments §3.3 — 댓글 + 작성자 메타 (단일 GET으로 top+replies)
@@ -121,7 +134,7 @@ export interface Notification {
 }
 
 // Design Ref: §5.2 Module 7 — 공지(What's New)
-export type AnnouncementCategory = 'notice' | 'promotion'
+export type AnnouncementCategory = 'notice' | 'promotion' | 'feature'
 export type AnnouncementStatus = 'published' | 'hidden'
 
 export interface Announcement {
@@ -132,6 +145,7 @@ export interface Announcement {
   imageUrl: string | null
   status: AnnouncementStatus
   publishAt: string | null   // 예약 발행 시각 (null = 즉시)
+  notifiedAt: string | null  // 전체 알림 발송 시각 (null = 미발송)
   createdAt: string
   updatedAt: string
 }
@@ -139,6 +153,7 @@ export interface Announcement {
 export const ANNOUNCEMENT_CATEGORY_LABEL: Record<AnnouncementCategory, string> = {
   notice: '공지',
   promotion: '프로모션',
+  feature: '새로운 기능',
 }
 
 export interface SocialLinks {

@@ -17,6 +17,7 @@ interface Props {
 const CATEGORIES: { value: AnnouncementCategory; label: string }[] = [
   { value: 'notice', label: '공지' },
   { value: 'promotion', label: '프로모션' },
+  { value: 'feature', label: '새로운 기능' },
 ]
 
 // ISO → datetime-local 입력값(YYYY-MM-DDTHH:mm, 로컬 시간)

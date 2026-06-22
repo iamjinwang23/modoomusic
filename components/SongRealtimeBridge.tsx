@@ -21,6 +21,8 @@ interface SongRow {
   duration: number | null
   title: string | null
   prompt: string | null
+  video_cover_status?: 'generating' | 'done' | 'failed' | null
+  video_cover_url?: string | null
 }
 
 function rowToPatch(r: SongRow): Partial<Song> {
@@ -34,6 +36,9 @@ function rowToPatch(r: SongRow): Partial<Song> {
   }
   // 심플 모드는 완료 시 prompt(스타일)를 style_tags로 교체 → 캐시 반영
   if (r.prompt != null) patch.prompt = r.prompt
+  // 비디오 커버 상태/URL
+  if (r.video_cover_status !== undefined) patch.videoCoverStatus = r.video_cover_status ?? undefined
+  if (r.video_cover_url !== undefined) patch.videoCoverUrl = r.video_cover_url ?? undefined
   return patch
 }
 
@@ -56,8 +61,18 @@ export function SongRealtimeBridge() {
           // 캐시의 이전 status를 ground truth로 사용 (없으면 신규 row로 간주).
           const cached = songService.getById(next.id)
           const prevStatus = cached?.status ?? null
+          const prevVideoStatus = cached?.videoCoverStatus ?? null
 
           songService.applyRowPatch(next.id, rowToPatch(next))
+
+          // 비디오 커버 완료/실패 토스트 (음악과 분리)
+          if (prevVideoStatus === 'generating' && next.video_cover_status === 'done') {
+            toast.success('비디오 커버가 완성됐어요', { description: next.title?.trim() || '새 곡' })
+            window.dispatchEvent(new Event('notifications-changed'))
+          } else if (prevVideoStatus === 'generating' && next.video_cover_status === 'failed') {
+            toast.error('비디오 커버 생성에 실패했어요', { description: '체험권·크레딧이 자동 환불되었어요' })
+            window.dispatchEvent(new Event('notifications-changed'))
+          }
 
           if (prevStatus === 'generating' && next.status === 'done') {
             const label = next.title?.trim() || '새 곡'

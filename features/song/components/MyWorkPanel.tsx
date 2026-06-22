@@ -5,6 +5,8 @@ import Image from 'next/image'
 import Link from 'next/link'
 import { songService } from '@/services/song.service'
 import { SongEditModal } from '@/components/SongEditModal'
+import { VideoCoverModal } from '@/components/VideoCoverModal'
+import { VideoCoverPlayer } from '@/components/VideoCoverPlayer'
 import { DownloadDialog } from '@/components/DownloadDialog'
 import { CollectionPickerModal } from './CollectionPickerModal'
 import { MyCollectionPanel } from './MyCollectionPanel'
@@ -99,6 +101,7 @@ export function MyWorkPanel({ showCollections = false }: { showCollections?: boo
   const [publishing, setPublishing] = useState<Song | null>(null)
   const [unpublishing, setUnpublishing] = useState<Song | null>(null)
   const [downloading, setDownloading] = useState<Song | null>(null)
+  const [videoCovering, setVideoCovering] = useState<Song | null>(null)
   const [filter, setFilter] = useState<'all' | 'liked' | 'published'>('all')
   const [query, setQuery] = useState('')
   const [searchOpen, setSearchOpen] = useState(false)  // 모바일: 검색 아이콘→폭 모핑 오버레이
@@ -310,6 +313,7 @@ export function MyWorkPanel({ showCollections = false }: { showCollections?: boo
                   onPublish={() => setPublishing(song)}
                   onUnpublish={() => setUnpublishing(song)}
                   onDownload={() => setDownloading(song)}
+                  onVideoCover={() => setVideoCovering(song)}
                   onThumbPlay={() => handleThumbPlay(song)}
                 />
               ))}
@@ -336,6 +340,14 @@ export function MyWorkPanel({ showCollections = false }: { showCollections?: boo
       {editing && (
         <SongEditModal song={editing} onClose={() => setEditing(null)} />
       )}
+
+      <VideoCoverModal
+        open={!!videoCovering}
+        songId={videoCovering?.id ?? ''}
+        title={videoCovering?.title}
+        coverImage={videoCovering?.coverImage}
+        onClose={() => setVideoCovering(null)}
+      />
 
       {deleting && (
         <ConfirmDeleteModal
@@ -383,7 +395,7 @@ function IconBtn({ src, title, filter, active, count, onClick, size = 'md' }: { 
   )
 }
 
-function MoreMenu({ onEdit, onDelete, onPublish, onDownload, disableEdit = false, onCollect, inCollection = false }: { onEdit: () => void; onDelete: () => void; onPublish?: () => void; onDownload?: () => void; disableEdit?: boolean; onCollect?: () => void; inCollection?: boolean }) {
+function MoreMenu({ onEdit, onDelete, onPublish, onDownload, onVideoCover, disableEdit = false, onCollect, inCollection = false }: { onEdit: () => void; onDelete: () => void; onPublish?: () => void; onDownload?: () => void; onVideoCover?: () => void; disableEdit?: boolean; onCollect?: () => void; inCollection?: boolean }) {
   const [pos, setPos] = useState<{ top: number; right: number } | null>(null)
   const btnRef = useRef<HTMLButtonElement>(null)
 
@@ -467,6 +479,15 @@ function MoreMenu({ onEdit, onDelete, onPublish, onDownload, disableEdit = false
                 다운로드
               </button>
             )}
+            {onVideoCover && (
+              <button
+                onClick={() => { close(); onVideoCover() }}
+                className="w-full flex items-center gap-2.5 px-3 py-2.5 text-sm text-white hover:bg-white/[0.06] transition-colors"
+              >
+                <Image src="/Sparkles.svg" alt="" width={14} height={14} style={{ filter: ICON_FILTER }} />
+                비디오 커버
+              </button>
+            )}
             <button
               onClick={() => { close(); onDelete() }}
               className="w-full flex items-center gap-2.5 px-3 py-2.5 text-sm text-red-400 hover:bg-red-500/10 transition-colors"
@@ -481,7 +502,7 @@ function MoreMenu({ onEdit, onDelete, onPublish, onDownload, disableEdit = false
   )
 }
 
-function SongWorkItem({ song, onOpen, onEdit, onDelete, onCollect, onPublish, onUnpublish, onDownload, onThumbPlay }: { song: Song; onOpen: () => void; onEdit: () => void; onDelete: () => void; onCollect: () => void; onPublish: () => void; onUnpublish: () => void; onDownload: () => void; onThumbPlay: () => void }) {
+function SongWorkItem({ song, onOpen, onEdit, onDelete, onCollect, onPublish, onUnpublish, onDownload, onVideoCover, onThumbPlay }: { song: Song; onOpen: () => void; onEdit: () => void; onDelete: () => void; onCollect: () => void; onPublish: () => void; onUnpublish: () => void; onDownload: () => void; onVideoCover: () => void; onThumbPlay: () => void }) {
   const player = useGlobalPlayer()
   const isCurrentSong = player.song?.id === song.id
   const playing = isCurrentSong && player.isPlaying
@@ -550,8 +571,11 @@ function SongWorkItem({ song, onOpen, onEdit, onDelete, onCollect, onPublish, on
             className={`absolute inset-0 flex items-center justify-center transition-transform duration-300 ease-out ${isGenerating || isFailed ? '' : 'group-hover:scale-[1.05]'}`}
             style={song.coverImage ? undefined : { background: thumbGradient(song) }}
           >
-            {song.coverImage && !isGenerating && (
-              <Image src={song.coverImage} alt="" fill className="object-cover" unoptimized />
+            {!isGenerating && (song.videoCoverUrl || song.coverImage) && (
+              <VideoCoverPlayer
+                videoCoverUrl={song.videoCoverStatus === 'done' ? song.videoCoverUrl : undefined}
+                fallbackImageUrl={song.coverImage}
+              />
             )}
             {isGenerating ? (
               <>
@@ -632,6 +656,7 @@ function SongWorkItem({ song, onOpen, onEdit, onDelete, onCollect, onPublish, on
               onDelete={onDelete}
               onPublish={!song.published && !isGenerating && !isFailed ? onPublish : undefined}
               onDownload={!isGenerating && !isFailed && song.audioUrl ? onDownload : undefined}
+              onVideoCover={!isGenerating && !isFailed ? onVideoCover : undefined}
               disableEdit={isGenerating || isFailed}
               onCollect={!isGenerating && !isFailed ? onCollect : undefined}
               inCollection={inCollection}

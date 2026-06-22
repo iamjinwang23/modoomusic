@@ -34,6 +34,8 @@ function toSong(pub: PublicSong): Song {
     publishComment: pub.publishComment,
     published: pub.published,
     model: pub.model,
+    videoCoverUrl: pub.videoCoverUrl,
+    videoCoverStatus: pub.videoCoverStatus,
   }
 }
 

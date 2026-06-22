@@ -5,10 +5,10 @@ import { NextRequest, NextResponse } from 'next/server'
 import { requireAdminApi } from '@/lib/admin/guard'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { withAudit, AuditError } from '@/services/admin.service'
-import { rowToAnnouncement } from '@/services/announcement.service'
+import { rowToAnnouncement, broadcastAnnouncementNotification, ANNOUNCEMENT_SELECT } from '@/services/announcement.service'
 
-const SELECT = 'id, title, category, content, image_url, status, publish_at, created_at, updated_at'
-const CATEGORIES = ['notice', 'promotion'] as const
+const SELECT = ANNOUNCEMENT_SELECT
+const CATEGORIES = ['notice', 'promotion', 'feature'] as const
 
 export async function GET() {
   const auth = await requireAdminApi('announcements')
@@ -43,7 +43,7 @@ export async function POST(req: NextRequest) {
   const id = typeof body.id === 'string' && body.id ? body.id : undefined
   const title = typeof body.title === 'string' ? body.title.trim() : ''
   const category = typeof body.category === 'string' && CATEGORIES.includes(body.category as never)
-    ? (body.category as 'notice' | 'promotion') : 'notice'
+    ? (body.category as 'notice' | 'promotion' | 'feature') : 'notice'
   const content = typeof body.content === 'string' ? body.content : ''
   const imageUrl = typeof body.imageUrl === 'string' && body.imageUrl ? body.imageUrl : null
   const status = body.status === 'hidden' ? 'hidden' : 'published'
@@ -98,25 +98,8 @@ export async function POST(req: NextRequest) {
       async () => {
         if (!notified) return
         // 탈퇴하지 않은 전체 사용자에게 system 알림. 클릭 시 공지 상세로 이동.
-        const { data: users, error: uErr } = await supabase
-          .from('profiles')
-          .select('id')
-          .is('deleted_at', null)
-          .limit(100000)
-        if (uErr) { console.error('[announcements notify] users:', uErr.message); return }
-        const payload = {
-          title,
-          body: content.replace(/[#*`>_~\-]/g, '').replace(/\s+/g, ' ').trim().slice(0, 80),
-          url: `/announcements/${created.id}`,
-        }
-        const rows = (users ?? []).map((u) => ({
-          user_id: u.id, type: 'system' as const, payload,
-        }))
-        // 배치 INSERT (대량 대비 1000개씩)
-        for (let i = 0; i < rows.length; i += 1000) {
-          const { error: nErr } = await supabase.from('notifications').insert(rows.slice(i, i + 1000))
-          if (nErr) { console.error('[announcements notify] insert:', nErr.message); break }
-        }
+        await broadcastAnnouncementNotification(supabase, { id: created.id, title, content })
+        await supabase.from('announcements').update({ notified_at: new Date().toISOString() }).eq('id', created.id)
       },
     )
   } catch (e) {

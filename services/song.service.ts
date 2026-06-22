@@ -33,6 +33,10 @@ interface DbSong {
   comment_count: number
   status: SongStatus | null
   model: string | null
+  video_cover_url: string | null
+  video_cover_status: string | null
+  video_cover_mode: string | null
+  video_cover_generated_at: string | null
 }
 
 function rowToSong(r: DbSong): Song {
@@ -61,6 +65,10 @@ function rowToSong(r: DbSong): Song {
     commentCount: r.comment_count ?? 0,
     status: r.status ?? 'done',
     model: r.model ?? null,
+    videoCoverUrl: r.video_cover_url ?? undefined,
+    videoCoverStatus: (r.video_cover_status as Song['videoCoverStatus']) ?? undefined,
+    videoCoverMode: (r.video_cover_mode as Song['videoCoverMode']) ?? undefined,
+    videoCoverGeneratedAt: r.video_cover_generated_at ?? undefined,
   }
 }
 
@@ -109,6 +117,8 @@ function patchToRow(p: Partial<Omit<Song, 'id' | 'createdAt'>>): Record<string, 
   if ('publishedAt' in p) out.published_at = p.publishedAt ?? null
   if ('publishComment' in p) out.publish_comment = p.publishComment ?? null
   if ('publishCoverImage' in p) out.publish_cover_image = p.publishCoverImage ?? null
+  if ('videoCoverUrl' in p) out.video_cover_url = p.videoCoverUrl ?? null
+  if ('videoCoverStatus' in p) out.video_cover_status = p.videoCoverStatus ?? null
   return out
 }
 

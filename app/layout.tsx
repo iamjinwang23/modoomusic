@@ -75,14 +75,16 @@ export const metadata: Metadata = {
       'max-video-preview': -1,
     },
   },
+  manifest: '/site.webmanifest',
   icons: {
-    // app/favicon.ico는 Next.js가 자동 처리 (16x16+32x32 멀티 ICO).
-    // 추가 사이즈만 명시.
+    // app/favicon.ico는 Next.js가 자동 처리 (멀티 ICO). 나머지 PNG 사이즈 명시.
     icon: [
       { url: '/favicon-16x16.png', sizes: '16x16', type: 'image/png' },
-      { url: '/logo-512.png', sizes: '512x512', type: 'image/png' },
+      { url: '/favicon-32x32.png', sizes: '32x32', type: 'image/png' },
+      { url: '/favicon-192x192.png', sizes: '192x192', type: 'image/png' },
+      { url: '/favicon-512x512.png', sizes: '512x512', type: 'image/png' },
     ],
-    apple: '/logo-512.png',
+    apple: { url: '/apple-touch-icon.png', sizes: '180x180', type: 'image/png' },
   },
   verification: {
     ...(process.env.GOOGLE_SITE_VERIFICATION ? { google: process.env.GOOGLE_SITE_VERIFICATION } : {}),

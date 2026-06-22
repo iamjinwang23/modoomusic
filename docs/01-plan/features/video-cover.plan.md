@@ -6,7 +6,7 @@
 > **Version**: 0.1.0
 > **Author**: jinwang
 > **Date**: 2026-06-04
-> **Status**: Planning
+> **Status**: 구현 완료(코드, 미배포, 2026-06-19) — 비동기(task_id 폴링) 아키텍처. 상세는 `video-cover.design.md §13 구현 노트`
 
 ---
 

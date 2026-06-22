@@ -66,6 +66,8 @@ export function NotificationPanel({ mode, onClose }: Props) {
               published: pub.published,
               commentCount: pub.commentCount,
               model: pub.model,
+              videoCoverUrl: pub.videoCoverUrl,
+              videoCoverStatus: pub.videoCoverStatus,
             }],
             idx: 0,
             isOwner: !!user && pub.userId === user.id,

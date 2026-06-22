@@ -11,6 +11,7 @@ import { OnboardingModal } from '@/components/OnboardingModal'
 import { ComingSoonModal } from '@/components/ComingSoonModal'
 import { CreditIndicator } from '@/components/CreditIndicator'
 import { SongRealtimeBridge } from '@/components/SongRealtimeBridge'
+import { VideoCoverPoller } from '@/components/VideoCoverPoller'
 import { NotificationRealtimeBridge } from '@/components/NotificationRealtimeBridge'
 import { GlobalMiniBar } from '@/components/GlobalMiniBar'
 import { BottomNav } from '@/components/BottomNav'
@@ -119,6 +120,8 @@ export default function MainShellLayout({ children }: { children: React.ReactNod
               instrumental: pub.instrumental, audioUrl: pub.audioUrl, duration: pub.duration ?? null,
               liked: pub.isLiked, coverHue: pub.coverHue, coverImage: pub.coverImage,
               model: pub.model,
+              videoCoverUrl: pub.videoCoverUrl,
+              videoCoverStatus: pub.videoCoverStatus,
             }],
             idx: 0,
             isOwner: !!user && pub.userId === user.id,
@@ -417,6 +420,7 @@ export default function MainShellLayout({ children }: { children: React.ReactNod
 
       {/* 곡 생성 완료/실패 realtime 구독 (로그인 시) */}
       {user && <SongRealtimeBridge />}
+      {user && <VideoCoverPoller />}
 
       {/* 알림 INSERT realtime 구독 — 배지 누락 race 방지 (로그인 시) */}
       {user && <NotificationRealtimeBridge />}

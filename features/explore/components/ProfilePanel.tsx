@@ -15,6 +15,7 @@ import { useOptimisticToggle } from '@/hooks/useOptimisticToggle'
 import { track, EVENTS } from '@/utils/analytics'
 import { useGlobalPlayer } from '@/contexts/GlobalPlayerContext'
 import { SoundWaveIcon } from '@/components/SoundWaveIcon'
+import { VideoCoverPlayer } from '@/components/VideoCoverPlayer'
 import type { PublicSong, Song, UserProfile, SocialLinks } from '@/types/domain'
 import { profileColor } from '@/utils/profileColor'
 import { toWebp } from '@/utils/imageUpload'
@@ -39,11 +40,15 @@ function ProfileSongThumb({ song, onPlay, onThumbPlay }: { song: PublicSong; onP
       className="relative aspect-[2/3] cursor-pointer overflow-hidden bg-zinc-900"
     >
       <div className="absolute inset-0" style={{ background: coverGradient(song.coverHue) }}>
-        {song.coverImage && (
-          <Image src={song.coverImage} alt={song.title || ''} fill className="object-cover" sizes="(min-width: 768px) 16vw, 33vw" />
+        {(song.videoCoverUrl || song.coverImage) && (
+          <VideoCoverPlayer
+            videoCoverUrl={isThisPlaying && song.videoCoverStatus === 'done' ? song.videoCoverUrl : undefined}
+            fallbackImageUrl={song.coverImage}
+            sizes="(min-width: 768px) 16vw, 33vw"
+          />
         )}
       </div>
-      {isThisPlaying && (
+      {isThisPlaying && !(song.videoCoverStatus === 'done' && song.videoCoverUrl) && (
         <div className="absolute inset-0 bg-black/30 flex items-center justify-center">
           <SoundWaveIcon size={24} />
         </div>
@@ -88,6 +93,8 @@ function toSong(pub: PublicSong): Song {
     publishComment: pub.publishComment,
     published: pub.published,
     model: pub.model,
+    videoCoverUrl: pub.videoCoverUrl,
+    videoCoverStatus: pub.videoCoverStatus,
   }
 }
 

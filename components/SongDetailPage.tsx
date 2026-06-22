@@ -5,6 +5,8 @@ import { createPortal } from 'react-dom'
 import Image from 'next/image'
 import { songService } from '@/services/song.service'
 import { SongEditModal } from '@/components/SongEditModal'
+import { VideoCoverModal } from '@/components/VideoCoverModal'
+import { VideoCoverPlayer } from '@/components/VideoCoverPlayer'
 import { SongReportModal } from '@/components/SongReportModal'
 import { DownloadDialog } from '@/components/DownloadDialog'
 import { CollectionPickerModal } from '@/features/song/components/CollectionPickerModal'
@@ -126,6 +128,7 @@ export function SongDetailPage({ onBack, profile }: Props) {
   const [collectOpen, setCollectOpen] = useState(false)
   const [inCollection, setInCollection] = useState(false)
   const [editOpen, setEditOpen] = useState(false)
+  const [videoOpen, setVideoOpen] = useState(false)
   const [confirmDelete, setConfirmDelete] = useState(false)
   const [publishOpen, setPublishOpen] = useState(false)
   const [confirmUnpublish, setConfirmUnpublish] = useState(false)
@@ -299,14 +302,16 @@ export function SongDetailPage({ onBack, profile }: Props) {
       <div className="relative z-10 flex-1 min-h-0 flex flex-col md:flex-row overflow-y-auto md:overflow-hidden">
         {/* 좌측(데스크톱) / 상단(모바일) — 커버 + 메타 + 액션 */}
         <div className="shrink-0 md:w-[240px] flex flex-col items-center md:items-stretch p-0 md:p-5 gap-0 md:gap-4">
-          {/* 커버 — 모바일: 풀폭 정방형 + 하단 mask fade(배경에 자연 묻어남). 데스크톱: 200px 2:3 */}
+          {/* 모바일: 커버가 액션 행까지 세로로 깔리고 메타가 그 위에 오버레이 / 데스크톱: md:contents로 래퍼 해제해 기존 컬럼 플로우 유지 */}
+          <div className="relative w-full md:contents">
+          {/* 커버 — 모바일: 풀폭 배경(absolute, 세로형). 데스크톱: 240px 2:3 */}
           <div
             onClick={togglePlay}
-            className="relative w-full aspect-square md:aspect-[2/3] md:rounded-2xl overflow-hidden cursor-pointer group [-webkit-mask-image:linear-gradient(to_bottom,black_72%,transparent_100%)] [mask-image:linear-gradient(to_bottom,black_72%,transparent_100%)] md:[-webkit-mask-image:none] md:[mask-image:none]"
+            className="absolute top-0 inset-x-0 aspect-[3/4] overflow-hidden cursor-pointer group [-webkit-mask-image:linear-gradient(to_bottom,black_45%,transparent_100%)] [mask-image:linear-gradient(to_bottom,black_45%,transparent_100%)] md:[-webkit-mask-image:none] md:[mask-image:none] md:relative md:inset-x-auto md:top-auto md:w-full md:aspect-[2/3] md:rounded-2xl"
             style={{ background: song.coverImage ? undefined : coverGradient(song) }}
           >
-            {song.coverImage && (
-              <Image src={song.coverImage} alt="" fill className="object-cover" unoptimized />
+            {(song.videoCoverUrl || song.coverImage) && (
+              <VideoCoverPlayer videoCoverUrl={song.videoCoverUrl} fallbackImageUrl={song.coverImage} />
             )}
             {/* 데스크톱만: 재생 중 dim + 사운드 웨이브 (모바일은 제목 옆에 표시) */}
             {playing ? (
@@ -322,8 +327,22 @@ export function SongDetailPage({ onBack, profile }: Props) {
             )}
           </div>
 
-          {/* 커버 아래 컨테이너 — 모바일은 mask fade 영역으로 살짝 끌어올림, 좌우 padding 추가 */}
-          <div className="relative z-10 flex flex-col items-stretch w-full gap-4 px-5 -mt-10 md:mt-0 pb-5 md:p-0">
+          {/* 모바일 전용 스페이서 — 고정 커버(aspect-3/4) 높이만큼 콘텐츠를 아래로(탭은 통과되어 재생 토글) */}
+          <div aria-hidden className="md:hidden pointer-events-none" style={{ paddingTop: '100%' }} />
+
+          {/* 메타/액션 컨테이너 — 모바일은 커버 위 오버레이(z-10), 데스크톱은 커버 아래 */}
+          <div className="relative z-10 flex flex-col items-stretch w-full gap-4 px-5 pb-5 md:p-0">
+          {/* 소유자: 커버 하단 비디오 커버 만들기 버튼 (Suno Animate 패턴) */}
+          {isOwner && (
+            <button
+              onClick={() => song.videoCoverStatus !== 'generating' && setVideoOpen(true)}
+              disabled={song.videoCoverStatus === 'generating'}
+              className="w-full hidden md:flex items-center justify-center gap-1.5 py-2.5 rounded-xl bg-white/[0.06] hover:bg-white/[0.12] text-sm font-medium text-white transition-colors disabled:opacity-50"
+            >
+              <Image src="/Sparkles.svg" alt="" width={16} height={16} style={{ filter: 'invert(1)' }} />
+              {song.videoCoverStatus === 'generating' ? '비디오 생성 중…' : song.videoCoverUrl ? '비디오 커버 다시 만들기' : '비디오 커버 만들기'}
+            </button>
+          )}
           {/* 모바일 전용: 커버 바로 아래 제목 — 긴 제목은 마퀴 롤링 */}
           <div className="md:hidden flex items-center gap-2 w-full min-w-0">
             <MarqueeText
@@ -414,9 +433,11 @@ export function SongDetailPage({ onBack, profile }: Props) {
               onUnpublish={isOwner && song.published ? () => setConfirmUnpublish(true) : undefined}
               onReport={!isOwner ? () => setReportOpen(true) : undefined}
               onDownload={isOwner && song.audioUrl ? () => setDownloadOpen(true) : undefined}
+              onVideoCover={isOwner ? () => setVideoOpen(true) : undefined}
             />
           </div>
-          </div> {/* /커버 아래 컨테이너 */}
+          </div> {/* /메타·액션 컨테이너 */}
+          </div> {/* /모바일 히어로 래퍼 (md:contents) */}
         </div>
 
         {/* 우측(데스크톱) / 하단(모바일) — 데스크톱: 가사 옆 댓글 / 모바일: 가사·댓글 토글. gap 최소화로 좌측 스크롤바를 댓글 패널 경계에 붙임 */}
@@ -527,6 +548,7 @@ export function SongDetailPage({ onBack, profile }: Props) {
                 onUnpublish={isOwner && song.published ? () => setConfirmUnpublish(true) : undefined}
                 onReport={!isOwner ? () => setReportOpen(true) : undefined}
                 onDownload={isOwner && song.audioUrl ? () => setDownloadOpen(true) : undefined}
+              onVideoCover={isOwner ? () => setVideoOpen(true) : undefined}
               />
             </div>
           </div>
@@ -574,6 +596,14 @@ export function SongDetailPage({ onBack, profile }: Props) {
           onClose={() => setEditOpen(false)}
         />
       )}
+
+      <VideoCoverModal
+        open={videoOpen}
+        songId={song.id}
+        title={song.title}
+        coverImage={song.coverImage}
+        onClose={() => setVideoOpen(false)}
+      />
 
       {reportOpen && (
         <SongReportModal
@@ -696,7 +726,7 @@ function ActionBtn({ title, icon, active, count, onClick }: { title: string; ico
   )
 }
 
-function SongMoreMenu({ isOwner, inCollection, onCollect, onPublish, onUnpublish, onEdit, onDelete, onReport, onDownload }: {
+function SongMoreMenu({ isOwner, inCollection, onCollect, onPublish, onUnpublish, onEdit, onDelete, onReport, onDownload, onVideoCover }: {
   isOwner: boolean
   inCollection: boolean
   onCollect: () => void
@@ -706,6 +736,7 @@ function SongMoreMenu({ isOwner, inCollection, onCollect, onPublish, onUnpublish
   onDelete?: () => void
   onReport?: () => void
   onDownload?: () => void
+  onVideoCover?: () => void
 }) {
   const [open, setOpen] = useState(false)
   const ref = useRef<HTMLDivElement>(null)
@@ -756,6 +787,11 @@ function SongMoreMenu({ isOwner, inCollection, onCollect, onPublish, onUnpublish
               {onDownload && (
                 <button onClick={() => { setOpen(false); onDownload() }} className="w-full flex items-center gap-2.5 px-3 py-2.5 text-sm text-white hover:bg-white/[0.06] transition-colors">
                   <Image src="/Arrow-To-Down.svg" alt="" width={14} height={14} style={{ filter: 'invert(0.55)' }} /> 다운로드
+                </button>
+              )}
+              {onVideoCover && (
+                <button onClick={() => { setOpen(false); onVideoCover() }} className="w-full flex items-center gap-2.5 px-3 py-2.5 text-sm text-white hover:bg-white/[0.06] transition-colors">
+                  <Image src="/Sparkles.svg" alt="" width={14} height={14} style={{ filter: 'invert(0.55)' }} /> 비디오 커버
                 </button>
               )}
               <div className="my-1 h-px bg-white/[0.06]" />
