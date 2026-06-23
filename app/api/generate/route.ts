@@ -178,7 +178,9 @@ export async function POST(req: NextRequest) {
       const updatePatch: Record<string, unknown> = {
         audio_url: finalAudioUrl,
         cover_image: finalCoverUrl,
-        lyrics: songResult.lyrics || null,
+        // 우리가 보낸 가사(커스텀/AI) 우선 — MiniMax는 모델·모드에 따라 lyrics를 응답에 안 돌려줘서
+        // songResult.lyrics만 쓰면 일부 곡 가사가 null로 저장돼 상세에서 안 보임.
+        lyrics: genLyrics?.trim() || songResult.lyrics?.trim() || null,
         status: 'done',
       }
       // 자동 제목: 클라가 제목을 비워 보냈을 때만 song_title로 채움 (사용자 제목 미덮어쓰기)
