@@ -35,9 +35,16 @@ export async function POST(req: NextRequest) {
   let body: {
     id?: unknown; title?: unknown; category?: unknown; content?: unknown
     imageUrl?: unknown; status?: unknown; notify?: unknown; reason?: unknown; publishAt?: unknown
+    popupEnabled?: unknown; popupStartsAt?: unknown; popupEndsAt?: unknown
   }
   try { body = await req.json() } catch {
     return NextResponse.json({ error: 'invalid_input' }, { status: 400 })
+  }
+
+  const toIso = (v: unknown): string | null => {
+    if (typeof v !== 'string' || !v) return null
+    const t = new Date(v)
+    return isNaN(t.getTime()) ? null : t.toISOString()
   }
 
   const id = typeof body.id === 'string' && body.id ? body.id : undefined
@@ -48,6 +55,9 @@ export async function POST(req: NextRequest) {
   const imageUrl = typeof body.imageUrl === 'string' && body.imageUrl ? body.imageUrl : null
   const status = body.status === 'hidden' ? 'hidden' : 'published'
   const notify = body.notify === true
+  const popupEnabled = body.popupEnabled === true
+  const popupStartsAt = toIso(body.popupStartsAt)
+  const popupEndsAt = toIso(body.popupEndsAt)
 
   // 예약 발행 시각 (ISO). 유효하지 않으면 null(즉시).
   let publishAt: string | null = null
@@ -66,9 +76,15 @@ export async function POST(req: NextRequest) {
 
   const supabase = createAdminClient()
 
+  // 팝업 활성화 시 기존 팝업 해제 (동시 1개 — 유니크 인덱스 보호)
+  if (popupEnabled) {
+    await supabase.from('announcements').update({ popup_enabled: false }).eq('popup_enabled', true)
+  }
+
   // 1) 공지 INSERT (id 클라이언트 생성 가능 — 본문 이미지 경로와 일치시키기 위함)
   const insertRow: Record<string, unknown> = {
     title, category, content, image_url: imageUrl, status, publish_at: publishAt, created_by: auth.ctx.userId,
+    popup_enabled: popupEnabled, popup_starts_at: popupStartsAt, popup_ends_at: popupEndsAt,
   }
   if (id) insertRow.id = id
 

@@ -17,6 +17,7 @@ import { GlobalMiniBar } from '@/components/GlobalMiniBar'
 import { BottomNav } from '@/components/BottomNav'
 import { NotificationPanel } from '@/components/NotificationPanel'
 import { ReferralModal } from '@/components/ReferralModal'
+import { PopupAnnouncementCard } from '@/components/PopupAnnouncementCard'
 import { useAuth } from '@/components/AuthProvider'
 import { notificationService } from '@/services/notification.service'
 
@@ -417,6 +418,9 @@ export default function MainShellLayout({ children }: { children: React.ReactNod
 
       {/* Bottom nav — mobile only */}
       <BottomNav />
+
+      {/* 우측 하단 팝업 공지 카드 (활성 팝업 있을 때만) */}
+      <PopupAnnouncementCard />
 
       {/* 곡 생성 완료/실패 realtime 구독 (로그인 시) */}
       {user && <SongRealtimeBridge />}

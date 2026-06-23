@@ -21,9 +21,16 @@ export async function PATCH(req: NextRequest, { params }: RouteParams) {
   let body: {
     title?: unknown; category?: unknown; content?: unknown
     imageUrl?: unknown; status?: unknown; reason?: unknown; publishAt?: unknown
+    popupEnabled?: unknown; popupStartsAt?: unknown; popupEndsAt?: unknown
   }
   try { body = await req.json() } catch {
     return NextResponse.json({ error: 'invalid_input' }, { status: 400 })
+  }
+
+  const toIso = (v: unknown): string | null => {
+    if (typeof v !== 'string' || !v) return null
+    const t = new Date(v)
+    return isNaN(t.getTime()) ? null : t.toISOString()
   }
 
   const reason = typeof body.reason === 'string' ? body.reason.trim() : ''
@@ -44,6 +51,10 @@ export async function PATCH(req: NextRequest, { params }: RouteParams) {
     patch.image_url = body.imageUrl || null
   }
   if (body.status === 'published' || body.status === 'hidden') patch.status = body.status
+  // 팝업: enabled가 boolean으로 오면 반영. 기간은 키가 있을 때만(null=해제, ISO=설정).
+  if (typeof body.popupEnabled === 'boolean') patch.popup_enabled = body.popupEnabled
+  if ('popupStartsAt' in body) patch.popup_starts_at = toIso(body.popupStartsAt)
+  if ('popupEndsAt' in body) patch.popup_ends_at = toIso(body.popupEndsAt)
   // 예약 시각: null이면 즉시(예약 해제), 유효 ISO면 예약. 키 자체가 없으면 미변경.
   if (body.publishAt === null) {
     patch.publish_at = null
@@ -57,6 +68,12 @@ export async function PATCH(req: NextRequest, { params }: RouteParams) {
   }
 
   const supabase = createAdminClient()
+
+  // 팝업 활성화 시 다른 공지의 팝업 해제 (동시 1개 — 유니크 인덱스 보호)
+  if (patch.popup_enabled === true) {
+    await supabase.from('announcements').update({ popup_enabled: false }).eq('popup_enabled', true).neq('id', id)
+  }
+
   let updated: Record<string, unknown> | null = null
   try {
     await withAudit(

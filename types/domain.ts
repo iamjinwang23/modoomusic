@@ -146,6 +146,9 @@ export interface Announcement {
   status: AnnouncementStatus
   publishAt: string | null   // 예약 발행 시각 (null = 즉시)
   notifiedAt: string | null  // 전체 알림 발송 시각 (null = 미발송)
+  popupEnabled: boolean      // 우측 하단 팝업 카드로 노출 (동시 1개만)
+  popupStartsAt: string | null // 팝업 노출 시작 (null = 즉시)
+  popupEndsAt: string | null   // 팝업 노출 종료 (null = 무기한)
   createdAt: string
   updatedAt: string
 }

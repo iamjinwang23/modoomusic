@@ -40,6 +40,10 @@ export function AnnouncementEditor({ mode, initial, onClose, onSaved }: Props) {
   const [publishAt, setPublishAt] = useState(isoToLocalInput(initial?.publishAt)) // '' = 즉시
   const [notify, setNotify] = useState(false)
   const [reason, setReason] = useState('')
+  // 팝업 노출 (우측 하단 카드) — 동시 1개만, 저장 시 기존 팝업 자동 해제
+  const [popupEnabled, setPopupEnabled] = useState(initial?.popupEnabled ?? false)
+  const [popupStartsAt, setPopupStartsAt] = useState(isoToLocalInput(initial?.popupStartsAt))
+  const [popupEndsAt, setPopupEndsAt] = useState(isoToLocalInput(initial?.popupEndsAt))
 
   const scheduledFuture = !!publishAt && new Date(publishAt).getTime() > Date.now()
 
@@ -88,17 +92,19 @@ export function AnnouncementEditor({ mode, initial, onClose, onSaved }: Props) {
     if (mode === 'edit' && reason.trim().length < 5) { setError('변경 사유를 5자 이상 입력하세요 (감사 로그)'); return }
     setBusy(true); setError('')
     const publishAtIso = publishAt ? new Date(publishAt).toISOString() : null
+    const popupStartsAtIso = popupEnabled && popupStartsAt ? new Date(popupStartsAt).toISOString() : null
+    const popupEndsAtIso = popupEnabled && popupEndsAt ? new Date(popupEndsAt).toISOString() : null
     try {
       const res = mode === 'new'
         ? await fetch('/api/admin/announcements', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ id, title, category, content, imageUrl, status, notify, publishAt: publishAtIso }),
+            body: JSON.stringify({ id, title, category, content, imageUrl, status, notify, publishAt: publishAtIso, popupEnabled, popupStartsAt: popupStartsAtIso, popupEndsAt: popupEndsAtIso }),
           })
         : await fetch(`/api/admin/announcements/${id}`, {
             method: 'PATCH',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ title, category, content, imageUrl, status, reason, publishAt: publishAtIso }),
+            body: JSON.stringify({ title, category, content, imageUrl, status, reason, publishAt: publishAtIso, popupEnabled, popupStartsAt: popupStartsAtIso, popupEndsAt: popupEndsAtIso }),
           })
       const json = await res.json()
       if (!res.ok) { setError(`저장 실패: ${json.error ?? res.status}`); setBusy(false); return }
@@ -215,6 +221,45 @@ export function AnnouncementEditor({ mode, initial, onClose, onSaved }: Props) {
               <p className="mt-1.5 text-[11px] text-[#0761d1]">
                 예약됨 — {new Date(publishAt).toLocaleString('ko-KR')}에 What&apos;s New에 공개됩니다.
               </p>
+            )}
+          </div>
+
+          {/* 팝업 노출 — 우측 하단 카드 (동시 1개) */}
+          <div className="rounded-lg border border-[#ebebeb] bg-zinc-50/60 p-3">
+            <label className="flex items-center gap-2 text-sm font-medium text-zinc-800">
+              <input type="checkbox" checked={popupEnabled} onChange={(e) => setPopupEnabled(e.target.checked)} className="accent-[#7c3aed]" />
+              팝업으로 노출 (사이트 우측 하단 카드)
+            </label>
+            {popupEnabled && (
+              <div className="mt-3 space-y-2.5">
+                <div className="flex flex-wrap items-center gap-3">
+                  <label className="text-xs text-zinc-500 w-12 shrink-0">시작</label>
+                  <input
+                    type="datetime-local"
+                    value={popupStartsAt}
+                    onChange={(e) => setPopupStartsAt(e.target.value)}
+                    className="bg-white border border-[#ebebeb] rounded-lg px-3 py-2 text-sm text-zinc-900 focus:outline-none focus:ring-2 focus:ring-[#7c3aed]"
+                  />
+                  {popupStartsAt && (
+                    <button onClick={() => setPopupStartsAt('')} className="px-2.5 py-1.5 rounded-lg text-xs text-zinc-500 hover:bg-zinc-100">비우기(즉시)</button>
+                  )}
+                </div>
+                <div className="flex flex-wrap items-center gap-3">
+                  <label className="text-xs text-zinc-500 w-12 shrink-0">종료</label>
+                  <input
+                    type="datetime-local"
+                    value={popupEndsAt}
+                    onChange={(e) => setPopupEndsAt(e.target.value)}
+                    className="bg-white border border-[#ebebeb] rounded-lg px-3 py-2 text-sm text-zinc-900 focus:outline-none focus:ring-2 focus:ring-[#7c3aed]"
+                  />
+                  {popupEndsAt && (
+                    <button onClick={() => setPopupEndsAt('')} className="px-2.5 py-1.5 rounded-lg text-xs text-zinc-500 hover:bg-zinc-100">비우기(무기한)</button>
+                  )}
+                </div>
+                <p className="text-[11px] text-zinc-400">
+                  이미지와 제목만 노출됩니다. 한 번에 하나의 공지만 팝업으로 노출되며, 저장 시 기존 팝업은 자동 해제됩니다.
+                </p>
+              </div>
             )}
           </div>
 

@@ -13,6 +13,10 @@ interface AnnouncementRow {
   status: 'published' | 'hidden'
   publish_at: string | null
   notified_at: string | null
+  // 팝업 컬럼(마이그레이션 038) — 공개 SELECT엔 없을 수 있어 optional
+  popup_enabled?: boolean | null
+  popup_starts_at?: string | null
+  popup_ends_at?: string | null
   created_at: string
   updated_at: string
 }
@@ -27,14 +31,17 @@ export function rowToAnnouncement(r: AnnouncementRow): Announcement {
     status: r.status,
     publishAt: r.publish_at,
     notifiedAt: r.notified_at ?? null,
+    popupEnabled: r.popup_enabled ?? false,
+    popupStartsAt: r.popup_starts_at ?? null,
+    popupEndsAt: r.popup_ends_at ?? null,
     createdAt: r.created_at,
     updatedAt: r.updated_at,
   }
 }
 
-// 어드민용 — notified_at 포함 (마이그레이션 036 필요)
+// 어드민용 — notified_at + 팝업 컬럼 포함 (마이그레이션 036·038 필요)
 export const ANNOUNCEMENT_SELECT =
-  'id, title, category, content, image_url, status, publish_at, notified_at, created_at, updated_at'
+  'id, title, category, content, image_url, status, publish_at, notified_at, popup_enabled, popup_starts_at, popup_ends_at, created_at, updated_at'
 
 // 공개(SSR)용 — notified_at 불필요. 컬럼 의존을 끊어 마이그레이션 전 배포해도 공개 페이지는 안전.
 const SELECT = 'id, title, category, content, image_url, status, publish_at, created_at, updated_at'
