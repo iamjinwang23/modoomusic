@@ -141,12 +141,13 @@ export function CommentsPanel({ songId, songOwnerId, songIsPublic }: Props) {
       {/* 새 댓글 작성 */}
       <div className="flex gap-2.5 items-start">
         <div
-          className="w-9 h-9 shrink-0 rounded-full overflow-hidden flex items-center justify-center text-xs font-semibold"
+          className="relative w-9 h-9 shrink-0 rounded-full overflow-hidden flex items-center justify-center text-xs font-semibold"
           style={profile?.avatarUrl ? undefined : { background: meColor.bg, color: meColor.text }}
         >
           {profile?.avatarUrl
             ? <Image src={profile.avatarUrl} alt="" width={36} height={36} className="w-full h-full object-cover" unoptimized />
             : meInitial}
+          <span className="pointer-events-none absolute inset-0 rounded-full ring-1 ring-inset ring-white/[0.08]" />
         </div>
         <div className="flex-1 min-w-0">
           <textarea
@@ -164,8 +165,8 @@ export function CommentsPanel({ songId, songOwnerId, songIsPublic }: Props) {
               <button type="button" onClick={() => setBody('')}
                 className="text-xs text-zinc-400 hover:text-white px-3 py-1.5 rounded-lg hover:bg-white/[0.04] transition-colors">취소</button>
               <button type="button" onClick={handleSubmit} disabled={submitting || !body.trim()}
-                className="text-xs font-semibold bg-violet-600 hover:bg-violet-500 disabled:opacity-40 text-white px-3 py-1.5 rounded-lg transition-colors">
-                {submitting ? '작성 중…' : '작성'}
+                className="text-xs font-semibold bg-violet-600 hover:bg-violet-500 disabled:opacity-40 text-white px-3 py-1.5 rounded-lg transition active:scale-[0.96]">
+                {submitting ? '등록 중…' : '댓글'}
               </button>
             </div>
           )}

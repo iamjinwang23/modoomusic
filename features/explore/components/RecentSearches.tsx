@@ -92,7 +92,7 @@ export function RecentSearches({ onSelect }: { onSelect: (q: string) => void }) 
                 type="button"
                 onClick={(e) => remove(q, e)}
                 aria-label="삭제"
-                className="shrink-0 w-7 h-7 flex items-center justify-center rounded-full text-zinc-500 hover:text-white hover:bg-white/[0.08] transition-colors"
+                className="shrink-0 w-7 h-7 flex items-center justify-center rounded-full text-zinc-500 hover:text-white hover:bg-white/[0.08] transition active:scale-90"
               >
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                   <path d="M3 6h18" />

@@ -153,7 +153,7 @@ export default function RootLayout({
   return (
     <html lang="ko" className={`h-full ${pretendard.variable} ${jakarta.variable}`}>
       <body
-        className="min-h-full bg-[#111318]"
+        className="min-h-full bg-[#111318] antialiased"
         style={{ fontFamily: 'var(--font-jakarta), var(--font-pretendard), system-ui, sans-serif' }}
       >
         <script

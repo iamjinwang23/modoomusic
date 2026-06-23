@@ -67,6 +67,8 @@ function ProfileSongThumb({ song, onPlay, onThumbPlay }: { song: PublicSong; onP
           {formatCount(song.playCount)}
         </span>
       </div>
+      {/* 가장자리 라인 — 좌측 패널 라인색 */}
+      <div className="pointer-events-none absolute inset-0 ring-1 ring-inset ring-white/[0.08]" />
     </div>
   )
 }
@@ -442,6 +444,9 @@ export function ProfilePanel({ username }: Props) {
             {/* 하단 그라데이션 */}
             <div className="absolute inset-x-0 bottom-0 h-1/2 bg-gradient-to-t from-black/60 to-transparent pointer-events-none" />
 
+            {/* 커버 가장자리 라인 — 좌측 패널 라인색 */}
+            <div className="pointer-events-none absolute inset-0 rounded-none md:rounded-3xl ring-1 ring-inset ring-white/[0.08]" />
+
             {/* 아바타 + 이름 — 커버 좌하단 */}
             <div className="absolute left-5 bottom-4 z-10 flex items-center gap-4">
               <div
@@ -475,6 +480,8 @@ export function ProfilePanel({ username }: Props) {
                     />
                   </div>
                 )}
+                {/* 아바타 가장자리 라인 — 좌측 패널 라인색 */}
+                <div className="pointer-events-none absolute inset-0 rounded-full ring-1 ring-inset ring-white/[0.08]" />
               </div>
 
               {/* 이름 + 아이디 */}

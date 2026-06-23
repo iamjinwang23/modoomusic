@@ -8,6 +8,7 @@ import { useAuth } from '@/components/AuthProvider'
 import { useGlobalPlayer } from '@/contexts/GlobalPlayerContext'
 import { toast } from '@/components/toast/toast'
 import { SoundWaveIcon } from '@/components/SoundWaveIcon'
+import { ConfirmModal } from '@/components/ConfirmModal'
 import type { Collection, Song } from '@/types/domain'
 
 function hueGradient(id: string) {
@@ -19,9 +20,10 @@ function hueGradient(id: string) {
 function FolderCover({ collection, className = '', isDefault = false }: { collection: Collection; className?: string; isDefault?: boolean }) {
   if (collection.coverImage) {
     return (
-      <div className={`w-full aspect-square rounded-2xl overflow-hidden ${className}`}>
+      <div className={`relative w-full aspect-square rounded-2xl overflow-hidden ${className}`}>
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img src={collection.coverImage} alt={collection.name} className="w-full h-full object-cover" />
+        <span className="pointer-events-none absolute inset-0 rounded-2xl ring-1 ring-inset ring-white/[0.08]" />
       </div>
     )
   }
@@ -35,9 +37,10 @@ function FolderCover({ collection, className = '', isDefault = false }: { collec
     const lastSong = songService.getById(lastId)
     if (lastSong?.coverImage) {
       return (
-        <div className={`w-full aspect-square rounded-2xl overflow-hidden ${className}`}>
+        <div className={`relative w-full aspect-square rounded-2xl overflow-hidden ${className}`}>
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src={lastSong.coverImage} alt="" className="w-full h-full object-cover" />
+          <span className="pointer-events-none absolute inset-0 rounded-2xl ring-1 ring-inset ring-white/[0.08]" />
         </div>
       )
     }
@@ -47,7 +50,7 @@ function FolderCover({ collection, className = '', isDefault = false }: { collec
     return <div className={`w-full aspect-square rounded-2xl ${className}`} style={{ background: hueGradient(ids[0]) }} />
   }
   return (
-    <div className={`w-full aspect-square rounded-2xl overflow-hidden grid grid-cols-2 gap-[2px] bg-zinc-900 ${className}`}>
+    <div className={`relative w-full aspect-square rounded-2xl overflow-hidden grid grid-cols-2 gap-[2px] bg-zinc-900 ring-1 ring-inset ring-white/[0.08] ${className}`}>
       {Array.from({ length: 4 }).map((_, i) => {
         const id = ids[i] ?? ids[ids.length - 1]
         return <div key={i} style={{ background: hueGradient(id) }} />
@@ -135,27 +138,10 @@ function CreateCollectionModal({ onClose, onCreate }: { onClose: () => void; onC
         <button
           onClick={handleSave}
           disabled={!name.trim()}
-          className="w-full py-2.5 rounded-xl bg-violet-600 hover:bg-violet-500 disabled:opacity-40 disabled:cursor-not-allowed text-white text-sm font-semibold transition-colors"
+          className="w-full py-2.5 rounded-xl bg-violet-600 hover:bg-violet-500 disabled:opacity-40 disabled:cursor-not-allowed text-white text-sm font-semibold transition active:scale-[0.98]"
         >
           저장
         </button>
-      </div>
-    </div>
-  )
-}
-
-/* ── 삭제 확인 ── */
-function ConfirmDeleteModal({ name, onConfirm, onCancel }: { name: string; onConfirm: () => void; onCancel: () => void }) {
-  return (
-    <div className="fixed inset-0 z-[75] flex items-center justify-center p-6">
-      <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={onCancel} />
-      <div className="relative bg-[#21252E] border border-white/[0.08] rounded-2xl p-5 w-full max-w-[320px] shadow-2xl">
-        <p className="text-sm font-semibold text-white mb-1">컬렉션을 삭제할까요?</p>
-        <p className="text-xs text-zinc-400 mb-5 truncate">"{name}"의 모든 곡이 컬렉션에서 제거돼요</p>
-        <div className="flex gap-2 justify-end">
-          <button onClick={onCancel} className="px-4 py-2 rounded-xl text-sm text-zinc-400 hover:text-white hover:bg-white/[0.06] transition-colors">아니요</button>
-          <button onClick={onConfirm} className="px-5 py-2 rounded-xl text-sm font-semibold bg-red-600 hover:bg-red-500 text-white transition-colors">삭제</button>
-        </div>
       </div>
     </div>
   )
@@ -395,10 +381,16 @@ export function MyCollectionPanel() {
       )}
 
       {deletingCol && (
-        <ConfirmDeleteModal
-          name={deletingCol.name}
+        <ConfirmModal
+          open={!!deletingCol}
+          zClassName="z-[75]"
+          title="이 컬렉션을 정말 삭제하시겠어요?"
+          description={`컬렉션을 삭제해도 수록된 곡은 삭제되지 않고, "${deletingCol.name}" 목록만 제거돼요.`}
+          confirmLabel="삭제하기"
+          cancelLabel="아니요"
+          variant="danger"
           onConfirm={() => handleDelete(deletingCol)}
-          onCancel={() => setDeletingId(null)}
+          onClose={() => setDeletingId(null)}
         />
       )}
     </div>

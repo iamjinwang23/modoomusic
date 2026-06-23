@@ -103,6 +103,8 @@ export function PublicSongCard({ song, onPlay, onThumbPlay, hideArtist = false }
             <Image src="/Play.svg" alt="재생" width={32} height={32} style={{ filter: 'invert(1)' }} />
           </div>
         )}
+        {/* 커버 가장자리 라인 — 이미지 위 오버레이(좌측 패널 라인색), 박스 내부라 잘리지 않음 */}
+        <div className="pointer-events-none absolute inset-0 rounded-xl ring-1 ring-inset ring-white/[0.08]" />
       </div>
 
       {/* 정보 */}
@@ -138,7 +140,7 @@ export function PublicSongCard({ song, onPlay, onThumbPlay, hideArtist = false }
         <div className="flex items-center gap-3 pt-1 text-xs text-zinc-500">
           <button
             onClick={handleLike}
-            className={`flex items-center gap-1 transition-colors ${liked ? 'text-violet-400' : 'hover:text-zinc-300'}`}
+            className={`flex items-center gap-1 transition active:scale-95 ${liked ? 'text-violet-400' : 'hover:text-zinc-300'}`}
           >
             <Image
               src="/Thumb-Up.svg"

@@ -126,7 +126,7 @@ export function GlobalMiniBar() {
           style={{ touchAction: 'none' }}
         >
           {/* 라인 — 드래그 중이면 두꺼워짐 */}
-          <div className={`absolute top-0 left-0 right-0 bg-white/[0.08] transition-all ${dragging ? 'h-1' : 'h-[2px]'}`}>
+          <div className={`absolute top-0 left-0 right-0 bg-white/[0.08] transition-[height] ${dragging ? 'h-1' : 'h-[2px]'}`}>
             <div
               className="h-full bg-violet-500"
               style={{ width: `${progressPct}%`, transition: dragging ? 'none' : 'width 0.15s linear' }}
@@ -153,6 +153,8 @@ export function GlobalMiniBar() {
               {song.coverImage && (
                 <Image src={song.coverImage} alt="" fill className="object-cover" unoptimized />
               )}
+              {/* 커버 가장자리 라인 — 좌측 패널 라인색 */}
+              <div className="pointer-events-none absolute inset-0 rounded-md ring-1 ring-inset ring-white/[0.08]" />
             </div>
             <div className="flex-1 min-w-0 overflow-hidden">
               {song.model ? (
@@ -193,13 +195,13 @@ export function GlobalMiniBar() {
                   prev()
                 }
               }}
-              className="transition-opacity hover:opacity-70"
+              className="transition hover:opacity-70 active:scale-90"
             >
               <Image src="/Skip-Previous.svg" alt="이전" width={22} height={22} style={{ filter: 'invert(1)' }} />
             </button>
             <button
               onClick={togglePlay}
-              className="flex items-center justify-center transition-colors shrink-0 md:w-[38px] md:h-[38px] md:rounded-full md:bg-white md:hover:bg-zinc-100"
+              className="flex items-center justify-center transition active:scale-[0.94] shrink-0 md:w-[38px] md:h-[38px] md:rounded-full md:bg-white md:hover:bg-zinc-100"
             >
               <Image
                 src={isPlaying ? '/Pause.svg' : '/Play.svg'}
@@ -212,7 +214,7 @@ export function GlobalMiniBar() {
             <button
               onClick={next}
               disabled={!hasNext}
-              className={`transition-opacity ${hasNext ? 'hover:opacity-70' : 'opacity-30 cursor-default'}`}
+              className={`transition active:scale-90 ${hasNext ? 'hover:opacity-70' : 'opacity-30 cursor-default'}`}
             >
               <Image src="/Skip-Forward.svg" alt="다음" width={22} height={22} style={{ filter: 'invert(1)' }} />
             </button>
@@ -244,7 +246,7 @@ export function GlobalMiniBar() {
             <button
               onClick={handleLike}
               title="좋아요"
-              className={`flex items-center gap-1.5 px-2.5 h-8 rounded-full transition-colors ${
+              className={`flex items-center gap-1.5 px-2.5 h-8 rounded-full transition active:scale-[0.96] ${
                 song.liked ? 'bg-white hover:bg-zinc-100' : 'bg-white/[0.06] hover:bg-white/[0.12]'
               }`}
             >
@@ -264,7 +266,7 @@ export function GlobalMiniBar() {
             <button
               onClick={() => setCollectOpen(true)}
               title="컬렉션"
-              className="w-8 h-8 rounded-full flex items-center justify-center bg-white/[0.06] hover:bg-white/[0.12] transition-colors"
+              className="w-8 h-8 rounded-full flex items-center justify-center bg-white/[0.06] hover:bg-white/[0.12] transition active:scale-[0.92]"
             >
               <Image
                 src="/Collection.svg"
@@ -279,7 +281,7 @@ export function GlobalMiniBar() {
             <button
               onClick={handleShare}
               title="공유"
-              className="w-8 h-8 rounded-full flex items-center justify-center bg-white/[0.06] hover:bg-white/[0.12] transition-colors"
+              className="w-8 h-8 rounded-full flex items-center justify-center bg-white/[0.06] hover:bg-white/[0.12] transition active:scale-[0.92]"
             >
               <Image
                 src="/Share.svg"

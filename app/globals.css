@@ -99,6 +99,26 @@ html, body {
   .mode-fade { animation: none; }
 }
 
+/* 음악 만들기 폼 — 최초 진입 시 섹션이 ~60ms 간격으로 차례로 떠오름.
+   마운트 1회만(JS가 1.2s 후 form-enter 제거) → 모드 전환·재렌더 시 재생 안 됨. */
+@keyframes formRise {
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.form-enter > * { animation: formRise 0.5s cubic-bezier(0.22, 1, 0.36, 1) backwards; }
+.form-enter > *:nth-child(1) { animation-delay: 0ms; }
+.form-enter > *:nth-child(2) { animation-delay: 60ms; }
+.form-enter > *:nth-child(3) { animation-delay: 120ms; }
+.form-enter > *:nth-child(4) { animation-delay: 180ms; }
+.form-enter > *:nth-child(5) { animation-delay: 240ms; }
+.form-enter > *:nth-child(6) { animation-delay: 300ms; }
+.form-enter > *:nth-child(7) { animation-delay: 360ms; }
+.form-enter > *:nth-child(8) { animation-delay: 420ms; }
+.form-enter > *:nth-child(n+9) { animation-delay: 480ms; }
+@media (prefers-reduced-motion: reduce) {
+  .form-enter > * { animation: none; }
+}
+
 .shimmer {
   position: relative;
   overflow: hidden;

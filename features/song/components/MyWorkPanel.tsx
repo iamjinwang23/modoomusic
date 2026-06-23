@@ -8,6 +8,7 @@ import { SongEditModal } from '@/components/SongEditModal'
 import { VideoCoverModal } from '@/components/VideoCoverModal'
 import { VideoCoverPlayer } from '@/components/VideoCoverPlayer'
 import { DownloadDialog } from '@/components/DownloadDialog'
+import { ConfirmModal } from '@/components/ConfirmModal'
 import { CollectionPickerModal } from './CollectionPickerModal'
 import { MyCollectionPanel } from './MyCollectionPanel'
 import { PublishModal } from './PublishModal'
@@ -42,48 +43,6 @@ function formatDuration(seconds: number | null): string | null {
   return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`
 }
 
-function ConfirmUnpublishModal({ onConfirm, onCancel }: { onConfirm: () => void; onCancel: () => void }) {
-  return (
-    <div className="fixed inset-0 z-[70] flex items-center justify-center p-6">
-      <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={onCancel} />
-      <div className="relative bg-[#21252E] border border-white/[0.08] rounded-2xl p-5 w-full max-w-[320px] shadow-2xl">
-        <p className="text-sm font-semibold text-white mb-1">게시물을 정말 게시 취소를 하시겠어요?</p>
-        <p className="text-xs text-zinc-400 mb-5">게시 취소하면 더이상 탐색과 프로필, 검색에서 노출되지 않아요.</p>
-        <div className="flex gap-2 justify-end">
-          <button onClick={onCancel} className="px-4 py-2 rounded-xl text-sm text-zinc-400 hover:text-white hover:bg-white/[0.06] transition-colors">취소</button>
-          <button onClick={onConfirm} className="px-5 py-2 rounded-xl text-sm font-semibold bg-red-600 hover:bg-red-500 text-white transition-colors">삭제할게요</button>
-        </div>
-      </div>
-    </div>
-  )
-}
-
-function ConfirmDeleteModal({ song, onConfirm, onCancel }: { song: Song; onConfirm: () => void; onCancel: () => void }) {
-  const displayTitle = song.title || song.prompt.slice(0, 30) + (song.prompt.length > 30 ? '…' : '')
-  return (
-    <div className="fixed inset-0 z-[70] flex items-center justify-center p-6">
-      <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={onCancel} />
-      <div className="relative bg-[#21252E] border border-white/[0.08] rounded-2xl p-5 w-full max-w-[320px] shadow-2xl">
-        <p className="text-sm font-semibold text-white mb-1">삭제하시겠어요?</p>
-        <p className="text-xs text-zinc-400 mb-5 truncate">"{displayTitle}"</p>
-        <div className="flex gap-2 justify-end">
-          <button
-            onClick={onCancel}
-            className="px-4 py-2 rounded-xl text-sm text-zinc-400 hover:text-white hover:bg-white/[0.06] transition-colors"
-          >
-            아니요
-          </button>
-          <button
-            onClick={onConfirm}
-            className="px-5 py-2 rounded-xl text-sm font-semibold bg-red-600 hover:bg-red-500 text-white transition-colors"
-          >
-            네
-          </button>
-        </div>
-      </div>
-    </div>
-  )
-}
 
 export function MyWorkPanel({ showCollections = false }: { showCollections?: boolean }) {
   const { user } = useAuth()
@@ -206,7 +165,7 @@ export function MyWorkPanel({ showCollections = false }: { showCollections?: boo
         )}
       </div>
 
-      {!(showCollections && tab === 'collections') && songs.length > 0 && (
+      {!(showCollections && tab === 'collections') && (loading || songs.length > 0) && (
         <div className="px-6 pb-3">
           <div className="relative flex items-center h-10 md:justify-between">
             {/* 필터 칩 — 모바일에서 검색 열리면 페이드아웃, 데스크톱은 항상 노출 */}
@@ -222,8 +181,8 @@ export function MyWorkPanel({ showCollections = false }: { showCollections?: boo
                     key={key}
                     type="button"
                     onClick={() => setFilter(key)}
-                    className={`flex items-center gap-1.5 px-4 h-10 rounded-full text-[15px] border transition-colors ${
-                      active ? 'bg-white border-white text-zinc-900 font-medium' : 'bg-white/[0.06] border-white/[0.08] text-zinc-400 hover:text-white'
+                    className={`flex items-center gap-1.5 px-4 h-10 rounded-full text-[15px] border transition active:scale-[0.96] ${
+                      active ? 'bg-white border-white text-zinc-900 font-medium' : 'bg-white/[0.06] border-transparent text-zinc-400 hover:text-white'
                     }`}
                   >
                     {icon && (
@@ -288,7 +247,7 @@ export function MyWorkPanel({ showCollections = false }: { showCollections?: boo
               {showCollections && (
                 <Link
                   href="/create"
-                  className="mt-5 inline-flex items-center gap-1.5 px-5 py-2.5 rounded-xl bg-violet-600 hover:bg-violet-500 text-white text-sm font-semibold transition-colors"
+                  className="mt-5 inline-flex items-center gap-1.5 px-5 py-2.5 rounded-xl bg-violet-600 hover:bg-violet-500 text-white text-sm font-semibold transition active:scale-[0.96]"
                 >
                   <Image src="/Sparkles.svg" alt="" width={16} height={16} style={{ filter: 'invert(1)' }} />
                   음악 만들기
@@ -331,9 +290,15 @@ export function MyWorkPanel({ showCollections = false }: { showCollections?: boo
       )}
 
       {unpublishing && (
-        <ConfirmUnpublishModal
+        <ConfirmModal
+          open={!!unpublishing}
+          title="이 게시물을 정말 게시 취소하시겠어요?"
+          description="게시를 취소하면 더 이상 탐색, 프로필, 검색 결과에 노출되지 않아요."
+          confirmLabel="게시 취소하기"
+          cancelLabel="아니요"
+          variant="danger"
           onConfirm={confirmUnpublish}
-          onCancel={() => setUnpublishing(null)}
+          onClose={() => setUnpublishing(null)}
         />
       )}
 
@@ -350,10 +315,15 @@ export function MyWorkPanel({ showCollections = false }: { showCollections?: boo
       />
 
       {deleting && (
-        <ConfirmDeleteModal
-          song={deleting}
+        <ConfirmModal
+          open={!!deleting}
+          title="이 곡을 정말 삭제하시겠어요?"
+          description={`"${deleting.title || deleting.prompt.slice(0, 30) + (deleting.prompt.length > 30 ? '…' : '')}"`}
+          confirmLabel="삭제하기"
+          cancelLabel="아니요"
+          variant="danger"
           onConfirm={confirmDelete}
-          onCancel={() => setDeleting(null)}
+          onClose={() => setDeleting(null)}
         />
       )}
 
@@ -381,7 +351,7 @@ function IconBtn({ src, title, filter, active, count, onClick, size = 'md' }: { 
       type="button"
       title={title}
       onMouseDown={(e) => { e.stopPropagation(); onClick?.() }}
-      className={`${sz} rounded-full flex items-center justify-center gap-1.5 transition-colors ${
+      className={`${sz} rounded-full flex items-center justify-center gap-1.5 transition active:scale-[0.96] ${
         active ? 'bg-white hover:bg-zinc-100' : 'bg-white/[0.06] hover:bg-white/[0.12]'
       }`}
     >
@@ -418,7 +388,7 @@ function MoreMenu({ onEdit, onDelete, onPublish, onDownload, onVideoCover, disab
         ref={btnRef}
         type="button"
         onClick={handleToggle}
-        className="w-8 h-8 md:w-10 md:h-10 rounded-full hover:bg-white/[0.08] flex items-center justify-center transition-colors"
+        className="w-8 h-8 md:w-10 md:h-10 rounded-full hover:bg-white/[0.08] flex items-center justify-center transition active:scale-[0.92]"
       >
         <Image src="/More.svg" alt="더보기" width={18} height={18} className="w-4 h-4 md:w-[18px] md:h-[18px]" style={{ filter: ICON_FILTER }} />
       </button>
@@ -556,7 +526,7 @@ function SongWorkItem({ song, onOpen, onEdit, onDelete, onCollect, onPublish, on
   }
 
   return (
-    <li className="hover:bg-white/[0.02] group">
+    <li className="hover:bg-white/[0.03] transition-colors group">
       <div className="px-4 py-3 flex items-stretch gap-3">
         {/* 썸네일 — 2:3 비율 고정 (self-start로 stretch 방지) */}
         <div
@@ -617,6 +587,8 @@ function SongWorkItem({ song, onOpen, onEdit, onDelete, onCollect, onPublish, on
               </span>
             </>
           )}
+          {/* 커버 가장자리 라인 — 좌측 패널 라인색 */}
+          <div className="pointer-events-none absolute inset-0 rounded-lg ring-1 ring-inset ring-white/[0.08]" />
         </div>
 
         {/* 우측 컬럼 */}
@@ -711,22 +683,27 @@ function SongWorkItem({ song, onOpen, onEdit, onDelete, onCollect, onPublish, on
 }
 
 function SongWorkItemSkeleton() {
+  // 실제 SongWorkItem 레이아웃과 동일하게 맞춤(구분선 없음·self-start 썸네일·우측 py-0.5·
+  // 액션 알약 폭 제각각: 카운트 알약 3 + 공유 정사각 1)
   return (
-    <li className="border-b border-white/[0.04] last:border-b-0">
+    <li>
       <div className="px-4 py-3 flex items-stretch gap-3">
-        <div className="w-14 md:w-16 aspect-[2/3] rounded-lg shrink-0 bg-white/[0.04] shimmer" />
-        <div className="flex-1 min-w-0 flex flex-col gap-2">
-          <div className="flex items-start justify-between gap-2">
-            <div className="flex-1 min-w-0 space-y-2">
-              <div className="h-4 w-2/3 rounded bg-white/[0.04] shimmer" />
-              <div className="h-3 w-full rounded bg-white/[0.04] shimmer" />
+        <div className="w-14 md:w-16 aspect-[2/3] rounded-lg shrink-0 self-start bg-white/[0.04] shimmer" />
+        <div className="flex-1 min-w-0 flex flex-col py-0.5">
+          {/* 제목 행 + 더보기 */}
+          <div className="flex items-start gap-2 mb-0 md:mb-1">
+            <div className="flex-1 min-w-0">
+              <div className="h-[18px] w-2/3 rounded bg-white/[0.04] shimmer" />
+              <div className="h-3 w-full rounded bg-white/[0.04] shimmer mt-2" />
             </div>
             <div className="w-8 h-8 md:w-10 md:h-10 rounded-full bg-white/[0.04] shimmer shrink-0" />
           </div>
+          {/* 액션 행 — 재생수·좋아요·댓글(알약) + 공유(정사각) */}
           <div className="flex items-center gap-2 mt-1.5 md:mt-3">
-            {[0, 1, 2, 3].map((i) => (
-              <div key={i} className="h-[30px] md:h-[35px] w-14 rounded-full bg-white/[0.04] shimmer shrink-0" />
-            ))}
+            <div className="h-[30px] md:h-[35px] w-[52px] rounded-full bg-white/[0.04] shimmer shrink-0" />
+            <div className="h-[30px] md:h-[35px] w-[52px] rounded-full bg-white/[0.04] shimmer shrink-0" />
+            <div className="h-[30px] md:h-[35px] w-[52px] rounded-full bg-white/[0.04] shimmer shrink-0" />
+            <div className="w-[30px] h-[30px] md:w-[35px] md:h-[35px] rounded-full bg-white/[0.04] shimmer shrink-0" />
           </div>
         </div>
       </div>

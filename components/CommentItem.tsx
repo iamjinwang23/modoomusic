@@ -5,6 +5,7 @@ import Image from 'next/image'
 import { commentService, formatRelativeKo } from '@/services/comment.service'
 import { toast } from '@/components/toast/toast'
 import { profileColor } from '@/utils/profileColor'
+import { ConfirmModal } from '@/components/ConfirmModal'
 import type { Comment } from '@/types/domain'
 
 interface Props {
@@ -36,6 +37,7 @@ export function CommentItem({
   const [editOpen, setEditOpen] = useState(false)
   const [editBody, setEditBody] = useState(comment.body)
   const [editSaving, setEditSaving] = useState(false)
+  const [confirmDel, setConfirmDel] = useState(false)
 
   const [replyOpen, setReplyOpen] = useState(false)
   const [replyBody, setReplyBody] = useState('')
@@ -84,7 +86,7 @@ export function CommentItem({
   }
 
   async function handleDelete() {
-    if (!confirm('이 댓글을 삭제할까요? 대댓글도 함께 삭제돼요.')) return
+    setConfirmDel(false)
     try {
       await commentService.remove(comment.id)
       onDeleted(comment.id)
@@ -119,13 +121,14 @@ export function CommentItem({
       <button
         type="button"
         onClick={goProfile}
-        className={`${avatarSize} shrink-0 rounded-full overflow-hidden flex items-center justify-center font-semibold hover:opacity-80 transition-opacity`}
+        className={`relative ${avatarSize} shrink-0 rounded-full overflow-hidden flex items-center justify-center font-semibold hover:opacity-80 transition-opacity`}
         style={comment.user.avatarUrl ? undefined : { background: fallback.bg, color: fallback.text }}
         aria-label={`${comment.user.displayName ?? comment.user.username} 프로필 보기`}
       >
         {comment.user.avatarUrl
           ? <Image src={comment.user.avatarUrl} alt="" width={avatarPx} height={avatarPx} className="w-full h-full object-cover" unoptimized />
           : initial}
+        <span className="pointer-events-none absolute inset-0 rounded-full ring-1 ring-inset ring-white/[0.08]" />
       </button>
 
       <div className="flex-1 min-w-0">
@@ -155,7 +158,7 @@ export function CommentItem({
               <button type="button" onClick={() => { setEditOpen(false); setEditBody(comment.body) }}
                 className="text-xs text-zinc-400 hover:text-white px-3 py-1.5 rounded-lg hover:bg-white/[0.04] transition-colors">취소</button>
               <button type="button" onClick={handleEditSave} disabled={editSaving || !editBody.trim()}
-                className="text-xs font-semibold bg-violet-600 hover:bg-violet-500 disabled:opacity-40 text-white px-3 py-1.5 rounded-lg transition-colors">
+                className="text-xs font-semibold bg-violet-600 hover:bg-violet-500 disabled:opacity-40 text-white px-3 py-1.5 rounded-lg transition active:scale-[0.96]">
                 {editSaving ? '저장 중…' : '저장'}
               </button>
             </div>
@@ -210,9 +213,13 @@ export function CommentItem({
                     {isOwner ? (
                       <>
                         <button type="button" onClick={() => { setMoreOpen(false); setEditOpen(true) }}
-                          className="w-full text-left px-3 py-2 text-sm text-white hover:bg-white/[0.06] transition-colors">편집</button>
-                        <button type="button" onClick={() => { setMoreOpen(false); handleDelete() }}
-                          className="w-full text-left px-3 py-2 text-sm text-red-400 hover:bg-red-500/10 transition-colors">삭제</button>
+                          className="w-full flex items-center gap-2 px-3 py-2 text-sm text-white hover:bg-white/[0.06] transition-colors">
+                          <Image src="/Edit.svg" alt="" width={12} height={12} style={{ filter: 'invert(0.55)' }} /> 편집
+                        </button>
+                        <button type="button" onClick={() => { setMoreOpen(false); setConfirmDel(true) }}
+                          className="w-full flex items-center gap-2 px-3 py-2 text-sm text-red-400 hover:bg-red-500/10 transition-colors">
+                          <Image src="/Delete-2.svg" alt="" width={12} height={12} style={{ filter: 'invert(0.4) sepia(1) saturate(3) hue-rotate(300deg)' }} /> 삭제
+                        </button>
                       </>
                     ) : (
                       <button type="button" onClick={() => {
@@ -245,7 +252,7 @@ export function CommentItem({
               <button type="button" onClick={() => { setReplyOpen(false); setReplyBody('') }}
                 className="text-xs text-zinc-400 hover:text-white px-3 py-1.5 rounded-lg hover:bg-white/[0.04] transition-colors">취소</button>
               <button type="button" onClick={handleReplySubmit} disabled={replySaving || !replyBody.trim()}
-                className="text-xs font-semibold bg-violet-600 hover:bg-violet-500 disabled:opacity-40 text-white px-3 py-1.5 rounded-lg transition-colors">
+                className="text-xs font-semibold bg-violet-600 hover:bg-violet-500 disabled:opacity-40 text-white px-3 py-1.5 rounded-lg transition active:scale-[0.96]">
                 {replySaving ? '작성 중…' : '답글'}
               </button>
             </div>
@@ -272,6 +279,17 @@ export function CommentItem({
           </div>
         )}
       </div>
+
+      <ConfirmModal
+        open={confirmDel}
+        title="이 댓글을 정말 삭제하시겠어요?"
+        description="삭제 시 등록된 대댓글도 함께 삭제돼요."
+        confirmLabel="삭제하기"
+        cancelLabel="아니요"
+        variant="danger"
+        onConfirm={handleDelete}
+        onClose={() => setConfirmDel(false)}
+      />
     </div>
   )
 }

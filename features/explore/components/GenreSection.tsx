@@ -174,7 +174,7 @@ export function GenreSection({
           <button
             key={g}
             onClick={() => setActiveGenre(g)}
-            className={`shrink-0 px-4 py-2 rounded-full text-sm font-medium transition-colors ${
+            className={`shrink-0 px-4 py-2 rounded-full text-sm font-medium transition active:scale-[0.96] ${
               activeGenre === g
                 ? 'bg-white text-zinc-900'
                 : 'bg-white/[0.06] text-zinc-300 hover:bg-white/[0.12]'
@@ -219,7 +219,7 @@ export function GenreSection({
             {fadeLeft && hovered && (
               <button
                 onClick={() => scrollBy(-1)}
-                className="hidden md:flex absolute left-2 top-[150px] -translate-y-1/2 z-20 w-10 h-10 rounded-full bg-white/20 hover:bg-white/35 items-center justify-center transition-all duration-200"
+                className="hidden md:flex absolute left-2 top-[150px] -translate-y-1/2 z-20 w-10 h-10 rounded-full bg-white/20 hover:bg-white/35 items-center justify-center transition active:scale-90 duration-200"
               >
                 <Image src="/Left-Small.svg" alt="이전" width={24} height={24} style={{ filter: 'invert(1)' }} />
               </button>
@@ -247,7 +247,7 @@ export function GenreSection({
             {fadeRight && hovered && (
               <button
                 onClick={() => scrollBy(1)}
-                className="hidden md:flex absolute right-2 top-[150px] -translate-y-1/2 z-20 w-10 h-10 rounded-full bg-white/20 hover:bg-white/35 items-center justify-center transition-all duration-200"
+                className="hidden md:flex absolute right-2 top-[150px] -translate-y-1/2 z-20 w-10 h-10 rounded-full bg-white/20 hover:bg-white/35 items-center justify-center transition active:scale-90 duration-200"
               >
                 <Image src="/Right-Small.svg" alt="다음" width={24} height={24} style={{ filter: 'invert(1)' }} />
               </button>

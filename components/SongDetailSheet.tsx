@@ -183,7 +183,7 @@ function handleLike() {
           <div className="w-[240px] shrink-0 flex flex-col p-5 gap-4">
             {/* Cover art */}
             <div
-              className="w-full rounded-2xl flex-1 min-h-[200px] max-h-[280px]"
+              className="w-full rounded-2xl flex-1 min-h-[200px] max-h-[280px] ring-1 ring-inset ring-white/[0.08]"
               style={{ background: coverGradient(songData) }}
             />
 

@@ -103,6 +103,7 @@ function UserCard({ user }: { user: SearchUser }) {
           ) : (
             <span className="text-lg font-semibold text-white">{initial}</span>
           )}
+          <div className="pointer-events-none absolute inset-0 rounded-full ring-1 ring-inset ring-white/[0.08]" />
         </div>
       </button>
 
@@ -114,7 +115,7 @@ function UserCard({ user }: { user: SearchUser }) {
       <button
         onClick={(e) => { e.preventDefault(); toggle() }}
         aria-pressed={following}
-        className={`shrink-0 inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-sm font-medium transition-colors ${
+        className={`shrink-0 inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-sm font-medium transition active:scale-[0.96] ${
           following
             ? 'bg-white/[0.12] text-zinc-300 hover:bg-white/[0.18]'
             : 'bg-violet-600 text-white hover:bg-violet-500'
@@ -143,7 +144,7 @@ function TagChip({ tag, onClick }: { tag: SearchTag; onClick: (t: SearchTag) => 
     <button
       type="button"
       onClick={handleClick}
-      className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full bg-white/[0.06] hover:bg-white/[0.12] border border-white/[0.08] text-sm text-zinc-100 transition-colors"
+      className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full bg-white/[0.06] hover:bg-white/[0.12] border border-white/[0.08] text-sm text-zinc-100 transition active:scale-[0.96]"
     >
       <span>{tag.label}</span>
       <span className="text-xs text-zinc-400">{tag.count}곡</span>

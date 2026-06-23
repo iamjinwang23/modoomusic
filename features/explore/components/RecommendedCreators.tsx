@@ -62,6 +62,8 @@ function CreatorCard({ creator, position }: { creator: RecommendedCreator; posit
           ) : (
             <span className="text-2xl font-semibold text-white">{initial}</span>
           )}
+          {/* 가장자리 라인 — 좌측 패널 라인색 */}
+          <div className="pointer-events-none absolute inset-0 rounded-full ring-1 ring-inset ring-white/[0.08]" />
         </div>
       </button>
 
@@ -73,7 +75,7 @@ function CreatorCard({ creator, position }: { creator: RecommendedCreator; posit
       <button
         onClick={(e) => { e.preventDefault(); toggle() }}
         aria-pressed={following}
-        className={`w-full flex items-center justify-center gap-1.5 px-4 py-2 rounded-full text-sm font-medium transition-colors ${
+        className={`w-full flex items-center justify-center gap-1.5 px-4 py-2 rounded-full text-sm font-medium transition active:scale-[0.96] ${
           following
             ? 'bg-white/[0.12] text-zinc-300 hover:bg-white/[0.18]'
             : 'bg-violet-600 text-white hover:bg-violet-500'
@@ -179,7 +181,7 @@ export function RecommendedCreators() {
         {fadeLeft && hovered && (
           <button
             onClick={() => scrollBy(-1)}
-            className="hidden md:flex absolute left-2 top-1/2 -translate-y-1/2 z-20 w-10 h-10 rounded-full bg-white/20 hover:bg-white/35 items-center justify-center transition-all duration-200"
+            className="hidden md:flex absolute left-2 top-1/2 -translate-y-1/2 z-20 w-10 h-10 rounded-full bg-white/20 hover:bg-white/35 items-center justify-center transition active:scale-90 duration-200"
           >
             <Image src="/Left-Small.svg" alt="이전" width={24} height={24} style={{ filter: 'invert(1)' }} />
           </button>
@@ -199,7 +201,7 @@ export function RecommendedCreators() {
         {fadeRight && hovered && (
           <button
             onClick={() => scrollBy(1)}
-            className="hidden md:flex absolute right-2 top-1/2 -translate-y-1/2 z-20 w-10 h-10 rounded-full bg-white/20 hover:bg-white/35 items-center justify-center transition-all duration-200"
+            className="hidden md:flex absolute right-2 top-1/2 -translate-y-1/2 z-20 w-10 h-10 rounded-full bg-white/20 hover:bg-white/35 items-center justify-center transition active:scale-90 duration-200"
           >
             <Image src="/Right-Small.svg" alt="다음" width={24} height={24} style={{ filter: 'invert(1)' }} />
           </button>

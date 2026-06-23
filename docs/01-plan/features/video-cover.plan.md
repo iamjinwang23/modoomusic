@@ -6,7 +6,7 @@
 > **Version**: 0.1.0
 > **Author**: jinwang
 > **Date**: 2026-06-04
-> **Status**: 구현 완료(코드, 미배포, 2026-06-19) — 비동기(task_id 폴링) 아키텍처. 상세는 `video-cover.design.md §13 구현 노트`
+> **Status**: 프로덕션 배포 완료(2026-06-22, 커밋 1ce7287) — 비동기(task_id 폴링) 아키텍처. 후속: 모달 세로비율·이미지 교체 업로드(첨부 이미지→cover_image 교체)·리스트 재생-only 통일·더보기 메뉴 portal fix(f4d70b9·c833830). 상세는 `video-cover.design.md §13 구현 노트` 및 메모리 `project-video-cover`
 
 ---
 

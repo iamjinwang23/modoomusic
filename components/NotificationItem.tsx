@@ -62,10 +62,12 @@ export function NotificationItem({ notif, onClick }: Props) {
   ) : notif.type === 'song_complete' && notif.songCoverImage ? (
     <div className="relative w-10 h-10 rounded-md overflow-hidden shrink-0">
       <Image src={notif.songCoverImage} alt="" fill className="object-cover" sizes="40px" unoptimized />
+      <div className="pointer-events-none absolute inset-0 rounded-md ring-1 ring-inset ring-white/[0.08]" />
     </div>
   ) : notif.actorAvatarUrl ? (
     <div className="relative w-10 h-10 rounded-full overflow-hidden shrink-0">
       <Image src={notif.actorAvatarUrl} alt={notif.actorName ?? ''} fill className="object-cover" sizes="40px" unoptimized />
+      <div className="pointer-events-none absolute inset-0 rounded-full ring-1 ring-inset ring-white/[0.08]" />
     </div>
   ) : (
     <div

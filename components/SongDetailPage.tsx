@@ -9,6 +9,7 @@ import { VideoCoverModal } from '@/components/VideoCoverModal'
 import { VideoCoverPlayer } from '@/components/VideoCoverPlayer'
 import { SongReportModal } from '@/components/SongReportModal'
 import { DownloadDialog } from '@/components/DownloadDialog'
+import { ConfirmModal } from '@/components/ConfirmModal'
 import { CollectionPickerModal } from '@/features/song/components/CollectionPickerModal'
 import { PublishModal } from '@/features/song/components/PublishModal'
 import { collectionService } from '@/services/collection.service'
@@ -216,6 +217,14 @@ export function SongDetailPage({ onBack, profile }: Props) {
     }
   }
 
+  // 아티스트 이름 클릭 → 프로필 이동. Song/컨텍스트에 username이 없어 ownerUserId로 조회 후 dispatch.
+  async function goOwnerProfile() {
+    if (!ownerUserId) return
+    const { data } = await createClient()
+      .from('profiles').select('username').eq('id', ownerUserId).maybeSingle()
+    if (data?.username) window.dispatchEvent(new CustomEvent('view-profile', { detail: data.username }))
+  }
+
   function handleDelete() {
     if (isOwner) {
       const snapshot = songService.delete(song!.id)
@@ -325,6 +334,8 @@ export function SongDetailPage({ onBack, profile }: Props) {
                 </div>
               </div>
             )}
+            {/* 데스크탑 커버 카드 가장자리 라인 (모바일 페이드 히어로엔 미적용) */}
+            <div className="pointer-events-none absolute inset-0 hidden md:block rounded-2xl ring-1 ring-inset ring-white/[0.08]" />
           </div>
 
           {/* 모바일 전용 스페이서 — 고정 커버(aspect-3/4) 높이만큼 콘텐츠를 아래로(탭은 통과되어 재생 토글) */}
@@ -386,7 +397,7 @@ export function SongDetailPage({ onBack, profile }: Props) {
                     {name.slice(0, 1).toUpperCase()}
                   </div>
                 )}
-                <span className="text-sm text-white truncate">{name}</span>
+                <button type="button" onClick={goOwnerProfile} className="text-sm text-white truncate hover:text-zinc-300 transition-colors min-w-0">{name}</button>
                 {!isOwner && (
                   <button
                     type="button"
@@ -499,7 +510,7 @@ export function SongDetailPage({ onBack, profile }: Props) {
                         {name.slice(0, 1).toUpperCase()}
                       </div>
                     )}
-                    <span className="text-sm text-white truncate">{name}</span>
+                    <button type="button" onClick={goOwnerProfile} className="text-sm text-white truncate hover:text-zinc-300 transition-colors min-w-0">{name}</button>
                     {!isOwner && (
                       <button
                         type="button"
@@ -623,49 +634,38 @@ export function SongDetailPage({ onBack, profile }: Props) {
         coverUrl={song.coverImage ?? undefined}
       />
 
-      {confirmDelete && typeof document !== 'undefined' && createPortal(
-        <div className="fixed inset-0 z-[70] flex items-center justify-center p-6">
-          <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={() => setConfirmDelete(false)} />
-          <div className="relative bg-[#21252E] border border-white/[0.10] rounded-2xl p-5 w-full max-w-[320px] shadow-2xl">
-            <p className="text-sm font-semibold text-white mb-1">삭제하시겠어요?</p>
-            <p className="text-xs text-zinc-400 mb-5 truncate">"{displayTitle}"</p>
-            <div className="flex gap-2 justify-end">
-              <button onClick={() => setConfirmDelete(false)} className="px-4 py-2 rounded-xl text-sm text-zinc-400 hover:text-white hover:bg-white/[0.06] transition-colors">아니요</button>
-              <button onClick={handleDelete} className="px-5 py-2 rounded-xl text-sm font-semibold bg-red-600 hover:bg-red-500 text-white transition-colors">네</button>
-            </div>
-          </div>
-        </div>,
-        document.body,
-      )}
+      <ConfirmModal
+        open={confirmDelete}
+        title="이 곡을 정말 삭제하시겠어요?"
+        description={`"${displayTitle}"`}
+        confirmLabel="삭제하기"
+        cancelLabel="아니요"
+        variant="danger"
+        onConfirm={handleDelete}
+        onClose={() => setConfirmDelete(false)}
+      />
 
       {publishOpen && song && (
         <PublishModal song={song} onClose={() => setPublishOpen(false)} />
       )}
 
-      {confirmUnpublish && song && typeof document !== 'undefined' && createPortal(
-        <div className="fixed inset-0 z-[70] flex items-center justify-center p-6">
-          <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={() => setConfirmUnpublish(false)} />
-          <div className="relative bg-[#21252E] border border-white/[0.10] rounded-2xl p-5 w-full max-w-[320px] shadow-2xl">
-            <p className="text-sm font-semibold text-white mb-1">게시를 취소하시겠어요?</p>
-            <p className="text-xs text-zinc-400 mb-5">게시 취소하면 더이상 탐색과 프로필, 검색에서 노출되지 않아요.</p>
-            <div className="flex gap-2 justify-end">
-              <button onClick={() => setConfirmUnpublish(false)} className="px-4 py-2 rounded-xl text-sm text-zinc-400 hover:text-white hover:bg-white/[0.06] transition-colors">취소</button>
-              <button
-                onClick={() => {
-                  songService.update(song.id, { published: false, publishedAt: undefined })
-                  patchSong?.({ published: false, publishedAt: undefined })
-                  setConfirmUnpublish(false)
-                  window.dispatchEvent(new CustomEvent('song-updated'))
-                  toast.info('게시가 취소되었어요')
-                }}
-                className="px-5 py-2 rounded-xl text-sm font-semibold bg-red-600 hover:bg-red-500 text-white transition-colors"
-              >
-                게시 삭제
-              </button>
-            </div>
-          </div>
-        </div>,
-        document.body,
+      {song && (
+        <ConfirmModal
+          open={confirmUnpublish}
+          title="이 게시물을 정말 게시 취소하시겠어요?"
+          description="게시를 취소하면 더 이상 탐색, 프로필, 검색 결과에 노출되지 않아요."
+          confirmLabel="게시 취소하기"
+          cancelLabel="아니요"
+          variant="danger"
+          onConfirm={() => {
+            songService.update(song.id, { published: false, publishedAt: undefined })
+            patchSong?.({ published: false, publishedAt: undefined })
+            setConfirmUnpublish(false)
+            window.dispatchEvent(new CustomEvent('song-updated'))
+            toast.info('게시가 취소되었어요')
+          }}
+          onClose={() => setConfirmUnpublish(false)}
+        />
       )}
     </div>
   )
@@ -710,7 +710,7 @@ function ActionBtn({ title, icon, active, count, onClick }: { title: string; ico
     <button
       title={title}
       onClick={onClick}
-      className={`flex items-center justify-center gap-1.5 h-10 rounded-full transition-colors ${
+      className={`flex items-center justify-center gap-1.5 h-10 rounded-full transition active:scale-[0.96] ${
         hasCount ? 'px-3' : 'w-10'
       } ${
         active ? 'bg-white hover:bg-zinc-100' : 'bg-white/[0.08] hover:bg-white/[0.12]'

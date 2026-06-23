@@ -9,6 +9,7 @@ import { GeneratingPhrase } from '@/components/GeneratingPhrase'
 import { toast } from '@/components/toast/toast'
 import { RefAudioTrimModal } from '@/components/RefAudioTrimModal'
 import { LyricsGenerateModal } from '@/components/LyricsGenerateModal'
+import { ConfirmModal } from '@/components/ConfirmModal'
 import { track, EVENTS } from '@/utils/analytics'
 
 const MIN_LYRICS_LENGTH = 10  // MiniMax 최소 가사 길이
@@ -113,9 +114,19 @@ export function SongForm() {
   const [mode, setMode] = useState<'simple' | 'advanced'>('simple')
   const [modelDropOpen, setModelDropOpen] = useState(false)
   const modelDropRef = useRef<HTMLDivElement>(null)
+  // 가사 교체 확인 — 기존 가사가 있을 때 새 가사 적용 전 확인 모달
+  const [pendingLyrics, setPendingLyrics] = useState<{ next: string; songTitle?: string } | null>(null)
 
   // ExploreHero 등에서 sessionStorage로 전달한 prompt를 한 번만 소비
   const [pendingAutoSubmit, setPendingAutoSubmit] = useState(false)
+
+  // 진입 스태거 — 최초 마운트 1회만. 진입 후 form-enter 클래스를 떼서
+  // 이후 모드 전환·재렌더·hidden 토글 시 애니메이션이 재생되지 않게 한다.
+  const [entered, setEntered] = useState(false)
+  useEffect(() => {
+    const t = setTimeout(() => setEntered(true), 1200)
+    return () => clearTimeout(t)
+  }, [])
 
   // 가사 풀스크린 ESC 닫기
   useEffect(() => {
@@ -304,14 +315,19 @@ export function SongForm() {
     setStylePrompt((prev) => (prev ? `${prev}, ${chip}` : chip))
   }
 
-  function handleLyricsGenerated(next: string, songTitle?: string) {
-    if (lyrics.trim() && !confirm('현재 가사를 새로 만든 가사로 바꿀까요?')) return
+  function applyLyrics(next: string, songTitle?: string) {
     setLyrics(next)
     if (instrumental) setInstrumental(false)  // 가사가 생겼으니 보컬 모드로
     // 제목이 비어 있을 때만 자동 채움 (사용자 입력 미덮어쓰기)
     const fillTitle = !!songTitle && !title.trim()
     if (fillTitle) setTitle(songTitle!)
     toast.success(fillTitle ? '가사와 제목을 만들었어요' : '가사를 만들었어요')
+  }
+
+  function handleLyricsGenerated(next: string, songTitle?: string) {
+    // 기존 가사가 있으면 교체 확인 모달, 없으면 바로 적용
+    if (lyrics.trim()) { setPendingLyrics({ next, songTitle }); return }
+    applyLyrics(next, songTitle)
   }
 
   function buildPrompt() {
@@ -385,7 +401,7 @@ export function SongForm() {
   }
 
   return (
-    <form ref={formRef} onSubmit={handleSubmit} className="space-y-3 flex-1 flex flex-col min-h-0">
+    <form ref={formRef} onSubmit={handleSubmit} className={`space-y-3 flex-1 flex flex-col min-h-0 ${entered ? '' : 'form-enter'}`}>
       {/* 스타일 참조 — cover 모델 선택 시에만 표시 */}
       <input
         ref={refAudioInputRef}
@@ -412,7 +428,7 @@ export function SongForm() {
               type="button"
               disabled={isGenerating}
               onClick={() => changeMode(m)}
-              className={`relative z-10 px-5 py-1.5 rounded-full text-sm font-medium whitespace-nowrap transition-colors disabled:opacity-40 ${
+              className={`relative z-10 px-5 py-1.5 rounded-full text-sm font-medium whitespace-nowrap transition active:scale-[0.96] disabled:opacity-40 ${
                 mode === m ? 'text-black' : 'text-zinc-400 hover:text-white'
               }`}
             >
@@ -426,7 +442,7 @@ export function SongForm() {
               type="button"
               onClick={() => setModelDropOpen((v) => !v)}
               disabled={isGenerating}
-              className={`flex items-center gap-1.5 text-sm font-semibold text-white border rounded-full px-3 h-10 transition-colors disabled:opacity-40 ${modelDropOpen ? 'border-white/30' : 'border-white/[0.10] hover:border-white/20'}`}
+              className={`flex items-center gap-1.5 text-sm font-semibold text-white border rounded-full px-3 h-10 transition active:scale-[0.96] disabled:opacity-40 ${modelDropOpen ? 'border-white/30' : 'border-white/[0.10] hover:border-white/20'}`}
             >
               {(() => {
                 // 칩에는 'Music 2.0' 대신 'v2.0' 형식으로 간소화 표시 (드롭다운 항목은 풀 레이블 유지)
@@ -475,7 +491,7 @@ export function SongForm() {
                         m.locked ? 'cursor-pointer hover:bg-white/[0.03]' : active ? 'bg-white/[0.06]' : 'hover:bg-white/[0.04] cursor-pointer'
                       }`}
                     >
-                      <Image src="/minimax.webp" alt="MiniMax" width={36} height={36} className={`w-9 h-9 rounded-lg object-cover shrink-0 mt-0.5 ${m.locked ? 'opacity-40' : ''}`} />
+                      <Image src="/minimax.webp" alt="MiniMax" width={36} height={36} className={`w-9 h-9 rounded-lg object-cover shrink-0 mt-0.5 outline outline-1 outline-white/[0.08] ${m.locked ? 'opacity-40' : ''}`} />
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 flex-wrap">
                           <p className={`text-sm font-medium ${m.locked ? 'text-zinc-500' : active ? 'text-white' : 'text-zinc-200'}`}>{labelBase}</p>
@@ -508,7 +524,7 @@ export function SongForm() {
 
       {/* 심플 모드: 설명 + 인스트루멘탈 + 가사로 전환 */}
       {mode === 'simple' && (
-        <section className="mode-fade rounded-xl border border-white/[0.08] bg-[#1A1D24] overflow-hidden group">
+        <section className="mode-fade rounded-xl border border-white/[0.08] bg-[#1A1D24] shadow-[0_1px_2px_rgba(0,0,0,0.25),0_8px_20px_-8px_rgba(0,0,0,0.35)] overflow-hidden group">
           <div className="px-4 py-3 flex items-center justify-between">
             <span className="text-sm font-semibold text-white">설명</span>
             <div className="flex items-center gap-2">
@@ -540,7 +556,7 @@ export function SongForm() {
                 type="button"
                 onClick={() => changeMode('advanced')}
                 disabled={isGenerating}
-                className="flex items-center gap-1 text-sm text-white bg-[#252A35] hover:bg-[#2C313D] px-4 py-1.5 rounded-full transition-colors disabled:opacity-40"
+                className="flex items-center gap-1 text-sm text-white bg-[#252A35] hover:bg-[#2C313D] px-4 py-1.5 rounded-full transition active:scale-[0.96] disabled:opacity-40"
               >
                 <Image src="/Add.svg" alt="" width={14} height={14} style={{ filter: 'invert(1)' }} />
                 가사
@@ -608,7 +624,7 @@ export function SongForm() {
       )}
 
       {/* 가사 */}
-      <section className={`rounded-xl border border-white/[0.08] bg-[#1A1D24] overflow-hidden group ${lyricsFullscreen ? 'flex-1 flex flex-col min-h-0' : ''}`}>
+      <section className={`rounded-xl border border-white/[0.08] bg-[#1A1D24] shadow-[0_1px_2px_rgba(0,0,0,0.25),0_8px_20px_-8px_rgba(0,0,0,0.35)] overflow-hidden group ${lyricsFullscreen ? 'flex-1 flex flex-col min-h-0' : ''}`}>
         <div className="px-4 py-3 flex items-center justify-between">
           <span className="text-sm font-semibold text-white">가사</span>
           <div className="flex items-center gap-2">
@@ -662,7 +678,7 @@ export function SongForm() {
                 type="button"
                 onClick={() => setLyricsModalOpen(true)}
                 disabled={isGenerating}
-                className="flex items-center gap-1.5 text-sm text-white bg-[#252A35] hover:bg-[#2C313D] px-4 py-1.5 rounded-full transition-colors disabled:opacity-40"
+                className="flex items-center gap-1.5 text-sm text-white bg-[#252A35] hover:bg-[#2C313D] px-4 py-1.5 rounded-full transition active:scale-[0.96] disabled:opacity-40"
               >
                 <Image src="/Ai-Generate-Text.svg" alt="" width={14} height={14} style={{ filter: 'invert(1)' }} />
                 AI 가사
@@ -674,7 +690,7 @@ export function SongForm() {
                   onClick={() => setLyricsFullscreen((v) => !v)}
                   disabled={isGenerating}
                   title={lyricsFullscreen ? '축소' : '전체 화면으로 편집'}
-                  className="w-8 h-8 rounded-full flex items-center justify-center text-white bg-[#252A35] hover:bg-[#2C313D] transition-colors disabled:opacity-40"
+                  className="w-8 h-8 rounded-full flex items-center justify-center text-white bg-[#252A35] hover:bg-[#2C313D] transition active:scale-[0.96] disabled:opacity-40"
                 >
                   <Image
                     src={lyricsFullscreen ? '/Fullscreen-Exit.svg' : '/Fullscreen.svg'}
@@ -694,7 +710,7 @@ export function SongForm() {
       </section>
 
       {/* 스타일 */}
-      <section className={`rounded-xl border border-white/[0.08] bg-[#1A1D24] overflow-hidden group ${lyricsFullscreen ? 'hidden' : ''}`}>
+      <section className={`rounded-xl border border-white/[0.08] bg-[#1A1D24] shadow-[0_1px_2px_rgba(0,0,0,0.25),0_8px_20px_-8px_rgba(0,0,0,0.35)] overflow-hidden group ${lyricsFullscreen ? 'hidden' : ''}`}>
         <div className="px-4 py-3 flex items-center gap-1">
           <span className="text-sm font-semibold text-white">스타일</span>
         </div>
@@ -719,7 +735,7 @@ export function SongForm() {
               onClick={reshuffleChips}
               disabled={isGenerating}
               title="다시 섞기"
-              className="shrink-0 w-8 h-8 rounded-full bg-[#252A35] hover:bg-[#2C313D] flex items-center justify-center transition-colors disabled:opacity-40"
+              className="shrink-0 w-8 h-8 rounded-full bg-[#252A35] hover:bg-[#2C313D] flex items-center justify-center transition active:scale-[0.96] disabled:opacity-40"
             >
               <Image src="/Refresh.svg" alt="다시 섞기" width={16} height={16} style={{ filter: 'invert(1)' }} />
             </button>
@@ -747,7 +763,7 @@ export function SongForm() {
                     type="button"
                     onClick={() => addChip(chip)}
                     disabled={isGenerating}
-                    className="shrink-0 text-sm text-white bg-[#252A35] hover:bg-[#2C313D] px-4 py-1.5 rounded-full transition-colors disabled:opacity-40"
+                    className="shrink-0 text-sm text-white bg-[#252A35] hover:bg-[#2C313D] px-4 py-1.5 rounded-full transition active:scale-[0.96] disabled:opacity-40"
                   >
                     {chip}
                   </button>
@@ -772,7 +788,7 @@ export function SongForm() {
       </section>
 
       {/* 곡 제목(선택) — 성별 위로 이동 */}
-      <section className={`rounded-xl border border-white/[0.08] bg-[#1A1D24] ${lyricsFullscreen ? 'hidden' : ''}`}>
+      <section className={`rounded-xl border border-white/[0.08] bg-[#1A1D24] shadow-[0_1px_2px_rgba(0,0,0,0.25),0_8px_20px_-8px_rgba(0,0,0,0.35)] ${lyricsFullscreen ? 'hidden' : ''}`}>
         <input
           type="text"
           className="w-full bg-transparent px-4 py-3.5 text-sm text-white focus:outline-none placeholder:text-zinc-500"
@@ -785,7 +801,7 @@ export function SongForm() {
       </section>
 
       {/* 보컬 성별 */}
-      <section className={`rounded-xl border border-white/[0.08] bg-[#1A1D24] overflow-hidden ${lyricsFullscreen ? 'hidden' : ''}`}>
+      <section className={`rounded-xl border border-white/[0.08] bg-[#1A1D24] shadow-[0_1px_2px_rgba(0,0,0,0.25),0_8px_20px_-8px_rgba(0,0,0,0.35)] overflow-hidden ${lyricsFullscreen ? 'hidden' : ''}`}>
         <div className="px-4 py-3 flex items-center justify-between">
           <span className="text-sm font-semibold text-white">보컬 성별</span>
           <div className="flex gap-1.5">
@@ -797,7 +813,7 @@ export function SongForm() {
                   type="button"
                   disabled={isGenerating}
                   onClick={() => setVocalGender(active ? null : v)}
-                  className={`px-4 py-1.5 rounded-full text-sm transition-colors disabled:opacity-40 ${
+                  className={`px-4 py-1.5 rounded-full text-sm transition active:scale-[0.96] disabled:opacity-40 ${
                     active
                       ? 'bg-violet-600 text-white'
                       : 'text-zinc-400 hover:text-white hover:bg-white/[0.06]'
@@ -819,7 +835,7 @@ export function SongForm() {
         <button
           type="submit"
           disabled={!stylePrompt.trim() || isGenerating}
-          className={`w-full rounded-xl py-4 font-semibold text-sm transition-colors ${
+          className={`w-full rounded-xl py-4 font-semibold text-sm transition active:scale-[0.985] ${
             isGenerating
               ? 'shimmer bg-violet-600 text-white cursor-not-allowed'
               : !stylePrompt.trim()
@@ -882,7 +898,7 @@ export function SongForm() {
                 setStyleRefDontShow(false)
                 refAudioInputRef.current?.click()
               }}
-              className="mt-4 w-full py-3 rounded-xl bg-violet-600 hover:bg-violet-500 text-white text-sm font-semibold transition-colors"
+              className="mt-4 w-full py-3 rounded-xl bg-violet-600 hover:bg-violet-500 text-white text-sm font-semibold transition active:scale-[0.96]"
             >
               확인했어요
             </button>
@@ -915,6 +931,16 @@ export function SongForm() {
         onClose={() => setLyricsModalOpen(false)}
         onGenerated={handleLyricsGenerated}
         initialPrompt={lyrics}
+      />
+
+      <ConfirmModal
+        open={!!pendingLyrics}
+        title="가사를 정말 교체하시겠어요?"
+        description="현재 가사가 새로 생성된 가사로 교체돼요."
+        confirmLabel="교체하기"
+        cancelLabel="아니요"
+        onConfirm={() => { if (pendingLyrics) applyLyrics(pendingLyrics.next, pendingLyrics.songTitle); setPendingLyrics(null) }}
+        onClose={() => setPendingLyrics(null)}
       />
     </form>
   )
