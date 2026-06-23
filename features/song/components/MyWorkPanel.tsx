@@ -74,8 +74,8 @@ export function MyWorkPanel({ showCollections = false }: { showCollections?: boo
       setLoading(user ? !songService.isLoaded() : false)
     }
     const onLikeUpdated = (e: Event) => {
-      const { songId, likeCount } = (e as CustomEvent<{ songId: string; liked: boolean; likeCount: number }>).detail
-      setSongs(prev => prev.map(s => s.id === songId ? { ...s, likeCount } : s))
+      const { songId, liked, likeCount } = (e as CustomEvent<{ songId: string; liked: boolean; likeCount: number }>).detail
+      setSongs(prev => prev.map(s => s.id === songId ? { ...s, liked, likeCount } : s))
     }
     window.addEventListener('song-updated', onUpdated)
     window.addEventListener('like-updated', onLikeUpdated)
@@ -507,10 +507,30 @@ function SongWorkItem({ song, onOpen, onEdit, onDelete, onCollect, onPublish, on
     }
   }
 
-  function handleLike() {
-    const next = !liked
+  const likeInflight = useRef(false)
+  async function handleLike() {
+    if (likeInflight.current) return
+    likeInflight.current = true
+    const prev = liked
+    const next = !prev
+    const prevCount = song.likeCount ?? 0
     setLiked(next)
-    songService.update(song.id, { liked: next })
+    // 낙관적: 리스트 숫자 즉시 반영 (onLikeUpdated가 songs state 갱신)
+    window.dispatchEvent(new CustomEvent('like-updated', { detail: { songId: song.id, liked: next, likeCount: prevCount + (next ? 1 : -1) } }))
+    try {
+      const r = await fetch(`/api/songs/${song.id}/like`, { method: 'POST' })
+      if (!r.ok) { if (r.status === 401) window.dispatchEvent(new Event('open-login')); throw new Error('like failed') }
+      const d = await r.json()
+      setLiked(d.liked)
+      songService.applyRowPatch(song.id, { liked: d.liked, likeCount: d.likeCount })  // 캐시 영속(세션 내 네비 유지)
+      window.dispatchEvent(new CustomEvent('like-updated', { detail: { songId: song.id, liked: d.liked, likeCount: d.likeCount } }))
+    } catch {
+      setLiked(prev)
+      window.dispatchEvent(new CustomEvent('like-updated', { detail: { songId: song.id, liked: prev, likeCount: prevCount } }))
+      toast.error('좋아요 처리에 실패했어요')
+    } finally {
+      likeInflight.current = false
+    }
   }
 
   async function handleShare() {
