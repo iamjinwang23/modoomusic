@@ -360,12 +360,8 @@ export function SongDetailPage({ onBack, profile }: Props) {
               text={displayTitle}
               className="text-2xl font-bold text-white leading-snug flex-1 min-w-0"
             />
-            {song.model && (
-              <span className={`shrink-0 text-[10px] font-medium px-1.5 py-1 rounded-md leading-none ${
-                song.model === 'music-2.6'
-                  ? 'text-violet-300 bg-violet-600/20'
-                  : 'text-zinc-400 bg-zinc-800 ring-1 ring-inset ring-white/[0.06]'
-              }`}>
+            {song.model === 'music-2.6' && (
+              <span className="shrink-0 text-[10px] font-medium px-1.5 py-1 rounded-md leading-none text-violet-300 bg-violet-600/20">
                 {modelLabel(song.model)}
               </span>
             )}
@@ -474,12 +470,8 @@ export function SongDetailPage({ onBack, profile }: Props) {
               {/* 제목 */}
               <div className="flex items-center gap-2">
                 <h2 className="text-2xl font-bold text-white leading-snug">{displayTitle}</h2>
-                {song.model && (
-                  <span className={`shrink-0 text-[10px] font-medium px-1.5 py-1 rounded-md leading-none ${
-                    song.model === 'music-2.6'
-                      ? 'text-violet-300 bg-violet-600/20'
-                      : 'text-zinc-400 bg-zinc-800 ring-1 ring-inset ring-white/[0.06]'
-                  }`}>
+                {song.model === 'music-2.6' && (
+                  <span className="shrink-0 text-[10px] font-medium px-1.5 py-1 rounded-md leading-none text-violet-300 bg-violet-600/20">
                     {modelLabel(song.model)}
                   </span>
                 )}
