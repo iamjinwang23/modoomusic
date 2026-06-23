@@ -37,12 +37,17 @@ export async function POST(req: NextRequest, { params }: { params: Promise<Param
   const admin = createAdminClient()
   const { data: song, error } = await admin
     .from('songs')
-    .select('user_id, cover_image, publish_cover_image, video_cover_status')
+    .select('user_id, cover_image, publish_cover_image, video_cover_status, video_cover_started_at')
     .eq('id', songId)
     .maybeSingle()
   if (error || !song) return NextResponse.json({ error: 'not_found' }, { status: 404 })
   if (song.user_id !== uid) return NextResponse.json({ error: 'forbidden' }, { status: 403 })
-  if (song.video_cover_status === 'generating') return NextResponse.json({ error: 'already_generating' }, { status: 409 })
+  // 'generating'이어도 타임아웃(12분) 지났으면 멈춘 작업으로 보고 재생성 허용 (영구 잠금 방지)
+  if (song.video_cover_status === 'generating') {
+    const startedAt = song.video_cover_started_at ? new Date(song.video_cover_started_at as string).getTime() : 0
+    const stale = !!startedAt && Date.now() - startedAt > 12 * 60 * 1000
+    if (!stale) return NextResponse.json({ error: 'already_generating' }, { status: 409 })
+  }
 
   // image_to_video 소스 결정. 교체 이미지가 있으면 Storage에 올려 곡 커버로도 교체
   // → 정지 썸네일(=커버)과 생성 영상의 소스가 일치하게 한다.

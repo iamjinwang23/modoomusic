@@ -52,13 +52,15 @@ export async function finalizeVideoCover(song: VideoSongRow): Promise<FinalizeRe
       if (!dl) { await markFailed(); return { status: 'failed' } }
       const publicUrl = await uploadFromUrl(dl, 'songs-video-covers', `${song.user_id}/${song.id}.mp4`)
       if (!publicUrl) { await markFailed(); return { status: 'failed' } }
+      // 재생성 시 같은 경로 + immutable 캐시라 옛 영상이 그대로 노출됨 → 버전 쿼리로 캐시버스트
+      const bustedUrl = `${publicUrl}?v=${Date.now()}`
       await admin.from('songs').update({
         video_cover_status: 'done',
-        video_cover_url: publicUrl,
+        video_cover_url: bustedUrl,
         video_cover_generated_at: new Date().toISOString(),
       }).eq('id', song.id)
       await admin.from('notifications').insert({ user_id: song.user_id, type: 'song_complete', song_id: song.id, payload: { kind: 'video_cover' } })
-      return { status: 'done', videoCoverUrl: publicUrl }
+      return { status: 'done', videoCoverUrl: bustedUrl }
     }
     if (status === 'Fail') { await markFailed(); return { status: 'failed' } }
     // 아직 처리중 — timeout 넘었으면 실패 처리, 아니면 대기
