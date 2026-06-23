@@ -488,6 +488,10 @@ function SongWorkItem({ song, onOpen, onEdit, onDelete, onCollect, onPublish, on
     return () => window.removeEventListener('collection-updated', handler)
   }, [song.id])
 
+  // 곡 상세 등 다른 화면에서 좋아요 → like-updated로 song.liked가 갱신되면 하트도 동기화
+  // (로컬 liked가 최초값만이라 안 하면 상세에서 누른 좋아요가 리스트 하트에 반영 안 됨)
+  useEffect(() => { setLiked(song.liked ?? false) }, [song.liked])
+
   const displayTitle = song.title || 'Untitled'
 
   function clearNew() {
