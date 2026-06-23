@@ -125,14 +125,16 @@ export function GlobalPlayerProvider({ children }: { children: React.ReactNode }
       if (!cur) return
       const fresh = songService.getById(cur.id)
       if (!fresh) return
+      // 캐시값이 null/undefined면 현재 값 유지 — 캐시본이 덜 완전해도(예: lyrics null)
+      // 피드의 정상 데이터를 덮어쓰지 않게. (탐색에서 연 곡은 피드에 가사 있는데 캐시엔 없을 수 있음)
       dispatch({ type: 'PATCH', patch: {
-        title: fresh.title,
-        coverImage: fresh.coverImage,
-        coverHue: fresh.coverHue,
-        lyrics: fresh.lyrics,
-        publishComment: fresh.publishComment,
-        published: fresh.published,
-        publishedAt: fresh.publishedAt,
+        title: fresh.title ?? cur.title,
+        coverImage: fresh.coverImage ?? cur.coverImage,
+        coverHue: fresh.coverHue ?? cur.coverHue,
+        lyrics: fresh.lyrics ?? cur.lyrics,
+        publishComment: fresh.publishComment ?? cur.publishComment,
+        published: fresh.published ?? cur.published,
+        publishedAt: fresh.publishedAt ?? cur.publishedAt,
       } })
     }
     window.addEventListener('play-song', handlePlaySong)
