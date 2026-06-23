@@ -135,6 +135,19 @@ async function loadFromSupabase(): Promise<void> {
     return
   }
   cache = (data ?? []).map(rowToSong as (r: unknown) => Song)
+  // songs.liked는 레거시 컬럼 — 좋아요 API는 likes 테이블만 갱신하므로 안 채우면
+  // 새로고침 시 라이브러리 하트가 항상 풀린다. 실제 좋아요 상태를 likes에서 보정.
+  if (cache.length > 0) {
+    const { data: myLikes } = await supabase
+      .from('likes')
+      .select('song_id')
+      .eq('user_id', currentUserId)
+      .in('song_id', cache.map((s) => s.id))
+    if (myLikes) {
+      const likedSet = new Set(myLikes.map((l) => l.song_id as string))
+      cache = cache.map((s) => ({ ...s, liked: likedSet.has(s.id) }))
+    }
+  }
   loaded = true
   window.dispatchEvent(new Event('song-updated'))
 }
