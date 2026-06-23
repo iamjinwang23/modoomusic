@@ -14,8 +14,14 @@
 /coverage
 
 # next.js
+/.next
 /.next/
 /out/
+
+# 에디터 임시/스왑 파일
+*.swp
+*.swo
+*~
 
 # production
 /build
@@ -44,3 +50,4 @@ next-env.d.ts
 # bkit PDCA state (local)
 .bkit/
 .bkit-memory.json
+/.next.nosync/

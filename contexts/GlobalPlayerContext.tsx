@@ -118,13 +118,32 @@ export function GlobalPlayerProvider({ children }: { children: React.ReactNode }
       const detail = (e as CustomEvent<string>).detail
       if (detail !== '__global__') audioRef.current?.pause()
     }
+    // 곡 정보 수정(제목·커버·가사·코멘트·게시) 시 현재 상세/재생 곡을 캐시에서 즉시 재동기화
+    // → 새로고침 없이 곡 상세·미니바에 바로 반영
+    function handleSongUpdated() {
+      const cur = stateRef.current.feed[stateRef.current.idx]
+      if (!cur) return
+      const fresh = songService.getById(cur.id)
+      if (!fresh) return
+      dispatch({ type: 'PATCH', patch: {
+        title: fresh.title,
+        coverImage: fresh.coverImage,
+        coverHue: fresh.coverHue,
+        lyrics: fresh.lyrics,
+        publishComment: fresh.publishComment,
+        published: fresh.published,
+        publishedAt: fresh.publishedAt,
+      } })
+    }
     window.addEventListener('play-song', handlePlaySong)
     window.addEventListener('view-song', handleViewSong)
     window.addEventListener('audio-play', handleInlinePlay)
+    window.addEventListener('song-updated', handleSongUpdated)
     return () => {
       window.removeEventListener('play-song', handlePlaySong)
       window.removeEventListener('view-song', handleViewSong)
       window.removeEventListener('audio-play', handleInlinePlay)
+      window.removeEventListener('song-updated', handleSongUpdated)
     }
   }, [])
 

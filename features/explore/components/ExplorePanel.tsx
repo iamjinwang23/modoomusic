@@ -132,7 +132,7 @@ function SectionCarousel({
         {fadeLeft && hovered && (
           <button
             onClick={() => scrollBy(-1)}
-            className="hidden md:flex absolute left-2 top-[150px] -translate-y-1/2 z-20 w-10 h-10 rounded-full bg-white/20 hover:bg-white/35 items-center justify-center transition-all duration-200"
+            className="hidden md:flex absolute left-2 top-[150px] -translate-y-1/2 z-20 w-10 h-10 rounded-full bg-black/40 hover:bg-black/60 items-center justify-center transition active:scale-90 duration-200"
           >
             <Image src="/Left-Small.svg" alt="이전" width={24} height={24} style={{ filter: 'invert(1)' }} />
           </button>
@@ -156,7 +156,7 @@ function SectionCarousel({
         {fadeRight && hovered && (
           <button
             onClick={() => scrollBy(1)}
-            className="hidden md:flex absolute right-2 top-[150px] -translate-y-1/2 z-20 w-10 h-10 rounded-full bg-white/20 hover:bg-white/35 items-center justify-center transition-all duration-200"
+            className="hidden md:flex absolute right-2 top-[150px] -translate-y-1/2 z-20 w-10 h-10 rounded-full bg-black/40 hover:bg-black/60 items-center justify-center transition active:scale-90 duration-200"
           >
             <Image src="/Right-Small.svg" alt="다음" width={24} height={24} style={{ filter: 'invert(1)' }} />
           </button>

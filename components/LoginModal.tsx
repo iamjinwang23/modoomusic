@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
@@ -28,11 +28,27 @@ function SocialButton({ onClick, className, children, style }: { onClick: () => 
 // 지연은 CSS 변수 --d로 주입 (animation shorthand가 delay를 덮지 않도록)
 const rise = (delayMs: number): React.CSSProperties => ({ ['--d' as string]: `${delayMs}ms` } as React.CSSProperties)
 
+// 마지막 사용 제공자 버튼 위에 뜨는 말풍선
+function RecentBadge() {
+  return (
+    <span className="pointer-events-none absolute -top-2 right-3 -translate-y-full z-20">
+      <span className="relative block bg-violet-600 text-white text-[10px] font-semibold px-2 py-1 rounded-md shadow-lg whitespace-nowrap">
+        최근 로그인
+        <span className="absolute -bottom-[3px] right-3.5 w-2 h-2 bg-violet-600 rotate-45" />
+      </span>
+    </span>
+  )
+}
+
 export function LoginModal({ onClose }: Props) {
   const [loading, setLoading] = useState(false)
+  // 마지막 사용 제공자 (리다이렉트로 떠나기 전 저장 → 다음 방문 시 말풍선)
+  const [lastLogin, setLastLogin] = useState<string | null>(null)
+  useEffect(() => { setLastLogin(localStorage.getItem('mono:lastLogin')) }, [])
 
   async function handleGoogleLogin() {
     setLoading(true)
+    localStorage.setItem('mono:lastLogin', 'google')
     const supabase = createClient()
     await supabase.auth.signInWithOAuth({
       provider: 'google',
@@ -42,6 +58,7 @@ export function LoginModal({ onClose }: Props) {
 
   async function handleKakaoLogin() {
     setLoading(true)
+    localStorage.setItem('mono:lastLogin', 'kakao')
     const supabase = createClient()
     await supabase.auth.signInWithOAuth({
       provider: 'kakao',
@@ -51,6 +68,7 @@ export function LoginModal({ onClose }: Props) {
 
   function handleNaverLogin() {
     setLoading(true)
+    localStorage.setItem('mono:lastLogin', 'naver')
     window.location.href = '/api/auth/naver'
   }
 
@@ -99,6 +117,7 @@ export function LoginModal({ onClose }: Props) {
           <div className="space-y-3">
             {/* Google */}
             <SocialButton onClick={handleGoogleLogin} style={rise(260)} className={`lrise bg-white hover:bg-zinc-100 text-zinc-900 ${loading ? 'opacity-70 pointer-events-none' : ''}`}>
+              {lastLogin === 'google' && <RecentBadge />}
               <span className="absolute left-4 flex items-center">
                 <svg width="18" height="18" viewBox="0 0 18 18" xmlns="http://www.w3.org/2000/svg">
                   <path d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844c-.209 1.125-.843 2.078-1.796 2.717v2.258h2.908C16.658 14.013 17.64 11.705 17.64 9.2z" fill="#4285F4"/>
@@ -111,7 +130,8 @@ export function LoginModal({ onClose }: Props) {
             </SocialButton>
 
             {/* Apple */}
-            <SocialButton onClick={() => { setLoading(true); createClient().auth.signInWithOAuth({ provider: 'apple', options: { redirectTo: `${window.location.origin}/auth/callback` } }) }} style={rise(330)} className={`lrise bg-[#21252E] hover:bg-[#2D323E] border border-white/10 text-white ${loading ? 'opacity-70 pointer-events-none' : ''}`}>
+            <SocialButton onClick={() => { setLoading(true); localStorage.setItem('mono:lastLogin', 'apple'); createClient().auth.signInWithOAuth({ provider: 'apple', options: { redirectTo: `${window.location.origin}/auth/callback` } }) }} style={rise(330)} className={`lrise bg-[#21252E] hover:bg-[#2D323E] border border-white/10 text-white ${loading ? 'opacity-70 pointer-events-none' : ''}`}>
+              {lastLogin === 'apple' && <RecentBadge />}
               <span className="absolute left-4 flex items-center">
                 <svg width="16" height="18" viewBox="0 0 16 18" xmlns="http://www.w3.org/2000/svg" fill="white">
                   <path d="M13.23 9.36c-.02-1.9 1.56-2.82 1.63-2.87-1.12-1.63-2.85-1.86-3.47-1.88-1.48-.15-2.9.87-3.65.87-.76 0-1.93-.85-3.17-.83C2.89 4.68 1.31 5.72.5 7.3c-1.63 2.82-.42 7 1.15 9.29.78 1.12 1.7 2.38 2.91 2.33 1.17-.05 1.61-.75 3.03-.75 1.41 0 1.81.75 3.05.72 1.26-.02 2.05-1.14 2.82-2.27.9-1.3 1.26-2.57 1.28-2.63-.03-.01-2.44-.93-2.46-3.67-.02-2.3 1.88-3.4 1.96-3.46z"/>
@@ -123,6 +143,7 @@ export function LoginModal({ onClose }: Props) {
 
             {/* Naver */}
             <SocialButton onClick={handleNaverLogin} style={rise(400)} className={`lrise bg-[#03C75A] hover:bg-[#02b350] text-white ${loading ? 'opacity-70 pointer-events-none' : ''}`}>
+              {lastLogin === 'naver' && <RecentBadge />}
               <span className="absolute left-4 flex items-center">
                 <svg width="16" height="16" viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg" fill="white">
                   <path d="M10.846 8.563L5.077 0H0v16h5.154V7.435L10.923 16H16V0h-5.154v8.563z"/>
@@ -133,6 +154,7 @@ export function LoginModal({ onClose }: Props) {
 
             {/* Kakao */}
             <SocialButton onClick={handleKakaoLogin} style={rise(470)} className={`lrise bg-[#FEE500] hover:bg-[#fdd800] text-[#191919] ${loading ? 'opacity-70 pointer-events-none' : ''}`}>
+              {lastLogin === 'kakao' && <RecentBadge />}
               <span className="absolute left-4 flex items-center">
                 <svg width="18" height="18" viewBox="0 0 18 18" xmlns="http://www.w3.org/2000/svg">
                   <path d="M9 1.5C4.86 1.5 1.5 4.16 1.5 7.44c0 2.09 1.32 3.93 3.32 4.99l-.84 3.12a.25.25 0 0 0 .37.28L8.1 13.7c.29.03.59.05.9.05 4.14 0 7.5-2.66 7.5-5.94S13.14 1.5 9 1.5z" fill="#191919"/>
