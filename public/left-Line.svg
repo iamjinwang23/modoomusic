@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg id="Right-Line--Streamline-Mingcute" xmlns="http://www.w3.org/2000/svg" version="1.1" viewBox="0 0 16 16">
+  <!-- Generator: Adobe Illustrator 30.5.1, SVG Export Plug-In . SVG Version: 2.1.4 Build 3)  -->
+  <defs>
+    <style>
+      .st0 {
+        fill: none;
+      }
+
+      .st1 {
+        fill-rule: evenodd;
+      }
+    </style>
+  </defs>
+  <path class="st0" d="M16,0v16H0V0h16Z"/>
+  <path class="st1" d="M5.7,8.5c-.3-.3-.3-.7,0-.9l3.8-3.8c.3-.3.7-.3.9,0,.3.3.3.7,0,.9,0,0,0,0,0,0l-3.3,3.3,3.3,3.3c.3.3.2.7,0,.9-.3.2-.7.2-.9,0,0,0-3.8-3.8-3.8-3.8Z"/>
+</svg>

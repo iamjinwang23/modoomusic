@@ -42,9 +42,25 @@ function RecentBadge() {
 
 export function LoginModal({ onClose }: Props) {
   const [loading, setLoading] = useState(false)
+  // 이메일 로그인 — 현재는 테스트 계정만 동작(가입은 준비중). PG 심사 대응.
+  const [mode, setMode] = useState<'social' | 'email'>('social')
+  const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
   // 마지막 사용 제공자 (리다이렉트로 떠나기 전 저장 → 다음 방문 시 말풍선)
   const [lastLogin, setLastLogin] = useState<string | null>(null)
   useEffect(() => { setLastLogin(localStorage.getItem('mono:lastLogin')) }, [])
+
+  async function handleEmailLogin(e: React.FormEvent) {
+    e.preventDefault()
+    if (loading || !email.trim() || !password) return
+    setLoading(true)
+    const supabase = createClient()
+    const { error } = await supabase.auth.signInWithPassword({ email: email.trim(), password })
+    setLoading(false)
+    if (error) { toast.error('이메일 또는 비밀번호가 올바르지 않아요'); return }
+    localStorage.setItem('mono:lastLogin', 'email')
+    onClose()
+  }
 
   async function handleGoogleLogin() {
     setLoading(true)
@@ -106,7 +122,9 @@ export function LoginModal({ onClose }: Props) {
               to   { opacity: 1; transform: translateY(0); }
             }
             .lrise { animation: loginRise 0.58s cubic-bezier(0.22,1,0.36,1) var(--d, 0ms) backwards; }
-            @media (prefers-reduced-motion: reduce) { .lrise { animation: none; } }
+            @keyframes loginSwap { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
+            .lswap { animation: loginSwap 0.32s ease both; }
+            @media (prefers-reduced-motion: reduce) { .lrise, .lswap { animation: none; } }
           `}</style>
           {/* Logo */}
           <Image src="/logo.svg" alt="모두의 노래" width={72} height={16} style={{ filter: 'invert(1)', ...rise(50) }} className="mb-8 lrise" />
@@ -114,6 +132,11 @@ export function LoginModal({ onClose }: Props) {
           <h2 className="text-2xl font-bold text-white mb-1 font-mono lrise" style={rise(120)}>환영합니다</h2>
           <p className="text-zinc-400 text-sm mb-8 lrise" style={rise(190)}>지금 MONO와 함께 나만의 노래를 만들어보세요</p>
 
+          {/* 모드 전환: 카드 높이 유지(min-h) + 요소별 스르륵(key=mode로 lrise 재실행) */}
+          <div className="min-h-[332px]">
+          <div key={mode}>
+          {mode === 'social' ? (
+          <>
           <div className="space-y-3">
             {/* Google */}
             <SocialButton onClick={handleGoogleLogin} style={rise(260)} className={`lrise bg-white hover:bg-zinc-100 text-zinc-900 ${loading ? 'opacity-70 pointer-events-none' : ''}`}>
@@ -174,7 +197,7 @@ export function LoginModal({ onClose }: Props) {
           </div>
 
           {/* Email */}
-          <SocialButton onClick={() => toast.info('이메일 로그인은 곧 지원될 예정이에요')} style={rise(610)} className="lrise border border-white/[0.10] hover:border-white/20 text-zinc-300 hover:text-white">
+          <SocialButton onClick={() => setMode('email')} style={rise(610)} className="lrise border border-white/[0.10] hover:border-white/20 text-zinc-300 hover:text-white">
             <span className="absolute left-4 flex items-center">
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <rect width="20" height="16" x="2" y="4" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/>
@@ -182,6 +205,45 @@ export function LoginModal({ onClose }: Props) {
             </span>
             이메일로 계속하기
           </SocialButton>
+          </>) : (
+          <form onSubmit={handleEmailLogin} className="space-y-3">
+            <input
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="이메일"
+              autoComplete="email"
+              style={rise(60)}
+              className="lrise w-full bg-[#21252E] border border-white/10 rounded-xl px-4 py-3 text-sm text-white placeholder:text-zinc-500 focus:outline-none focus:ring-2 focus:ring-violet-500"
+            />
+            <input
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              placeholder="비밀번호"
+              autoComplete="current-password"
+              style={rise(130)}
+              className="lrise w-full bg-[#21252E] border border-white/10 rounded-xl px-4 py-3 text-sm text-white placeholder:text-zinc-500 focus:outline-none focus:ring-2 focus:ring-violet-500"
+            />
+            <button
+              type="submit"
+              disabled={loading}
+              style={rise(200)}
+              className="lrise w-full py-3 rounded-xl text-sm font-semibold text-white bg-violet-600 hover:bg-violet-500 transition-colors disabled:opacity-50"
+            >
+              {loading ? '로그인 중…' : '로그인'}
+            </button>
+            <div className="lrise flex items-center justify-between pt-1" style={rise(270)}>
+              <button type="button" onClick={() => setMode('social')} className="group flex items-center gap-1 text-xs text-zinc-500 hover:text-white transition-colors">
+                <Image src="/left-Line.svg" alt="" width={14} height={14} className="opacity-60 group-hover:opacity-100 transition-opacity" style={{ filter: 'invert(1)' }} />
+                다른 방법으로
+              </button>
+              <button type="button" onClick={() => toast.info('이메일 회원가입은 준비 중이에요')} className="text-xs text-zinc-500 hover:text-white transition-colors">이메일로 가입하기</button>
+            </div>
+          </form>
+          )}
+          </div>
+          </div>
 
           <p className="text-xs text-zinc-600 mt-8 text-center leading-relaxed lrise" style={rise(680)}>
             계속하면{' '}

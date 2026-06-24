@@ -40,6 +40,11 @@ export function CreditPurchaseModal({ open, onClose }: Props) {
   const email = user?.email ?? ''
 
   function pickPack(p: CreditProduct) {
+    // 결제 비활성(심사 전)에는 상품만 노출하고 실제 구매는 막음
+    if (process.env.NEXT_PUBLIC_PAYMENTS_ENABLED !== 'true') {
+      toast.info('크레딧 구매는 준비 중이에요')
+      return
+    }
     setSelected(p)
     setStep('confirm')
   }
