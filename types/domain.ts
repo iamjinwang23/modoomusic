@@ -109,7 +109,7 @@ export interface UserProfile {
 }
 
 // Design Ref: notifications §3.2 — 알림 5종 + 행위자·곡 join 메타
-export type NotificationType = 'like' | 'song_complete' | 'system' | 'follow' | 'comment'
+export type NotificationType = 'like' | 'song_complete' | 'system' | 'follow' | 'comment' | 'credit_charged'
 
 export interface NotificationSystemPayload {
   title: string

@@ -725,37 +725,14 @@ function SelfSettingsMenu() {
               <p className="text-[11px] text-zinc-500">로그인 계정</p>
               <p className="text-xs text-white truncate mt-1">{user?.email}</p>
             </div>
-            {/* 모바일 전용 — 더보기 메뉴 (데스크톱은 사이드바 "더보기"에 있음) */}
-            {[
-              { href: '/terms', label: '이용약관', icon: '/terms.png' },
-              { href: '/privacy', label: '개인정보처리방침', icon: '/security-policy.png' },
-              { href: '/policy', label: '운영정책', icon: '/policy.png' },
-              { href: '/help', label: '도움말', icon: '/Help.png' },
-              { href: '/faq', label: '자주 묻는 질문', icon: '/faq.png' },
-            ].map(({ href, label, icon }) => (
-              <Link
-                key={href}
-                href={href}
-                target="_blank"
-                rel="noopener noreferrer"
-                onClick={() => setOpen(false)}
-                className="flex items-center justify-between gap-2 px-4 py-2.5 text-sm text-zinc-300 hover:text-white hover:bg-white/[0.04] transition-colors"
-              >
-                <span className="flex items-center gap-2.5">
-                  <Image src={icon} alt="" width={16} height={16} style={{ filter: 'invert(1) brightness(0.85)' }} />
-                  {label}
-                </span>
-                <Image src="/External-Link.svg" alt="" width={14} height={14} style={{ filter: 'invert(0.4)' }} />
-              </Link>
-            ))}
-            <a
-              href="mailto:bee202408@gmail.com"
+            {/* 계정 — 결제내역·환불·탈퇴 등. (법적·문의는 둘러보기 푸터로 이동) */}
+            <Link
+              href="/account"
               onClick={() => setOpen(false)}
-              className="flex items-center gap-2.5 px-4 py-2.5 text-sm text-zinc-300 hover:text-white hover:bg-white/[0.04] transition-colors border-b border-white/[0.06]"
+              className="block px-4 py-2.5 text-sm text-zinc-300 hover:text-white hover:bg-white/[0.04] transition-colors border-b border-white/[0.06]"
             >
-              <Image src="/costumer.png" alt="" width={16} height={16} style={{ filter: 'invert(1) brightness(0.85)' }} />
-              문의하기
-            </a>
+              내 계정
+            </Link>
             <button
               onClick={() => {
                 setOpen(false)

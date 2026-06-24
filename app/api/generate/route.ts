@@ -126,7 +126,7 @@ export async function POST(req: NextRequest) {
 
   if (insertErr || !inserted) {
     console.error('[generate] songs INSERT 실패:', insertErr?.message)
-    await refundCredits(user.id, cost)
+    await refundCredits(user.id, cost, consume.consumed)
     return NextResponse.json({ error: '곡 row 생성 실패' }, { status: 500 })
   }
 
@@ -205,7 +205,7 @@ export async function POST(req: NextRequest) {
     } catch (e) {
       console.error('[generate bg] 실패:', e instanceof Error ? e.message : e)
       await admin.from('songs').update({ status: 'failed' }).eq('id', songId)
-      await refundCredits(user.id, cost)
+      await refundCredits(user.id, cost, consume.consumed)
     }
   })
 

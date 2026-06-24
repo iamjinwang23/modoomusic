@@ -9,6 +9,7 @@ export const ADMIN_MODULES = [
   'audit',
   'announcements',
   'models',
+  'payments',
 ] as const
 
 export type AdminModule = typeof ADMIN_MODULES[number]
@@ -21,6 +22,7 @@ export const MODULE_LABELS: Record<AdminModule, string> = {
   audit:         '감사 로그',
   announcements: '공지',
   models:        '모델',
+  payments:      '결제',
 }
 
 /**

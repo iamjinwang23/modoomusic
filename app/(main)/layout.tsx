@@ -18,6 +18,7 @@ import { BottomNav } from '@/components/BottomNav'
 import { NotificationPanel } from '@/components/NotificationPanel'
 import { ReferralModal } from '@/components/ReferralModal'
 import { PopupAnnouncementCard } from '@/components/PopupAnnouncementCard'
+import { CreditPurchaseModal } from '@/components/CreditPurchaseModal'
 import { useAuth } from '@/components/AuthProvider'
 import { notificationService } from '@/services/notification.service'
 
@@ -46,6 +47,7 @@ export default function MainShellLayout({ children }: { children: React.ReactNod
   const [userMenuOpen, setUserMenuOpen] = useState(false)
   const [legalMenuOpen, setLegalMenuOpen] = useState(false)
   const [referralOpen, setReferralOpen] = useState(false)
+  const [creditPurchaseOpen, setCreditPurchaseOpen] = useState(false)
   const [onboardingOpen, setOnboardingOpen] = useState(false)
   const [comingSoon, setComingSoon] = useState<null | 'sidebar' | 'locked-model' | 'daily-limit'>(null)
   const [songOverlayOpen, setSongOverlayOpen] = useState(false)
@@ -87,15 +89,18 @@ export default function MainShellLayout({ children }: { children: React.ReactNod
       const reason = (e as CustomEvent<typeof comingSoon>).detail
       setComingSoon(reason ?? 'sidebar')
     }
+    function onOpenCreditPurchase() { setCreditPurchaseOpen(true) }
     window.addEventListener('view-profile', onViewProfile)
     window.addEventListener('view-song', onViewSong)
     window.addEventListener('open-login', onOpenLogin)
     window.addEventListener('open-coming-soon', onComingSoon)
+    window.addEventListener('open-credit-purchase', onOpenCreditPurchase)
     return () => {
       window.removeEventListener('view-profile', onViewProfile)
       window.removeEventListener('view-song', onViewSong)
       window.removeEventListener('open-login', onOpenLogin)
       window.removeEventListener('open-coming-soon', onComingSoon)
+      window.removeEventListener('open-credit-purchase', onOpenCreditPurchase)
     }
   }, [router])
 
@@ -194,6 +199,12 @@ export default function MainShellLayout({ children }: { children: React.ReactNod
                       className="w-full text-left px-4 py-2.5 text-sm text-white hover:text-white hover:bg-white/[0.04] transition-colors"
                     >
                       내 프로필
+                    </button>
+                    <button
+                      onClick={() => { setUserMenuOpen(false); router.push('/account') }}
+                      className="w-full text-left px-4 py-2.5 text-sm text-white hover:text-white hover:bg-white/[0.04] transition-colors"
+                    >
+                      내 계정
                     </button>
                     <button
                       onClick={() => {
@@ -421,6 +432,9 @@ export default function MainShellLayout({ children }: { children: React.ReactNod
 
       {/* 우측 하단 팝업 공지 카드 (활성 팝업 있을 때만) */}
       <PopupAnnouncementCard />
+
+      {/* 크레딧 충전 모달 */}
+      <CreditPurchaseModal open={creditPurchaseOpen} onClose={() => setCreditPurchaseOpen(false)} />
 
       {/* 곡 생성 완료/실패 realtime 구독 (로그인 시) */}
       {user && <SongRealtimeBridge />}

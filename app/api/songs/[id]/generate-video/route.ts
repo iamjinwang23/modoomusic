@@ -4,7 +4,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createUserClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
-import { consumeVideoTrial, refundVideoTrial, tryConsumeCredits, refundCredits } from '@/services/credit.service'
+import { consumeVideoTrial, refundVideoTrial, tryConsumeCredits, refundCredits, type ConsumedBreakdown } from '@/services/credit.service'
 import { createVideoTask, VIDEO_TIERS } from '@/services/video.service'
 import { uploadFromUrl } from '@/services/storage.service'
 import type { VideoCoverMode, VideoCoverTier } from '@/types/domain'
@@ -64,11 +64,13 @@ export async function POST(req: NextRequest, { params }: { params: Promise<Param
 
   // 결제: 체험권 우선 → 크레딧
   let charge: 'trial' | 'credit'
+  let creditConsumed: ConsumedBreakdown | undefined
   if (await consumeVideoTrial(uid)) {
     charge = 'trial'
   } else {
-    const { ok } = await tryConsumeCredits(uid, VIDEO_TIERS[tier].credits)
-    if (!ok) return NextResponse.json({ error: 'insufficient', needCredits: VIDEO_TIERS[tier].credits }, { status: 402 })
+    const consume = await tryConsumeCredits(uid, VIDEO_TIERS[tier].credits)
+    if (!consume.ok) return NextResponse.json({ error: 'insufficient', needCredits: VIDEO_TIERS[tier].credits }, { status: 402 })
+    creditConsumed = consume.consumed
     charge = 'credit'
   }
 
@@ -82,7 +84,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<Param
     })
   } catch (e) {
     if (charge === 'trial') await refundVideoTrial(uid)
-    else await refundCredits(uid, VIDEO_TIERS[tier].credits)
+    else await refundCredits(uid, VIDEO_TIERS[tier].credits, creditConsumed)
     if ((e as { code?: string }).code === 'RATE_LIMITED') return NextResponse.json({ error: 'rate_limited' }, { status: 429 })
     console.error('[generate-video] createTask:', e)
     return NextResponse.json({ error: 'minimax_failed', message: (e as Error).message }, { status: 502 })

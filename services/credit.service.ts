@@ -26,16 +26,24 @@ export interface CreditState {
   used: number
   limit: number
   remaining: number       // 일일 잔여 (일일 한도 - 사용)
-  bonus: number           // 보너스 잔여
-  total: number           // 일일 + 보너스 합산 (사용 가능 총량)
+  bonus: number           // 무상 보너스 잔여
+  paid: number            // 유상(구매) 잔여 — 무기한, 최후 소진
+  total: number           // 일일 + 보너스 + 유상 합산 (사용 가능 총량)
   resetAt: string
+}
+
+// 소진 내역 — 실패 환불 시 정확 복원용 (어느 버킷에서 얼마 빠졌는지)
+export interface ConsumedBreakdown {
+  bonus: number
+  daily: number
+  paid: number
 }
 
 export async function getCreditState(userId: string): Promise<CreditState> {
   const supabase = createAdminClient()
   const { data } = await supabase
     .from('profiles')
-    .select('daily_credits_used, last_credit_reset_at, bonus_credits, is_admin')
+    .select('daily_credits_used, last_credit_reset_at, bonus_credits, paid_credits, is_admin')
     .eq('id', userId)
     .maybeSingle()
 
@@ -43,32 +51,34 @@ export async function getCreditState(userId: string): Promise<CreditState> {
   const todayStartUtc = kstTodayStartUtcIso()
   const lastReset = data?.last_credit_reset_at ?? null
   const needsReset = !lastReset || new Date(lastReset) < new Date(todayStartUtc)
+  const bonus = (data?.bonus_credits as number | null) ?? 0
+  const paid = (data?.paid_credits as number | null) ?? 0
 
   if (needsReset && data) {
     await supabase
       .from('profiles')
       .update({ daily_credits_used: 0, last_credit_reset_at: todayStartUtc })
       .eq('id', userId)
-    const bonus = (data?.bonus_credits as number | null) ?? 0
     return {
       used: 0,
       limit,
       remaining: limit,
       bonus,
-      total: limit + bonus,
+      paid,
+      total: limit + bonus + paid,
       resetAt: nextKstMidnightIso(),
     }
   }
 
   const used = (data?.daily_credits_used as number | null) ?? 0
-  const bonus = (data?.bonus_credits as number | null) ?? 0
   const remaining = Math.max(0, limit - used)
   return {
     used,
     limit,
     remaining,
     bonus,
-    total: remaining + bonus,
+    paid,
+    total: remaining + bonus + paid,
     resetAt: nextKstMidnightIso(),
   }
 }
@@ -79,52 +89,75 @@ function nextKstMidnightIso(): string {
   return nextMidnight.toISOString()
 }
 
-// Design Ref: §7.4 — 보너스 우선 → 일일 순서 차감
-// 차감 시도: 가능하면 amount 차감하고 ok:true, 부족하면 ok:false
-export async function tryConsumeCredits(userId: string, amount: number): Promise<{ ok: boolean; state: CreditState }> {
+// Design Ref: §7.4 — 소진 순서 보너스 → 일일 → 유상(최후). 무상·소멸성 먼저, 구매분 마지막.
+// 차감 시도: 가능하면 amount 차감하고 ok:true(+소진 내역), 부족하면 ok:false
+export async function tryConsumeCredits(
+  userId: string,
+  amount: number,
+): Promise<{ ok: boolean; state: CreditState; consumed?: ConsumedBreakdown }> {
   const state = await getCreditState(userId)
   if (state.total < amount) {
     return { ok: false, state }
   }
 
   const fromBonus = Math.min(state.bonus, amount)
-  const fromDaily = amount - fromBonus
+  let rest = amount - fromBonus
+  const fromDaily = Math.min(state.remaining, rest)
+  rest -= fromDaily
+  const fromPaid = rest // total >= amount 보장 → 남은 건 유상에서
 
   const supabase = createAdminClient()
   const nextBonus = state.bonus - fromBonus
   const nextUsed = state.used + fromDaily
+  const nextPaid = state.paid - fromPaid
 
-  await supabase
-    .from('profiles')
-    .update({
-      bonus_credits: nextBonus,
-      daily_credits_used: nextUsed,
-    })
-    .eq('id', userId)
+  const patch: Record<string, unknown> = { bonus_credits: nextBonus, daily_credits_used: nextUsed }
+  if (fromPaid > 0) patch.paid_credits = nextPaid
+  await supabase.from('profiles').update(patch).eq('id', userId)
 
   const nextRemaining = Math.max(0, state.limit - nextUsed)
   return {
     ok: true,
+    consumed: { bonus: fromBonus, daily: fromDaily, paid: fromPaid },
     state: {
       ...state,
       used: nextUsed,
       remaining: nextRemaining,
       bonus: nextBonus,
-      total: nextRemaining + nextBonus,
+      paid: nextPaid,
+      total: nextRemaining + nextBonus + nextPaid,
     },
   }
 }
 
-// Design Ref: §7.4 — 환불은 보너스 → 일일 역순 (소진 우선순위 반대)
-// 차감 후 생성 실패 시 환불
-export async function refundCredits(userId: string, amount: number): Promise<void> {
-  const state = await getCreditState(userId)
+// 차감 후 생성 실패 시 환불. consumed(소진 내역)를 주면 버킷별로 정확 복원(유상 포함),
+// 없으면 레거시(일일 우선 복구, 유상 미복원).
+export async function refundCredits(
+  userId: string,
+  amount: number,
+  consumed?: ConsumedBreakdown,
+): Promise<void> {
   const supabase = createAdminClient()
+  const state = await getCreditState(userId)
 
-  // 일일 사용분에서 먼저 복구 (사용자 체감: 보너스가 보존되는 것이 더 호의적)
+  if (consumed) {
+    await supabase
+      .from('profiles')
+      .update({
+        daily_credits_used: Math.max(0, state.used - consumed.daily),
+        bonus_credits: state.bonus + consumed.bonus,
+      })
+      .eq('id', userId)
+    // 유상은 원자적 증가 RPC (mig 039)
+    if (consumed.paid > 0) {
+      await supabase.rpc('add_paid_credits', { p_user: userId, p_delta: consumed.paid })
+    }
+    return
+  }
+
+  // 레거시(내역 없음): 일일 사용분 우선 복구(보너스 보존이 호의적). 유상은 복원 안 함.
   const fromDaily = Math.min(state.used, amount)
   const fromBonus = amount - fromDaily
-
   await supabase
     .from('profiles')
     .update({

@@ -27,6 +27,7 @@ const GROUPS: NavGroup[] = [
       { href: '/admin/users',    label: '사용자', permission: 'users' },
       { href: '/admin/content',  label: '콘텐츠', permission: 'content' },
       { href: '/admin/credits',  label: '크레딧', permission: 'credits' },
+      { href: '/admin/payments', label: '결제',   permission: 'payments' },
       { href: '/admin/reports',  label: '신고',   permission: 'reports' },
     ],
   },

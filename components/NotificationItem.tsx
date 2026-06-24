@@ -47,6 +47,16 @@ function renderText(n: Notification): React.ReactNode {
         </>
       )
     }
+    case 'credit_charged': {
+      const p = (n.payload as { credits?: number }) ?? {}
+      const credits = p.credits ?? 0
+      return (
+        <>
+          <span className="text-white font-medium">크레딧 충전 완료</span>
+          <span className="block text-zinc-400 text-xs mt-1 leading-relaxed">{credits.toLocaleString()}크레딧이 충전되었어요</span>
+        </>
+      )
+    }
   }
 }
 
@@ -54,10 +64,14 @@ export function NotificationItem({ notif, onClick }: Props) {
   const unread = !notif.readAt
   const c = profileColor(notif.actorAvatarHue ?? 0)
 
-  // 좌측 비주얼: system은 공지(나팔) 아이콘, 그 외는 actor 아바타
+  // 좌측 비주얼: system은 공지(나팔), credit_charged는 크레딧(반짝) 아이콘, 그 외는 actor 아바타
   const visual = notif.type === 'system' ? (
     <div className="w-10 h-10 rounded-full bg-violet-500/20 flex items-center justify-center shrink-0">
       <Image src="/notice.svg" alt="" width={18} height={18} style={{ filter: 'invert(1)' }} />
+    </div>
+  ) : notif.type === 'credit_charged' ? (
+    <div className="w-10 h-10 rounded-full bg-violet-500/20 flex items-center justify-center shrink-0">
+      <Image src="/Sparkles.svg" alt="" width={18} height={18} style={{ filter: 'invert(1)' }} />
     </div>
   ) : notif.type === 'song_complete' && notif.songCoverImage ? (
     <div className="relative w-10 h-10 rounded-md overflow-hidden shrink-0">

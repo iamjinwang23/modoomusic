@@ -48,7 +48,13 @@ export function CreditIndicator() {
   return (
     <button
       type="button"
-      onClick={() => window.dispatchEvent(new CustomEvent('open-coming-soon', { detail: isEmpty ? 'daily-limit' : 'sidebar' }))}
+      onClick={() => {
+        if (process.env.NEXT_PUBLIC_PAYMENTS_ENABLED === 'true') {
+          window.dispatchEvent(new Event('open-credit-purchase'))
+        } else {
+          window.dispatchEvent(new CustomEvent('open-coming-soon', { detail: isEmpty ? 'daily-limit' : 'sidebar' }))
+        }
+      }}
       className="h-8 flex items-center gap-2 px-3 rounded-full border border-white/25 bg-white/[0.04] hover:bg-white/[0.10] hover:border-white/40 transition-colors"
       title={tip}
     >

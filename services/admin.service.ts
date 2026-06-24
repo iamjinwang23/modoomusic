@@ -42,8 +42,9 @@ export type AdminAction =
   | 'update_model'
   | 'grant_admin'
   | 'revoke_admin'
+  | 'cancel_payment'
 
-export type AdminTargetType = 'user' | 'song' | 'comment' | 'report' | 'system'
+export type AdminTargetType = 'user' | 'song' | 'comment' | 'report' | 'system' | 'payment'
 
 const MIN_REASON = 5
 
