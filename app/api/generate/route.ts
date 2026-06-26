@@ -7,6 +7,7 @@ import { createAdminClient } from '@/lib/supabase/admin'
 import { tryConsumeCredits, refundCredits } from '@/services/credit.service'
 import { generateLyrics } from '@/services/lyrics.service'
 import { inferTags } from '@/utils/extractTags'
+import { sendPushToUser } from '@/services/push.service'
 
 // 이미지 생성 프롬프트 우선순위: 가사 → 제목 → 스타일
 // 의미 없는 단순 반복(ㅋㅋ, 1111 등)은 다음 후보로 fallback.
@@ -197,11 +198,13 @@ export async function POST(req: NextRequest) {
         return
       }
 
-      // song_complete 알림
+      // song_complete 알림 + 웹 푸시(앱 닫혀 있어도 — 생성 중 이탈 잦음)
       const { error: notifErr } = await admin
         .from('notifications')
         .insert({ user_id: user.id, type: 'song_complete', song_id: songId })
       if (notifErr) console.error('[generate bg] notif INSERT 실패:', notifErr.message)
+      const doneTitle = (typeof updatePatch.title === 'string' ? updatePatch.title : inserted.title) || '새 곡'
+      await sendPushToUser(user.id, { title: '곡이 완성됐어요', body: doneTitle, url: '/library', tag: `song-${songId}` })
     } catch (e) {
       console.error('[generate bg] 실패:', e instanceof Error ? e.message : e)
       await admin.from('songs').update({ status: 'failed' }).eq('id', songId)

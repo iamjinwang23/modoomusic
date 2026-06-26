@@ -5,6 +5,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { useAuth } from '@/components/AuthProvider'
 import { AccountDeletionModal } from '@/components/AccountDeletionModal'
+import { PushToggle } from '@/components/PushToggle'
 import { toast } from '@/components/toast/toast'
 
 interface MyPayment {
@@ -149,6 +150,7 @@ export default function AccountPage() {
 
         {/* 계정 관리 */}
         <section className="space-y-2 pt-2">
+          <PushToggle />
           <button
             onClick={() => { signOut(); router.push('/') }}
             className="w-full text-left px-4 py-3 rounded-xl border border-white/[0.06] bg-white/[0.02] text-sm text-white hover:bg-white/[0.05] transition"

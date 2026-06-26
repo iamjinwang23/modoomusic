@@ -2,6 +2,7 @@
 // 게시(status='published') 공지는 anon도 RLS로 읽을 수 있음. 숨김은 어드민만.
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { createUserClient } from '@/lib/supabase/server'
+import { sendPushToAll } from '@/services/push.service'
 import type { Announcement, AnnouncementCategory } from '@/types/domain'
 
 interface AnnouncementRow {
@@ -87,6 +88,10 @@ export async function broadcastAnnouncementNotification(
     if (nErr) { console.error('[announcement notify] insert:', nErr.message); break }
     sent += chunk.length
   }
+
+  // 전체 구독자에게 웹 푸시 (앱 닫혀 있어도 새 공지 알림)
+  await sendPushToAll({ title: ann.title, body: toNotificationBody(ann.content), url, tag: `announcement-${ann.id}` })
+
   return { sent }
 }
 

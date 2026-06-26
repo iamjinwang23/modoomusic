@@ -3,6 +3,7 @@
 import { NextResponse } from 'next/server'
 import { createUserClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
+import { sendPushToUser } from '@/services/push.service'
 
 interface Params { id: string }
 
@@ -65,6 +66,10 @@ export async function POST(_req: Request, { params }: { params: Promise<Params> 
       // UNIQUE 충돌(이미 like 알림 받은 적 있음)은 무시. 그 외만 로그
       if (notifErr && !notifErr.message.includes('duplicate')) {
         console.error('[like notify]', notifErr.message)
+      }
+      // 첫 좋아요 알림일 때만 푸시(중복이면 스킵 — 스팸 방지)
+      if (!notifErr) {
+        await sendPushToUser(song.user_id, { title: '새 좋아요', body: '내 곡을 좋아했어요', url: `/?song=${songId}`, tag: `like-${songId}` })
       }
     }
   }

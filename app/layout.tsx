@@ -6,6 +6,7 @@ import { AuthProvider } from "@/components/AuthProvider";
 import { GlobalPlayerProvider } from "@/contexts/GlobalPlayerContext";
 import { ToastHost } from "@/components/toast/ToastHost";
 import { GoogleAnalytics } from "@next/third-parties/google";
+import { ServiceWorkerRegister } from "@/components/ServiceWorkerRegister";
 
 const pretendard = localFont({
   src: "../node_modules/pretendard/dist/web/variable/woff2/PretendardVariable.woff2",
@@ -76,6 +77,11 @@ export const metadata: Metadata = {
     },
   },
   manifest: '/site.webmanifest',
+  appleWebApp: {
+    capable: true,
+    title: 'MONO',
+    statusBarStyle: 'black',
+  },
   icons: {
     // app/favicon.ico는 Next.js가 자동 처리 (멀티 ICO). 나머지 PNG 사이즈 명시.
     icon: [
@@ -160,6 +166,7 @@ export default function RootLayout({
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
         />
+        <ServiceWorkerRegister />
         <AuthProvider>
           <GlobalPlayerProvider>
             {children}
