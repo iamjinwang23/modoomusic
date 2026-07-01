@@ -29,6 +29,7 @@ const GROUPS: NavGroup[] = [
       { href: '/admin/credits',  label: '크레딧', permission: 'credits' },
       { href: '/admin/payments', label: '결제',   permission: 'payments' },
       { href: '/admin/reports',  label: '신고',   permission: 'reports' },
+      { href: '/admin/banned-words', label: '금칙어', permission: 'reports' },
     ],
   },
   {

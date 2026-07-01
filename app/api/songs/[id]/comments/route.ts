@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createUserClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { sendPushToUser } from '@/services/push.service'
+import { findBannedWord } from '@/services/moderation.service'
 import type { Comment } from '@/types/domain'
 
 type ProfileJoin = {
@@ -89,6 +90,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
 
   if (!text) return NextResponse.json({ error: '댓글을 입력해 주세요', code: 'INVALID' }, { status: 400 })
   if (text.length > 500) return NextResponse.json({ error: '댓글은 500자 이내로 작성해 주세요', code: 'INVALID' }, { status: 400 })
+  if (await findBannedWord(text)) return NextResponse.json({ error: '부적절한 표현이 포함되어 있어요', code: 'BANNED' }, { status: 400 })
 
   const userClient = await createUserClient()
   const { data: { user } } = await userClient.auth.getUser()

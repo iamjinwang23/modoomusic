@@ -148,7 +148,7 @@ export default function CommunityCafePage() {
     })
     const j = await res.json().catch(() => ({}))
     setPosting(false)
-    if (!res.ok) { toast.error(j.error === 'not_member' ? '멤버만 글을 쓸 수 있어요' : '작성에 실패했어요'); return }
+    if (!res.ok) { toast.error(j.error === 'not_member' ? '멤버만 글을 쓸 수 있어요' : j.error === 'banned_word' ? '부적절한 표현이 포함되어 있어요' : '작성에 실패했어요'); return }
     setContent(''); setAttachedSong(null); setAttachedImages([]); setAttachedLink(''); setUrlInputOpen(false); setPollOptions(null); load()
   }
 
@@ -229,7 +229,7 @@ export default function CommunityCafePage() {
     const res = await fetch(`/api/community-posts/${postId}/comments`, {
       method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ body: commentText.trim() }),
     })
-    if (!res.ok) { toast.error('댓글 작성에 실패했어요'); return }
+    if (!res.ok) { const j = await res.json().catch(() => ({})); toast.error(j.error === 'banned_word' ? '부적절한 표현이 포함되어 있어요' : '댓글 작성에 실패했어요'); return }
     setCommentText('')
     await refetchComments(postId)
   }

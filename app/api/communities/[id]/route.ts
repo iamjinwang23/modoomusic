@@ -28,7 +28,7 @@ export async function PATCH(req: NextRequest, { params }: RouteParams) {
   if (typeof body.description === 'string' || body.description === null) patch.description = body.description as string | null
   const result = await updateCommunity(user.id, id, patch)
   if (!result.ok) {
-    const status = result.error === 'forbidden' ? 403 : result.error === 'not_found' ? 404 : result.error === 'invalid_name' ? 400 : result.error === 'empty' ? 400 : 500
+    const status = result.error === 'forbidden' ? 403 : result.error === 'not_found' ? 404 : result.error === 'invalid_name' ? 400 : result.error === 'empty' ? 400 : result.error === 'banned_word' ? 400 : 500
     return NextResponse.json({ error: result.error }, { status })
   }
   return NextResponse.json({ community: result.community })
@@ -41,7 +41,7 @@ export async function DELETE(_req: NextRequest, { params }: RouteParams) {
   if (!user) return NextResponse.json({ error: 'unauthorized' }, { status: 401 })
   const result = await closeCommunity(user.id, id)
   if (!result.ok) {
-    const status = result.error === 'forbidden' ? 403 : result.error === 'not_found' ? 404 : 500
+    const status = result.error === 'forbidden' ? 403 : result.error === 'not_found' ? 404 : result.error === 'banned_word' ? 400 : 500
     return NextResponse.json({ error: result.error }, { status })
   }
   return NextResponse.json({ ok: true })

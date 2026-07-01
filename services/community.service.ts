@@ -1,6 +1,7 @@
 // 커뮤니티(카페) — 개설/폐쇄/가입/탈퇴/조회/허브. 서버 전용(admin client). 정책 가드 포함.
 import { createAdminClient } from '@/lib/supabase/admin'
 import { sendPushToUser } from '@/services/push.service'
+import { findBannedWord } from '@/services/moderation.service'
 import type { Community, CommunityMember } from '@/types/domain'
 
 // 모더레이션(강퇴·게시물 삭제) 알림 — 시스템 알림 + 웹푸시
@@ -47,6 +48,7 @@ export async function createCommunity(
   input: { name: string; topic?: string | null; description?: string | null; coverImage?: string | null },
 ): Promise<{ ok: true; community: Community } | { ok: false; error: string }> {
   const admin = createAdminClient()
+  if (await findBannedWord(input.name, input.topic, input.description)) return { ok: false, error: 'banned_word' }
   // 1인 1개 제한 — 관리자는 예외
   const { data: prof } = await admin.from('profiles').select('is_admin').eq('id', userId).maybeSingle()
   if (!prof?.is_admin) {
@@ -84,6 +86,7 @@ export async function updateCommunity(
   const { data: c } = await admin.from('communities').select('manager_id').eq('id', communityId).maybeSingle()
   if (!c) return { ok: false, error: 'not_found' }
   if (c.manager_id !== userId) return { ok: false, error: 'forbidden' }
+  if (await findBannedWord(patch.name, patch.topic, patch.description)) return { ok: false, error: 'banned_word' }
 
   const update: Record<string, unknown> = {}
   if (patch.name !== undefined) {

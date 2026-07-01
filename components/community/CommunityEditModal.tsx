@@ -78,7 +78,7 @@ export function CommunityEditModal({ community, onClose, onSaved, onClosed }: {
     setSaving(false)
     if (!res.ok) {
       const j = await res.json().catch(() => ({}))
-      toast.error(j.error === 'invalid_name' ? '커뮤니티 이름은 2~30자로 입력해 주세요' : '저장에 실패했어요')
+      toast.error(j.error === 'invalid_name' ? '커뮤니티 이름은 2~30자로 입력해 주세요' : j.error === 'banned_word' ? '부적절한 표현이 포함되어 있어요' : '저장에 실패했어요')
       return
     }
     const j = await res.json()

@@ -31,7 +31,7 @@ export function CreateCommunityModal({ open, onClose }: Props) {
       })
       const j = await res.json().catch(() => ({}))
       if (!res.ok) {
-        toast.error(j.error === 'already_has_community' ? '이미 운영 중인 커뮤니티가 있어요 (1인 1개)' : '개설에 실패했어요')
+        toast.error(j.error === 'already_has_community' ? '이미 운영 중인 커뮤니티가 있어요 (1인 1개)' : j.error === 'banned_word' ? '부적절한 표현이 포함되어 있어요' : '개설에 실패했어요')
         return
       }
       toast.success('커뮤니티를 만들었어요')

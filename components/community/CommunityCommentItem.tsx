@@ -48,7 +48,7 @@ export function CommunityCommentItem({ comment, currentUserId, isManager, isRepl
       const res = await fetch(`/api/community-comments/${comment.id}`, {
         method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ body: text }),
       })
-      if (!res.ok) throw new Error()
+      if (!res.ok) { const j = await res.json().catch(() => ({})); toast.error(j.error === 'banned_word' ? '부적절한 표현이 포함되어 있어요' : '수정에 실패했어요'); return }
       setEditOpen(false)
       onMutated()
     } catch { toast.error('수정에 실패했어요') } finally { setEditSaving(false) }
@@ -90,7 +90,7 @@ export function CommunityCommentItem({ comment, currentUserId, isManager, isRepl
       const res = await fetch(`/api/community-posts/${comment.postId}/comments`, {
         method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ body: text, parentId: comment.id }),
       })
-      if (!res.ok) throw new Error()
+      if (!res.ok) { const j = await res.json().catch(() => ({})); toast.error(j.error === 'banned_word' ? '부적절한 표현이 포함되어 있어요' : '답글 작성에 실패했어요'); return }
       setReplyBody(''); setReplyOpen(false)
       onMutated()
     } catch { toast.error('답글 작성에 실패했어요') } finally { setReplySaving(false) }

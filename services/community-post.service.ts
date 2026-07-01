@@ -1,6 +1,7 @@
 // 커뮤니티 글(뉴스피드) — 작성(멤버 가드)·피드·삭제·고정(매니저)·좋아요·댓글.
 import { createAdminClient } from '@/lib/supabase/admin'
 import { notifyCommunityModeration } from '@/services/community.service'
+import { findBannedWord } from '@/services/moderation.service'
 import type { CommunityPost, CommunityPostComment, CommunityPoll } from '@/types/domain'
 
 interface PostRow {
@@ -79,6 +80,7 @@ export async function createPost(
   const pollOptions = input.poll ? input.poll.options.map((o) => o.trim()).filter(Boolean).slice(0, 4) : []
   const hasPoll = pollOptions.length >= 2
   if (!content && imageUrls.length === 0 && !input.songId && !linkUrl && !hasPoll) return { ok: false, error: 'empty' }
+  if (await findBannedWord(content, ...pollOptions)) return { ok: false, error: 'banned_word' }
   const { data, error } = await admin
     .from('community_posts')
     .insert({ community_id: communityId, author_id: userId, content, image_urls: imageUrls, link_url: linkUrl, song_id: input.songId ?? null })
@@ -206,6 +208,7 @@ export async function deletePost(userId: string, postId: string): Promise<{ ok: 
 export async function editPost(userId: string, postId: string, content: string): Promise<{ ok: true; post: CommunityPost } | { ok: false; error: string }> {
   const admin = createAdminClient()
   const text = content.trim()
+  if (text && await findBannedWord(text)) return { ok: false, error: 'banned_word' }
   const { data: post } = await admin.from('community_posts').select('author_id, song_id, image_url, image_urls, link_url').eq('id', postId).maybeSingle()
   if (!post) return { ok: false, error: 'not_found' }
   if (post.author_id !== userId) return { ok: false, error: 'forbidden' }
@@ -250,6 +253,7 @@ export async function addComment(userId: string, postId: string, body: string, p
   const admin = createAdminClient()
   const text = body.trim()
   if (!text) return { ok: false, error: 'empty' }
+  if (await findBannedWord(text)) return { ok: false, error: 'banned_word' }
   const { data: post } = await admin.from('community_posts').select('id').eq('id', postId).maybeSingle()
   if (!post) return { ok: false, error: 'not_found' }
   // 대댓글이면 부모가 같은 글의 최상위 댓글인지 검증 (1단계만 허용)
@@ -337,6 +341,7 @@ export async function editComment(userId: string, commentId: string, body: strin
   const admin = createAdminClient()
   const text = body.trim()
   if (!text) return { ok: false, error: 'empty' }
+  if (await findBannedWord(text)) return { ok: false, error: 'banned_word' }
   const { data: c } = await admin.from('community_post_comments').select('user_id').eq('id', commentId).maybeSingle()
   if (!c) return { ok: false, error: 'not_found' }
   if (c.user_id !== userId) return { ok: false, error: 'forbidden' }

@@ -30,7 +30,7 @@ export async function POST(req: NextRequest) {
     coverImage: typeof body.coverImage === 'string' && body.coverImage ? body.coverImage : null,
   })
   if (!result.ok) {
-    const status = result.error === 'already_has_community' ? 409 : 500
+    const status = result.error === 'already_has_community' ? 409 : result.error === 'banned_word' ? 400 : 500
     return NextResponse.json({ error: result.error }, { status })
   }
   return NextResponse.json({ community: result.community })
