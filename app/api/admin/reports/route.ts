@@ -28,6 +28,17 @@ interface CommentReportRaw {
   resolution_memo: string | null
 }
 
+interface PostReportRaw {
+  id: string
+  reporter_id: string
+  post_id: string
+  reason: string
+  created_at: string
+  resolved_at: string | null
+  resolution: string | null
+  resolution_memo: string | null
+}
+
 export async function GET(req: NextRequest) {
   const auth = await requireAdminApi('reports')
   if (!auth.ok) return NextResponse.json({ error: auth.error }, { status: auth.status })
@@ -48,34 +59,46 @@ export async function GET(req: NextRequest) {
     .select('id, reporter_id, comment_id, reason, created_at, resolved_at, resolution, resolution_memo')
     .order('created_at', { ascending: false })
     .limit(50)
+  const postQ = supabase
+    .from('community_post_reports')
+    .select('id, reporter_id, post_id, reason, created_at, resolved_at, resolution, resolution_memo')
+    .order('created_at', { ascending: false })
+    .limit(50)
 
-  const [songRes, commentRes] = await Promise.all([
+  const [songRes, commentRes, postRes] = await Promise.all([
     isPending ? songQ.is('resolved_at', null) : songQ.not('resolved_at', 'is', null),
     isPending ? commentQ.is('resolved_at', null) : commentQ.not('resolved_at', 'is', null),
+    isPending ? postQ.is('resolved_at', null) : postQ.not('resolved_at', 'is', null),
   ])
 
-  if (songRes.error || commentRes.error) {
-    console.error('[reports] song:', songRes.error?.message, 'comment:', commentRes.error?.message)
+  if (songRes.error || commentRes.error || postRes.error) {
+    console.error('[reports] song:', songRes.error?.message, 'comment:', commentRes.error?.message, 'post:', postRes.error?.message)
     return NextResponse.json({ error: 'internal' }, { status: 500 })
   }
 
   const songRows = (songRes.data ?? []) as SongReportRaw[]
   const commentRows = (commentRes.data ?? []) as CommentReportRaw[]
+  const postRows = (postRes.data ?? []) as PostReportRaw[]
 
   // 2) 참조 데이터 배치 조회
   const songIds = new Set(songRows.map((r) => r.song_id))
   const commentIds = new Set(commentRows.map((r) => r.comment_id))
+  const postIds = new Set(postRows.map((r) => r.post_id))
   const reporterIds = new Set([
     ...songRows.map((r) => r.reporter_id),
     ...commentRows.map((r) => r.reporter_id),
+    ...postRows.map((r) => r.reporter_id),
   ])
 
-  const [songsRes, commentsRes, reportersRes] = await Promise.all([
+  const [songsRes, commentsRes, postsRes, reportersRes] = await Promise.all([
     songIds.size > 0
       ? supabase.from('songs').select('id, title, prompt, user_id, is_public, audio_url, cover_image, cover_hue').in('id', Array.from(songIds))
       : Promise.resolve({ data: [], error: null }),
     commentIds.size > 0
       ? supabase.from('comments').select('id, content, user_id, song_id').in('id', Array.from(commentIds))
+      : Promise.resolve({ data: [], error: null }),
+    postIds.size > 0
+      ? supabase.from('community_posts').select('id, content, author_id, community_id, status').in('id', Array.from(postIds))
       : Promise.resolve({ data: [], error: null }),
     reporterIds.size > 0
       ? supabase.from('profiles').select('id, username, display_name').in('id', Array.from(reporterIds))
@@ -84,6 +107,7 @@ export async function GET(req: NextRequest) {
 
   const songMap = new Map((songsRes.data ?? []).map((s) => [s.id, s]))
   const commentMap = new Map((commentsRes.data ?? []).map((c) => [c.id, c]))
+  const postMap = new Map((postsRes.data ?? []).map((p) => [p.id, p]))
   const reporterMap = new Map((reportersRes.data ?? []).map((p) => [p.id, p]))
 
   // 3) 조합
@@ -130,7 +154,28 @@ export async function GET(req: NextRequest) {
     }
   })
 
-  const all = [...songReports, ...commentReports].sort((a, b) =>
+  const postReports = postRows.map((r) => {
+    const post = postMap.get(r.post_id) as { id: string; content: string | null; author_id: string; community_id: string; status: string } | undefined
+    const reporter = reporterMap.get(r.reporter_id)
+    return {
+      type: 'community_post' as const,
+      id: r.id,
+      targetId: r.post_id,
+      targetTitle: post?.content?.slice(0, 60) || '(내용 없음)',
+      targetPreview: post?.content ?? '(삭제됨)',
+      targetOwnerId: post?.author_id ?? null,
+      targetCommunityId: post?.community_id ?? null,
+      targetHidden: post?.status === 'hidden',
+      reporterUsername: reporter?.username ?? '(unknown)',
+      reason: r.reason,
+      createdAt: r.created_at,
+      resolvedAt: r.resolved_at,
+      resolution: r.resolution,
+      resolutionMemo: r.resolution_memo,
+    }
+  })
+
+  const all = [...songReports, ...commentReports, ...postReports].sort((a, b) =>
     a.createdAt > b.createdAt ? -1 : 1,
   )
 

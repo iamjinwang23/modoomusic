@@ -8,7 +8,7 @@ import { AdminPanel } from '@/components/admin/AdminPanel'
 import { AdminConfirm } from '@/components/admin/AdminConfirm'
 
 interface Report {
-  type: 'song' | 'comment'
+  type: 'song' | 'comment' | 'community_post'
   id: string
   targetId: string
   targetTitle: string
@@ -20,6 +20,9 @@ interface Report {
   targetCoverHue?: number | null
   // comment 전용
   targetSongId?: string | null
+  // community_post 전용
+  targetCommunityId?: string | null
+  targetHidden?: boolean
   reporterUsername: string
   reason: string
   createdAt: string
@@ -29,6 +32,12 @@ interface Report {
 }
 
 type ResolveAction = { report: Report; resolution: 'upheld' | 'dismissed' }
+
+function typeLabel(t: Report['type']) { return t === 'song' ? '곡' : t === 'comment' ? '댓글' : '게시글' }
+function typeBadgeClass(t: Report['type']) {
+  return t === 'song' ? 'bg-[#f3ebfb] text-[#4c2889]' : t === 'comment' ? 'bg-blue-100 text-blue-700' : 'bg-emerald-100 text-emerald-700'
+}
+function upheldActionLabel(t: Report['type']) { return t === 'song' ? '곡 강제 비공개' : t === 'comment' ? '댓글 삭제' : '게시글 블라인드' }
 
 export default function AdminReportsPage() {
   const [tab, setTab] = useState<'pending' | 'resolved'>('pending')
@@ -66,7 +75,7 @@ export default function AdminReportsPage() {
     setFeedback({
       type: 'success',
       msg: action.resolution === 'upheld'
-        ? `${action.report.type === 'song' ? '곡' : '댓글'} 신고 인정 — 대상 조치 완료`
+        ? `${typeLabel(action.report.type)} 신고 인정 — 대상 조치 완료`
         : '신고 기각 처리됨',
     })
     setAction(null)
@@ -78,7 +87,7 @@ export default function AdminReportsPage() {
     <div className="space-y-6">
       <header>
         <h1 className="text-xl font-semibold text-zinc-900">신고</h1>
-        <p className="text-sm text-zinc-500 mt-1">곡·댓글 신고 큐. 인정 시 자동 조치(곡: 비공개 / 댓글: 삭제)</p>
+        <p className="text-sm text-zinc-500 mt-1">곡·댓글·게시글 신고 큐. 인정 시 자동 조치(곡: 비공개 / 댓글: 삭제 / 게시글: 블라인드)</p>
       </header>
 
       {feedback && (
@@ -128,10 +137,8 @@ export default function AdminReportsPage() {
                     {new Date(r.createdAt).toLocaleString('ko-KR')}
                   </td>
                   <td className="py-2.5 pr-3">
-                    <span className={`text-[10px] font-semibold px-2 py-0.5 rounded ${
-                      r.type === 'song' ? 'bg-[#f3ebfb] text-[#4c2889]' : 'bg-blue-100 text-blue-700'
-                    }`}>
-                      {r.type === 'song' ? '곡' : '댓글'}
+                    <span className={`text-[10px] font-semibold px-2 py-0.5 rounded ${typeBadgeClass(r.type)}`}>
+                      {typeLabel(r.type)}
                     </span>
                   </td>
                   <td className="py-2.5 pr-3 text-zinc-900 truncate max-w-[120px]" title={r.reporterUsername}>
@@ -184,7 +191,7 @@ export default function AdminReportsPage() {
         open={!!action}
         title={action
           ? action.resolution === 'upheld'
-            ? `신고 인정 — ${action.report.type === 'song' ? '곡 강제 비공개' : '댓글 삭제'}`
+            ? `신고 인정 — ${upheldActionLabel(action.report.type)}`
             : '신고 기각'
           : ''
         }
@@ -222,10 +229,8 @@ function ReportDetailModal({ report, onClose, onAction }: {
         <div className="p-6 space-y-4 text-sm">
           <Field label="신고 시각" value={new Date(report.createdAt).toLocaleString('ko-KR')} />
           <Field label="유형" value={
-            <span className={`inline-block text-[10px] font-semibold px-2 py-0.5 rounded ${
-              report.type === 'song' ? 'bg-[#f3ebfb] text-[#4c2889]' : 'bg-blue-100 text-blue-700'
-            }`}>
-              {report.type === 'song' ? '곡' : '댓글'}
+            <span className={`inline-block text-[10px] font-semibold px-2 py-0.5 rounded ${typeBadgeClass(report.type)}`}>
+              {typeLabel(report.type)}
             </span>
           } />
           <Field label="신고자" value={report.reporterUsername} />
@@ -279,7 +284,7 @@ function ReportDetailModal({ report, onClose, onAction }: {
                 )}
               </div>
             } />
-          ) : (
+          ) : report.type === 'comment' ? (
             <Field label="신고된 댓글" value={
               <div className="border border-[#ebebeb] rounded-lg overflow-hidden bg-zinc-50 p-3">
                 <p className="text-sm text-zinc-900 whitespace-pre-wrap break-all leading-relaxed">{report.targetPreview || '(삭제됨)'}</p>
@@ -293,6 +298,27 @@ function ReportDetailModal({ report, onClose, onAction }: {
                     댓글이 달린 곡 페이지 ↗
                   </a>
                 )}
+              </div>
+            } />
+          ) : (
+            <Field label="신고된 게시글" value={
+              <div className="border border-[#ebebeb] rounded-lg overflow-hidden bg-zinc-50 p-3">
+                <p className="text-sm text-zinc-900 whitespace-pre-wrap break-all leading-relaxed">{report.targetPreview || '(삭제됨)'}</p>
+                <div className="flex items-center gap-2 mt-2">
+                  {report.targetHidden && (
+                    <span className="text-[10px] font-medium bg-zinc-200 text-zinc-700 px-1.5 py-0.5 rounded">블라인드됨</span>
+                  )}
+                  {report.targetCommunityId && (
+                    <a
+                      href={`/community/${report.targetCommunityId}`}
+                      target="_blank"
+                      rel="noopener"
+                      className="text-[11px] font-semibold text-zinc-900 hover:text-zinc-900"
+                    >
+                      커뮤니티 페이지 ↗
+                    </a>
+                  )}
+                </div>
               </div>
             } />
           )}
@@ -329,7 +355,7 @@ function ReportDetailModal({ report, onClose, onAction }: {
                   기각
                 </button>
               </div>
-              <p className="text-[11px] text-zinc-500 mt-2">인정 시 곡은 비공개, 댓글은 삭제됩니다.</p>
+              <p className="text-[11px] text-zinc-500 mt-2">인정 시 곡은 비공개, 댓글은 삭제, 게시글은 블라인드됩니다.</p>
             </div>
           )}
         </div>

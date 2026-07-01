@@ -194,3 +194,60 @@ export const EXAMPLE_PROMPTS = [
   '오늘 중요한 발표를 잘 마쳤어, 너무 뿌듯해',
   '갑자기 예전 생각이 나서 혼자 웃었어',
 ]
+
+// ── 커뮤니티(카페) ──────────────────────────────────────────
+export interface Community {
+  id: string
+  managerId: string
+  name: string
+  topic: string | null
+  description: string | null
+  coverImage: string | null
+  coverFocus: string | null    // 상세 배너 초점 (CSS object-position, 예: '50% 30%')
+  avatarImage: string | null   // 대표(프로필) 이미지 — 타이틀 좌측 원형
+  memberCount: number
+  createdAt: string
+  isMember?: boolean   // 현재 유저 가입 여부 (목록/상세 표시용)
+  isManager?: boolean  // 현재 유저가 매니저인지
+}
+
+export interface CommunityPost {
+  id: string
+  communityId: string
+  authorId: string
+  authorName: string | null
+  authorAvatarUrl: string | null
+  authorAvatarHue: number | null
+  content: string
+  imageUrl: string | null
+  songId: string | null
+  pinned: boolean
+  likeCount: number
+  commentCount: number
+  liked?: boolean
+  createdAt: string
+  song?: { id: string; title: string | null; coverImage: string | null; coverHue: number | null } | null
+}
+
+export interface CommunityMember {
+  userId: string
+  displayName: string | null
+  username: string | null
+  avatarUrl: string | null
+  avatarHue: number | null
+  joinedAt: string
+}
+
+export interface CommunityPostComment {
+  id: string
+  postId: string
+  parentId: string | null
+  authorId: string
+  body: string
+  createdAt: string
+  editedAt: string | null
+  likeCount: number
+  liked: boolean
+  user: { username: string; displayName: string | null; avatarUrl: string | null; avatarHue: number | null }
+  replies?: CommunityPostComment[]
+}

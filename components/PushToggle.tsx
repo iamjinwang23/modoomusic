@@ -81,10 +81,16 @@ export function PushToggle() {
     <button
       onClick={busy ? undefined : (enabled ? disable : enable)}
       disabled={busy}
-      className="w-full flex items-center justify-between px-4 py-3 rounded-xl border border-white/[0.06] bg-white/[0.02] text-sm text-white hover:bg-white/[0.05] transition disabled:opacity-50"
+      role="switch"
+      aria-checked={enabled}
+      aria-label="푸시 알림"
+      className="w-full flex items-center justify-between px-4 py-3 rounded-xl border border-white/[0.06] bg-white/[0.02] text-sm text-white hover:bg-white/[0.05] transition disabled:opacity-60"
     >
-      <span>푸시 알림 {enabled ? '끄기' : '켜기'}</span>
-      <span className={`text-xs ${enabled ? 'text-emerald-400' : 'text-zinc-500'}`}>{busy ? '처리 중…' : enabled ? '켜짐' : '꺼짐'}</span>
+      <span>푸시 알림</span>
+      {/* iOS 스타일 토글 스위치 */}
+      <span className={`relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors ${enabled ? 'bg-emerald-500' : 'bg-white/[0.18]'} ${busy ? 'opacity-60' : ''}`}>
+        <span className={`inline-block h-5 w-5 rounded-full bg-white shadow-sm transition-transform duration-200 ${enabled ? 'translate-x-[22px]' : 'translate-x-0.5'}`} />
+      </span>
     </button>
   )
 }

@@ -1,0 +1,35 @@
+// GET /api/communities/[id]/posts — 피드 / POST — 글 작성(멤버만)
+import { NextRequest, NextResponse } from 'next/server'
+import { createUserClient } from '@/lib/supabase/server'
+import { listPosts, createPost } from '@/services/community-post.service'
+
+interface RouteParams { params: Promise<{ id: string }> }
+
+export async function GET(_req: NextRequest, { params }: RouteParams) {
+  const { id } = await params
+  const userClient = await createUserClient()
+  const { data: { user } } = await userClient.auth.getUser()
+  const posts = await listPosts(id, user?.id)
+  return NextResponse.json({ posts })
+}
+
+export async function POST(req: NextRequest, { params }: RouteParams) {
+  const { id } = await params
+  const userClient = await createUserClient()
+  const { data: { user } } = await userClient.auth.getUser()
+  if (!user) return NextResponse.json({ error: 'unauthorized' }, { status: 401 })
+
+  let body: { content?: unknown; imageUrl?: unknown; songId?: unknown }
+  try { body = await req.json() } catch { return NextResponse.json({ error: 'invalid_input' }, { status: 400 }) }
+
+  const result = await createPost(user.id, id, {
+    content: typeof body.content === 'string' ? body.content : '',
+    imageUrl: typeof body.imageUrl === 'string' && body.imageUrl ? body.imageUrl : null,
+    songId: typeof body.songId === 'string' && body.songId ? body.songId : null,
+  })
+  if (!result.ok) {
+    const status = result.error === 'not_member' ? 403 : result.error === 'empty' ? 400 : 500
+    return NextResponse.json({ error: result.error }, { status })
+  }
+  return NextResponse.json({ post: result.post })
+}

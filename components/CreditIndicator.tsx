@@ -49,16 +49,12 @@ export function CreditIndicator() {
     <button
       type="button"
       onClick={() => window.dispatchEvent(new Event('open-credit-purchase'))}
-      className="h-8 flex items-center gap-2 px-3 rounded-full border border-white/25 bg-white/[0.04] hover:bg-white/[0.10] hover:border-white/40 transition-colors"
+      className="h-10 flex items-center gap-1.5 px-3 rounded-full border border-white/[0.10] hover:border-white/20 transition-colors"
       title={tip}
     >
-      <span className="text-xs font-semibold tracking-wide text-white">FREE</span>
-      <span className="h-3.5 w-px bg-white/40" aria-hidden />
-      <span className="flex items-center gap-1">
-        <Image src="/Sparkles.svg" alt="" width={16} height={16} style={{ filter: 'invert(1)' }} />
-        <span className={`text-sm font-medium tabular-nums ${isEmpty ? 'text-red-400' : isLow ? 'text-amber-400' : 'text-white'}`}>
-          {total}
-        </span>
+      <Image src="/Sparkles.svg" alt="" width={16} height={16} style={{ filter: 'invert(1)' }} />
+      <span className={`text-sm font-semibold tabular-nums ${isEmpty ? 'text-red-400' : isLow ? 'text-amber-400' : 'text-white'}`}>
+        {total}
       </span>
     </button>
   )

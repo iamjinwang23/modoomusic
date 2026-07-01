@@ -123,7 +123,7 @@ export default function AccountPage() {
                     <div className="flex items-center justify-between gap-3">
                       <div className="min-w-0">
                         <p className="text-sm font-medium text-white truncate">{p.orderName}</p>
-                        <p className="text-[11px] text-zinc-500 mt-0.5">{fmt(p.createdAt)} · {p.credits.toLocaleString()}cr</p>
+                        <p className="text-[11px] text-zinc-500 mt-0.5">{fmt(p.createdAt)}</p>
                       </div>
                       <div className="flex items-center gap-2 shrink-0">
                         <span className={`text-[11px] font-semibold px-1.5 py-0.5 rounded ${st.cls}`}>{st.label}</span>

@@ -10,6 +10,7 @@ import { toast } from '@/components/toast/toast'
 import { RefAudioTrimModal } from '@/components/RefAudioTrimModal'
 import { LyricsGenerateModal } from '@/components/LyricsGenerateModal'
 import { ConfirmModal } from '@/components/ConfirmModal'
+import { CreditIndicator } from '@/components/CreditIndicator'
 import { track, EVENTS } from '@/utils/analytics'
 
 const MIN_LYRICS_LENGTH = 10  // MiniMax 최소 가사 길이
@@ -414,7 +415,10 @@ export function SongForm() {
       {/* Simple/Advanced 토글(중앙) + 모델 선택(우, 고급 모드만) — 좌측은 grid 균형용 빈칸.
           중앙 칸은 auto(콘텐츠 크기)로 두어 모바일 좁은 폭에서 토글 텍스트 줄바꿈 방지. */}
       <div className={`grid grid-cols-[1fr_auto_1fr] items-center ${lyricsFullscreen ? 'hidden' : ''}`}>
-        <div />
+        {/* 좌측 — 크레딧 (데스크톱 전용, 모바일은 헤더에 표시). 우측 모델 선택 pill과 대칭 */}
+        <div className="justify-self-start hidden md:block">
+          <CreditIndicator />
+        </div>
         <div className="justify-self-center relative inline-flex rounded-full bg-white/[0.06] p-1">
           {/* 슬라이딩 활성 표시 — 두 버튼은 동일 폭(2글자+px-5)이라 50% 기준으로 이동 */}
           <span

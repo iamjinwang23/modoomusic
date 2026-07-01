@@ -16,6 +16,34 @@ interface UploadOptions {
   }
 }
 
+// 클라이언트가 올린 파일 버퍼를 webp로 변환·다운스케일 후 업로드. 커버/대표 이미지용.
+export async function uploadImageBuffer(
+  buffer: Buffer,
+  bucket: string,
+  path: string,
+  maxPx: number,
+  quality = 85,
+): Promise<string | null> {
+  try {
+    const webp = await sharp(buffer)
+      .resize({ width: maxPx, height: maxPx, fit: 'inside', withoutEnlargement: true })
+      .webp({ quality })
+      .toBuffer()
+    const supabase = getAdminClient()
+    const { error } = await supabase.storage.from(bucket).upload(path, webp, {
+      contentType: 'image/webp',
+      upsert: true,
+      cacheControl: '31536000, immutable',
+    })
+    if (error) { console.error('[storage] uploadImageBuffer:', error.message); return null }
+    const { data } = supabase.storage.from(bucket).getPublicUrl(path)
+    return data.publicUrl
+  } catch (e) {
+    console.error('[storage] uploadImageBuffer failed:', e)
+    return null
+  }
+}
+
 export async function uploadFromUrl(
   url: string,
   bucket: string,

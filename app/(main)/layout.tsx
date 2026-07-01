@@ -21,6 +21,7 @@ import { PopupAnnouncementCard } from '@/components/PopupAnnouncementCard'
 import { CreditPurchaseModal } from '@/components/CreditPurchaseModal'
 import { useAuth } from '@/components/AuthProvider'
 import { notificationService } from '@/services/notification.service'
+import { toast } from '@/components/toast/toast'
 
 import { profileColor } from '@/utils/profileColor'
 
@@ -28,6 +29,7 @@ const VIOLET_FILTER = 'brightness(0) saturate(100%) invert(44%) sepia(51%) satur
 
 const NAV_ITEMS: { href: string; label: string; icon: string }[] = [
   { href: '/',              label: '둘러보기',    icon: '/Publish.svg' },
+  { href: '/community',     label: '커뮤니티',    icon: '/chat.svg' },
   { href: '/create',        label: '음악 만들기', icon: '/Ai-Generate-Music.svg' },
   { href: '/library',       label: '라이브러리',   icon: '/Music-Library.svg' },
   { href: '/notifications', label: '알림',        icon: '/Notification.svg' },
@@ -54,6 +56,8 @@ export default function MainShellLayout({ children }: { children: React.ReactNod
   // notifications §5.1 — 데스크톱 오버레이 패널 + 미읽음 점 배지
   const [notifPanelOpen, setNotifPanelOpen] = useState(false)
   const [notifUnread, setNotifUnread] = useState(0)
+  // 프로필 메뉴 상단에 표시할 보유 크레딧 (CreditIndicator와 동일 소스)
+  const [credits, setCredits] = useState<number | null>(null)
 
   // 미읽음 카운트 — 로그인 시 1회 + notifications-changed 이벤트로 재조회
   useEffect(() => {
@@ -71,6 +75,17 @@ export default function MainShellLayout({ children }: { children: React.ReactNod
 
   // 라우트 변경 시 알림 패널 자동 닫기 (곡 상세와 동일 패턴)
   useEffect(() => { setNotifPanelOpen(false) }, [pathname])
+
+  // 보유 크레딧 — 로그인 시 1회 조회 + credits-updated 이벤트로 동기화
+  useEffect(() => {
+    if (!user) { setCredits(null); return }
+    let cancelled = false
+    const toTotal = (s: { total?: number; remaining?: number; bonus?: number }) => s.total ?? ((s.remaining ?? 0) + (s.bonus ?? 0))
+    fetch('/api/credits/me').then((r) => r.ok ? r.json() : null).then((d) => { if (!cancelled && d) setCredits(toTotal(d)) })
+    function onUpd(e: Event) { const s = (e as CustomEvent).detail; if (s) setCredits(toTotal(s)) }
+    window.addEventListener('credits-updated', onUpd)
+    return () => { cancelled = true; window.removeEventListener('credits-updated', onUpd) }
+  }, [user?.id])
 
   // 신규 가입자 온보딩
   useEffect(() => {
@@ -160,69 +175,15 @@ export default function MainShellLayout({ children }: { children: React.ReactNod
       className="flex flex-col bg-[#111318] text-white overflow-hidden select-none h-[calc(100dvh-68px-env(safe-area-inset-bottom,0px))] md:h-screen"
     >
 
-      {/* ── Header — 항상 상단 고정 ── */}
-      <header className="relative shrink-0 h-14 flex items-center px-5 border-b border-white/[0.06] bg-[#111318] z-50">
+      {/* ── Header — 모바일 전용 (데스크톱은 사이드바에 로고·프로필·크레딧 통합) ── */}
+      <header className="relative shrink-0 h-14 flex items-center px-5 border-b border-white/[0.06] bg-[#111318] z-50 md:hidden">
         <Link href="/">
-          <Image src="/logo.svg" alt="모두의 노래" width={72} height={16} style={{ filter: 'invert(1)' }} />
+          <Image src="/logo.svg" alt="모두의 노래" width={81} height={18} style={{ filter: 'invert(1)' }} />
         </Link>
 
         <div className="ml-auto flex items-center gap-2">
           {user && <CreditIndicator />}
-
-          {user ? (
-            <div className="relative hidden md:block">
-              <button
-                onClick={() => setUserMenuOpen((v) => !v)}
-                className="w-8 h-8 rounded-full overflow-hidden flex items-center justify-center text-xs font-bold transition-opacity hover:opacity-80"
-                style={profile?.avatarUrl ? undefined : { background: avatarBg.bg, color: avatarBg.text }}
-              >
-                {profile?.avatarUrl ? (
-                  <Image src={profile.avatarUrl} alt="" width={32} height={32} className="object-cover w-full h-full" unoptimized />
-                ) : headerInitial}
-              </button>
-              {userMenuOpen && (
-                <>
-                  <div className="fixed inset-0 z-[54]" onClick={() => setUserMenuOpen(false)} />
-                  <div className="absolute right-0 top-10 z-[55] w-44 bg-[#21252E] border border-white/[0.08] rounded-xl shadow-xl overflow-hidden">
-                    <div className="px-4 py-3 border-b border-white/[0.06]">
-                      <p className="text-xs font-medium text-white truncate">
-                        {profile?.displayName ?? user.user_metadata?.full_name ?? '사용자'}
-                      </p>
-                      <p className="text-[11px] text-zinc-500 truncate mt-0.5">{user.email}</p>
-                    </div>
-                    <button
-                      onClick={() => {
-                        setUserMenuOpen(false)
-                        const username = profile?.username ?? user.user_metadata?.username ?? user.email?.split('@')[0] ?? user.id.slice(0, 8)
-                        router.push(`/profile/${username}`)
-                      }}
-                      className="w-full text-left px-4 py-2.5 text-sm text-white hover:text-white hover:bg-white/[0.04] transition-colors"
-                    >
-                      내 프로필
-                    </button>
-                    <button
-                      onClick={() => { setUserMenuOpen(false); router.push('/account') }}
-                      className="w-full text-left px-4 py-2.5 text-sm text-white hover:text-white hover:bg-white/[0.04] transition-colors"
-                    >
-                      내 계정
-                    </button>
-                    <button
-                      onClick={() => {
-                        setUserMenuOpen(false)
-                        window.dispatchEvent(new Event('song-updated'))
-                        window.dispatchEvent(new Event('collection-updated'))
-                        router.push('/')
-                        signOut()
-                      }}
-                      className="w-full text-left px-4 py-2.5 text-sm text-zinc-400 hover:text-white hover:bg-white/[0.04] transition-colors"
-                    >
-                      로그아웃
-                    </button>
-                  </div>
-                </>
-              )}
-            </div>
-          ) : (
+          {!user && (
             <button
               onClick={() => setLoginOpen(true)}
               className="text-sm text-white border border-white/25 hover:border-white/40 px-3 py-1.5 rounded-full hover:bg-white/[0.08] transition-colors"
@@ -238,11 +199,100 @@ export default function MainShellLayout({ children }: { children: React.ReactNod
 
         {/* Left sidebar */}
         <aside className="hidden md:flex w-60 shrink-0 flex-col border-r border-white/[0.06] bg-[#111318]">
-          <nav className="flex-1 px-3 py-3 space-y-0.5">
+          {/* 로고 — 우측 검색바(py-6 안 h-11)와 세로 중심 정렬 */}
+          <div className="px-4 pt-6 pb-1">
+            <Link href="/" className="inline-flex items-center h-11">
+              <Image src="/logo.svg" alt="모두의 노래" width={81} height={18} style={{ filter: 'invert(1)' }} />
+            </Link>
+          </div>
+
+          {/* 프로필 / 로그인 — 클릭 시 메뉴 레이어 */}
+          <div className="px-3 pt-2 pb-1">
+            {user ? (
+              <div className="relative">
+                <button
+                  onClick={() => setUserMenuOpen((v) => !v)}
+                  className="w-full flex items-center gap-2.5 px-2 py-2 rounded-lg hover:bg-white/[0.04] transition-colors text-left"
+                >
+                  <span
+                    className="w-9 h-9 rounded-full overflow-hidden flex items-center justify-center text-xs font-bold shrink-0"
+                    style={profile?.avatarUrl ? undefined : { background: avatarBg.bg, color: avatarBg.text }}
+                  >
+                    {profile?.avatarUrl ? (
+                      <Image src={profile.avatarUrl} alt="" width={36} height={36} className="object-cover w-full h-full" unoptimized />
+                    ) : headerInitial}
+                  </span>
+                  <span className="min-w-0 flex-1">
+                    <span className="block text-sm font-medium text-white truncate">{profile?.displayName ?? user.user_metadata?.full_name ?? '사용자'}</span>
+                    <span className="block text-[11px] text-zinc-500 truncate">{user.email}</span>
+                  </span>
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-zinc-500 shrink-0">
+                    <path d="M6 9l6 6 6-6" />
+                  </svg>
+                </button>
+                {userMenuOpen && (
+                  <>
+                    <div className="fixed inset-0 z-[54]" onClick={() => setUserMenuOpen(false)} />
+                    <div className="absolute left-10 right-2 top-full mt-1 z-[55] bg-[#21252E] border border-white/[0.08] rounded-xl shadow-xl overflow-hidden">
+                      {/* 보유 크레딧 — 클릭 시 충전 */}
+                      <button
+                        onClick={() => { setUserMenuOpen(false); window.dispatchEvent(new Event('open-credit-purchase')) }}
+                        className="w-full flex items-center justify-between px-4 py-3 border-b border-white/[0.06] hover:bg-white/[0.04] transition-colors"
+                      >
+                        <span className="text-[11px] text-zinc-500">크레딧</span>
+                        <span className="flex items-center gap-1">
+                          <Image src="/Sparkles.svg" alt="" width={14} height={14} style={{ filter: 'invert(1)' }} />
+                          <span className="text-sm font-semibold text-white tabular-nums">{credits ?? '—'}</span>
+                        </span>
+                      </button>
+                      <button
+                        onClick={() => {
+                          setUserMenuOpen(false)
+                          const username = profile?.username ?? user.user_metadata?.username ?? user.email?.split('@')[0] ?? user.id.slice(0, 8)
+                          router.push(`/profile/${username}`)
+                        }}
+                        className="w-full text-left px-4 py-2.5 text-sm text-white hover:bg-white/[0.04] transition-colors"
+                      >
+                        내 프로필
+                      </button>
+                      <button
+                        onClick={() => { setUserMenuOpen(false); router.push('/account') }}
+                        className="w-full text-left px-4 py-2.5 text-sm text-white hover:bg-white/[0.04] transition-colors"
+                      >
+                        내 계정
+                      </button>
+                      <button
+                        onClick={() => {
+                          setUserMenuOpen(false)
+                          window.dispatchEvent(new Event('song-updated'))
+                          window.dispatchEvent(new Event('collection-updated'))
+                          router.push('/')
+                          signOut()
+                        }}
+                        className="w-full text-left px-4 py-2.5 text-sm text-zinc-400 hover:text-white hover:bg-white/[0.04] transition-colors"
+                      >
+                        로그아웃
+                      </button>
+                    </div>
+                  </>
+                )}
+              </div>
+            ) : (
+              <button
+                onClick={() => setLoginOpen(true)}
+                className="w-full text-sm text-white border border-white/25 hover:border-white/40 px-3 py-2 rounded-full hover:bg-white/[0.08] transition-colors"
+              >
+                로그인
+              </button>
+            )}
+          </div>
+
+          <nav className="flex-1 px-3 pt-2 pb-3 space-y-0.5">
             {NAV_ITEMS.map(({ href, label, icon }) => {
               // notifications §5.4 — 알림은 데스크톱에서 패널 토글 (라우팅 X)
               const isNotif = href === '/notifications'
-              const active = isNotif ? notifPanelOpen : isActiveNav(pathname, href)
+              const isCommunity = href === '/community'   // 준비중 게이팅
+              const active = isNotif ? notifPanelOpen : isCommunity ? false : isActiveNav(pathname, href)
               const className = `w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-base transition-colors text-left ${
                 active ? 'font-bold text-white bg-white/[0.06]' : 'text-white hover:bg-white/[0.04]'
               }`
@@ -253,8 +303,18 @@ export default function MainShellLayout({ children }: { children: React.ReactNod
                   {isNotif && notifUnread > 0 && (
                     <span className="ml-auto w-1.5 h-1.5 rounded-full bg-red-500" />
                   )}
+                  {isCommunity && (
+                    <span className="ml-auto text-[10px] font-medium px-1.5 py-1 rounded-md bg-white/[0.08] text-zinc-400 leading-none">준비중</span>
+                  )}
                 </>
               )
+              if (isCommunity) {
+                return (
+                  <button key={href} onClick={() => toast.info('커뮤니티는 곧 오픈해요')} className={className}>
+                    {inner}
+                  </button>
+                )
+              }
               if (isNotif) {
                 return (
                   <button key={href} onClick={() => setNotifPanelOpen((v) => !v)} className={className}>

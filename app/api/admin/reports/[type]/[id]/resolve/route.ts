@@ -15,7 +15,7 @@ export async function POST(req: NextRequest, { params }: RouteParams) {
   if (!auth.ok) return NextResponse.json({ error: auth.error }, { status: auth.status })
 
   const { type, id } = await params
-  if (type !== 'song' && type !== 'comment') {
+  if (type !== 'song' && type !== 'comment' && type !== 'community_post') {
     return NextResponse.json({ error: 'invalid_input' }, { status: 400 })
   }
 
@@ -31,12 +31,13 @@ export async function POST(req: NextRequest, { params }: RouteParams) {
   if (memo.length < 5) return NextResponse.json({ error: 'reason_too_short' }, { status: 400 })
 
   const supabase = createAdminClient()
-  const reportTable = type === 'song' ? 'song_reports' : 'comment_reports'
+  const reportTable = type === 'song' ? 'song_reports' : type === 'comment' ? 'comment_reports' : 'community_post_reports'
+  const targetField = type === 'song' ? 'song_id' : type === 'comment' ? 'comment_id' : 'post_id'
 
   // 신고 row 조회
   const { data: report, error: reportErr } = await supabase
     .from(reportTable)
-    .select(type === 'song' ? 'id, song_id, resolved_at' : 'id, comment_id, resolved_at')
+    .select(`id, ${targetField}, resolved_at`)
     .eq('id', id)
     .maybeSingle()
   if (reportErr) {
@@ -46,7 +47,6 @@ export async function POST(req: NextRequest, { params }: RouteParams) {
   if (!report) return NextResponse.json({ error: 'target_not_found' }, { status: 404 })
   if (report.resolved_at) return NextResponse.json({ error: 'already_resolved' }, { status: 400 })
 
-  const targetField = type === 'song' ? 'song_id' : 'comment_id'
   const targetId = (report as Record<string, string>)[targetField]
 
   try {
@@ -80,12 +80,19 @@ export async function POST(req: NextRequest, { params }: RouteParams) {
               .update({ is_public: false })
               .eq('id', targetId)
             if (error) throw new Error(`song unpublish: ${error.message}`)
-          } else {
+          } else if (type === 'comment') {
             const { error } = await supabase
               .from('comments')
               .delete()
               .eq('id', targetId)
             if (error) throw new Error(`comment delete: ${error.message}`)
+          } else {
+            // community_post — 블라인드(status=hidden)
+            const { error } = await supabase
+              .from('community_posts')
+              .update({ status: 'hidden' })
+              .eq('id', targetId)
+            if (error) throw new Error(`post hide: ${error.message}`)
           }
         }
       },

@@ -14,9 +14,13 @@ interface Props {
   outputMaxPx?: number        // 결과 이미지 최대 변 (기본 800)
   outputQuality?: number      // WebP quality (기본 0.85)
   title?: string
+  mode?: 'crop' | 'focus'     // crop=파괴적 잘라내기(blob) / focus=초점만 반환(원본 보존)
   onCancel: () => void
-  onConfirm: (croppedBlob: Blob) => void
+  onConfirm?: (croppedBlob: Blob) => void
+  onConfirmFocus?: (objectPosition: string) => void   // focus 모드에서 '50% 30%' 형태 반환
 }
+
+function clampPct(v: number) { return Math.max(0, Math.min(100, v)) }
 
 async function getCroppedWebp(
   imageSrc: string,
@@ -65,13 +69,16 @@ export function CropModal({
   outputMaxPx = 800,
   outputQuality = 0.85,
   title = '위치 조정',
+  mode = 'crop',
   onCancel,
   onConfirm,
+  onConfirmFocus,
 }: Props) {
   const [imageUrl, setImageUrl] = useState<string | null>(null)
   const [crop, setCrop] = useState({ x: 0, y: 0 })
   const [zoom, setZoom] = useState(1)
   const [pixelArea, setPixelArea] = useState<Area | null>(null)
+  const [natural, setNatural] = useState<{ w: number; h: number } | null>(null)
   const [saving, setSaving] = useState(false)
 
   // imageFile → objectURL
@@ -82,6 +89,7 @@ export function CropModal({
     setCrop({ x: 0, y: 0 })
     setZoom(1)
     setPixelArea(null)
+    setNatural(null)
     return () => URL.revokeObjectURL(url)
   }, [imageFile])
 
@@ -91,10 +99,18 @@ export function CropModal({
 
   async function handleConfirm() {
     if (!imageUrl || !pixelArea || saving) return
+    // focus 모드: 원본을 자르지 않고 object-position만 계산해 반환
+    if (mode === 'focus' && onConfirmFocus) {
+      const nw = natural?.w ?? 0, nh = natural?.h ?? 0
+      const fx = nw - pixelArea.width > 0 ? clampPct((pixelArea.x / (nw - pixelArea.width)) * 100) : 50
+      const fy = nh - pixelArea.height > 0 ? clampPct((pixelArea.y / (nh - pixelArea.height)) * 100) : 50
+      onConfirmFocus(`${fx.toFixed(1)}% ${fy.toFixed(1)}%`)
+      return
+    }
     try {
       setSaving(true)
       const blob = await getCroppedWebp(imageUrl, pixelArea, outputMaxPx, outputQuality)
-      onConfirm(blob)
+      onConfirm?.(blob)
     } catch (e) {
       console.error('[crop] failed:', e)
     } finally {
@@ -133,9 +149,12 @@ export function CropModal({
               crop={crop}
               zoom={zoom}
               aspect={aspect}
+              minZoom={mode === 'focus' ? 1 : undefined}
+              maxZoom={mode === 'focus' ? 1 : undefined}
               onCropChange={setCrop}
-              onZoomChange={setZoom}
+              onZoomChange={mode === 'focus' ? () => {} : setZoom}
               onCropComplete={onCropComplete}
+              onMediaLoaded={(m) => setNatural({ w: m.naturalWidth, h: m.naturalHeight })}
               showGrid={false}
               objectFit="contain"
               restrictPosition={true}

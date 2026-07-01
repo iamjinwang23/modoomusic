@@ -49,6 +49,39 @@ export async function getMyReportedSongIds(): Promise<Set<string>> {
   )
 }
 
+export async function reportCommunityPost(postId: string, reason: ReportReason): Promise<void> {
+  const res = await fetch(`/api/community-posts/${postId}/report`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ reason }),
+  })
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({}))
+    if (res.status === 409) return  // 멱등 — 중복 신고는 성공 처리
+    throw new Error(body?.error || '신고 접수에 실패했어요')
+  }
+}
+
+// 커뮤니티 게시글 — 새로고침 후 신고자 블라인드 필터링용
+export async function getMyReportedPostIds(): Promise<Set<string>> {
+  const supabase = createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return new Set()
+  const { data, error } = await supabase
+    .from('community_post_reports')
+    .select('post_id, resolved_at, resolution')
+    .eq('reporter_id', user.id)
+  if (error) {
+    console.error('[reportService.getMyReportedPostIds]', error.message)
+    return new Set()
+  }
+  return new Set(
+    (data ?? [])
+      .filter((r) => !r.resolved_at || r.resolution !== 'dismissed')
+      .map((r) => r.post_id as string),
+  )
+}
+
 // 댓글도 동일 패턴 — CommentsPanel에서 호출
 export async function getMyReportedCommentIds(): Promise<Set<string>> {
   const supabase = createClient()
