@@ -110,7 +110,7 @@ export default function AccountPage() {
         <section className="space-y-3">
           <h2 className="text-sm font-semibold text-zinc-400">결제 내역</h2>
           {payments === null ? (
-            <div className="space-y-2">{[0, 1].map((i) => <div key={i} className="h-16 rounded-xl bg-white/[0.04] animate-pulse" />)}</div>
+            <div className="space-y-2">{[0, 1].map((i) => <div key={i} className="h-16 rounded-xl bg-white/[0.04] shimmer" />)}</div>
           ) : payments.length === 0 ? (
             <p className="text-sm text-zinc-500 py-8 text-center rounded-2xl border border-white/[0.06] bg-white/[0.02]">결제 내역이 없어요.</p>
           ) : (

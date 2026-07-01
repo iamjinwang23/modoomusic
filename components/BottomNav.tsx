@@ -57,7 +57,8 @@ export function BottomNav() {
       {items.map((it) => {
         const active = isActive(pathname, it)
         const requireLogin = it.label === '프로필' && !user
-        const comingSoon = !!it.comingSoon
+        // 커뮤니티 준비중 — 로컬(dev)은 오픈, 프로덕션/프리뷰만 잠금
+        const comingSoon = !!it.comingSoon && process.env.NODE_ENV !== 'development'
         const Comp: any = (requireLogin || comingSoon) ? 'button' : Link
         const linkProps = comingSoon
           ? { onClick: () => toast.info('커뮤니티는 곧 오픈해요') }

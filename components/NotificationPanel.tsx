@@ -124,9 +124,15 @@ export function NotificationPanel({ mode, onClose }: Props) {
         </div>
         <div className="flex-1 overflow-y-auto">
           {items === null ? (
-            <div className="px-4 py-6 space-y-3">
-              {[0, 1, 2].map((i) => (
-                <div key={i} className="h-12 rounded bg-white/[0.04] shimmer" />
+            <div className="py-2">
+              {[0, 1, 2, 3, 4].map((i) => (
+                <div key={i} className="px-6 py-3 flex items-start gap-3">
+                  <div className="w-10 h-10 rounded-full bg-white/[0.04] shimmer shrink-0" />
+                  <div className="flex-1 min-w-0 space-y-2 pt-1">
+                    <div className="h-3.5 w-3/4 rounded bg-white/[0.04] shimmer" />
+                    <div className="h-3 w-16 rounded bg-white/[0.04] shimmer" />
+                  </div>
+                </div>
               ))}
             </div>
           ) : items.length === 0 ? (

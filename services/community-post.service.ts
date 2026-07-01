@@ -1,6 +1,7 @@
 // 커뮤니티 글(뉴스피드) — 작성(멤버 가드)·피드·삭제·고정(매니저)·좋아요·댓글.
 import { createAdminClient } from '@/lib/supabase/admin'
-import type { CommunityPost, CommunityPostComment } from '@/types/domain'
+import { notifyCommunityModeration } from '@/services/community.service'
+import type { CommunityPost, CommunityPostComment, CommunityPoll } from '@/types/domain'
 
 interface PostRow {
   id: string
@@ -8,17 +9,20 @@ interface PostRow {
   author_id: string
   content: string
   image_url: string | null
+  image_urls: string[] | null
+  link_url: string | null
   song_id: string | null
   pinned: boolean
   like_count: number
   comment_count: number
   created_at: string
   profiles?: { username?: string; display_name?: string; avatar_url?: string; avatar_hue?: number }
-  songs?: { id?: string; title?: string | null; cover_image?: string | null; cover_hue?: number | null } | null
+  songs?: { id?: string; title?: string | null; cover_image?: string | null; cover_hue?: number | null; audio_url?: string | null } | null
+  communities?: { name?: string; avatar_image?: string | null } | null
 }
 
 const POST_SELECT =
-  'id, community_id, author_id, content, image_url, song_id, pinned, like_count, comment_count, created_at, profiles!author_id(username, display_name, avatar_url, avatar_hue), songs!song_id(id, title, cover_image, cover_hue)'
+  'id, community_id, author_id, content, image_url, image_urls, link_url, song_id, pinned, like_count, comment_count, created_at, profiles!author_id(username, display_name, avatar_url, avatar_hue), songs!song_id(id, title, cover_image, cover_hue, audio_url), communities!community_id(name, avatar_image)'
 
 function rowToPost(r: PostRow): CommunityPost {
   return {
@@ -30,12 +34,16 @@ function rowToPost(r: PostRow): CommunityPost {
     authorAvatarHue: r.profiles?.avatar_hue ?? null,
     content: r.content,
     imageUrl: r.image_url,
+    imageUrls: r.image_urls ?? [],
+    linkUrl: r.link_url ?? null,
     songId: r.song_id,
     pinned: r.pinned,
     likeCount: r.like_count,
     commentCount: r.comment_count,
     createdAt: r.created_at,
-    song: r.songs ? { id: r.songs.id as string, title: r.songs.title ?? null, coverImage: r.songs.cover_image ?? null, coverHue: r.songs.cover_hue ?? null } : null,
+    song: r.songs ? { id: r.songs.id as string, title: r.songs.title ?? null, coverImage: r.songs.cover_image ?? null, coverHue: r.songs.cover_hue ?? null, audioUrl: r.songs.audio_url ?? null } : null,
+    communityName: r.communities?.name ?? null,
+    communityAvatar: r.communities?.avatar_image ?? null,
   }
 }
 
@@ -53,11 +61,11 @@ async function fillLiked(admin: ReturnType<typeof createAdminClient>, posts: Com
   return posts.map((p) => ({ ...p, liked: set.has(p.id) }))
 }
 
-// 글 작성 — 멤버만. content·image·song 중 하나는 있어야.
+// 글 작성 — 멤버만. content·이미지·곡·링크 중 하나는 있어야.
 export async function createPost(
   userId: string,
   communityId: string,
-  input: { content: string; imageUrl?: string | null; songId?: string | null },
+  input: { content: string; imageUrls?: string[] | null; linkUrl?: string | null; songId?: string | null; poll?: { options: string[] } | null },
 ): Promise<{ ok: true; post: CommunityPost } | { ok: false; error: string }> {
   const admin = createAdminClient()
   if (!(await isMember(admin, communityId, userId))) {
@@ -66,14 +74,82 @@ export async function createPost(
     if (c?.manager_id !== userId) return { ok: false, error: 'not_member' }
   }
   const content = input.content.trim()
-  if (!content && !input.imageUrl && !input.songId) return { ok: false, error: 'empty' }
+  const imageUrls = (input.imageUrls ?? []).slice(0, 10)
+  const linkUrl = input.linkUrl?.trim() || null
+  const pollOptions = input.poll ? input.poll.options.map((o) => o.trim()).filter(Boolean).slice(0, 4) : []
+  const hasPoll = pollOptions.length >= 2
+  if (!content && imageUrls.length === 0 && !input.songId && !linkUrl && !hasPoll) return { ok: false, error: 'empty' }
   const { data, error } = await admin
     .from('community_posts')
-    .insert({ community_id: communityId, author_id: userId, content, image_url: input.imageUrl ?? null, song_id: input.songId ?? null })
+    .insert({ community_id: communityId, author_id: userId, content, image_urls: imageUrls, link_url: linkUrl, song_id: input.songId ?? null })
     .select(POST_SELECT)
     .single()
   if (error) { console.error('[community-post.create]', error.message); return { ok: false, error: 'internal' } }
-  return { ok: true, post: rowToPost(data as PostRow) }
+  const post = rowToPost(data as PostRow)
+  if (hasPoll) {
+    const endsAt = new Date(Date.now() + 24 * 3600 * 1000).toISOString()
+    const { error: pErr } = await admin.from('community_post_polls').insert({ post_id: data.id, options: pollOptions, ends_at: endsAt })
+    if (pErr) console.error('[community-post.poll]', pErr.message)
+    else post.poll = { options: pollOptions, endsAt, counts: pollOptions.map(() => 0), totalVotes: 0, myVote: null }
+  }
+  return { ok: true, post }
+}
+
+interface PollRow { post_id: string; options: string[]; ends_at: string }
+interface PollVoteRow { post_id: string; user_id: string; option_index: number }
+
+// 피드 posts에 투표 데이터(집계·내 표) 채우기
+async function fillPolls(admin: ReturnType<typeof createAdminClient>, posts: CommunityPost[], userId?: string): Promise<CommunityPost[]> {
+  if (posts.length === 0) return posts
+  const ids = posts.map((p) => p.id)
+  const [pollsRes, votesRes] = await Promise.all([
+    admin.from('community_post_polls').select('post_id, options, ends_at').in('post_id', ids),
+    admin.from('community_post_poll_votes').select('post_id, user_id, option_index').in('post_id', ids),
+  ])
+  const polls = (pollsRes.data ?? []) as PollRow[]
+  if (polls.length === 0) return posts
+  const votes = (votesRes.data ?? []) as PollVoteRow[]
+  const pollMap = new Map(polls.map((p) => [p.post_id, p]))
+  const tally = new Map<string, { counts: number[]; total: number; myVote: number | null }>()
+  for (const p of polls) tally.set(p.post_id, { counts: p.options.map(() => 0), total: 0, myVote: null })
+  for (const v of votes) {
+    const t = tally.get(v.post_id)
+    if (!t) continue
+    if (v.option_index >= 0 && v.option_index < t.counts.length) t.counts[v.option_index]++
+    t.total++
+    if (userId && v.user_id === userId) t.myVote = v.option_index
+  }
+  return posts.map((post) => {
+    const poll = pollMap.get(post.id)
+    if (!poll) return post
+    const t = tally.get(post.id)!
+    return { ...post, poll: { options: poll.options, endsAt: poll.ends_at, counts: t.counts, totalVotes: t.total, myVote: t.myVote } }
+  })
+}
+
+// 투표 — 단일 선택, 1인 1표, 종료 후 불가
+export async function votePoll(userId: string, postId: string, optionIndex: number): Promise<{ ok: boolean; poll?: CommunityPoll; error?: string }> {
+  const admin = createAdminClient()
+  const { data: poll } = await admin.from('community_post_polls').select('options, ends_at').eq('post_id', postId).maybeSingle()
+  if (!poll) return { ok: false, error: 'not_found' }
+  const options = poll.options as string[]
+  if (new Date(poll.ends_at as string).getTime() <= Date.now()) return { ok: false, error: 'ended' }
+  if (optionIndex < 0 || optionIndex >= options.length) return { ok: false, error: 'invalid_option' }
+  const { error } = await admin.from('community_post_poll_votes').insert({ post_id: postId, user_id: userId, option_index: optionIndex })
+  if (error) {
+    if (error.code === '23505') return { ok: false, error: 'already_voted' }
+    console.error('[community-post.votePoll]', error.message)
+    return { ok: false, error: 'internal' }
+  }
+  const { data: votes } = await admin.from('community_post_poll_votes').select('user_id, option_index').eq('post_id', postId)
+  const counts = options.map(() => 0)
+  let total = 0, myVote: number | null = null
+  for (const v of (votes ?? []) as { user_id: string; option_index: number }[]) {
+    if (v.option_index >= 0 && v.option_index < counts.length) counts[v.option_index]++
+    total++
+    if (v.user_id === userId) myVote = v.option_index
+  }
+  return { ok: true, poll: { options, endsAt: poll.ends_at as string, counts, totalVotes: total, myVote } }
 }
 
 // 커뮤니티 피드 — 고정글 우선, 최신순
@@ -88,7 +164,7 @@ export async function listPosts(communityId: string, userId?: string, limit = 50
     .order('created_at', { ascending: false })
     .limit(limit)
   const posts = (data ?? []).map((r) => rowToPost(r as PostRow))
-  return fillLiked(admin, posts, userId)
+  return fillPolls(admin, await fillLiked(admin, posts, userId), userId)
 }
 
 // 허브 인기글 — 전체 커뮤니티 활성글, 좋아요순
@@ -102,21 +178,27 @@ export async function getPopularPosts(userId?: string, limit = 10): Promise<Comm
     .order('created_at', { ascending: false })
     .limit(limit)
   const posts = (data ?? []).map((r) => rowToPost(r as PostRow))
-  return fillLiked(admin, posts, userId)
+  return fillPolls(admin, await fillLiked(admin, posts, userId), userId)
 }
 
-// 삭제 — 작성자 또는 커뮤니티 매니저
+// 삭제 — 작성자 또는 커뮤니티 매니저. 매니저가 남의 글 삭제 시 작성자에게 알림.
 export async function deletePost(userId: string, postId: string): Promise<{ ok: boolean; error?: string }> {
   const admin = createAdminClient()
   const { data: post } = await admin.from('community_posts').select('author_id, community_id').eq('id', postId).maybeSingle()
   if (!post) return { ok: false, error: 'not_found' }
-  let allowed = post.author_id === userId
-  if (!allowed) {
-    const { data: c } = await admin.from('communities').select('manager_id').eq('id', post.community_id).maybeSingle()
+  const isAuthor = post.author_id === userId
+  let allowed = isAuthor
+  let communityName = ''
+  if (!isAuthor) {
+    const { data: c } = await admin.from('communities').select('manager_id, name').eq('id', post.community_id).maybeSingle()
     allowed = c?.manager_id === userId
+    communityName = c?.name ?? ''
   }
   if (!allowed) return { ok: false, error: 'forbidden' }
   await admin.from('community_posts').delete().eq('id', postId)
+  if (!isAuthor) {
+    await notifyCommunityModeration(post.author_id, '게시글이 삭제되었어요', `'${communityName}' 커뮤니티에서 회원님의 게시글이 삭제되었어요.`, `/community/${post.community_id}`)
+  }
   return { ok: true }
 }
 
@@ -124,11 +206,12 @@ export async function deletePost(userId: string, postId: string): Promise<{ ok: 
 export async function editPost(userId: string, postId: string, content: string): Promise<{ ok: true; post: CommunityPost } | { ok: false; error: string }> {
   const admin = createAdminClient()
   const text = content.trim()
-  const { data: post } = await admin.from('community_posts').select('author_id, song_id, image_url').eq('id', postId).maybeSingle()
+  const { data: post } = await admin.from('community_posts').select('author_id, song_id, image_url, image_urls, link_url').eq('id', postId).maybeSingle()
   if (!post) return { ok: false, error: 'not_found' }
   if (post.author_id !== userId) return { ok: false, error: 'forbidden' }
   // 본문/첨부 중 하나는 남아 있어야 (첨부는 수정에서 건드리지 않음)
-  if (!text && !post.song_id && !post.image_url) return { ok: false, error: 'empty' }
+  const hasMedia = !!post.song_id || !!post.image_url || (Array.isArray(post.image_urls) && post.image_urls.length > 0) || !!post.link_url
+  if (!text && !hasMedia) return { ok: false, error: 'empty' }
   const { data, error } = await admin
     .from('community_posts')
     .update({ content: text })

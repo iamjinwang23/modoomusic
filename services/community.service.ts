@@ -1,6 +1,15 @@
 // 커뮤니티(카페) — 개설/폐쇄/가입/탈퇴/조회/허브. 서버 전용(admin client). 정책 가드 포함.
 import { createAdminClient } from '@/lib/supabase/admin'
+import { sendPushToUser } from '@/services/push.service'
 import type { Community, CommunityMember } from '@/types/domain'
+
+// 모더레이션(강퇴·게시물 삭제) 알림 — 시스템 알림 + 웹푸시
+export async function notifyCommunityModeration(targetUserId: string, title: string, body: string, url: string): Promise<void> {
+  const admin = createAdminClient()
+  const { error } = await admin.from('notifications').insert({ user_id: targetUserId, type: 'system', payload: { title, body, url } })
+  if (error) console.error('[community.notify]', error.message)
+  sendPushToUser(targetUserId, { title, body, url }).catch(() => {})
+}
 
 interface CommunityRow {
   id: string
@@ -127,6 +136,18 @@ export async function leaveCommunity(userId: string, communityId: string): Promi
   if (!c) return { ok: false, error: 'not_found' }
   if (c.manager_id === userId) return { ok: false, error: 'manager_cannot_leave' }
   await admin.from('community_members').delete().eq('community_id', communityId).eq('user_id', userId)
+  return { ok: true }
+}
+
+// 강퇴 — 매니저만. 대상 멤버십 제거(매니저 자신은 불가).
+export async function kickMember(userId: string, communityId: string, targetUserId: string): Promise<{ ok: boolean; error?: string }> {
+  const admin = createAdminClient()
+  const { data: c } = await admin.from('communities').select('manager_id, name').eq('id', communityId).maybeSingle()
+  if (!c) return { ok: false, error: 'not_found' }
+  if (c.manager_id !== userId) return { ok: false, error: 'forbidden' }
+  if (targetUserId === c.manager_id) return { ok: false, error: 'cannot_kick_manager' }
+  await admin.from('community_members').delete().eq('community_id', communityId).eq('user_id', targetUserId)
+  await notifyCommunityModeration(targetUserId, '커뮤니티에서 내보내졌어요', `'${c.name}' 커뮤니티에서 내보내졌어요.`, `/community/${communityId}`)
   return { ok: true }
 }
 

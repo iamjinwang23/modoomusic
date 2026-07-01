@@ -1,7 +1,7 @@
 // 커뮤니티(카페) 상세 — 헤더·가입/탈퇴·글쓰기(멤버)·피드·좋아요·댓글·고정/삭제(관리)
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import Image from 'next/image'
 import { useParams, useRouter } from 'next/navigation'
 import { useAuth } from '@/components/AuthProvider'
@@ -10,11 +10,14 @@ import { toast } from '@/components/toast/toast'
 import { profileColor } from '@/utils/profileColor'
 import { relativeTime } from '@/utils/relativeTime'
 import { songService } from '@/services/song.service'
-import { exploreService } from '@/services/explore.service'
 import { CommunityCommentItem } from '@/components/community/CommunityCommentItem'
 import { CommunityPostReportModal } from '@/components/community/CommunityPostReportModal'
 import { CommunityEditModal } from '@/components/community/CommunityEditModal'
 import { CommunityMembersModal } from '@/components/community/CommunityMembersModal'
+import { PostImageGallery } from '@/components/community/PostImageGallery'
+import { PostEmbed } from '@/components/community/PostEmbed'
+import { PollCard } from '@/components/community/PollCard'
+import { SongEmbedCard } from '@/components/community/SongEmbedCard'
 import { getMyReportedPostIds } from '@/services/report.service'
 import type { Community, CommunityPost, CommunityMember, CommunityPostComment, Song } from '@/types/domain'
 
@@ -22,6 +25,27 @@ const VIOLET_FILTER = 'brightness(0) saturate(100%) invert(44%) sepia(51%) satur
 
 function countComments(list: CommunityPostComment[]): number {
   return list.reduce((n, c) => n + 1 + (c.replies?.length ?? 0), 0)
+}
+
+const URL_RE = /(https?:\/\/[^\s]+)/gi
+function firstUrl(text: string): string | null {
+  const m = text.match(/https?:\/\/[^\s]+/i)
+  return m ? m[0] : null
+}
+// 본문 내 URL을 클릭 가능한 링크로 변환
+function linkify(text: string): React.ReactNode[] {
+  return text.split(URL_RE).map((part, i) =>
+    /^https?:\/\//i.test(part)
+      ? <a key={i} href={part} target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()} className="text-violet-300 hover:underline break-all">{part}</a>
+      : part,
+  )
+}
+
+const CONTENT_MAX = 500
+// 노래 만들기와 동일 — 80% 도달 전 숨김, 80~99% 앰버, 100% 레드
+function CharCount({ length, limit }: { length: number; limit: number }) {
+  if (length < limit * 0.8) return null
+  return <span className={`text-xs tabular-nums shrink-0 ${length >= limit ? 'text-red-400' : 'text-amber-300'}`}>{length.toLocaleString()} / {limit.toLocaleString()}자</span>
 }
 
 function Avatar({ name, hue, url, size = 32 }: { name: string | null; hue: number | null; url: string | null; size?: number }) {
@@ -48,7 +72,15 @@ export default function CommunityCafePage() {
   const [posts, setPosts] = useState<CommunityPost[] | null>(null)
   const [content, setContent] = useState('')
   const [attachedSong, setAttachedSong] = useState<Song | null>(null)
+  const [attachedImages, setAttachedImages] = useState<string[]>([])
+  const [attachedLink, setAttachedLink] = useState('')
+  const [pollOptions, setPollOptions] = useState<string[] | null>(null)
   const [pickerOpen, setPickerOpen] = useState(false)
+  const [plusMenuOpen, setPlusMenuOpen] = useState(false)
+  const [urlInputOpen, setUrlInputOpen] = useState(false)
+  const [uploadingImages, setUploadingImages] = useState(false)
+  const imageInputRef = useRef<HTMLInputElement>(null)
+  const contentRef = useRef<HTMLTextAreaElement>(null)
   const [posting, setPosting] = useState(false)
   const [busy, setBusy] = useState(false)
   const [editOpen, setEditOpen] = useState(false)
@@ -62,6 +94,7 @@ export default function CommunityCafePage() {
   const [editSaving, setEditSaving] = useState(false)
   const [reportPostId, setReportPostId] = useState<string | null>(null)
   const [confirmDelPost, setConfirmDelPost] = useState<CommunityPost | null>(null)
+  const [confirmKick, setConfirmKick] = useState<CommunityPost | null>(null)
 
   const load = useCallback(async () => {
     const [d, p, reported] = await Promise.all([
@@ -74,6 +107,14 @@ export default function CommunityCafePage() {
     setPosts((p.posts ?? []).filter((x: CommunityPost) => !reported.has(x.id)))
   }, [id, user?.id])
   useEffect(() => { load() }, [load])
+
+  // 작성 textarea auto-grow — 최소 h-20(80px), 내용 따라 최대 240px까지 확장
+  useEffect(() => {
+    const el = contentRef.current
+    if (!el) return
+    el.style.height = 'auto'
+    el.style.height = `${Math.min(el.scrollHeight, 240)}px`
+  }, [content])
 
   async function join() {
     if (!user) { window.dispatchEvent(new Event('open-login')); return }
@@ -90,35 +131,63 @@ export default function CommunityCafePage() {
     if (res.ok) { toast.success('탈퇴했어요'); load() }
     else toast.error(j.error === 'manager_cannot_leave' ? '매니저는 탈퇴할 수 없어요 (폐쇄만 가능)' : '탈퇴에 실패했어요')
   }
+  const pollReady = (pollOptions?.filter((o) => o.trim()).length ?? 0) >= 2
+  // 첨부는 한 종류만 (음악/이미지/URL/투표 중 하나) — 활성 시 + 버튼 숨김
+  const hasAttachment = !!attachedSong || attachedImages.length > 0 || !!attachedLink.trim() || urlInputOpen || !!pollOptions
+  const hasComposeContent = !!content.trim() || !!attachedSong || attachedImages.length > 0 || !!attachedLink.trim() || pollReady
   async function submitPost() {
-    if (posting || (!content.trim() && !attachedSong)) return
+    if (posting || !hasComposeContent) return
     setPosting(true)
     const res = await fetch(`/api/communities/${id}/posts`, {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ content: content.trim(), songId: attachedSong?.id ?? null }),
+      body: JSON.stringify({
+        content: content.trim(), songId: attachedSong?.id ?? null, imageUrls: attachedImages,
+        linkUrl: attachedLink.trim() || null,
+        pollOptions: pollOptions ? pollOptions.map((o) => o.trim()).filter(Boolean) : [],
+      }),
     })
     const j = await res.json().catch(() => ({}))
     setPosting(false)
     if (!res.ok) { toast.error(j.error === 'not_member' ? '멤버만 글을 쓸 수 있어요' : '작성에 실패했어요'); return }
-    setContent(''); setAttachedSong(null); load()
+    setContent(''); setAttachedSong(null); setAttachedImages([]); setAttachedLink(''); setUrlInputOpen(false); setPollOptions(null); load()
   }
 
-  async function playSong(songId: string) {
-    const pub = await exploreService.getShareSongById(songId)
-    if (!pub) { toast.error('재생할 수 없는 곡이에요 (비공개)'); return }
-    window.dispatchEvent(new CustomEvent('view-song', { detail: {
-      feed: [{ id: pub.id, createdAt: pub.createdAt, title: pub.title, prompt: pub.prompt, genre: pub.genre, mood: pub.mood, customLyrics: null, lyrics: pub.lyrics, instrumental: pub.instrumental, audioUrl: pub.audioUrl, duration: pub.duration ?? null, liked: pub.isLiked, coverHue: pub.coverHue, coverImage: pub.coverImage, model: pub.model, videoCoverUrl: pub.videoCoverUrl, videoCoverStatus: pub.videoCoverStatus }],
-      idx: 0, isOwner: !!user && pub.userId === user.id, ownerName: pub.displayName, ownerAvatarUrl: pub.avatarUrl ?? null, ownerUserId: pub.userId, ownerAvatarHue: pub.avatarHue ?? null,
-    } }))
+  async function handleImageFiles(files: FileList | null) {
+    if (!files || files.length === 0) return
+    const remaining = 10 - attachedImages.length
+    if (remaining <= 0) { toast.error('이미지는 최대 10장까지 첨부할 수 있어요'); return }
+    const picked = Array.from(files).slice(0, remaining)
+    setUploadingImages(true)
+    const fd = new FormData()
+    picked.forEach((f) => fd.append('files', f))
+    const res = await fetch(`/api/communities/${id}/post-images`, { method: 'POST', body: fd })
+    setUploadingImages(false)
+    if (!res.ok) { toast.error('이미지 업로드에 실패했어요'); return }
+    const j = await res.json()
+    setAttachedImages((prev) => [...prev, ...(j.urls ?? [])].slice(0, 10))
+  }
+
+  // 참여 게이트 — 비로그인=로그인, 미가입=가입 안내 스낵바
+  function memberGate(): boolean {
+    if (!user) { window.dispatchEvent(new Event('open-login')); return false }
+    if (!community?.isMember && !community?.isManager) { toast.info('먼저 커뮤니티에 가입해주세요'); return false }
+    return true
   }
   async function toggleLike(p: CommunityPost) {
-    if (!user) { window.dispatchEvent(new Event('open-login')); return }
+    if (!memberGate()) return
     setPosts(prev => prev?.map(x => x.id === p.id ? { ...x, liked: !x.liked, likeCount: x.likeCount + (x.liked ? -1 : 1) } : x) ?? null)
     await fetch(`/api/community-posts/${p.id}/like`, { method: 'POST' }).catch(() => {})
   }
   async function togglePin(p: CommunityPost) {
     const res = await fetch(`/api/community-posts/${p.id}/pin`, { method: 'POST' })
     if (res.ok) load(); else toast.error('고정에 실패했어요')
+  }
+  async function kick(p: CommunityPost) {
+    const res = await fetch(`/api/communities/${id}/kick`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ userId: p.authorId }),
+    })
+    if (res.ok) { toast.success(`${p.authorName ?? '사용자'}님을 내보냈어요`); load() }
+    else toast.error('강퇴에 실패했어요')
   }
   async function del(p: CommunityPost) {
     const res = await fetch(`/api/community-posts/${p.id}`, { method: 'DELETE' })
@@ -155,7 +224,7 @@ export default function CommunityCafePage() {
     if (!comments[postId]) await refetchComments(postId)
   }
   async function addComment(postId: string) {
-    if (!user) { window.dispatchEvent(new Event('open-login')); return }
+    if (!memberGate()) return
     if (!commentText.trim()) return
     const res = await fetch(`/api/community-posts/${postId}/comments`, {
       method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ body: commentText.trim() }),
@@ -188,11 +257,50 @@ export default function CommunityCafePage() {
     return <button onClick={busy ? undefined : join} className={joinCls}>가입하기</button>
   }
 
+  // 로딩 — 헤더·피드 스켈레톤 (폴백 헤더 플래시 방지). not-found는 위에서 이미 처리됨
+  if (community === null) {
+    return (
+      <div className="h-full overflow-y-auto">
+        <div className="relative w-full aspect-[9/4] md:aspect-[7/2] max-h-[300px] bg-white/[0.04] shimmer" />
+        <div className="max-w-[680px] mx-auto pb-10">
+          <div className="px-5 -mt-10 relative">
+            <div className="flex items-center gap-4">
+              <div className="shrink-0 w-[96px] h-[96px] rounded-2xl bg-white/[0.06] shimmer ring-4 ring-[#111318]" />
+              <div className="flex-1 space-y-2.5">
+                <div className="h-6 w-44 rounded-lg bg-white/[0.04] shimmer" />
+                <div className="h-4 w-24 rounded bg-white/[0.04] shimmer" />
+              </div>
+            </div>
+            <div className="h-4 w-2/3 rounded bg-white/[0.04] shimmer mt-4" />
+          </div>
+          <div className="mt-6 md:px-5 divide-y divide-white/[0.06] md:divide-y-0 md:space-y-3">
+            {[0, 1].map(i => (
+              <div key={i} className="px-4 py-4 md:p-4 md:rounded-2xl md:border md:border-white/[0.08] md:bg-white/[0.02]">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-[34px] h-[34px] rounded-full bg-white/[0.04] shimmer shrink-0" />
+                  <div className="flex-1 space-y-1.5">
+                    <div className="h-3.5 w-24 rounded bg-white/[0.04] shimmer" />
+                    <div className="h-3 w-16 rounded bg-white/[0.04] shimmer" />
+                  </div>
+                </div>
+                <div className="mt-3 space-y-2">
+                  <div className="h-3.5 w-3/4 rounded bg-white/[0.04] shimmer" />
+                  <div className="h-3.5 w-1/2 rounded bg-white/[0.04] shimmer" />
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div className="h-full overflow-y-auto">
       {/* 커버 — 좌우 풀폭, 유튜브 채널 배너형(와이드·짧게). 모바일 2.5:1 · 데스크탑 4:1 */}
       <div className="relative w-full aspect-[9/4] md:aspect-[7/2] max-h-[300px] overflow-hidden" style={cover}>
-        <div className="absolute inset-0 bg-gradient-to-t from-[#111318] via-black/30 to-transparent" />
+        {/* 위 70% 원본 · 하단 30%만 배경색 블렌드 */}
+        <div className="absolute inset-x-0 bottom-0 h-[30%] bg-gradient-to-t from-[#111318] to-transparent pointer-events-none" />
         {/* 모바일: 프로필처럼 커버 우상단 액션 버튼 */}
         <div className="absolute top-3 right-3 z-10 md:hidden">{roleButton(true)}</div>
       </div>
@@ -228,8 +336,66 @@ export default function CommunityCafePage() {
         {(isMember || isManager) && (
           <div className="px-5 mt-6">
             <div className="rounded-2xl border border-white/[0.08] bg-white/[0.02] p-3">
-              <textarea value={content} onChange={(e) => setContent(e.target.value)} placeholder="이 커뮤니티에 글을 남겨보세요" maxLength={2000}
-                className="w-full h-20 bg-transparent text-sm text-white placeholder:text-zinc-600 focus:outline-none resize-none" />
+              <textarea ref={contentRef} value={content} onChange={(e) => setContent(e.target.value)} placeholder="이 커뮤니티에 글을 남겨보세요" maxLength={CONTENT_MAX}
+                className="w-full min-h-[80px] max-h-[240px] bg-transparent text-sm text-white placeholder:text-zinc-600 focus:outline-none resize-none overflow-y-auto" />
+
+              {/* 첨부 이미지 미리보기 (최대 10) */}
+              {(attachedImages.length > 0 || uploadingImages) && (
+                <div className="flex flex-wrap gap-2 mb-2">
+                  {attachedImages.map((url, i) => (
+                    <div key={url} className="relative w-16 h-16 rounded-lg overflow-hidden border border-white/[0.08]">
+                      <img src={url} alt="" className="w-full h-full object-cover" />
+                      <button onClick={() => setAttachedImages((prev) => prev.filter((_, j) => j !== i))} className="absolute top-0.5 right-0.5 w-5 h-5 rounded-full bg-black/60 hover:bg-black/80 flex items-center justify-center">
+                        <Image src="/Close-Fill.svg" alt="제거" width={10} height={10} style={{ filter: 'invert(1)' }} />
+                      </button>
+                    </div>
+                  ))}
+                  {uploadingImages && <div className="w-16 h-16 rounded-lg border border-white/[0.08] bg-white/[0.03] flex items-center justify-center"><span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /></div>}
+                </div>
+              )}
+
+              {/* 첨부 링크(임베드) 칩 */}
+              {attachedLink.trim() && !urlInputOpen && (
+                <div className="flex items-center gap-2 p-2 rounded-xl bg-white/[0.04] border border-white/[0.06] mb-2">
+                  <Image src="/External-Link.svg" alt="" width={13} height={13} style={{ filter: 'invert(0.5)' }} />
+                  <span className="text-xs text-zinc-300 truncate flex-1">{attachedLink.trim()}</span>
+                  <button onClick={() => setAttachedLink('')} className="shrink-0 w-5 h-5 rounded-full flex items-center justify-center hover:bg-white/[0.08]"><Image src="/Close-Fill.svg" alt="제거" width={11} height={11} style={{ filter: 'invert(0.5)' }} /></button>
+                </div>
+              )}
+
+              {/* URL 입력 */}
+              {urlInputOpen && (
+                <div className="flex items-center gap-2 mb-2">
+                  <input value={attachedLink} onChange={(e) => setAttachedLink(e.target.value)} placeholder="유튜브·스포티파이·애플뮤직·사운드클라우드 등 링크" autoFocus
+                    onKeyDown={(e) => { if (e.key === 'Enter') setUrlInputOpen(false) }}
+                    className="flex-1 bg-white/[0.04] border border-white/[0.08] rounded-lg px-3 py-1.5 text-sm text-white placeholder:text-zinc-600 focus:outline-none focus:ring-1 focus:ring-violet-500" />
+                  <button onClick={() => setUrlInputOpen(false)} className="text-xs font-semibold text-violet-400 hover:text-violet-300 px-2">확인</button>
+                </div>
+              )}
+
+              {/* 투표 작성 (2~4 옵션, 24h 후 종료) */}
+              {pollOptions && (
+                <div className="mb-2 p-3 rounded-xl bg-white/[0.03] border border-white/[0.06] space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-medium text-zinc-300">24시간 후 종료</span>
+                    <button onClick={() => setPollOptions(null)} className="text-xs font-medium text-zinc-300 hover:text-white transition-colors">투표 제거</button>
+                  </div>
+                  {pollOptions.map((opt, i) => (
+                    <div key={i} className="flex items-center gap-2">
+                      <input value={opt} onChange={(e) => setPollOptions((prev) => prev!.map((o, j) => (j === i ? e.target.value : o)))} maxLength={40} placeholder={`옵션 ${i + 1}`}
+                        className="flex-1 bg-white/[0.04] border border-white/[0.08] rounded-lg px-3 py-2.5 text-sm text-white placeholder:text-zinc-600 focus:outline-none focus:ring-1 focus:ring-violet-500" />
+                      {pollOptions.length > 2 && (
+                        <button onClick={() => setPollOptions((prev) => prev!.filter((_, j) => j !== i))} className="shrink-0 w-6 h-6 rounded-full flex items-center justify-center hover:bg-white/[0.08]">
+                          <Image src="/Close-Fill.svg" alt="제거" width={11} height={11} style={{ filter: 'invert(0.5)' }} />
+                        </button>
+                      )}
+                    </div>
+                  ))}
+                  {pollOptions.length < 4 && (
+                    <button onClick={() => setPollOptions((prev) => [...prev!, ''])} className="text-xs text-violet-400 hover:text-violet-300">+ 옵션 추가</button>
+                  )}
+                </div>
+              )}
 
               {/* 첨부된 곡 칩 */}
               {attachedSong && (
@@ -243,41 +409,89 @@ export default function CommunityCafePage() {
               )}
 
               <div className="flex items-center justify-between relative">
-                <button onClick={() => setPickerOpen((v) => !v)} className="flex items-center gap-1.5 text-xs text-zinc-400 hover:text-white transition px-2 py-1 rounded-lg hover:bg-white/[0.06]">
-                  <Image src="/Music.svg" alt="" width={14} height={14} style={{ filter: 'invert(0.6)' }} /> 내 곡 첨부
-                </button>
-                <button onClick={submitPost} disabled={posting || (!content.trim() && !attachedSong)} className="px-4 py-1.5 rounded-full text-xs font-semibold text-white bg-violet-600 hover:bg-violet-500 transition disabled:opacity-40">{posting ? '게시 중…' : '게시'}</button>
-
-                {pickerOpen && (
-                  <>
-                    <div className="fixed inset-0 z-[54]" onClick={() => setPickerOpen(false)} />
-                    <div className="absolute bottom-full left-0 mb-2 z-[55] w-72 max-h-72 overflow-y-auto bg-[#21252E] border border-white/[0.10] rounded-xl shadow-xl p-1.5">
-                      {songService.getAll().filter((s) => s.status === 'done').length === 0 ? (
-                        <p className="text-xs text-zinc-500 py-4 text-center">완성된 곡이 없어요</p>
-                      ) : songService.getAll().filter((s) => s.status === 'done').map((s) => (
-                        <button key={s.id} onClick={() => { setAttachedSong(s); setPickerOpen(false) }} className="w-full flex items-center gap-2.5 p-2 rounded-lg hover:bg-white/[0.06] transition text-left">
-                          <SongCover coverImage={s.coverImage} coverHue={s.coverHue} size={32} />
-                          <span className="text-sm text-white truncate">{s.title || '제목 없음'}</span>
+                {/* + 첨부 메뉴 (첨부 하나 선택 시 숨김 — 중복 방지) */}
+                <div className="relative">
+                  {!hasAttachment && <>
+                  <button onClick={() => setPlusMenuOpen((v) => !v)} className="w-8 h-8 rounded-full bg-[#252A35] hover:bg-[#2C313D] flex items-center justify-center transition active:scale-[0.96]" aria-label="첨부">
+                    <Image src="/Add.svg" alt="" width={16} height={16} style={{ filter: 'invert(1)' }} />
+                  </button>
+                  {plusMenuOpen && (
+                    <>
+                      <div className="fixed inset-0 z-[54]" onClick={() => setPlusMenuOpen(false)} />
+                      <div className="absolute bottom-full left-0 mb-2 z-[55] w-40 bg-[#21252E] border border-white/[0.10] rounded-xl shadow-xl overflow-hidden py-1">
+                        <button onClick={() => { setPlusMenuOpen(false); setPickerOpen(true) }} className="w-full flex items-center gap-2.5 px-3 py-2.5 text-sm text-white hover:bg-white/[0.06] transition text-left">
+                          <Image src="/Music.svg" alt="" width={15} height={15} style={{ filter: 'invert(0.6)' }} /> 내 음악 첨부
                         </button>
-                      ))}
-                    </div>
-                  </>
-                )}
+                        <button onClick={() => { setPlusMenuOpen(false); imageInputRef.current?.click() }} className="w-full flex items-center gap-2.5 px-3 py-2.5 text-sm text-white hover:bg-white/[0.06] transition text-left">
+                          <Image src="/Photo-Album.svg" alt="" width={15} height={15} style={{ filter: 'invert(0.6)' }} /> 이미지 첨부
+                        </button>
+                        <button onClick={() => { setPlusMenuOpen(false); setUrlInputOpen(true) }} className="w-full flex items-center gap-2.5 px-3 py-2.5 text-sm text-white hover:bg-white/[0.06] transition text-left">
+                          <Image src="/External-Link.svg" alt="" width={15} height={15} style={{ filter: 'invert(0.6)' }} /> 임베드
+                        </button>
+                        <button onClick={() => { setPlusMenuOpen(false); if (!pollOptions) setPollOptions(['', '']) }} className="w-full flex items-center gap-2.5 px-3 py-2.5 text-sm text-white hover:bg-white/[0.06] transition text-left">
+                          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="6" y1="20" x2="6" y2="12"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="18" y1="20" x2="18" y2="9"/></svg> 투표
+                        </button>
+                      </div>
+                    </>
+                  )}
+                  {pickerOpen && (
+                    <>
+                      <div className="fixed inset-0 z-[54]" onClick={() => setPickerOpen(false)} />
+                      <div className="absolute bottom-full left-0 mb-2 z-[55] w-72 max-h-72 overflow-y-auto bg-[#21252E] border border-white/[0.10] rounded-xl shadow-xl p-1.5">
+                        {songService.getAll().filter((s) => s.status === 'done').length === 0 ? (
+                          <p className="text-xs text-zinc-500 py-4 text-center">완성된 곡이 없어요</p>
+                        ) : songService.getAll().filter((s) => s.status === 'done').map((s) => (
+                          <button key={s.id} onClick={() => { setAttachedSong(s); setPickerOpen(false) }} className="w-full flex items-center gap-2.5 p-2 rounded-lg hover:bg-white/[0.06] transition text-left">
+                            <SongCover coverImage={s.coverImage} coverHue={s.coverHue} size={32} />
+                            <span className="text-sm text-white truncate">{s.title || '제목 없음'}</span>
+                          </button>
+                        ))}
+                      </div>
+                    </>
+                  )}
+                  </>}
+                </div>
+                <div className="flex items-center gap-2.5">
+                  <CharCount length={content.length} limit={CONTENT_MAX} />
+                  <button onClick={submitPost} disabled={posting || uploadingImages || !hasComposeContent} className="px-4 py-1.5 rounded-full text-xs font-semibold text-white bg-violet-600 hover:bg-violet-500 transition disabled:opacity-40">{posting ? '게시 중…' : '게시'}</button>
+                </div>
               </div>
+
+              <input ref={imageInputRef} type="file" accept="image/*" multiple className="hidden" onChange={(e) => { handleImageFiles(e.target.files); e.target.value = '' }} />
             </div>
           </div>
         )}
 
-        {/* 피드 */}
-        <div className="px-5 mt-6 space-y-3">
+        {/* 피드 — 모바일: 라인 구분(풀폭·박스 X) / 데스크탑: 박스 카드 */}
+        <div className="mt-6 md:px-5 divide-y divide-white/[0.06] md:divide-y-0 md:space-y-3">
           {posts === null ? (
-            [0, 1].map(i => <div key={i} className="h-24 rounded-2xl bg-white/[0.04] animate-pulse" />)
+            [0, 1].map(i => (
+              <div key={i} className="px-4 py-4 md:p-4 md:rounded-2xl md:border md:border-white/[0.08] md:bg-white/[0.02]">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-[34px] h-[34px] rounded-full bg-white/[0.04] shimmer shrink-0" />
+                  <div className="flex-1 space-y-1.5">
+                    <div className="h-3.5 w-24 rounded bg-white/[0.04] shimmer" />
+                    <div className="h-3 w-16 rounded bg-white/[0.04] shimmer" />
+                  </div>
+                </div>
+                <div className="mt-3 space-y-2">
+                  <div className="h-3.5 w-3/4 rounded bg-white/[0.04] shimmer" />
+                  <div className="h-3.5 w-1/2 rounded bg-white/[0.04] shimmer" />
+                </div>
+              </div>
+            ))
           ) : posts.length === 0 ? (
             <p className="text-sm text-zinc-500 py-10 text-center">아직 글이 없어요. {isMember ? '첫 글을 남겨보세요!' : '가입하고 첫 글을 남겨보세요!'}</p>
           ) : posts.map(p => {
             const canDelete = p.authorId === user?.id || isManager
             return (
-              <div key={p.id} className="rounded-2xl border border-white/[0.08] bg-white/[0.02] p-4">
+              <div key={p.id} className="px-4 py-4 md:rounded-2xl md:border md:border-white/[0.08] md:bg-white/[0.02]">
+                {p.pinned && (
+                  <div className="flex items-center gap-1.5 mb-3 pb-2.5 border-b border-white/[0.06] text-sm font-medium text-white">
+                    <Image src="/Pin.svg" alt="" width={15} height={15} style={{ filter: 'invert(1)' }} />
+                    매니저가 상단 고정함
+                  </div>
+                )}
                 <div className="flex items-center gap-2.5">
                   <Avatar name={p.authorName} hue={p.authorAvatarHue} url={p.authorAvatarUrl} size={34} />
                   <div className="min-w-0 flex-1">
@@ -285,7 +499,7 @@ export default function CommunityCafePage() {
                       <p className="text-sm font-medium text-white truncate">{p.authorName ?? '익명'}</p>
                       {p.authorId === community?.managerId && <span className="shrink-0 text-[10px] font-medium text-violet-300 bg-violet-500/15 px-1.5 py-0.5 rounded-full leading-none">매니저</span>}
                     </div>
-                    <p className="text-[11px] text-zinc-500">{relativeTime(p.createdAt)}{p.pinned && <span className="text-violet-400"> · 고정</span>}</p>
+                    <p className="text-[11px] text-zinc-500">{relativeTime(p.createdAt)}</p>
                   </div>
                   <div className="relative shrink-0">
                     <button onClick={() => setMoreOpenId(v => v === p.id ? null : p.id)} className="w-7 h-7 rounded-full hover:bg-white/[0.06] flex items-center justify-center text-zinc-500 hover:text-white transition-colors" aria-label="더보기">
@@ -302,13 +516,19 @@ export default function CommunityCafePage() {
                           )}
                           {isManager && (
                             <button onClick={() => { setMoreOpenId(null); togglePin(p) }} className="w-full flex items-center gap-2 px-3 py-2 text-sm text-white hover:bg-white/[0.06] transition-colors">
-                              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="17" x2="12" y2="22"/><path d="M5 17h14l-1.5-4.5V5a2 2 0 0 0-2-2H8.5a2 2 0 0 0-2 2v7.5L5 17z"/></svg>
+                              <Image src="/Pin.svg" alt="" width={12} height={12} style={{ filter: 'invert(0.55)' }} />
                               {p.pinned ? '고정해제' : '고정'}
                             </button>
                           )}
                           {canDelete && (
                             <button onClick={() => { setMoreOpenId(null); setConfirmDelPost(p) }} className="w-full flex items-center gap-2 px-3 py-2 text-sm text-red-400 hover:bg-red-500/10 transition-colors">
                               <Image src="/Delete-2.svg" alt="" width={12} height={12} style={{ filter: 'invert(0.4) sepia(1) saturate(3) hue-rotate(300deg)' }} /> 삭제
+                            </button>
+                          )}
+                          {isManager && p.authorId !== community?.managerId && (
+                            <button onClick={() => { setMoreOpenId(null); setConfirmKick(p) }} className="w-full flex items-center gap-2 px-3 py-2 text-sm text-red-400 hover:bg-red-500/10 transition-colors">
+                              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="17" y1="8" x2="22" y2="13"/><line x1="22" y1="8" x2="17" y2="13"/></svg>
+                              강퇴
                             </button>
                           )}
                           {user && p.authorId !== user.id && (
@@ -331,17 +551,16 @@ export default function CommunityCafePage() {
                     </div>
                   </div>
                 ) : p.content ? (
-                  <p className="text-sm text-zinc-200 mt-2.5 whitespace-pre-wrap leading-relaxed">{p.content}</p>
+                  <p className="text-sm text-zinc-200 mt-2.5 whitespace-pre-wrap leading-relaxed">{linkify(p.content)}</p>
                 ) : null}
-                {p.song && (
-                  <button onClick={() => playSong(p.song!.id)} className="mt-2.5 w-full flex items-center gap-2.5 p-2 rounded-xl bg-white/[0.04] border border-white/[0.06] hover:bg-white/[0.08] transition text-left">
-                    <SongCover coverImage={p.song.coverImage} coverHue={p.song.coverHue} size={44} />
-                    <div className="min-w-0 flex-1">
-                      <p className="text-sm text-white truncate">{p.song.title || '제목 없음'}</p>
-                      <p className="text-[11px] text-violet-300 flex items-center gap-1"><Image src="/Play.svg" alt="" width={11} height={11} style={{ filter: VIOLET_FILTER }} /> 재생</p>
-                    </div>
-                  </button>
-                )}
+                {p.imageUrls && p.imageUrls.length > 0 && <PostImageGallery images={p.imageUrls} />}
+                {/* 임베드/미리보기 — 명시 첨부 우선, 없으면 본문 첫 URL 자동 감지 */}
+                {(() => {
+                  const url = p.linkUrl || (p.content ? firstUrl(p.content) : null)
+                  return url ? <PostEmbed url={url} /> : null
+                })()}
+                {p.poll && <PollCard poll={p.poll} postId={p.id} gate={memberGate} />}
+                {p.song && <SongEmbedCard song={p.song} artist={p.authorName} ownerUserId={p.authorId} ownerAvatarUrl={p.authorAvatarUrl} ownerAvatarHue={p.authorAvatarHue} currentUserId={user?.id ?? null} />}
                 <div className="flex items-center gap-4 mt-3">
                   <button onClick={() => toggleLike(p)} className={`text-xs flex items-center gap-1.5 transition active:scale-95 ${p.liked ? 'text-violet-300' : 'text-zinc-500 hover:text-white'}`}>
                     <Image src="/Thumb-Up.svg" alt="좋아요" width={15} height={15} style={{ filter: p.liked ? VIOLET_FILTER : 'invert(0.4)' }} /> {p.likeCount}
@@ -360,7 +579,7 @@ export default function CommunityCafePage() {
                         currentUserId={user?.id ?? null}
                         isManager={isManager}
                         onMutated={() => refetchComments(p.id)}
-                        onLoginRequired={() => window.dispatchEvent(new Event('open-login'))}
+                        gate={memberGate}
                       />
                     ))}
                     <div className="flex items-center gap-2 pt-1">
@@ -376,6 +595,7 @@ export default function CommunityCafePage() {
       </div>
 
       <ConfirmModal open={!!confirmDelPost} title="이 글을 정말 삭제하시겠어요?" description="삭제 시 등록된 댓글도 함께 삭제되며 되돌릴 수 없어요." confirmLabel="삭제하기" cancelLabel="아니요" variant="danger" onClose={() => setConfirmDelPost(null)} onConfirm={() => { if (confirmDelPost) del(confirmDelPost); setConfirmDelPost(null) }} />
+      <ConfirmModal open={!!confirmKick} title={`${confirmKick?.authorName ?? '이 사용자'}님을 강퇴할까요?`} description="커뮤니티에서 내보내지고 알림이 전송돼요. 이 회원은 다시 가입할 수 있어요." confirmLabel="강퇴하기" cancelLabel="아니요" variant="danger" onClose={() => setConfirmKick(null)} onConfirm={() => { if (confirmKick) kick(confirmKick); setConfirmKick(null) }} />
       {reportPostId && <CommunityPostReportModal postId={reportPostId} onClose={() => setReportPostId(null)} onSubmitted={() => reportDone(reportPostId)} />}
       {editOpen && community && <CommunityEditModal community={community} onClose={() => setEditOpen(false)} onSaved={(c) => setCommunity(c)} onClosed={() => router.push('/community')} />}
       {membersOpen && community && <CommunityMembersModal members={members} managerId={community.managerId} onClose={() => setMembersOpen(false)} />}

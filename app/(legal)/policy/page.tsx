@@ -9,7 +9,7 @@ export default function PolicyPage() {
     <article className="space-y-8 text-zinc-300 leading-relaxed">
       <header className="space-y-2">
         <h1 className="text-3xl font-bold text-white">운영정책</h1>
-        <p className="text-sm text-zinc-500">시행일: 2026년 6월 10일</p>
+        <p className="text-sm text-zinc-500">시행일: 2026년 6월 10일 · 개정: 2026년 7월 1일 (커뮤니티 운영 정책·금지행위 신설)</p>
       </header>
 
       <p className="text-sm">
@@ -120,6 +120,15 @@ export default function PolicyPage() {
             ]}
             penalty="허위 신고 3회 누적 시 계정 사용 영구 제한"
           />
+          <Ban
+            title="⑧ 커뮤니티 악용 및 관리 권한 남용"
+            items={[
+              '홍보·도배 목적 등으로 커뮤니티를 무분별하게 개설하거나 운영하는 행위',
+              '매니저 권한(강퇴·게시글 삭제·고정 등)을 부당하거나 차별적으로 남용하는 행위',
+              '커뮤니티를 불법·유해 정보의 유통 창구로 이용하는 행위',
+            ]}
+            penalty="사안에 따라 게시물·커뮤니티 삭제, 경고, 이용 제한"
+          />
         </div>
       </Section>
 
@@ -134,7 +143,7 @@ export default function PolicyPage() {
           </div>
           <div className="space-y-2">
             <h3 className="font-semibold text-white">② 신고 대상</h3>
-            <Bullets items={['게시물(공개된 곡)', '이용자 프로필']} />
+            <Bullets items={['게시물(공개된 곡)', '커뮤니티 게시글·댓글', '이용자 프로필']} />
           </div>
           <div className="space-y-2">
             <h3 className="font-semibold text-white">③ 신고 처리 원칙</h3>
@@ -157,6 +166,38 @@ export default function PolicyPage() {
             <Bullets items={[
               '관리자는 관리자 도구 또는 고객센터를 통해 신고 내역을 확인합니다.',
               '신고 누적 횟수가 내부 기준을 초과할 경우, 관리자 검토 후 전체 비노출 또는 삭제 조치가 이루어질 수 있습니다.',
+            ]} />
+          </div>
+        </div>
+      </Section>
+
+      <Section title="제5조의2 (커뮤니티 운영 정책)">
+        <div className="space-y-4">
+          <div className="space-y-2">
+            <h3 className="font-semibold text-white">① 개설 및 매니저</h3>
+            <Bullets items={[
+              '커뮤니티는 서비스가 정한 범위에서 개설할 수 있으며, 개설자는 해당 커뮤니티의 매니저가 됩니다.',
+              '매니저는 자신의 커뮤니티를 관련 법령·이용약관·본 운영정책에 따라 운영할 의무가 있습니다.',
+            ]} />
+          </div>
+          <div className="space-y-2">
+            <h3 className="font-semibold text-white">② 매니저의 관리 권한</h3>
+            <Bullets items={[
+              '게시글 상단 고정·삭제, 커뮤니티 정보(이름·소개·이미지) 수정, 회원 강제 탈퇴(강퇴), 커뮤니티 폐쇄',
+              '권한은 해당 커뮤니티 내로 한정되며, 부당·차별적 남용은 제4조에 따라 제재될 수 있습니다.',
+            ]} />
+          </div>
+          <div className="space-y-2">
+            <h3 className="font-semibold text-white">③ 조치 통지 및 이의</h3>
+            <Bullets items={[
+              '강퇴·게시글 삭제 등 회원에게 불이익이 되는 조치가 있는 경우, 해당 회원에게 알림으로 통지됩니다.',
+              '조치에 이의가 있는 회원은 제6조(이의 신청 절차)에 따라 고객센터로 이의를 제기할 수 있습니다.',
+            ]} />
+          </div>
+          <div className="space-y-2">
+            <h3 className="font-semibold text-white">④ 폐쇄 시 데이터</h3>
+            <Bullets items={[
+              '커뮤니티가 폐쇄되면 해당 커뮤니티의 게시글·댓글·멤버십 등은 삭제되며 복구되지 않습니다. 첨부된 곡 등 개별 콘텐츠 자체는 삭제되지 않을 수 있습니다.',
             ]} />
           </div>
         </div>
@@ -201,6 +242,10 @@ export default function PolicyPage() {
               <tr>
                 <td className="p-2 border-b border-white/[0.06]">본인이 작성한 댓글·답글</td>
                 <td className="p-2 border-b border-white/[0.06]">작성자 표시를 "(탈퇴한 회원)"으로 익명화 후 유지 (대화 맥락 보존)</td>
+              </tr>
+              <tr>
+                <td className="p-2 border-b border-white/[0.06]">커뮤니티 게시글·댓글 및 개설한 커뮤니티</td>
+                <td className="p-2 border-b border-white/[0.06]">작성자·매니저 표시를 익명화하여 유지될 수 있으며, 운영상 필요한 경우 회사가 관리·정리(폐쇄 등) 조치를 할 수 있습니다</td>
               </tr>
               <tr>
                 <td className="p-2 border-b border-white/[0.06]">좋아요·팔로우·컬렉션</td>

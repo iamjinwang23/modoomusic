@@ -19,13 +19,17 @@ export async function POST(req: NextRequest, { params }: RouteParams) {
   const { data: { user } } = await userClient.auth.getUser()
   if (!user) return NextResponse.json({ error: 'unauthorized' }, { status: 401 })
 
-  let body: { content?: unknown; imageUrl?: unknown; songId?: unknown }
+  let body: { content?: unknown; imageUrls?: unknown; linkUrl?: unknown; songId?: unknown; pollOptions?: unknown }
   try { body = await req.json() } catch { return NextResponse.json({ error: 'invalid_input' }, { status: 400 }) }
 
+  const imageUrls = Array.isArray(body.imageUrls) ? body.imageUrls.filter((u): u is string => typeof u === 'string') : []
+  const pollOptions = Array.isArray(body.pollOptions) ? body.pollOptions.filter((o): o is string => typeof o === 'string') : []
   const result = await createPost(user.id, id, {
     content: typeof body.content === 'string' ? body.content : '',
-    imageUrl: typeof body.imageUrl === 'string' && body.imageUrl ? body.imageUrl : null,
+    imageUrls,
+    linkUrl: typeof body.linkUrl === 'string' && body.linkUrl ? body.linkUrl : null,
     songId: typeof body.songId === 'string' && body.songId ? body.songId : null,
+    poll: pollOptions.length >= 2 ? { options: pollOptions } : null,
   })
   if (!result.ok) {
     const status = result.error === 'not_member' ? 403 : result.error === 'empty' ? 400 : 500

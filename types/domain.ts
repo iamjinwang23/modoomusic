@@ -219,14 +219,28 @@ export interface CommunityPost {
   authorAvatarUrl: string | null
   authorAvatarHue: number | null
   content: string
-  imageUrl: string | null
+  imageUrl: string | null        // legacy 단일 (미사용, 하위호환)
+  imageUrls: string[]            // 첨부 이미지 (최대 10, webp)
+  linkUrl: string | null         // 첨부 링크
   songId: string | null
   pinned: boolean
   likeCount: number
   commentCount: number
   liked?: boolean
   createdAt: string
-  song?: { id: string; title: string | null; coverImage: string | null; coverHue: number | null } | null
+  song?: { id: string; title: string | null; coverImage: string | null; coverHue: number | null; audioUrl: string | null } | null
+  communityName?: string | null    // 인기글 등 전역 표면에서 어느 커뮤니티인지 표시
+  communityAvatar?: string | null
+  poll?: CommunityPoll | null
+}
+
+// 투표 — 단일 선택, 게시 24h 후 종료
+export interface CommunityPoll {
+  options: string[]
+  endsAt: string
+  counts: number[]        // 옵션별 득표
+  totalVotes: number
+  myVote: number | null   // 내 선택 인덱스 (없으면 null)
 }
 
 export interface CommunityMember {

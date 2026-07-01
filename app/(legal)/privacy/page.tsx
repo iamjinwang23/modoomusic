@@ -9,7 +9,7 @@ export default function PrivacyPage() {
     <article className="space-y-8 text-zinc-300 leading-relaxed">
       <header className="space-y-2">
         <h1 className="text-3xl font-bold text-white">개인정보처리방침</h1>
-        <p className="text-sm text-zinc-500">시행일: 2026년 5월 27일</p>
+        <p className="text-sm text-zinc-500">시행일: 2026년 5월 27일 · 개정: 2026년 7월 1일 (커뮤니티 활동 정보 수집 항목 반영)</p>
         <p className="text-sm text-zinc-400">
           주식회사 비누컴퍼니(이하 "회사")는 회원의 개인정보를 중요하게 생각하며,
           「개인정보 보호법」 등 관련 법령을 준수하기 위해 본 방침을 수립·공개합니다.
@@ -41,6 +41,7 @@ export default function PrivacyPage() {
           <List items={[
             '회원이 생성한 곡(스타일 프롬프트, 가사, 오디오, 커버 이미지)',
             '곡 공개 여부, 좋아요, 컬렉션 담기, 재생 기록',
+            '커뮤니티 개설·가입 이력, 커뮤니티 게시글·댓글·투표 등 활동 정보',
             '일일 크레딧 사용량, 마지막 리셋 시각',
             '접속 IP, 사용자 에이전트(User-Agent), 접속 일시(서비스 운영·보안·친구 초대 어뷰징 차단 목적)',
           ]} />

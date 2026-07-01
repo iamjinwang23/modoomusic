@@ -14,10 +14,10 @@ interface Props {
   isManager: boolean               // 커뮤니티 매니저면 어떤 댓글이든 삭제 가능
   isReply?: boolean
   onMutated: () => void            // 추가/수정/삭제 후 목록 새로고침
-  onLoginRequired: () => void
+  gate: () => boolean              // 참여 가능 여부(로그인+가입) — false면 자체 안내 처리
 }
 
-export function CommunityCommentItem({ comment, currentUserId, isManager, isReply = false, onMutated, onLoginRequired }: Props) {
+export function CommunityCommentItem({ comment, currentUserId, isManager, isReply = false, onMutated, gate }: Props) {
   const isOwner = currentUserId === comment.authorId
   const canDelete = isOwner || isManager
 
@@ -66,7 +66,7 @@ export function CommunityCommentItem({ comment, currentUserId, isManager, isRepl
 
   async function handleLike() {
     if (likeBusy) return
-    if (!currentUserId) { onLoginRequired(); return }
+    if (!gate()) return
     const prevLiked = liked, prevCount = likeCount
     setLiked(!prevLiked); setLikeCount(prevCount + (prevLiked ? -1 : 1))
     setLikeBusy(true)
@@ -84,7 +84,7 @@ export function CommunityCommentItem({ comment, currentUserId, isManager, isRepl
   async function handleReplySubmit() {
     const text = replyBody.trim()
     if (!text || text.length > 500 || replySaving) return
-    if (!currentUserId) { onLoginRequired(); return }
+    if (!gate()) return
     setReplySaving(true)
     try {
       const res = await fetch(`/api/community-posts/${comment.postId}/comments`, {
@@ -134,7 +134,7 @@ export function CommunityCommentItem({ comment, currentUserId, isManager, isRepl
               {likeCount > 0 && <span className="tabular-nums">{likeCount}</span>}
             </button>
             {!isReply && (
-              <button type="button" onClick={() => { if (!currentUserId) { onLoginRequired(); return } setReplyOpen((v) => !v) }} className="hover:text-white transition-colors">답글달기</button>
+              <button type="button" onClick={() => { if (!gate()) return; setReplyOpen((v) => !v) }} className="hover:text-white transition-colors">답글달기</button>
             )}
             {(isOwner || canDelete) && (
               <div className="relative ml-auto">
@@ -175,7 +175,7 @@ export function CommunityCommentItem({ comment, currentUserId, isManager, isRepl
         {!isReply && (comment.replies?.length ?? 0) > 0 && (
           <div className="mt-2 pl-3 border-l border-white/[0.06]">
             {comment.replies!.map((r) => (
-              <CommunityCommentItem key={r.id} comment={r} currentUserId={currentUserId} isManager={isManager} isReply onMutated={onMutated} onLoginRequired={onLoginRequired} />
+              <CommunityCommentItem key={r.id} comment={r} currentUserId={currentUserId} isManager={isManager} isReply onMutated={onMutated} gate={gate} />
             ))}
           </div>
         )}
