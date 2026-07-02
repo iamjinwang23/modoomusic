@@ -60,12 +60,12 @@ interface PostRow {
   comment_count: number
   created_at: string
   profiles?: { username?: string; display_name?: string; avatar_url?: string; avatar_hue?: number }
-  songs?: { id?: string; title?: string | null; cover_image?: string | null; cover_hue?: number | null; audio_url?: string | null } | null
+  songs?: { id?: string; title?: string | null; cover_image?: string | null; cover_hue?: number | null; audio_url?: string | null; duration?: number | null } | null
   communities?: { name?: string; avatar_image?: string | null; cover_image?: string | null } | null
 }
 
 const POST_SELECT =
-  'id, community_id, author_id, content, image_url, image_urls, link_url, song_id, pinned, like_count, comment_count, created_at, profiles!author_id(username, display_name, avatar_url, avatar_hue), songs!song_id(id, title, cover_image, cover_hue, audio_url), communities!community_id(name, avatar_image, cover_image)'
+  'id, community_id, author_id, content, image_url, image_urls, link_url, song_id, pinned, like_count, comment_count, created_at, profiles!author_id(username, display_name, avatar_url, avatar_hue), songs!song_id(id, title, cover_image, cover_hue, audio_url, duration), communities!community_id(name, avatar_image, cover_image)'
 
 function rowToPost(r: PostRow): CommunityPost {
   return {
@@ -85,7 +85,7 @@ function rowToPost(r: PostRow): CommunityPost {
     likeCount: r.like_count,
     commentCount: r.comment_count,
     createdAt: r.created_at,
-    song: r.songs ? { id: r.songs.id as string, title: r.songs.title ?? null, coverImage: r.songs.cover_image ?? null, coverHue: r.songs.cover_hue ?? null, audioUrl: r.songs.audio_url ?? null } : null,
+    song: r.songs ? { id: r.songs.id as string, title: r.songs.title ?? null, coverImage: r.songs.cover_image ?? null, coverHue: r.songs.cover_hue ?? null, audioUrl: r.songs.audio_url ?? null, duration: r.songs.duration ?? null } : null,
     communityName: r.communities?.name ?? null,
     communityAvatar: r.communities?.avatar_image ?? null,
     communityCover: r.communities?.cover_image ?? null,
@@ -95,6 +95,12 @@ function rowToPost(r: PostRow): CommunityPost {
 async function isMember(admin: ReturnType<typeof createAdminClient>, communityId: string, userId: string): Promise<boolean> {
   const { data } = await admin.from('community_members').select('user_id').eq('community_id', communityId).eq('user_id', userId).maybeSingle()
   return !!data
+}
+
+// 첨부 곡 검증 — 본인 소유 + 공개(게시)된 곡만 허용
+async function isPublicOwnedSong(admin: ReturnType<typeof createAdminClient>, userId: string, songId: string): Promise<boolean> {
+  const { data } = await admin.from('songs').select('user_id, is_public').eq('id', songId).maybeSingle()
+  return !!data && data.user_id === userId && data.is_public === true
 }
 
 // 현재 유저가 좋아요한 post id 집합 채우기
@@ -125,6 +131,8 @@ export async function createPost(
   const hasPoll = pollOptions.length >= 2
   if (!content && imageUrls.length === 0 && !input.songId && !linkUrl && !hasPoll) return { ok: false, error: 'empty' }
   if (await findBannedWord(content, ...pollOptions)) return { ok: false, error: 'banned_word' }
+  // 곡 첨부는 본인의 게시(공개)된 곡만 — 비공개곡 첨부 차단
+  if (input.songId && !(await isPublicOwnedSong(admin, userId, input.songId))) return { ok: false, error: 'song_not_public' }
   const { data, error } = await admin
     .from('community_posts')
     .insert({ community_id: communityId, author_id: userId, content, image_urls: imageUrls, link_url: linkUrl, song_id: input.songId ?? null })
@@ -264,6 +272,8 @@ export async function editPost(
   if (!post) return { ok: false, error: 'not_found' }
   if (post.author_id !== userId) return { ok: false, error: 'forbidden' }
   const newImages = imageUrls ?? (Array.isArray(post.image_urls) ? post.image_urls : [])
+  // 새로 곡을 붙이는 경우만 검증(기존 곡 보존은 통과). 본인 게시(공개) 곡만.
+  if (songId && songId !== post.song_id && !(await isPublicOwnedSong(admin, userId, songId))) return { ok: false, error: 'song_not_public' }
   const newSongId = songId !== undefined ? songId : post.song_id
   // 임베드는 본문 URL 자동 감지로 대체 — link_url은 편집 대상 아님, 기존값 보존만.
   const hasMedia = !!newSongId || newImages.length > 0 || !!post.image_url || !!post.link_url || (pollOptions && pollOptions.length >= 2)

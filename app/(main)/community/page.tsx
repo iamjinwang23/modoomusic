@@ -60,7 +60,7 @@ export default function CommunityHubPage() {
                 <div className="grid grid-cols-2 md:grid-cols-3 gap-x-3 gap-y-6">
                   {hub.popularPosts.slice(0, HUB_LIMIT.posts).map((p, i) => (
                     <div key={p.id} className={i === 0 ? 'col-span-2 md:col-span-1' : ''}>
-                      <PopularPostCard p={p} />
+                      <PopularPostCard p={p} compact={i !== 0} />
                     </div>
                   ))}
                 </div>

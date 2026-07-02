@@ -167,7 +167,7 @@ export default function CommunityCafePage() {
     })
     const j = await res.json().catch(() => ({}))
     setPosting(false)
-    if (!res.ok) { toast.error(j.error === 'not_member' ? '멤버만 글을 쓸 수 있어요' : j.error === 'banned_word' ? '부적절한 표현이 포함되어 있어요' : '작성에 실패했어요'); return }
+    if (!res.ok) { toast.error(j.error === 'not_member' ? '멤버만 글을 쓸 수 있어요' : j.error === 'banned_word' ? '부적절한 표현이 포함되어 있어요' : j.error === 'song_not_public' ? '게시된 곡만 첨부할 수 있어요' : '작성에 실패했어요'); return }
     setContent(''); setAttachedSong(null); setAttachedImages([]); setPollOptions(null); load()
     toast.success('글을 게시했어요')
   }
@@ -216,6 +216,12 @@ export default function CommunityCafePage() {
   function goProfile(username: string | null) {
     if (username) window.dispatchEvent(new CustomEvent('view-profile', { detail: username }))
   }
+  async function copyShareLink() {
+    try {
+      await navigator.clipboard.writeText(`${window.location.origin}/community/${id}`)
+      toast.success('링크를 복사했어요')
+    } catch { toast.error('링크 복사에 실패했어요') }
+  }
   function startEdit(p: CommunityPost) {
     setEditingPost(p)
     setMoreOpenId(null)
@@ -261,14 +267,28 @@ export default function CommunityCafePage() {
 
   // 역할별 액션 버튼(수정/탈퇴/가입). overlay=모바일 커버 오버레이(프로필 토큰) / false=데스크탑 타이틀 우측
   const roleButton = (overlay: boolean) => {
-    const editCls = 'flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-medium bg-black/25 backdrop-blur-sm text-white hover:bg-black/40 transition-colors'
+    // overlay=모바일 커버 오버레이(이미지 위 → black/25) / false=데스크탑 타이틀 행(어두운 bg → white 계열로 가시성 확보)
+    const editCls = overlay
+      ? 'flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-medium bg-black/25 backdrop-blur-sm text-white hover:bg-black/40 transition-colors'
+      : 'flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-medium bg-white/[0.08] text-white hover:bg-white/[0.14] transition-colors'
     const leaveCls = overlay
       ? 'px-4 py-2 rounded-full text-sm font-medium bg-black/25 backdrop-blur-sm text-white hover:bg-black/40 transition-colors'
-      : 'px-4 py-2 rounded-full text-sm font-medium bg-white/[0.06] text-zinc-300 hover:bg-white/[0.12] transition-colors'
+      : 'px-4 py-2 rounded-full text-sm font-medium bg-white/[0.08] text-zinc-300 hover:bg-white/[0.14] transition-colors'
     const joinCls = 'px-4 py-2 rounded-full text-sm font-semibold text-white bg-violet-600 hover:bg-violet-500 transition-colors'
-    if (isManager) return <button onClick={() => setEditOpen(true)} className={editCls}><Image src="/Edit.svg" alt="" width={14} height={14} style={{ filter: 'invert(1)' }} /> 수정</button>
-    if (isMember) return <button onClick={busy ? undefined : leave} className={leaveCls}>탈퇴하기</button>
-    return <button onClick={busy ? undefined : join} className={joinCls}>가입하기</button>
+    const shareCls = overlay
+      ? 'w-9 h-9 rounded-full flex items-center justify-center bg-black/25 backdrop-blur-sm text-white hover:bg-black/40 transition active:scale-95'
+      : 'w-9 h-9 rounded-full flex items-center justify-center bg-white/[0.08] text-white hover:bg-white/[0.14] transition active:scale-95'
+    const shareBtn = (
+      <button onClick={copyShareLink} aria-label="공유" className={shareCls}>
+        <Image src="/Share.svg" alt="" width={15} height={15} style={{ filter: 'invert(1)' }} />
+      </button>
+    )
+    const roleBtn = isManager
+      ? <button onClick={() => setEditOpen(true)} className={editCls}><Image src="/Edit.svg" alt="" width={14} height={14} style={{ filter: 'invert(1)' }} /> 수정</button>
+      : isMember
+        ? <button onClick={busy ? undefined : leave} className={leaveCls}>탈퇴하기</button>
+        : <button onClick={busy ? undefined : join} className={joinCls}>가입하기</button>
+    return <div className="flex items-center gap-2">{roleBtn}{shareBtn}</div>
   }
 
   // 로딩 — 헤더·피드 스켈레톤 (폴백 헤더 플래시 방지). not-found는 위에서 이미 처리됨
@@ -430,9 +450,9 @@ export default function CommunityCafePage() {
                     <>
                       <div className="fixed inset-0 z-[54]" onClick={() => setPickerOpen(false)} />
                       <div className="absolute bottom-full left-0 mb-2 z-[55] w-72 max-h-72 overflow-y-auto bg-[#21252E] border border-white/[0.10] rounded-xl shadow-xl p-1.5">
-                        {songService.getAll().filter((s) => s.status === 'done').length === 0 ? (
-                          <p className="text-xs text-zinc-500 py-4 text-center">완성된 곡이 없어요</p>
-                        ) : songService.getAll().filter((s) => s.status === 'done').map((s) => (
+                        {songService.getAll().filter((s) => s.status === 'done' && s.published).length === 0 ? (
+                          <p className="text-xs text-zinc-500 py-4 text-center">게시한 곡이 없어요</p>
+                        ) : songService.getAll().filter((s) => s.status === 'done' && s.published).map((s) => (
                           <button key={s.id} onClick={() => { setAttachedSong(s); setPickerOpen(false) }} className="w-full flex items-center gap-2.5 p-2 rounded-lg hover:bg-white/[0.06] transition text-left">
                             <SongCover coverImage={s.coverImage} coverHue={s.coverHue} size={32} />
                             <span className="text-sm text-white truncate">{s.title || '제목 없음'}</span>

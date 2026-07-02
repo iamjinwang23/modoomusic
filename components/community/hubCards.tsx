@@ -66,7 +66,8 @@ function firstUrl(text: string | null | undefined): string | null {
 }
 
 // 인기 글 카드 — 썸네일 우선순위: 첨부 이미지 → 첨부 곡 커버 → YT 썸네일 → 링크 OG → 커뮤니티 커버 → 회색
-export function PopularPostCard({ p }: { p: CommunityPost }) {
+// compact=작은 카드(2열 그리드)일 때 라운드 축소
+export function PopularPostCard({ p, compact = false }: { p: CommunityPost; compact?: boolean }) {
   const directThumb = (p.imageUrls && p.imageUrls[0]) || p.song?.coverImage || null
   const embedUrl = p.linkUrl || firstUrl(p.content)
   const ytThumb = embedUrl ? getYouTubeThumb(embedUrl) : null
@@ -86,9 +87,9 @@ export function PopularPostCard({ p }: { p: CommunityPost }) {
 
   return (
     <Link href={`/community/${p.communityId}?post=${p.id}`} className="block group">
-      <div className="relative aspect-[16/9] rounded-xl overflow-hidden" style={thumb ? undefined : { background: GRAY_COVER }}>
+      <div className={`relative aspect-[16/9] overflow-hidden ${compact ? 'rounded-lg' : 'rounded-xl'}`} style={thumb ? undefined : { background: GRAY_COVER }}>
         {thumb && <img src={thumb} alt="" className="w-full h-full object-cover" />}
-        <span className="absolute inset-0 ring-1 ring-inset ring-white/[0.08] rounded-xl" />
+        <span className={`absolute inset-0 ring-1 ring-inset ring-white/[0.08] ${compact ? 'rounded-lg' : 'rounded-xl'}`} />
       </div>
       <div className="mt-2 px-0.5">
         <p className="text-sm font-bold text-white line-clamp-2">{p.content || '(미디어 글)'}</p>

@@ -230,7 +230,7 @@ export interface CommunityPost {
   commentCount: number
   liked?: boolean
   createdAt: string
-  song?: { id: string; title: string | null; coverImage: string | null; coverHue: number | null; audioUrl: string | null } | null
+  song?: { id: string; title: string | null; coverImage: string | null; coverHue: number | null; audioUrl: string | null; duration?: number | null } | null
   communityName?: string | null    // 인기글 등 전역 표면에서 어느 커뮤니티인지 표시
   communityAvatar?: string | null
   communityCover?: string | null   // 인기글 카드 썸네일 폴백

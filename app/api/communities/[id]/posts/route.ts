@@ -32,7 +32,7 @@ export async function POST(req: NextRequest, { params }: RouteParams) {
     poll: pollOptions.length >= 2 ? { options: pollOptions } : null,
   })
   if (!result.ok) {
-    const status = result.error === 'not_member' ? 403 : result.error === 'empty' ? 400 : result.error === 'banned_word' ? 400 : 500
+    const status = result.error === 'not_member' ? 403 : result.error === 'empty' ? 400 : result.error === 'banned_word' ? 400 : result.error === 'song_not_public' ? 400 : 500
     return NextResponse.json({ error: result.error }, { status })
   }
   return NextResponse.json({ post: result.post })

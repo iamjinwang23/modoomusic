@@ -56,7 +56,7 @@ function CommunityListInner() {
           <p className="text-sm text-zinc-500 py-16 text-center">아직 없어요.</p>
         ) : isPosts ? (
           <div className="grid grid-cols-2 md:grid-cols-3 gap-x-3 gap-y-6">
-            {posts!.map(p => <PopularPostCard key={p.id} p={p} />)}
+            {posts!.map(p => <PopularPostCard key={p.id} p={p} compact />)}
           </div>
         ) : isRows ? (
           <div className="divide-y divide-white/[0.06]">

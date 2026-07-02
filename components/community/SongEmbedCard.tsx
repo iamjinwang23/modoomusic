@@ -13,7 +13,7 @@ function fmt(s: number): string {
 }
 
 interface Props {
-  song: { id: string; title: string | null; coverImage: string | null; coverHue: number | null; audioUrl: string | null }
+  song: { id: string; title: string | null; coverImage: string | null; coverHue: number | null; audioUrl: string | null; duration?: number | null }
   artist: string | null
   ownerUserId: string | null
   ownerAvatarUrl?: string | null
@@ -26,7 +26,8 @@ export function SongEmbedCard({ song, artist, ownerUserId, ownerAvatarUrl, owner
   const isCurrent = player.song?.id === song.id
   const playing = isCurrent && player.isPlaying
   const cur = isCurrent ? player.currentTime : 0
-  const dur = isCurrent ? player.duration : 0
+  // 총 길이 — 재생 중이면 플레이어, 아니면 곡 메타(duration). 재생 전에도 길이 표시.
+  const dur = isCurrent ? player.duration : (song.duration ?? 0)
   const pct = dur > 0 ? (cur / dur) * 100 : 0
 
   const hue = song.coverHue ?? 0
@@ -53,7 +54,7 @@ export function SongEmbedCard({ song, artist, ownerUserId, ownerAvatarUrl, owner
       : {
           feed: [{
             id: song.id, createdAt: '', title: song.title, prompt: '', genre: null, mood: null,
-            customLyrics: null, lyrics: null, instrumental: false, audioUrl: song.audioUrl ?? '', duration: null,
+            customLyrics: null, lyrics: null, instrumental: false, audioUrl: song.audioUrl ?? '', duration: song.duration ?? null,
             coverImage: song.coverImage ?? undefined, coverHue: song.coverHue ?? undefined,
           }],
           idx: 0, isOwner: !!currentUserId && currentUserId === ownerUserId,
@@ -105,7 +106,7 @@ export function SongEmbedCard({ song, artist, ownerUserId, ownerAvatarUrl, owner
           <div className="flex-1 h-1 rounded-full bg-white/25 relative cursor-pointer" onClick={seek}>
             <div className="absolute inset-y-0 left-0 bg-white rounded-full" style={{ width: `${pct}%` }} />
           </div>
-          <span className="text-[10px] text-white/70 tabular-nums shrink-0 w-8">{isCurrent ? fmt(dur - cur) : ''}</span>
+          <span className="text-[10px] text-white/70 tabular-nums shrink-0 w-8">{dur > 0 ? fmt(isCurrent ? dur - cur : dur) : ''}</span>
           <button onClick={togglePlay} disabled={!song.audioUrl}
             className="w-11 h-11 rounded-full bg-white hover:bg-zinc-100 flex items-center justify-center shrink-0 transition active:scale-[0.94] hover:scale-105 disabled:opacity-40 shadow-lg">
             <Image src={playing ? '/Pause.svg' : '/Play.svg'} alt={playing ? '일시정지' : '재생'} width={24} height={24} />

@@ -629,6 +629,14 @@ types/domain.ts                    — Song / UserProfile / PublicSong
 - Naver Search Advisor: HTML 파일 verify 완료 (`/public/naver*.html`)
 - **Vercel Primary swap** (함정): 기존 www가 Primary였고 non-www는 307 임시 리다이렉트 → Naver 봇이 307 안 따라가 verify 실패. **non-www를 Production / www는 308 Permanent Redirect로 swap** + canonical과 일치
 
+#### 12.6.1 동적 metadata·sitemap·프로필 SEO (2026-06-15 · 2026-07-02)
+- 도메인 전환: SITE_URL = `modoonorae.com`(layout·sitemap·robots·song·profile). 위 §12.6의 modoomusic 서술은 전환 전 값.
+- `app/sitemap.ts` async화(2026-06-15, `7eddac6`): 정적 8 + 공개곡(`/song/[id]`, is_public·done, 커버 이미지) + 공개곡 보유 크리에이터(`/profile/[username]`, 탈퇴·정지·thin 제외). `revalidate=3600` ISR. 공개곡 제외 정책 폐기(전용 `/song/[id]` 라우트로 duplicate 우려 해소).
+- `app/song/[id]/page.tsx`: `generateMetadata`로 곡별 OG(`music.song`)·커버·작성자·canonical. 크롤러용 정적 head + 사용자 SPA 리다이렉트(`SongShareRedirect`).
+- `app/(main)/profile/[username]/page.tsx`: `generateMetadata` 추가(2026-07-02, `21096f8`) — 크리에이터별 title·description(bio 우선)·canonical·OG(`type: profile`)·트위터. 탈퇴·정지·없음 → noindex. (그 전엔 프로필 전부 루트 기본 메타 = SEO 빈틈이었음.)
+- `app/robots.ts`: disallow에 `/account` 추가(2026-07-02, 개인정보 페이지 색인 제외).
+- 미구현 후보: 곡 상세 `MusicRecording` JSON-LD, 커뮤니티 공개 시 사이트맵 확장.
+
 ### 12.7 Skeleton 로딩 UI (2026-06-01)
 
 - 공통: `bg-white/[0.04] shimmer` 클래스 (globals.css 기존 shimmer 키프레임 활용)
