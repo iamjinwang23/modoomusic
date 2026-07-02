@@ -222,8 +222,9 @@ export function ProfileEditModal({ userId, initial, images, onClose, onSaved }: 
             <div className="space-y-4">
               {/* 커버 */}
               <div>
+                <label className="text-xs text-zinc-500">커버 이미지</label>
                 <div
-                  className="relative w-full aspect-[1064/368] rounded-xl overflow-hidden"
+                  className="relative w-full aspect-[1064/368] rounded-xl overflow-hidden mt-1.5"
                   style={{ background: profileColor(images.avatarHue).bg }}
                 >
                   {images.coverUrl && (
@@ -235,7 +236,7 @@ export function ProfileEditModal({ userId, initial, images, onClose, onSaved }: 
                     </div>
                   )}
                 </div>
-                <div className="flex justify-center gap-2 mt-2">
+                <div className="flex items-center gap-2 mt-2">
                   <button type="button" onClick={() => coverFileRef.current?.click()} className="text-xs px-3 py-1.5 rounded-lg bg-white/[0.08] text-zinc-300 hover:bg-white/[0.12] transition-colors">커버 변경</button>
                   {images.coverUrl && (
                     <button type="button" onClick={images.onCoverDelete} className="text-xs px-3 py-1.5 rounded-lg bg-red-500/10 text-red-400 hover:bg-red-500/20 transition-colors">삭제</button>
@@ -245,9 +246,10 @@ export function ProfileEditModal({ userId, initial, images, onClose, onSaved }: 
               </div>
 
               {/* 아바타 */}
-              <div className="flex flex-col items-center">
+              <div>
+                <label className="text-xs text-zinc-500">프로필 사진</label>
                 <div
-                  className="relative w-[80px] h-[80px] rounded-full overflow-hidden flex items-center justify-center text-2xl font-bold"
+                  className="relative w-[88px] h-[88px] rounded-full overflow-hidden flex items-center justify-center text-2xl font-bold mt-1.5"
                   style={{ background: profileColor(images.avatarHue).bg, color: profileColor(images.avatarHue).text }}
                 >
                   {images.avatarUrl ? (
@@ -261,7 +263,7 @@ export function ProfileEditModal({ userId, initial, images, onClose, onSaved }: 
                     </div>
                   )}
                 </div>
-                <div className="flex gap-2 mt-2">
+                <div className="flex items-center gap-2 mt-2">
                   <button type="button" onClick={() => avatarFileRef.current?.click()} className="text-xs px-3 py-1.5 rounded-lg bg-white/[0.08] text-zinc-300 hover:bg-white/[0.12] transition-colors">프로필 사진 변경</button>
                   {images.avatarUrl && (
                     <button type="button" onClick={images.onAvatarDelete} className="text-xs px-3 py-1.5 rounded-lg bg-red-500/10 text-red-400 hover:bg-red-500/20 transition-colors">삭제</button>
@@ -384,7 +386,7 @@ export function ProfileEditModal({ userId, initial, images, onClose, onSaved }: 
           <button
             type="button"
             onClick={onClose}
-            className="px-5 py-2.5 rounded-xl text-sm text-zinc-400 hover:text-white border border-white/[0.10] hover:border-white/20 transition-colors"
+            className="px-5 py-3.5 rounded-xl text-sm text-zinc-400 hover:text-white border border-white/[0.10] hover:border-white/20 transition-colors"
           >
             취소
           </button>
@@ -392,7 +394,7 @@ export function ProfileEditModal({ userId, initial, images, onClose, onSaved }: 
             type="button"
             disabled={!canSave}
             onClick={handleSave}
-            className={`flex-1 py-2.5 rounded-xl text-sm font-semibold transition-colors ${
+            className={`flex-1 py-3.5 rounded-xl text-sm font-semibold transition-colors ${
               canSave
                 ? 'bg-violet-600 hover:bg-violet-500 text-white'
                 : 'bg-white/[0.06] text-zinc-600 cursor-not-allowed'

@@ -3,17 +3,23 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react'
 import Image from 'next/image'
-import { useParams, useRouter } from 'next/navigation'
+import { useParams, useRouter, useSearchParams } from 'next/navigation'
 import { useAuth } from '@/components/AuthProvider'
 import { ConfirmModal } from '@/components/ConfirmModal'
 import { toast } from '@/components/toast/toast'
 import { profileColor } from '@/utils/profileColor'
+
+const GRAY_COVER = '#363A47'
+const GRAY_AVATAR = '#3E4250'
+const GRAY_AVATAR_TEXT = '#A8B0BC'
 import { relativeTime } from '@/utils/relativeTime'
 import { songService } from '@/services/song.service'
 import { CommunityCommentItem } from '@/components/community/CommunityCommentItem'
 import { CommunityPostReportModal } from '@/components/community/CommunityPostReportModal'
 import { CommunityEditModal } from '@/components/community/CommunityEditModal'
+import { CommunityPostEditModal } from '@/components/community/CommunityPostEditModal'
 import { CommunityMembersModal } from '@/components/community/CommunityMembersModal'
+import { ScrollToTopButton } from '@/components/community/ScrollToTopButton'
 import { PostImageGallery } from '@/components/community/PostImageGallery'
 import { PostEmbed } from '@/components/community/PostEmbed'
 import { PollCard } from '@/components/community/PollCard'
@@ -66,6 +72,8 @@ function SongCover({ coverImage, coverHue, size = 40 }: { coverImage?: string | 
 export default function CommunityCafePage() {
   const { id } = useParams<{ id: string }>()
   const router = useRouter()
+  const searchParams = useSearchParams()
+  const focusPostId = searchParams.get('post')
   const { user } = useAuth()
   const [community, setCommunity] = useState<Community | null>(null)
   const [members, setMembers] = useState<CommunityMember[]>([])
@@ -73,11 +81,9 @@ export default function CommunityCafePage() {
   const [content, setContent] = useState('')
   const [attachedSong, setAttachedSong] = useState<Song | null>(null)
   const [attachedImages, setAttachedImages] = useState<string[]>([])
-  const [attachedLink, setAttachedLink] = useState('')
   const [pollOptions, setPollOptions] = useState<string[] | null>(null)
   const [pickerOpen, setPickerOpen] = useState(false)
   const [plusMenuOpen, setPlusMenuOpen] = useState(false)
-  const [urlInputOpen, setUrlInputOpen] = useState(false)
   const [uploadingImages, setUploadingImages] = useState(false)
   const imageInputRef = useRef<HTMLInputElement>(null)
   const contentRef = useRef<HTMLTextAreaElement>(null)
@@ -89,12 +95,26 @@ export default function CommunityCafePage() {
   const [openComment, setOpenComment] = useState<string | null>(null)
   const [commentText, setCommentText] = useState('')
   const [moreOpenId, setMoreOpenId] = useState<string | null>(null)
-  const [editingId, setEditingId] = useState<string | null>(null)
-  const [editContent, setEditContent] = useState('')
-  const [editSaving, setEditSaving] = useState(false)
+  const [editingPost, setEditingPost] = useState<CommunityPost | null>(null)
   const [reportPostId, setReportPostId] = useState<string | null>(null)
   const [confirmDelPost, setConfirmDelPost] = useState<CommunityPost | null>(null)
   const [confirmKick, setConfirmKick] = useState<CommunityPost | null>(null)
+  const [highlightPostId, setHighlightPostId] = useState<string | null>(null)
+  const postRefs = useRef<Record<string, HTMLDivElement | null>>({})
+  const hasScrolledRef = useRef(false)
+  const scrollRef = useRef<HTMLDivElement>(null)
+
+  // ?post=id 로 진입 시 최초 1회만 스크롤 + 하이라이트 (posts 변경 시 재실행 방지)
+  useEffect(() => {
+    if (!focusPostId || !posts || hasScrolledRef.current) return
+    const el = postRefs.current[focusPostId]
+    if (!el) return
+    hasScrolledRef.current = true
+    el.scrollIntoView({ behavior: 'smooth', block: 'center' })
+    setHighlightPostId(focusPostId)
+    const t = setTimeout(() => setHighlightPostId(null), 2000)
+    return () => clearTimeout(t)
+  }, [focusPostId, posts])
 
   const load = useCallback(async () => {
     const [d, p, reported] = await Promise.all([
@@ -132,9 +152,9 @@ export default function CommunityCafePage() {
     else toast.error(j.error === 'manager_cannot_leave' ? '매니저는 탈퇴할 수 없어요 (폐쇄만 가능)' : '탈퇴에 실패했어요')
   }
   const pollReady = (pollOptions?.filter((o) => o.trim()).length ?? 0) >= 2
-  // 첨부는 한 종류만 (음악/이미지/URL/투표 중 하나) — 활성 시 + 버튼 숨김
-  const hasAttachment = !!attachedSong || attachedImages.length > 0 || !!attachedLink.trim() || urlInputOpen || !!pollOptions
-  const hasComposeContent = !!content.trim() || !!attachedSong || attachedImages.length > 0 || !!attachedLink.trim() || pollReady
+  // 첨부는 한 종류만 (음악/이미지/투표 중 하나) — 활성 시 + 버튼 숨김. 링크는 본문 URL로 자동 임베드.
+  const hasAttachment = !!attachedSong || attachedImages.length > 0 || !!pollOptions
+  const hasComposeContent = !!content.trim() || !!attachedSong || attachedImages.length > 0 || pollReady
   async function submitPost() {
     if (posting || !hasComposeContent) return
     setPosting(true)
@@ -142,14 +162,13 @@ export default function CommunityCafePage() {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         content: content.trim(), songId: attachedSong?.id ?? null, imageUrls: attachedImages,
-        linkUrl: attachedLink.trim() || null,
         pollOptions: pollOptions ? pollOptions.map((o) => o.trim()).filter(Boolean) : [],
       }),
     })
     const j = await res.json().catch(() => ({}))
     setPosting(false)
     if (!res.ok) { toast.error(j.error === 'not_member' ? '멤버만 글을 쓸 수 있어요' : j.error === 'banned_word' ? '부적절한 표현이 포함되어 있어요' : '작성에 실패했어요'); return }
-    setContent(''); setAttachedSong(null); setAttachedImages([]); setAttachedLink(''); setUrlInputOpen(false); setPollOptions(null); load()
+    setContent(''); setAttachedSong(null); setAttachedImages([]); setPollOptions(null); load()
   }
 
   async function handleImageFiles(files: FileList | null) {
@@ -194,20 +213,12 @@ export default function CommunityCafePage() {
     if (res.ok) { setPosts(prev => prev?.filter(x => x.id !== p.id) ?? null) } else toast.error('삭제에 실패했어요')
   }
   function startEdit(p: CommunityPost) {
-    setEditingId(p.id); setEditContent(p.content); setMoreOpenId(null)
+    setEditingPost(p)
+    setMoreOpenId(null)
   }
-  async function saveEdit(p: CommunityPost) {
-    const text = editContent.trim()
-    if (editSaving || (!text && !p.song && !p.imageUrl)) return
-    setEditSaving(true)
-    const res = await fetch(`/api/community-posts/${p.id}`, {
-      method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ content: text }),
-    })
-    setEditSaving(false)
-    if (!res.ok) { toast.error('수정에 실패했어요'); return }
-    const j = await res.json().catch(() => ({}))
-    setPosts(prev => prev?.map(x => x.id === p.id ? { ...x, content: j.post?.content ?? text } : x) ?? null)
-    setEditingId(null)
+  function onEditSaved(patch: Partial<CommunityPost>) {
+    if (!editingPost) return
+    setPosts(prev => prev?.map(x => x.id === editingPost.id ? { ...x, ...patch } : x) ?? null)
   }
   function reportDone(postId: string) {
     setPosts(prev => prev?.filter(x => x.id !== postId) ?? null)  // 즉시 블라인드
@@ -240,10 +251,9 @@ export default function CommunityCafePage() {
 
   const isManager = !!community?.isManager
   const isMember = !!community?.isMember
-  const hue = community ? (community.id.charCodeAt(0) + community.id.charCodeAt(community.id.length - 1)) * 47 : 0
   const cover = community?.coverImage
     ? { backgroundImage: `url(${community.coverImage})`, backgroundSize: 'cover', backgroundPosition: community.coverFocus ?? 'center' }
-    : { background: `linear-gradient(135deg, ${profileColor(hue).bg}, #161922)` }
+    : { background: GRAY_COVER }
 
   // 역할별 액션 버튼(수정/탈퇴/가입). overlay=모바일 커버 오버레이(프로필 토큰) / false=데스크탑 타이틀 우측
   const roleButton = (overlay: boolean) => {
@@ -296,7 +306,7 @@ export default function CommunityCafePage() {
   }
 
   return (
-    <div className="h-full overflow-y-auto">
+    <div ref={scrollRef} className="h-full overflow-y-auto">
       {/* 커버 — 좌우 풀폭, 유튜브 채널 배너형(와이드·짧게). 모바일 2.5:1 · 데스크탑 4:1 */}
       <div className="relative w-full aspect-[9/4] md:aspect-[7/2] max-h-[300px] overflow-hidden" style={cover}>
         {/* 위 70% 원본 · 하단 30%만 배경색 블렌드 */}
@@ -310,7 +320,7 @@ export default function CommunityCafePage() {
           {/* 타이틀 행: 사각 대표 이미지 + 이름 + 매니저 수정 버튼(프로필 토큰 통일) */}
           <div className="flex items-center gap-4">
             <div className="shrink-0 w-[96px] h-[96px] rounded-2xl overflow-hidden flex items-center justify-center text-4xl font-bold"
-              style={{ background: profileColor(hue).bg, color: profileColor(hue).text }}>
+              style={{ background: GRAY_AVATAR, color: GRAY_AVATAR_TEXT }}>
               {community?.avatarImage ? <img src={community.avatarImage} alt="" className="w-full h-full object-cover" /> : (community?.name ?? '?').slice(0, 1).toUpperCase()}
             </div>
             {/* 우측 컬럼: 타이틀 + (아랫줄) 멤버 */}
@@ -351,25 +361,6 @@ export default function CommunityCafePage() {
                     </div>
                   ))}
                   {uploadingImages && <div className="w-16 h-16 rounded-lg border border-white/[0.08] bg-white/[0.03] flex items-center justify-center"><span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /></div>}
-                </div>
-              )}
-
-              {/* 첨부 링크(임베드) 칩 */}
-              {attachedLink.trim() && !urlInputOpen && (
-                <div className="flex items-center gap-2 p-2 rounded-xl bg-white/[0.04] border border-white/[0.06] mb-2">
-                  <Image src="/External-Link.svg" alt="" width={13} height={13} style={{ filter: 'invert(0.5)' }} />
-                  <span className="text-xs text-zinc-300 truncate flex-1">{attachedLink.trim()}</span>
-                  <button onClick={() => setAttachedLink('')} className="shrink-0 w-5 h-5 rounded-full flex items-center justify-center hover:bg-white/[0.08]"><Image src="/Close-Fill.svg" alt="제거" width={11} height={11} style={{ filter: 'invert(0.5)' }} /></button>
-                </div>
-              )}
-
-              {/* URL 입력 */}
-              {urlInputOpen && (
-                <div className="flex items-center gap-2 mb-2">
-                  <input value={attachedLink} onChange={(e) => setAttachedLink(e.target.value)} placeholder="유튜브·스포티파이·애플뮤직·사운드클라우드 등 링크" autoFocus
-                    onKeyDown={(e) => { if (e.key === 'Enter') setUrlInputOpen(false) }}
-                    className="flex-1 bg-white/[0.04] border border-white/[0.08] rounded-lg px-3 py-1.5 text-sm text-white placeholder:text-zinc-600 focus:outline-none focus:ring-1 focus:ring-violet-500" />
-                  <button onClick={() => setUrlInputOpen(false)} className="text-xs font-semibold text-violet-400 hover:text-violet-300 px-2">확인</button>
                 </div>
               )}
 
@@ -424,9 +415,6 @@ export default function CommunityCafePage() {
                         </button>
                         <button onClick={() => { setPlusMenuOpen(false); imageInputRef.current?.click() }} className="w-full flex items-center gap-2.5 px-3 py-2.5 text-sm text-white hover:bg-white/[0.06] transition text-left">
                           <Image src="/Photo-Album.svg" alt="" width={15} height={15} style={{ filter: 'invert(0.6)' }} /> 이미지 첨부
-                        </button>
-                        <button onClick={() => { setPlusMenuOpen(false); setUrlInputOpen(true) }} className="w-full flex items-center gap-2.5 px-3 py-2.5 text-sm text-white hover:bg-white/[0.06] transition text-left">
-                          <Image src="/External-Link.svg" alt="" width={15} height={15} style={{ filter: 'invert(0.6)' }} /> 임베드
                         </button>
                         <button onClick={() => { setPlusMenuOpen(false); if (!pollOptions) setPollOptions(['', '']) }} className="w-full flex items-center gap-2.5 px-3 py-2.5 text-sm text-white hover:bg-white/[0.06] transition text-left">
                           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="6" y1="20" x2="6" y2="12"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="18" y1="20" x2="18" y2="9"/></svg> 투표
@@ -485,7 +473,7 @@ export default function CommunityCafePage() {
           ) : posts.map(p => {
             const canDelete = p.authorId === user?.id || isManager
             return (
-              <div key={p.id} className="px-4 py-4 md:rounded-2xl md:border md:border-white/[0.08] md:bg-white/[0.02]">
+              <div key={p.id} ref={el => { postRefs.current[p.id] = el }} className={`px-4 py-4 md:rounded-2xl md:border md:border-white/[0.08] md:bg-white/[0.02] transition-colors duration-700 ${highlightPostId === p.id ? 'bg-violet-500/10 md:border-violet-500/30' : ''}`}>
                 {p.pinned && (
                   <div className="flex items-center gap-1.5 mb-3 pb-2.5 border-b border-white/[0.06] text-sm font-medium text-white">
                     <Image src="/Pin.svg" alt="" width={15} height={15} style={{ filter: 'invert(1)' }} />
@@ -541,16 +529,7 @@ export default function CommunityCafePage() {
                     )}
                   </div>
                 </div>
-                {editingId === p.id ? (
-                  <div className="mt-2.5 space-y-2">
-                    <textarea value={editContent} onChange={(e) => setEditContent(e.target.value)} maxLength={2000} autoFocus
-                      className="w-full h-24 bg-white/[0.04] border border-white/[0.08] focus:border-violet-500/50 rounded-xl px-3 py-2 text-sm text-white focus:outline-none transition-colors resize-none" />
-                    <div className="flex justify-end gap-2">
-                      <button onClick={() => setEditingId(null)} className="text-xs text-zinc-400 hover:text-white px-3 py-1.5 rounded-lg hover:bg-white/[0.04] transition-colors">취소</button>
-                      <button onClick={() => saveEdit(p)} disabled={editSaving} className="text-xs font-semibold bg-violet-600 hover:bg-violet-500 disabled:opacity-40 text-white px-3 py-1.5 rounded-lg transition active:scale-[0.96]">{editSaving ? '저장 중…' : '저장'}</button>
-                    </div>
-                  </div>
-                ) : p.content ? (
+                {p.content ? (
                   <p className="text-sm text-zinc-200 mt-2.5 whitespace-pre-wrap leading-relaxed">{linkify(p.content)}</p>
                 ) : null}
                 {p.imageUrls && p.imageUrls.length > 0 && <PostImageGallery images={p.imageUrls} />}
@@ -582,9 +561,12 @@ export default function CommunityCafePage() {
                         gate={memberGate}
                       />
                     ))}
-                    <div className="flex items-center gap-2 pt-1">
-                      <input value={commentText} onChange={(e) => setCommentText(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter') addComment(p.id) }} placeholder="댓글 달기" className="flex-1 bg-white/[0.04] border border-white/[0.08] rounded-full px-3 py-1.5 text-sm text-white placeholder:text-zinc-600 focus:outline-none focus:ring-1 focus:ring-violet-500" />
-                      <button onClick={() => addComment(p.id)} className="text-xs font-semibold text-violet-400 hover:text-violet-300 px-2">등록</button>
+                    <div className="relative pt-1">
+                      <input value={commentText} onChange={(e) => setCommentText(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter') addComment(p.id) }} placeholder="댓글 달기" className="w-full bg-white/[0.04] border border-white/[0.08] rounded-full pl-4 pr-12 py-2.5 text-sm text-white placeholder:text-zinc-600 focus:outline-none focus:ring-1 focus:ring-violet-500" />
+                      <button onClick={() => addComment(p.id)} aria-label="등록"
+                        className={`absolute right-1.5 top-1/2 mt-0.5 w-8 h-8 rounded-full bg-violet-600 hover:bg-violet-500 flex items-center justify-center transition duration-200 active:scale-90 ${commentText.trim() ? 'opacity-100 scale-100 -translate-y-1/2' : 'opacity-0 scale-50 -translate-y-1/2 pointer-events-none'}`}>
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"><path d="M12 19V5M5 12l7-7 7 7" /></svg>
+                      </button>
                     </div>
                   </div>
                 )}
@@ -599,6 +581,8 @@ export default function CommunityCafePage() {
       {reportPostId && <CommunityPostReportModal postId={reportPostId} onClose={() => setReportPostId(null)} onSubmitted={() => reportDone(reportPostId)} />}
       {editOpen && community && <CommunityEditModal community={community} onClose={() => setEditOpen(false)} onSaved={(c) => setCommunity(c)} onClosed={() => router.push('/community')} />}
       {membersOpen && community && <CommunityMembersModal members={members} managerId={community.managerId} onClose={() => setMembersOpen(false)} />}
+      {editingPost && <CommunityPostEditModal post={editingPost} communityId={id} onClose={() => setEditingPost(null)} onSaved={onEditSaved} />}
+      <ScrollToTopButton scrollRef={scrollRef} />
     </div>
   )
 }

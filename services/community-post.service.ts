@@ -19,11 +19,11 @@ interface PostRow {
   created_at: string
   profiles?: { username?: string; display_name?: string; avatar_url?: string; avatar_hue?: number }
   songs?: { id?: string; title?: string | null; cover_image?: string | null; cover_hue?: number | null; audio_url?: string | null } | null
-  communities?: { name?: string; avatar_image?: string | null } | null
+  communities?: { name?: string; avatar_image?: string | null; cover_image?: string | null } | null
 }
 
 const POST_SELECT =
-  'id, community_id, author_id, content, image_url, image_urls, link_url, song_id, pinned, like_count, comment_count, created_at, profiles!author_id(username, display_name, avatar_url, avatar_hue), songs!song_id(id, title, cover_image, cover_hue, audio_url), communities!community_id(name, avatar_image)'
+  'id, community_id, author_id, content, image_url, image_urls, link_url, song_id, pinned, like_count, comment_count, created_at, profiles!author_id(username, display_name, avatar_url, avatar_hue), songs!song_id(id, title, cover_image, cover_hue, audio_url), communities!community_id(name, avatar_image, cover_image)'
 
 function rowToPost(r: PostRow): CommunityPost {
   return {
@@ -45,6 +45,7 @@ function rowToPost(r: PostRow): CommunityPost {
     song: r.songs ? { id: r.songs.id as string, title: r.songs.title ?? null, coverImage: r.songs.cover_image ?? null, coverHue: r.songs.cover_hue ?? null, audioUrl: r.songs.audio_url ?? null } : null,
     communityName: r.communities?.name ?? null,
     communityAvatar: r.communities?.avatar_image ?? null,
+    communityCover: r.communities?.cover_image ?? null,
   }
 }
 
@@ -205,24 +206,59 @@ export async function deletePost(userId: string, postId: string): Promise<{ ok: 
 }
 
 // 본문 수정 — 작성자 본인만
-export async function editPost(userId: string, postId: string, content: string): Promise<{ ok: true; post: CommunityPost } | { ok: false; error: string }> {
+export async function editPost(
+  userId: string,
+  postId: string,
+  content: string,
+  imageUrls?: string[],
+  songId?: string | null,
+  pollOptions?: string[] | null,
+): Promise<{ ok: true; post: CommunityPost } | { ok: false; error: string }> {
   const admin = createAdminClient()
   const text = content.trim()
   if (text && await findBannedWord(text)) return { ok: false, error: 'banned_word' }
   const { data: post } = await admin.from('community_posts').select('author_id, song_id, image_url, image_urls, link_url').eq('id', postId).maybeSingle()
   if (!post) return { ok: false, error: 'not_found' }
   if (post.author_id !== userId) return { ok: false, error: 'forbidden' }
-  // 본문/첨부 중 하나는 남아 있어야 (첨부는 수정에서 건드리지 않음)
-  const hasMedia = !!post.song_id || !!post.image_url || (Array.isArray(post.image_urls) && post.image_urls.length > 0) || !!post.link_url
+  const newImages = imageUrls ?? (Array.isArray(post.image_urls) ? post.image_urls : [])
+  const newSongId = songId !== undefined ? songId : post.song_id
+  // 임베드는 본문 URL 자동 감지로 대체 — link_url은 편집 대상 아님, 기존값 보존만.
+  const hasMedia = !!newSongId || newImages.length > 0 || !!post.image_url || !!post.link_url || (pollOptions && pollOptions.length >= 2)
   if (!text && !hasMedia) return { ok: false, error: 'empty' }
   const { data, error } = await admin
     .from('community_posts')
-    .update({ content: text })
+    .update({ content: text, image_urls: newImages, song_id: newSongId ?? null })
     .eq('id', postId)
     .select(POST_SELECT)
     .single()
   if (error) { console.error('[community-post.edit]', error.message); return { ok: false, error: 'internal' } }
-  return { ok: true, post: rowToPost(data as PostRow) }
+  // 투표 처리
+  if (pollOptions !== undefined) {
+    const validOpts = (pollOptions ?? []).map(o => o.trim()).filter(Boolean)
+    if (validOpts.length >= 2) {
+      // upsert — 기존 투표 있으면 옵션 업데이트, 없으면 새로 생성
+      const { data: existing } = await admin.from('community_post_polls').select('post_id').eq('post_id', postId).maybeSingle()
+      if (existing) {
+        await admin.from('community_post_polls').update({ options: validOpts }).eq('post_id', postId)
+      } else {
+        const endsAt = new Date(Date.now() + 86400000).toISOString()
+        await admin.from('community_post_polls').insert({ post_id: postId, options: validOpts, ends_at: endsAt })
+      }
+    } else {
+      // 옵션 부족 → 투표 삭제
+      await admin.from('community_post_polls').delete().eq('post_id', postId)
+    }
+  }
+  const result = rowToPost(data as PostRow)
+  // 투표 정보 다시 채우기
+  if (pollOptions !== undefined) {
+    const validOpts = (pollOptions ?? []).map(o => o.trim()).filter(Boolean)
+    if (validOpts.length >= 2) {
+      const { data: poll } = await admin.from('community_post_polls').select('options, ends_at').eq('post_id', postId).maybeSingle()
+      if (poll) result.poll = { options: poll.options as string[], endsAt: poll.ends_at as string, counts: (poll.options as string[]).map(() => 0), totalVotes: 0, myVote: null }
+    }
+  }
+  return { ok: true, post: result }
 }
 
 // 고정 토글 — 매니저만

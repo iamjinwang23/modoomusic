@@ -162,3 +162,15 @@ community_post_reports(id, reporter_id→profiles, post_id→community_posts, re
 
 **UI 폴리시**
 - 모바일 피드 라인 구분(풀폭, `divide-y`), 상세 헤더/피드 스켈레톤 정합, 커버 하단 30% 블렌드, 상단고정 배너(핀 아이콘·구분선), 작성 박스 auto-grow+500자 CharCount+`+`메뉴, 허브 인기글 세로 리스트(커뮤니티명·대표이미지), 카드 대표이미지·contain→cover.
+
+## 10. 글 수정 리팩터링 (2026-07-02 세션3)
+
+**모달 전환** — 글 수정은 인라인 편집 → **`CommunityPostEditModal`(Portal + 배경 잠금)**. 인라인 편집 시 위쪽 새 글 작성이 동시 가능하던 문제·취소저장 배치 문제 해소. 상세 페이지는 `editingPost` state + `onEditSaved(patch)` 얕은 병합으로 목록 갱신.
+
+**첨부 규칙** — 원글에 첨부(곡/이미지/레거시 imageUrl/링크/투표) 있으면 **본문 텍스트만 수정**(첨부 편집 불가), 모달에 원글 첨부를 **읽기전용 미리보기**(`pointer-events-none`)로 표시. 텍스트만 있던 글이면 **음악/이미지/투표 중 하나만** 추가 가능(알약 버튼, 활성 시 나머지 숨김).
+
+**임베드 일원화** — 임베드 첨부 버튼/입력 UI **전면 제거**(새 글·수정 양쪽). 본문에 URL 넣으면 `firstUrl` 자동 감지 → `PostEmbed`·유튜브 썸네일 렌더. 인기글 카드(`community/page.tsx PopularPostCard`)도 `p.linkUrl || firstUrl(p.content)`로 썸네일 추출(본문 URL 대응). `attachedLink`/`urlInputOpen` 죽은 코드 제거. `editPost`는 `link_url`을 **보존만**(편집 대상 아님), API PATCH도 `linkUrl` 파라미터 제거.
+
+**editPost 시그니처** — `editPost(userId, postId, content, imageUrls?, songId?, pollOptions?)`. `hadAttachment` 글은 클라가 `{content}`만 전송 → 서버는 이미지/곡/링크 기존값 보존. empty 체크는 기존 첨부(`song_id`·`image_url`·`image_urls`·`link_url`·poll) 고려.
+
+**수정 중 UX** — 모달이므로 더보기(⋯)는 항상 노출(인라인 상태 없음). 빈 본문+첨부없음 저장 시 토스트 안내.

@@ -118,7 +118,7 @@ export function SongEditModal({ song, onClose }: Props) {
         <div className="flex items-center justify-between mb-5">
           {view === 'main' ? (
             <>
-              <p className="text-xl font-semibold text-white">곡 정보 편집</p>
+              <p className="text-xl font-semibold text-white">곡 정보 수정</p>
               <button onClick={handleClose} className="w-7 h-7 rounded-full hover:bg-white/[0.08] flex items-center justify-center transition-colors">
                 <Image src="/Close-Fill.svg" alt="닫기" width={14} height={14} style={{ filter: 'invert(0.5)' }} />
               </button>
@@ -133,7 +133,7 @@ export function SongEditModal({ song, onClose }: Props) {
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                   <path d="M15 18l-6-6 6-6" />
                 </svg>
-                <span className="text-xl font-semibold">가사 편집</span>
+                <span className="text-xl font-semibold">가사 수정</span>
               </button>
               <button onClick={handleClose} className="w-7 h-7 rounded-full hover:bg-white/[0.08] flex items-center justify-center transition-colors">
                 <Image src="/Close-Fill.svg" alt="닫기" width={14} height={14} style={{ filter: 'invert(0.5)' }} />
@@ -155,14 +155,14 @@ export function SongEditModal({ song, onClose }: Props) {
               <button
                 type="button"
                 onClick={() => setView('main')}
-                className="flex-1 py-2.5 rounded-xl border border-white/[0.10] text-zinc-400 hover:text-white hover:border-white/20 text-sm transition-colors"
+                className="flex-1 py-3.5 rounded-xl border border-white/[0.10] text-zinc-400 hover:text-white hover:border-white/20 text-sm transition-colors"
               >
                 뒤로
               </button>
               <button
                 type="button"
                 onClick={() => setView('main')}
-                className="flex-1 py-2.5 rounded-xl bg-violet-600 hover:bg-violet-500 text-white text-sm font-semibold transition-colors"
+                className="flex-1 py-3.5 rounded-xl bg-violet-600 hover:bg-violet-500 text-white text-sm font-semibold transition-colors"
               >
                 확인
               </button>
@@ -260,7 +260,7 @@ export function SongEditModal({ song, onClose }: Props) {
             >
               <span className="flex items-center gap-2 text-sm text-white">
                 <Image src="/Ai-Generate-Text.svg" alt="" width={16} height={16} style={{ filter: 'invert(1)' }} />
-                가사 편집
+                가사 수정
               </span>
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="text-zinc-500">
                 <path d="M9 6l6 6-6 6" />
@@ -274,14 +274,14 @@ export function SongEditModal({ song, onClose }: Props) {
           <button
             type="button"
             onClick={handleClose}
-            className="flex-1 py-2.5 rounded-xl border border-white/[0.10] text-zinc-400 hover:text-white hover:border-white/20 text-sm transition-colors"
+            className="flex-1 py-3.5 rounded-xl border border-white/[0.10] text-zinc-400 hover:text-white hover:border-white/20 text-sm transition-colors"
           >
             취소
           </button>
           <button
             type="button"
             onClick={handleSave}
-            className="flex-1 py-2.5 rounded-xl bg-violet-600 hover:bg-violet-500 text-white text-sm font-semibold transition-colors"
+            className="flex-1 py-3.5 rounded-xl bg-violet-600 hover:bg-violet-500 text-white text-sm font-semibold transition-colors"
           >
             저장
           </button>

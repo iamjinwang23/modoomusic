@@ -120,16 +120,16 @@ export function CommunityEditModal({ community, onClose, onSaved, onClosed }: {
             <input ref={coverRef} type="file" accept="image/*" className="hidden" onChange={(e) => { const f = e.target.files?.[0]; if (f) setCropState({ file: f, type: 'cover' }); e.target.value = '' }} />
           </div>
 
-          {/* 대표 이미지 (사각형 — 프로필 원형과 구분) */}
-          <div className="flex items-center gap-4">
-            <div className="relative w-[80px] h-[80px] rounded-2xl overflow-hidden flex items-center justify-center text-2xl font-bold shrink-0" style={{ background: col.bg, color: col.text }}>
+          {/* 대표 이미지 (사각형 — 프로필 원형과 구분). 커버 섹션과 동일 구조(라벨→미리보기→변경 버튼) */}
+          <div>
+            <label className="text-xs text-zinc-500">대표 이미지</label>
+            <div className="relative w-[88px] h-[88px] rounded-2xl overflow-hidden flex items-center justify-center text-2xl font-bold mt-1.5" style={{ background: col.bg, color: col.text }}>
               {avatarUrl ? <img src={avatarUrl} alt="" className="w-full h-full object-cover" /> : name.slice(0, 1).toUpperCase()}
               {uploading === 'avatar' && <div className="absolute inset-0 flex items-center justify-center bg-black/50"><div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" /></div>}
             </div>
-            <div>
-              <p className="text-xs text-zinc-500 mb-1.5">대표 이미지</p>
+            <div className="flex items-center gap-2 mt-2">
               <button type="button" onClick={() => avatarRef.current?.click()} className="text-xs px-3 py-1.5 rounded-lg bg-white/[0.08] text-zinc-300 hover:bg-white/[0.12] transition-colors">이미지 변경</button>
-              <p className="text-[11px] text-zinc-600 mt-1.5">정방형 이미지를 권장해요</p>
+              <p className="text-[11px] text-zinc-600">정방형 이미지를 권장해요</p>
             </div>
             <input ref={avatarRef} type="file" accept="image/*" className="hidden" onChange={(e) => { const f = e.target.files?.[0]; if (f) setCropState({ file: f, type: 'avatar' }); e.target.value = '' }} />
           </div>
@@ -174,9 +174,9 @@ export function CommunityEditModal({ community, onClose, onSaved, onClosed }: {
         </div>
 
         <div className="flex items-center gap-3 px-6 py-4 border-t border-white/[0.06]">
-          <button type="button" onClick={onClose} className="px-5 py-2.5 rounded-xl text-sm text-zinc-400 hover:text-white border border-white/[0.10] hover:border-white/20 transition-colors">취소</button>
+          <button type="button" onClick={onClose} className="px-5 py-3.5 rounded-xl text-sm text-zinc-400 hover:text-white border border-white/[0.10] hover:border-white/20 transition-colors">취소</button>
           <button type="button" disabled={!canSave} onClick={handleSave}
-            className={`flex-1 py-2.5 rounded-xl text-sm font-semibold transition-colors ${canSave ? 'bg-violet-600 hover:bg-violet-500 text-white' : 'bg-white/[0.06] text-zinc-600 cursor-not-allowed'}`}>
+            className={`flex-1 py-3.5 rounded-xl text-sm font-semibold transition-colors ${canSave ? 'bg-violet-600 hover:bg-violet-500 text-white' : 'bg-white/[0.06] text-zinc-600 cursor-not-allowed'}`}>
             {saving ? '저장 중…' : '저장'}
           </button>
         </div>

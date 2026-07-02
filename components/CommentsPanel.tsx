@@ -30,6 +30,17 @@ export function CommentsPanel({ songId, songOwnerId, songIsPublic }: Props) {
 
   const newInputRef = useRef<HTMLTextAreaElement>(null)
 
+  // 한 줄로 시작 → 내용 따라 최대 4줄까지 자동 확장. border 2px 보정으로 단일 줄 스크롤바 방지.
+  useEffect(() => {
+    const el = newInputRef.current
+    if (!el) return
+    el.style.height = 'auto'
+    const MAX = 112
+    const next = el.scrollHeight + 2  // border-box: scrollHeight엔 테두리 미포함
+    el.style.height = `${Math.min(next, MAX)}px`
+    el.style.overflowY = next > MAX ? 'auto' : 'hidden'
+  }, [body])
+
   useEffect(() => {
     if (!songIsPublic) { setLoading(false); setComments([]); return }
     let cancelled = false
@@ -149,27 +160,24 @@ export function CommentsPanel({ songId, songOwnerId, songIsPublic }: Props) {
             : meInitial}
           <span className="pointer-events-none absolute inset-0 rounded-full ring-1 ring-inset ring-white/[0.08]" />
         </div>
-        <div className="flex-1 min-w-0">
+        <div className="flex-1 min-w-0 relative">
           <textarea
             ref={newInputRef}
             value={body}
             onChange={(e) => setBody(e.target.value)}
+            rows={1}
             maxLength={500}
             placeholder={currentUserId ? '댓글을 남겨주세요' : '로그인하고 댓글을 남겨보세요'}
             disabled={!currentUserId}
             onClick={() => { if (!currentUserId) onLoginRequired() }}
-            className="w-full bg-white/[0.06] border border-white/[0.08] focus:border-violet-500/50 rounded-xl px-3 py-2 text-sm text-white placeholder:text-zinc-500 focus:outline-none transition-colors resize-none min-h-[72px] disabled:cursor-pointer"
+            className="block w-full bg-white/[0.06] border border-white/[0.08] focus:border-violet-500/50 rounded-[20px] pl-4 pr-12 py-2 text-sm text-white placeholder:text-zinc-500 focus:outline-none transition-colors resize-none disabled:cursor-pointer overflow-hidden leading-5"
           />
-          {body.trim() && (
-            <div className="flex justify-end gap-2 mt-2">
-              <button type="button" onClick={() => setBody('')}
-                className="text-xs text-zinc-400 hover:text-white px-3 py-1.5 rounded-lg hover:bg-white/[0.04] transition-colors">취소</button>
-              <button type="button" onClick={handleSubmit} disabled={submitting || !body.trim()}
-                className="text-xs font-semibold bg-violet-600 hover:bg-violet-500 disabled:opacity-40 text-white px-3 py-1.5 rounded-lg transition active:scale-[0.96]">
-                {submitting ? '등록 중…' : '댓글'}
-              </button>
-            </div>
-          )}
+          <button type="button" onClick={handleSubmit} disabled={submitting || !body.trim()} aria-label="댓글 등록"
+            className={`absolute bottom-[3px] right-[3px] w-8 h-8 rounded-full bg-violet-600 hover:bg-violet-500 disabled:hover:bg-violet-600 flex items-center justify-center transition duration-200 active:scale-90 ${body.trim() ? 'opacity-100 scale-100' : 'opacity-0 scale-50 pointer-events-none'}`}>
+            {submitting
+              ? <span className="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin" />
+              : <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"><path d="M12 19V5M5 12l7-7 7 7" /></svg>}
+          </button>
         </div>
       </div>
 

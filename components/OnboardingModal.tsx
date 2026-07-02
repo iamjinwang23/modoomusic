@@ -295,7 +295,7 @@ export function OnboardingModal({ user, onDone }: Props) {
               <button
                 type="button"
                 onClick={() => setStep((s) => s - 1)}
-                className="px-5 py-2.5 rounded-xl text-sm text-zinc-400 hover:text-white border border-white/[0.10] hover:border-white/20 transition-colors"
+                className="px-5 py-3.5 rounded-xl text-sm text-zinc-400 hover:text-white border border-white/[0.10] hover:border-white/20 transition-colors"
               >
                 이전
               </button>
@@ -307,7 +307,7 @@ export function OnboardingModal({ user, onDone }: Props) {
                 if (step < 4) setStep((s) => s + 1)
                 else handleFinish()
               }}
-              className={`flex-1 py-2.5 rounded-xl text-sm font-semibold transition-colors ${
+              className={`flex-1 py-3.5 rounded-xl text-sm font-semibold transition-colors ${
                 canNext && !saving
                   ? 'bg-violet-600 hover:bg-violet-500 text-white'
                   : 'bg-white/[0.06] text-zinc-600 cursor-not-allowed'

@@ -51,3 +51,9 @@ next-env.d.ts
 .bkit/
 .bkit-memory.json
 /.next.nosync/
+
+# 로컬 일회성 시드/유틸 스크립트 (서비스 롤 키 하드코딩 — 커밋 금지)
+/scripts/seed-kpop-posts.mjs
+/scripts/fix-comment-count.mjs
+# 기획 아티팩트(앱 무관)
+/community-plan.html

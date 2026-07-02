@@ -171,7 +171,7 @@ export function CropModal({
           <button
             type="button"
             onClick={onCancel}
-            className="flex-1 py-2.5 rounded-xl bg-white/[0.06] hover:bg-white/[0.10] text-zinc-200 text-sm font-medium transition-colors"
+            className="flex-1 py-3.5 rounded-xl bg-white/[0.06] hover:bg-white/[0.10] text-zinc-200 text-sm font-medium transition-colors"
           >
             취소
           </button>
@@ -179,7 +179,7 @@ export function CropModal({
             type="button"
             onClick={handleConfirm}
             disabled={!pixelArea || saving}
-            className="flex-1 py-2.5 rounded-xl bg-violet-600 hover:bg-violet-500 text-white text-sm font-semibold transition-colors disabled:opacity-50"
+            className="flex-1 py-3.5 rounded-xl bg-violet-600 hover:bg-violet-500 text-white text-sm font-semibold transition-colors disabled:opacity-50"
           >
             {saving ? '저장 중…' : '적용'}
           </button>

@@ -206,6 +206,7 @@ export interface Community {
   coverFocus: string | null    // 상세 배너 초점 (CSS object-position, 예: '50% 30%')
   avatarImage: string | null   // 대표(프로필) 이미지 — 타이틀 좌측 원형
   memberCount: number
+  recentPostCount?: number  // 24시간 내 게시글 수
   createdAt: string
   isMember?: boolean   // 현재 유저 가입 여부 (목록/상세 표시용)
   isManager?: boolean  // 현재 유저가 매니저인지
@@ -231,6 +232,7 @@ export interface CommunityPost {
   song?: { id: string; title: string | null; coverImage: string | null; coverHue: number | null; audioUrl: string | null } | null
   communityName?: string | null    // 인기글 등 전역 표면에서 어느 커뮤니티인지 표시
   communityAvatar?: string | null
+  communityCover?: string | null   // 인기글 카드 썸네일 폴백
   poll?: CommunityPoll | null
 }
 

@@ -145,7 +145,7 @@ export function CommunityCommentItem({ comment, currentUserId, isManager, isRepl
                     <div className="absolute right-0 top-7 z-[55] w-28 bg-[#282D38] border border-white/[0.08] rounded-xl py-1 shadow-xl overflow-hidden">
                       {isOwner && (
                         <button type="button" onClick={() => { setMoreOpen(false); setEditOpen(true) }} className="w-full flex items-center gap-2 px-3 py-2 text-sm text-white hover:bg-white/[0.06] transition-colors">
-                          <Image src="/Edit.svg" alt="" width={12} height={12} style={{ filter: 'invert(0.55)' }} /> 편집
+                          <Image src="/Edit.svg" alt="" width={12} height={12} style={{ filter: 'invert(0.55)' }} /> 수정
                         </button>
                       )}
                       {canDelete && (

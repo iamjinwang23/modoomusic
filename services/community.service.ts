@@ -199,12 +199,25 @@ export async function getHub(userId?: string): Promise<{
   mine: Community[]
 }> {
   const admin = createAdminClient()
-  const [popularRes, recentRes] = await Promise.all([
+  const since = new Date(Date.now() - 86400000).toISOString()
+
+  const [popularRes, recentRes, recentPostsRes] = await Promise.all([
     admin.from('communities').select(SELECT).order('member_count', { ascending: false }).limit(20),
     admin.from('communities').select(SELECT).order('created_at', { ascending: false }).limit(12),
+    admin.from('community_posts').select('community_id').gte('created_at', since),
   ])
-  const popular = (popularRes.data ?? []).map((r) => rowToCommunity(r as CommunityRow))
-  const recent = (recentRes.data ?? []).map((r) => rowToCommunity(r as CommunityRow))
+
+  // 커뮤니티별 24h 게시글 수 집계
+  const postCounts: Record<string, number> = {}
+  for (const row of recentPostsRes.data ?? []) {
+    const cid = row.community_id as string
+    postCounts[cid] = (postCounts[cid] ?? 0) + 1
+  }
+
+  const withCount = (r: CommunityRow): Community => ({ ...rowToCommunity(r), recentPostCount: postCounts[r.id] ?? 0 })
+
+  const popular = (popularRes.data ?? []).map((r) => withCount(r as CommunityRow))
+  const recent = (recentRes.data ?? []).map((r) => withCount(r as CommunityRow))
 
   let mine: Community[] = []
   if (userId) {
@@ -212,7 +225,7 @@ export async function getHub(userId?: string): Promise<{
     const ids = (mem ?? []).map((m) => m.community_id as string)
     if (ids.length) {
       const { data } = await admin.from('communities').select(SELECT).in('id', ids).order('member_count', { ascending: false })
-      mine = (data ?? []).map((r) => rowToCommunity(r as CommunityRow))
+      mine = (data ?? []).map((r) => withCount(r as CommunityRow))
     }
   }
   return { popular, recent, mine }

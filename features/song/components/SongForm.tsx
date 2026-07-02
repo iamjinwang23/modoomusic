@@ -415,8 +415,8 @@ export function SongForm() {
       {/* Simple/Advanced 토글(중앙) + 모델 선택(우, 고급 모드만) — 좌측은 grid 균형용 빈칸.
           중앙 칸은 auto(콘텐츠 크기)로 두어 모바일 좁은 폭에서 토글 텍스트 줄바꿈 방지. */}
       <div className={`grid grid-cols-[1fr_auto_1fr] items-center ${lyricsFullscreen ? 'hidden' : ''}`}>
-        {/* 좌측 — 크레딧 (데스크톱 전용, 모바일은 헤더에 표시). 우측 모델 선택 pill과 대칭 */}
-        <div className="justify-self-start hidden md:block">
+        {/* 좌측 — 크레딧 (데스크톱·모바일 동일). 우측 모델 선택 pill과 대칭 */}
+        <div className="justify-self-start">
           <CreditIndicator />
         </div>
         <div className="justify-self-center relative inline-flex rounded-full bg-white/[0.06] p-1">
@@ -693,7 +693,7 @@ export function SongForm() {
                   type="button"
                   onClick={() => setLyricsFullscreen((v) => !v)}
                   disabled={isGenerating}
-                  title={lyricsFullscreen ? '축소' : '전체 화면으로 편집'}
+                  title={lyricsFullscreen ? '축소' : '전체 화면으로 수정'}
                   className="w-8 h-8 rounded-full flex items-center justify-center text-white bg-[#252A35] hover:bg-[#2C313D] transition active:scale-[0.96] disabled:opacity-40"
                 >
                   <Image

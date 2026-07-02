@@ -214,7 +214,7 @@ export function CommentItem({
                       <>
                         <button type="button" onClick={() => { setMoreOpen(false); setEditOpen(true) }}
                           className="w-full flex items-center gap-2 px-3 py-2 text-sm text-white hover:bg-white/[0.06] transition-colors">
-                          <Image src="/Edit.svg" alt="" width={12} height={12} style={{ filter: 'invert(0.55)' }} /> 편집
+                          <Image src="/Edit.svg" alt="" width={12} height={12} style={{ filter: 'invert(0.55)' }} /> 수정
                         </button>
                         <button type="button" onClick={() => { setMoreOpen(false); setConfirmDel(true) }}
                           className="w-full flex items-center gap-2 px-3 py-2 text-sm text-red-400 hover:bg-red-500/10 transition-colors">

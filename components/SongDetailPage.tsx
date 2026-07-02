@@ -818,7 +818,7 @@ function SongMoreMenu({ isOwner, inCollection, onCollect, onPublish, onUnpublish
               <div className="my-1 h-px bg-white/[0.06]" />
               {onEdit && (
                 <button onClick={() => { setOpen(false); onEdit() }} className="w-full flex items-center gap-2.5 px-3 py-2.5 text-sm text-white hover:bg-white/[0.06] transition-colors">
-                  <Image src="/Edit.svg" alt="" width={14} height={14} style={{ filter: 'invert(0.55)' }} /> 편집
+                  <Image src="/Edit.svg" alt="" width={14} height={14} style={{ filter: 'invert(0.55)' }} /> 수정
                 </button>
               )}
               {onDelete && (

@@ -182,7 +182,18 @@ export default function MainShellLayout({ children }: { children: React.ReactNod
         </Link>
 
         <div className="ml-auto flex items-center gap-2">
-          {user && <CreditIndicator />}
+          {pathname === '/notifications' ? (
+            <button onClick={() => router.back()} className="relative w-8 h-8 flex items-center justify-center active:scale-95 transition">
+              <Image src="/Close-Fill.svg" alt="닫기" width={24} height={24} style={{ filter: 'invert(0.6)' }} />
+            </button>
+          ) : (
+            <Link href="/notifications" className="relative w-8 h-8 flex items-center justify-center active:scale-95 transition">
+              <Image src="/Notification.svg" alt="알림" width={24} height={24} style={{ filter: 'invert(0.6)' }} />
+              {notifUnread > 0 && (
+                <span className="absolute top-0.5 right-0.5 w-2 h-2 rounded-full bg-red-500" />
+              )}
+            </Link>
+          )}
           {!user && (
             <button
               onClick={() => setLoginOpen(true)}
