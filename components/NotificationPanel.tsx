@@ -14,10 +14,29 @@ interface Props {
   onClose?: () => void  // overlay 전용
 }
 
+type NotifCategory = 'all' | 'music' | 'community' | 'news'
+const CATEGORY_TABS: { key: NotifCategory; label: string }[] = [
+  { key: 'all', label: '전체' },
+  { key: 'music', label: '음악' },
+  { key: 'community', label: '커뮤니티' },
+  { key: 'news', label: '새소식' },
+]
+
+// 알림 → 카테고리. 커뮤니티 모더레이션(system + /community url)은 커뮤니티, 그 외 system(공지)은 새소식.
+function categoryOf(n: Notification): Exclude<NotifCategory, 'all'> {
+  if (n.type === 'community_like' || n.type === 'community_comment') return 'community'
+  if (n.type === 'system') {
+    const url = (n.payload as { url?: string })?.url
+    return url?.startsWith('/community') ? 'community' : 'news'
+  }
+  return 'music'  // like·comment·song_complete·follow·credit_charged
+}
+
 export function NotificationPanel({ mode, onClose }: Props) {
   const router = useRouter()
   const { user } = useAuth()
   const [items, setItems] = useState<Notification[] | null>(null)
+  const [category, setCategory] = useState<NotifCategory>('all')
 
   const load = useCallback(async () => {
     const list = await notificationService.list(30)
@@ -83,7 +102,7 @@ export function NotificationPanel({ mode, onClose }: Props) {
       const payload = n.payload as { username?: string }
       const username = payload?.username || n.actorName
       if (username) window.dispatchEvent(new CustomEvent('view-profile', { detail: username }))
-    } else if (n.type === 'system') {
+    } else if (n.type === 'system' || n.type === 'community_like' || n.type === 'community_comment') {
       const payload = n.payload as { url?: string }
       if (payload?.url) router.push(payload.url)
     }
@@ -122,6 +141,20 @@ export function NotificationPanel({ mode, onClose }: Props) {
             </button>
           )}
         </div>
+        {/* 카테고리 필터 알약 */}
+        <div className="px-6 pb-3 shrink-0 flex items-center gap-1.5 overflow-x-auto">
+          {CATEGORY_TABS.map((t) => (
+            <button
+              key={t.key}
+              onClick={() => setCategory(t.key)}
+              className={`shrink-0 px-3 py-1.5 rounded-full text-xs font-medium transition active:scale-[0.96] ${
+                category === t.key ? 'bg-violet-600 text-white' : 'bg-white/[0.06] text-zinc-400 hover:text-white hover:bg-white/[0.10]'
+              }`}
+            >
+              {t.label}
+            </button>
+          ))}
+        </div>
         <div className="flex-1 overflow-y-auto">
           {items === null ? (
             <div className="py-2">
@@ -140,9 +173,13 @@ export function NotificationPanel({ mode, onClose }: Props) {
               <p>아직 받은 알림이 없어요</p>
               <p className="text-xs text-zinc-600 mt-2">곡을 공유하거나 새 곡을 만들어보세요</p>
             </div>
-          ) : (
-            items.map((n) => <NotificationItem key={n.id} notif={n} onClick={() => handleClick(n)} />)
-          )}
+          ) : (() => {
+            const filtered = category === 'all' ? items : items.filter((n) => categoryOf(n) === category)
+            if (filtered.length === 0) {
+              return <div className="px-6 py-12 text-center text-zinc-500 text-sm">이 분류의 알림이 없어요</div>
+            }
+            return filtered.map((n) => <NotificationItem key={n.id} notif={n} onClick={() => handleClick(n)} />)
+          })()}
         </div>
       </div>
     </>

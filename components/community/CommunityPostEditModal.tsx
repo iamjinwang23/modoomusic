@@ -94,6 +94,7 @@ export function CommunityPostEditModal({ post, communityId, onClose, onSaved }: 
       song: j.post?.song ?? song,
       poll: j.post?.poll ?? (pollOpts && pollOpts.length >= 2 ? { options: pollOpts, endsAt: post.poll?.endsAt ?? new Date(Date.now() + 86400000).toISOString(), counts: pollOpts.map(() => 0), totalVotes: 0, myVote: null } : null),
     })
+    toast.success('글을 수정했어요')
     onClose()
   }
 

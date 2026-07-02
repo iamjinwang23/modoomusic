@@ -96,18 +96,20 @@ export function CommunityCommentItem({ comment, currentUserId, isManager, isRepl
     } catch { toast.error('답글 작성에 실패했어요') } finally { setReplySaving(false) }
   }
 
+  const goProfile = () => { if (comment.user.username) window.dispatchEvent(new CustomEvent('view-profile', { detail: comment.user.username })) }
+
   return (
     <div className={`flex gap-2.5 ${isReply ? 'mt-3' : ''}`}>
-      <div className="shrink-0 rounded-full overflow-hidden flex items-center justify-center font-semibold"
+      <button onClick={goProfile} disabled={!comment.user.username} className="shrink-0 rounded-full overflow-hidden flex items-center justify-center font-semibold disabled:cursor-default transition active:scale-95"
         style={{ width: avatarSize, height: avatarSize, fontSize: avatarSize * 0.42, ...(comment.user.avatarUrl ? {} : { background: fallback.bg, color: fallback.text }) }}>
         {comment.user.avatarUrl
           ? <Image src={comment.user.avatarUrl} alt="" width={avatarSize} height={avatarSize} className="w-full h-full object-cover" unoptimized />
           : initial}
-      </div>
+      </button>
 
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-1.5 min-w-0">
-          <span className="text-xs font-semibold text-white truncate">{comment.user.displayName ?? comment.user.username}</span>
+          <button onClick={goProfile} disabled={!comment.user.username} className="text-xs font-semibold text-white truncate hover:underline disabled:no-underline disabled:cursor-default">{comment.user.displayName ?? comment.user.username}</button>
           <span className="shrink-0 text-[11px] text-zinc-500">· {relativeTime(comment.createdAt)}</span>
           {comment.editedAt && <span className="shrink-0 text-[11px] text-zinc-600">(수정됨)</span>}
         </div>

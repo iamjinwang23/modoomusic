@@ -231,6 +231,42 @@ export async function getHub(userId?: string): Promise<{
   return { popular, recent, mine }
 }
 
+// 전체보기 — 타입별 커뮤니티 전체 리스트(24h 새 글 수 포함). posts는 community-post.service.getPopularPosts 사용.
+export async function getCommunityList(
+  type: 'popular' | 'new' | 'mine',
+  userId?: string,
+  limit = 100,
+): Promise<Community[]> {
+  const admin = createAdminClient()
+  const since = new Date(Date.now() - 86400000).toISOString()
+
+  let rows: CommunityRow[] = []
+  if (type === 'popular') {
+    const { data } = await admin.from('communities').select(SELECT).order('member_count', { ascending: false }).limit(limit)
+    rows = (data ?? []) as CommunityRow[]
+  } else if (type === 'new') {
+    const { data } = await admin.from('communities').select(SELECT).order('created_at', { ascending: false }).limit(limit)
+    rows = (data ?? []) as CommunityRow[]
+  } else if (type === 'mine') {
+    if (!userId) return []
+    const { data: mem } = await admin.from('community_members').select('community_id').eq('user_id', userId)
+    const ids = (mem ?? []).map((m) => m.community_id as string)
+    if (!ids.length) return []
+    const { data } = await admin.from('communities').select(SELECT).in('id', ids).order('member_count', { ascending: false }).limit(limit)
+    rows = (data ?? []) as CommunityRow[]
+  }
+  if (!rows.length) return []
+
+  // 24h 새 글 수 집계
+  const { data: recentPosts } = await admin.from('community_posts').select('community_id').gte('created_at', since).in('community_id', rows.map((r) => r.id))
+  const postCounts: Record<string, number> = {}
+  for (const row of recentPosts ?? []) {
+    const cid = row.community_id as string
+    postCounts[cid] = (postCounts[cid] ?? 0) + 1
+  }
+  return rows.map((r) => ({ ...rowToCommunity(r), recentPostCount: postCounts[r.id] ?? 0 }))
+}
+
 // 현재 유저가 매니저인 커뮤니티(있으면) — 개설 한도 체크용
 export async function getMyManagedCommunity(userId: string): Promise<Community | null> {
   const admin = createAdminClient()

@@ -1,8 +1,50 @@
 // 커뮤니티 글(뉴스피드) — 작성(멤버 가드)·피드·삭제·고정(매니저)·좋아요·댓글.
 import { createAdminClient } from '@/lib/supabase/admin'
 import { notifyCommunityModeration } from '@/services/community.service'
+import { sendPushToUser } from '@/services/push.service'
 import { findBannedWord } from '@/services/moderation.service'
 import type { CommunityPost, CommunityPostComment, CommunityPoll } from '@/types/domain'
+
+// 커뮤니티 소셜 알림(좋아요·댓글·답글) — 인앱(actor 아바타 렌더) + 웹푸시. 본인 대상/중복은 호출부에서 가드.
+async function notifyCommunityActivity(
+  admin: ReturnType<typeof createAdminClient>,
+  opts: {
+    recipientId: string
+    actorId: string
+    type: 'community_like' | 'community_comment'
+    kind?: 'comment' | 'reply'
+    communityId: string
+    postId: string
+    pushTitle: string
+    pushBody: string
+  },
+): Promise<void> {
+  if (opts.recipientId === opts.actorId) return
+  const url = `/community/${opts.communityId}?post=${opts.postId}`
+  // 좋아요는 재발송 방지(껐다 켰다 스팸) — 같은 대상·행위자·글에 이미 있으면 스킵
+  if (opts.type === 'community_like') {
+    const { data: dup } = await admin
+      .from('notifications')
+      .select('id')
+      .eq('user_id', opts.recipientId)
+      .eq('actor_id', opts.actorId)
+      .eq('type', 'community_like')
+      .eq('payload->>postId', opts.postId)
+      .limit(1)
+      .maybeSingle()
+    if (dup) return
+  }
+  const payload: Record<string, unknown> = { url, postId: opts.postId, communityId: opts.communityId }
+  if (opts.kind) payload.kind = opts.kind
+  const { error } = await admin.from('notifications').insert({
+    user_id: opts.recipientId,
+    actor_id: opts.actorId,
+    type: opts.type,
+    payload,
+  })
+  if (error) { console.error('[community.notifyActivity]', error.message); return }
+  sendPushToUser(opts.recipientId, { title: opts.pushTitle, body: opts.pushBody, url }).catch(() => {})
+}
 
 interface PostRow {
   id: string
@@ -31,6 +73,7 @@ function rowToPost(r: PostRow): CommunityPost {
     communityId: r.community_id,
     authorId: r.author_id,
     authorName: r.profiles?.display_name ?? r.profiles?.username ?? null,
+    authorUsername: r.profiles?.username ?? null,
     authorAvatarUrl: r.profiles?.avatar_url ?? null,
     authorAvatarHue: r.profiles?.avatar_hue ?? null,
     content: r.content,
@@ -171,7 +214,7 @@ export async function listPosts(communityId: string, userId?: string, limit = 50
 }
 
 // 허브 인기글 — 전체 커뮤니티 활성글, 좋아요순
-export async function getPopularPosts(userId?: string, limit = 10): Promise<CommunityPost[]> {
+export async function getPopularPosts(userId?: string, limit = 9): Promise<CommunityPost[]> {
   const admin = createAdminClient()
   const { data } = await admin
     .from('community_posts')
@@ -280,7 +323,17 @@ export async function toggleLike(userId: string, postId: string): Promise<{ ok: 
   let liked: boolean
   if (existing) { await admin.from('community_post_likes').delete().eq('post_id', postId).eq('user_id', userId); liked = false }
   else { const { error } = await admin.from('community_post_likes').insert({ post_id: postId, user_id: userId }); if (error) return { ok: false, error: 'internal' }; liked = true }
-  const { data: refreshed } = await admin.from('community_posts').select('like_count').eq('id', postId).maybeSingle()
+  const { data: refreshed } = await admin.from('community_posts').select('like_count, author_id, community_id').eq('id', postId).maybeSingle()
+  // 좋아요 눌렀을 때만 글 작성자에게 알림(취소·본인·중복 제외)
+  if (liked && refreshed?.author_id && refreshed.author_id !== userId) {
+    const { data: actor } = await admin.from('profiles').select('display_name, username').eq('id', userId).maybeSingle()
+    const actorName = actor?.display_name ?? actor?.username ?? '누군가'
+    await notifyCommunityActivity(admin, {
+      recipientId: refreshed.author_id as string, actorId: userId, type: 'community_like',
+      communityId: refreshed.community_id as string, postId,
+      pushTitle: '새 좋아요', pushBody: `${actorName}님이 회원님의 글을 좋아했어요`,
+    })
+  }
   return { ok: true, liked, likeCount: refreshed?.like_count ?? 0 }
 }
 
@@ -290,17 +343,35 @@ export async function addComment(userId: string, postId: string, body: string, p
   const text = body.trim()
   if (!text) return { ok: false, error: 'empty' }
   if (await findBannedWord(text)) return { ok: false, error: 'banned_word' }
-  const { data: post } = await admin.from('community_posts').select('id').eq('id', postId).maybeSingle()
+  const { data: post } = await admin.from('community_posts').select('id, author_id, community_id').eq('id', postId).maybeSingle()
   if (!post) return { ok: false, error: 'not_found' }
   // 대댓글이면 부모가 같은 글의 최상위 댓글인지 검증 (1단계만 허용)
+  let parentAuthorId: string | null = null
   if (parentId) {
-    const { data: parent } = await admin.from('community_post_comments').select('post_id, parent_id').eq('id', parentId).maybeSingle()
+    const { data: parent } = await admin.from('community_post_comments').select('post_id, parent_id, user_id').eq('id', parentId).maybeSingle()
     if (!parent || parent.post_id !== postId) return { ok: false, error: 'bad_parent' }
-    // 대댓글에 다시 대댓글 → 최상위 부모로 평탄화
+    parentAuthorId = parent.user_id as string
+    // 대댓글에 다시 대댓글 → 최상위 부모로 평탄화 (알림 대상은 실제 지목한 댓글 작성자 유지)
     if (parent.parent_id) parentId = parent.parent_id
   }
   const { error } = await admin.from('community_post_comments').insert({ post_id: postId, user_id: userId, body: text, parent_id: parentId ?? null })
   if (error) { console.error('[community-post.comment]', error.message); return { ok: false, error: 'internal' } }
+
+  // 알림 — 답글이면 부모 댓글 작성자에게, 아니면 글 작성자에게 (본인 제외)
+  const { data: actor } = await admin.from('profiles').select('display_name, username').eq('id', userId).maybeSingle()
+  const actorName = actor?.display_name ?? actor?.username ?? '누군가'
+  const communityId = post.community_id as string
+  if (parentAuthorId) {
+    await notifyCommunityActivity(admin, {
+      recipientId: parentAuthorId, actorId: userId, type: 'community_comment', kind: 'reply',
+      communityId, postId, pushTitle: '새 답글', pushBody: `${actorName}님이 회원님의 댓글에 답글을 남겼어요`,
+    })
+  } else if (post.author_id) {
+    await notifyCommunityActivity(admin, {
+      recipientId: post.author_id as string, actorId: userId, type: 'community_comment', kind: 'comment',
+      communityId, postId, pushTitle: '새 댓글', pushBody: `${actorName}님이 회원님의 글에 댓글을 남겼어요`,
+    })
+  }
   return { ok: true }
 }
 

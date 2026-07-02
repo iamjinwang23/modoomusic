@@ -169,6 +169,7 @@ export default function CommunityCafePage() {
     setPosting(false)
     if (!res.ok) { toast.error(j.error === 'not_member' ? '멤버만 글을 쓸 수 있어요' : j.error === 'banned_word' ? '부적절한 표현이 포함되어 있어요' : '작성에 실패했어요'); return }
     setContent(''); setAttachedSong(null); setAttachedImages([]); setPollOptions(null); load()
+    toast.success('글을 게시했어요')
   }
 
   async function handleImageFiles(files: FileList | null) {
@@ -210,7 +211,10 @@ export default function CommunityCafePage() {
   }
   async function del(p: CommunityPost) {
     const res = await fetch(`/api/community-posts/${p.id}`, { method: 'DELETE' })
-    if (res.ok) { setPosts(prev => prev?.filter(x => x.id !== p.id) ?? null) } else toast.error('삭제에 실패했어요')
+    if (res.ok) { setPosts(prev => prev?.filter(x => x.id !== p.id) ?? null); toast.success('글을 삭제했어요') } else toast.error('삭제에 실패했어요')
+  }
+  function goProfile(username: string | null) {
+    if (username) window.dispatchEvent(new CustomEvent('view-profile', { detail: username }))
   }
   function startEdit(p: CommunityPost) {
     setEditingPost(p)
@@ -481,10 +485,12 @@ export default function CommunityCafePage() {
                   </div>
                 )}
                 <div className="flex items-center gap-2.5">
-                  <Avatar name={p.authorName} hue={p.authorAvatarHue} url={p.authorAvatarUrl} size={34} />
+                  <button onClick={() => goProfile(p.authorUsername)} disabled={!p.authorUsername} className="shrink-0 disabled:cursor-default transition active:scale-95">
+                    <Avatar name={p.authorName} hue={p.authorAvatarHue} url={p.authorAvatarUrl} size={34} />
+                  </button>
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-1.5 min-w-0">
-                      <p className="text-sm font-medium text-white truncate">{p.authorName ?? '익명'}</p>
+                      <button onClick={() => goProfile(p.authorUsername)} disabled={!p.authorUsername} className="text-sm font-medium text-white truncate hover:underline disabled:no-underline disabled:cursor-default">{p.authorName ?? '익명'}</button>
                       {p.authorId === community?.managerId && <span className="shrink-0 text-[10px] font-medium text-violet-300 bg-violet-500/15 px-1.5 py-0.5 rounded-full leading-none">매니저</span>}
                     </div>
                     <p className="text-[11px] text-zinc-500">{relativeTime(p.createdAt)}</p>

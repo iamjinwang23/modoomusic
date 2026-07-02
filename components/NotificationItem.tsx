@@ -38,6 +38,13 @@ function renderText(n: Notification): React.ReactNode {
       }
       return <>{actor}님이 {title}에 댓글을 남겼어요</>
     }
+    case 'community_like':
+      return <>{actor}님이 회원님의 글을 좋아했어요</>
+    case 'community_comment': {
+      const p = (n.payload as { kind?: 'comment' | 'reply' }) ?? {}
+      if (p.kind === 'reply') return <>{actor}님이 회원님의 댓글에 답글을 남겼어요</>
+      return <>{actor}님이 회원님의 글에 댓글을 남겼어요</>
+    }
     case 'system': {
       const p = (n.payload as NotificationSystemPayload) ?? { title: '', body: '' }
       return (

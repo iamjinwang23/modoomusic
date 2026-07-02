@@ -45,6 +45,7 @@ export function SongEmbedCard({ song, artist, ownerUserId, ownerAvatarUrl, owner
             liked: pub.isLiked, coverHue: pub.coverHue, coverImage: pub.coverImage, model: pub.model,
             videoCoverUrl: pub.videoCoverUrl, videoCoverStatus: pub.videoCoverStatus,
             likeCount: pub.likeCount, playCount: pub.playCount, commentCount: pub.commentCount,
+            published: pub.published, publishComment: pub.publishComment, publishCoverImage: pub.publishCoverImage,
           }],
           idx: 0, isOwner: !!currentUserId && pub.userId === currentUserId,
           ownerName: pub.displayName, ownerUserId: pub.userId, ownerAvatarUrl: pub.avatarUrl ?? null, ownerAvatarHue: pub.avatarHue ?? null,
