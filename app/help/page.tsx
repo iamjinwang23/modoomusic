@@ -2,6 +2,7 @@
 // 모바일은 본문 위 inline TOC + 단일 컬럼.
 
 import type { Metadata } from 'next'
+import { Footer } from '@/components/Footer'
 
 export const metadata: Metadata = {
   title: '도움말 — 모두의 노래',
@@ -249,6 +250,7 @@ export default function HelpPage() {
             </Section>
           </div>
         </article>
+        <Footer />
       </div>
     </div>
   )

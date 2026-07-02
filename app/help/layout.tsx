@@ -15,9 +15,6 @@ export default function HelpLayout({ children }: { children: React.ReactNode }) 
         </Link>
       </header>
       <main className="flex-1 min-h-0 overflow-hidden">{children}</main>
-      <footer className="shrink-0 px-6 py-6 text-center text-[11px] text-zinc-600 border-t border-white/[0.04]">
-        © 2026 주식회사 비누컴퍼니 — 모두의 노래
-      </footer>
     </div>
   )
 }
