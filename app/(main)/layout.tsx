@@ -456,14 +456,9 @@ export default function MainShellLayout({ children }: { children: React.ReactNod
               )}
             </div>
 
-            <button
-              onClick={() => setComingSoon('sidebar')}
-              className="relative w-full py-2.5 rounded-xl border border-violet-600 text-violet-400 text-sm font-medium overflow-hidden group hover:text-white transition-colors duration-300"
-            >
-              <span className="absolute inset-0 bg-violet-600 scale-x-0 group-hover:scale-x-100 transition-transform duration-300 origin-center" />
-              <span className="relative">플랜 업그레이드</span>
-            </button>
-            <p className="text-center text-[10px] text-zinc-700">© 2026 BeeNoo Company</p>
+            <div className="border-t border-white/[0.06] pt-3">
+              <p className="text-center text-[10px] text-zinc-700">© 2026 BeeNoo Company</p>
+            </div>
           </div>
         </aside>
 

@@ -33,6 +33,23 @@ export function CommunityCard({ c }: { c: Community }) {
   )
 }
 
+// 순위 행(인기 커뮤니티) — 좌측 순위 배지 + 대표이미지 + 이름·멤버. 1~3위 강조.
+export function CommunityRankRow({ c, rank }: { c: Community; rank: number }) {
+  const top = rank <= 3
+  return (
+    <Link href={`/community/${c.id}`} className="flex items-center gap-3.5 py-2.5 hover:bg-white/[0.03] transition">
+      <span className={`shrink-0 w-6 text-center text-base font-bold tabular-nums ${top ? 'text-violet-400' : 'text-zinc-500'}`}>{rank}</span>
+      <div className="shrink-0 w-12 h-12 rounded-lg overflow-hidden flex items-center justify-center text-sm font-bold" style={{ background: GRAY_AVATAR, color: GRAY_AVATAR_TEXT }}>
+        {c.avatarImage ? <img src={c.avatarImage} alt="" className="w-full h-full object-cover" /> : c.name.slice(0, 1).toUpperCase()}
+      </div>
+      <div className="min-w-0 flex-1">
+        <p className="text-sm font-bold text-white truncate">{c.name}</p>
+        <p className="text-[11px] text-zinc-400 truncate mt-0.5">멤버 {c.memberCount.toLocaleString()} · 새 글 {(c.recentPostCount ?? 0)}</p>
+      </div>
+    </Link>
+  )
+}
+
 // 리스트 행(새로 생긴 커뮤니티 스타일)
 export function CommunityListRow({ c }: { c: Community }) {
   return (
@@ -44,6 +61,23 @@ export function CommunityListRow({ c }: { c: Community }) {
         <p className="text-sm font-bold text-white truncate">{c.name}</p>
         <p className="text-[11px] text-zinc-400 truncate mt-0.5">멤버 {c.memberCount.toLocaleString()} · 새 글 {(c.recentPostCount ?? 0)}</p>
       </div>
+    </Link>
+  )
+}
+
+// 스토리 썸네일(내 커뮤니티) — 24h 새 글 있으면 그라데이션 링, 없으면 회색 링(인스타 "안 본 스토리" 시맨틱). 가로 스크롤.
+export function CommunityStoryItem({ c }: { c: Community }) {
+  const hasNew = (c.recentPostCount ?? 0) > 0
+  return (
+    <Link href={`/community/${c.id}`} className="shrink-0 w-24 flex flex-col items-center gap-1.5 group">
+      <div className={`w-24 h-24 rounded-full p-[2.5px] transition active:scale-95 ${hasNew ? 'bg-gradient-to-tr from-violet-500 to-blue-400' : 'bg-white/[0.12]'}`}>
+        <div className="w-full h-full rounded-full p-[2.5px] bg-[#111318]">
+          <div className="w-full h-full rounded-full overflow-hidden flex items-center justify-center text-2xl font-bold" style={{ background: GRAY_AVATAR, color: GRAY_AVATAR_TEXT }}>
+            {c.avatarImage ? <img src={c.avatarImage} alt="" className="w-full h-full object-cover" /> : c.name.slice(0, 1).toUpperCase()}
+          </div>
+        </div>
+      </div>
+      <span className="w-full text-xs text-zinc-300 text-center truncate group-hover:text-white transition-colors">{c.name}</span>
     </Link>
   )
 }

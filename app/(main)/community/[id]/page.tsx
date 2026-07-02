@@ -338,8 +338,8 @@ export default function CommunityCafePage() {
         {/* 모바일: 프로필처럼 커버 우상단 액션 버튼 */}
         <div className="absolute top-3 right-3 z-10 md:hidden">{roleButton(true)}</div>
       </div>
-      {/* 컨텐츠 — 좁게 중앙 */}
-      <div className="max-w-[680px] mx-auto pb-10">
+      {/* 컨텐츠 — 좁게 중앙. 하단 여백은 맨 위로 플로팅 버튼·바텀네비 회피 */}
+      <div className="max-w-[680px] mx-auto pb-28 md:pb-20">
         <div className="px-5 -mt-10 relative">
           {/* 타이틀 행: 사각 대표 이미지 + 이름 + 매니저 수정 버튼(프로필 토큰 통일) */}
           <div className="flex items-center gap-4">
@@ -567,11 +567,11 @@ export default function CommunityCafePage() {
                 {p.poll && <PollCard poll={p.poll} postId={p.id} gate={memberGate} />}
                 {p.song && <SongEmbedCard song={p.song} artist={p.authorName} ownerUserId={p.authorId} ownerAvatarUrl={p.authorAvatarUrl} ownerAvatarHue={p.authorAvatarHue} currentUserId={user?.id ?? null} />}
                 <div className="flex items-center gap-4 mt-3">
-                  <button onClick={() => toggleLike(p)} className={`text-xs flex items-center gap-1.5 transition active:scale-95 ${p.liked ? 'text-violet-300' : 'text-zinc-500 hover:text-white'}`}>
-                    <Image src="/Thumb-Up.svg" alt="좋아요" width={15} height={15} style={{ filter: p.liked ? VIOLET_FILTER : 'invert(0.4)' }} /> {p.likeCount}
+                  <button onClick={() => toggleLike(p)} className={`text-sm flex items-center gap-1.5 transition active:scale-95 ${p.liked ? 'text-violet-300' : 'text-zinc-500 hover:text-white'}`}>
+                    <Image src="/Thumb-Up.svg" alt="좋아요" width={18} height={18} style={{ filter: p.liked ? VIOLET_FILTER : 'invert(0.4)' }} /> {p.likeCount}
                   </button>
-                  <button onClick={() => openComments(p.id)} className="text-xs flex items-center gap-1.5 text-zinc-500 hover:text-white transition active:scale-95">
-                    <Image src="/chat.svg" alt="댓글" width={15} height={15} style={{ filter: 'invert(0.4)' }} /> {p.commentCount}
+                  <button onClick={() => openComments(p.id)} className="text-sm flex items-center gap-1.5 text-zinc-500 hover:text-white transition active:scale-95">
+                    <Image src="/chat.svg" alt="댓글" width={18} height={18} style={{ filter: 'invert(0.4)' }} /> {p.commentCount}
                   </button>
                 </div>
 

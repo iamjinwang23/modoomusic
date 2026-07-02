@@ -19,11 +19,11 @@ export function ScrollToTopButton({ scrollRef }: { scrollRef: React.RefObject<HT
       type="button"
       aria-label="맨 위로"
       onClick={() => scrollRef.current?.scrollTo({ top: 0, behavior: 'smooth' })}
-      className={`fixed right-5 md:right-8 bottom-24 md:bottom-8 z-40 w-11 h-11 rounded-full bg-[#252A35]/90 hover:bg-[#2C313D] border border-white/[0.12] backdrop-blur-sm shadow-lg flex items-center justify-center transition active:scale-90 ${
+      className={`fixed right-5 md:right-8 bottom-24 md:bottom-8 z-40 w-11 h-11 rounded-full bg-white hover:bg-zinc-100 border border-zinc-300 shadow-lg flex items-center justify-center transition active:scale-90 ${
         visible ? 'opacity-100' : 'opacity-0 pointer-events-none translate-y-2'
       }`}
     >
-      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#e4e4e7" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#18181b" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
         <path d="M18 15l-6-6-6 6" />
       </svg>
     </button>

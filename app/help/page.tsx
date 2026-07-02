@@ -13,7 +13,9 @@ const TOC = [
   { id: 'getting-started', label: '시작하기' },
   { id: 'make-music',      label: '음악 만들기' },
   { id: 'lyrics',          label: '가사 작성' },
+  { id: 'video-cover',     label: '비디오 커버' },
   { id: 'share',           label: '공유·게시' },
+  { id: 'community',        label: '커뮤니티' },
   { id: 'credits',         label: '크레딧' },
   { id: 'referral',        label: '친구 초대' },
   { id: 'report',          label: '신고·문의' },
@@ -173,6 +175,17 @@ export default function HelpPage() {
               </div>
             </Section>
 
+            <Section id="video-cover" title="비디오 커버">
+              <p>곡에 6초짜리 움직이는 커버 영상을 만들 수 있어요.</p>
+              <List items={[
+                '곡 상세의 {videoCover} 버튼(또는 {more} 메뉴)에서 만들 수 있어요.',
+                '커버 이미지를 움직이게 하거나(이미지 모드), 텍스트로 장면을 묘사해(텍스트 모드) 만들 수 있어요.',
+                '**기본(512P)은 10크레딧, 고화질(768P)은 20크레딧**이에요.',
+                '생성은 백그라운드로 진행되고, 완료되면 알림으로 알려드려요. 생성에 실패하면 크레딧은 자동 환불돼요.',
+                '완성된 영상은 곡 커버 자리에서 자동 재생되고, 언제든 다시 만들거나 이미지를 교체할 수 있어요.',
+              ]} />
+            </Section>
+
             <Section id="share" title="공유·게시">
               <p>만든 곡은 두 가지 방식으로 공유할 수 있어요.</p>
               <SubTitle>비공개 공유 (링크)</SubTitle>
@@ -186,6 +199,26 @@ export default function HelpPage() {
                 '{more} 메뉴의 {publish}를 누르면 둘러보기·검색·내 프로필에 공개돼요.',
                 '게시 시 공개용 커버 이미지와 한 줄 코멘트를 따로 지정할 수 있어요.',
                 '언제든 **게시 취소**로 비공개로 되돌릴 수 있어요.',
+              ]} />
+            </Section>
+
+            <Section id="community" title="커뮤니티">
+              <p>관심사가 맞는 사람들과 모여 글을 나누는 카페형 공간이에요.</p>
+              <SubTitle>가입과 개설</SubTitle>
+              <List items={[
+                '커뮤니티에 **가입**하면 글을 쓰고 좋아요·댓글·투표에 참여할 수 있어요. 가입은 여러 곳에 할 수 있어요.',
+                '커뮤니티 화면의 {createCommunity} 버튼으로 직접 개설할 수도 있어요(1인 1개). 개설자는 매니저가 돼요.',
+              ]} />
+              <SubTitle>글쓰기</SubTitle>
+              <List items={[
+                '텍스트에 **이미지·투표·내 곡** 중 하나를 첨부할 수 있어요. 곡은 게시(공개)된 곡만 첨부돼요.',
+                '본문에 유튜브·스포티파이 등 링크를 넣으면 자동으로 미리보기(임베드)가 붙어요.',
+                '댓글·대댓글·좋아요로 소통하고, 누군가 내 글·댓글에 반응하면 알림으로 받아요.',
+              ]} />
+              <SubTitle>매니저</SubTitle>
+              <List items={[
+                '매니저는 커버·대표 이미지·소개를 수정하고, 글 고정·삭제, 부적절한 멤버 내보내기를 할 수 있어요.',
+                '부적절한 글은 글의 {more} 메뉴에서 {flag}할 수 있고, 운영팀 검토 후 조치돼요.',
               ]} />
             </Section>
 
@@ -302,6 +335,8 @@ function renderMd(s: string): string {
     .replace(/\{benefit\}/g,  `<span style="${BTN_GRAY}"><img src="/Gift-Card.svg" alt="" style="${BTN_ICON}" />혜택</span>`)
     .replace(/\{make\}/g,     `<span style="${BTN_GRAY}"><img src="/Ai-Generate-Music.svg" alt="" style="${BTN_ICON}" />음악 만들기</span>`)
     .replace(/\{contact\}/g,  `<span style="${BTN_GRAY}"><img src="/costumer.png" alt="" style="${BTN_ICON}" />문의하기</span>`)
+    .replace(/\{createCommunity\}/g, `<span style="${BTN_GRAY}"><img src="/Add.svg" alt="" style="${BTN_ICON}" />만들기</span>`)
+    .replace(/\{videoCover\}/g, `<span style="${BTN_GRAY}"><img src="/Sparkles.svg" alt="" style="${BTN_ICON}" />비디오 커버</span>`)
     .replace(/\{flag\}/g,     `<span style="${BTN_RED}"><img src="/Flag.svg" alt="" style="${BTN_ICON_RED}" />신고</span>`)
     .replace(/\{v20\}/g,     `<span style="${BADGE_GRAY}">v2.0</span>`)
     .replace(/\{v25\}/g,     `<span style="${BADGE_GRAY}">v2.5+</span>`)

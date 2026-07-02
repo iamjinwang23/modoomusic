@@ -3,7 +3,7 @@
 import { useRef, useState } from 'react'
 import Image from 'next/image'
 import { toast } from '@/components/toast/toast'
-import { profileColor } from '@/utils/profileColor'
+import { GRAY_COVER, GRAY_AVATAR, GRAY_AVATAR_TEXT } from '@/components/community/hubCards'
 import { ConfirmModal } from '@/components/ConfirmModal'
 import { CropModal } from '@/components/CropModal'
 import type { Community } from '@/types/domain'
@@ -35,8 +35,6 @@ export function CommunityEditModal({ community, onClose, onSaved, onClosed }: {
   const coverRef = useRef<HTMLInputElement>(null)
   const avatarRef = useRef<HTMLInputElement>(null)
 
-  const hue = (community.id.charCodeAt(0) + community.id.charCodeAt(community.id.length - 1)) * 47
-  const col = profileColor(hue)
   const canSave = name.trim().length >= 2 && !saving && !uploading
 
   // 대표 이미지: 1:1 크롭 Blob 업로드
@@ -109,7 +107,7 @@ export function CommunityEditModal({ community, onClose, onSaved, onClosed }: {
           {/* 커버 — 미리보기는 상세 페이지에서 잘리는 배너 비율(7:2)로 표시 */}
           <div>
             <label className="text-xs text-zinc-500">커버 이미지</label>
-            <div className="relative w-full aspect-[9/4] md:aspect-[7/2] rounded-xl overflow-hidden mt-1.5" style={{ background: `linear-gradient(135deg, ${col.bg}, #161922)` }}>
+            <div className="relative w-full aspect-[9/4] md:aspect-[7/2] rounded-xl overflow-hidden mt-1.5" style={{ background: GRAY_COVER }}>
               {coverUrl && <img src={coverUrl} alt="" className="w-full h-full object-cover" style={{ objectPosition: coverFocus }} />}
               {uploading === 'cover' && <div className="absolute inset-0 flex items-center justify-center bg-black/50"><div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" /></div>}
             </div>
@@ -123,7 +121,7 @@ export function CommunityEditModal({ community, onClose, onSaved, onClosed }: {
           {/* 대표 이미지 (사각형 — 프로필 원형과 구분). 커버 섹션과 동일 구조(라벨→미리보기→변경 버튼) */}
           <div>
             <label className="text-xs text-zinc-500">대표 이미지</label>
-            <div className="relative w-[88px] h-[88px] rounded-2xl overflow-hidden flex items-center justify-center text-2xl font-bold mt-1.5" style={{ background: col.bg, color: col.text }}>
+            <div className="relative w-[88px] h-[88px] rounded-2xl overflow-hidden flex items-center justify-center text-2xl font-bold mt-1.5" style={{ background: GRAY_AVATAR, color: GRAY_AVATAR_TEXT }}>
               {avatarUrl ? <img src={avatarUrl} alt="" className="w-full h-full object-cover" /> : name.slice(0, 1).toUpperCase()}
               {uploading === 'avatar' && <div className="absolute inset-0 flex items-center justify-center bg-black/50"><div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" /></div>}
             </div>

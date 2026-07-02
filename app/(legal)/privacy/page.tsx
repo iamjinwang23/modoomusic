@@ -9,7 +9,7 @@ export default function PrivacyPage() {
     <article className="space-y-8 text-zinc-300 leading-relaxed">
       <header className="space-y-2">
         <h1 className="text-3xl font-bold text-white">개인정보처리방침</h1>
-        <p className="text-sm text-zinc-500">시행일: 2026년 5월 27일 · 개정: 2026년 7월 1일 (커뮤니티 활동 정보 수집 항목 반영)</p>
+        <p className="text-sm text-zinc-500">시행일: 2026년 5월 27일 · 개정: 2026년 7월 1일 (커뮤니티 활동 정보 수집 항목 반영) · 개정: 2026년 7월 2일 (푸시 알림 구독 정보 수집 항목 반영)</p>
         <p className="text-sm text-zinc-400">
           주식회사 비누컴퍼니(이하 "회사")는 회원의 개인정보를 중요하게 생각하며,
           「개인정보 보호법」 등 관련 법령을 준수하기 위해 본 방침을 수립·공개합니다.
@@ -59,6 +59,12 @@ export default function PrivacyPage() {
           </p>
         </SubSection>
 
+        <SubSection title="푸시 알림 구독 (선택 · 동의 시)">
+          <p className="text-sm text-zinc-300 leading-relaxed">
+            회원이 [내 계정 → 푸시 알림]에서 동의한 경우, 브라우저·기기가 발급하는 푸시 구독 정보(구독 엔드포인트 URL, 공개 키)를 수집·저장하여 곡 생성 완료·좋아요·댓글·커뮤니티 활동·공지 등의 알림을 전송합니다. 이 정보만으로 개인을 직접 식별하지 않으며, 회원이 [내 계정]에서 푸시 알림을 끄거나 브라우저·기기의 알림 권한을 해제하면 전송이 중단되고 구독 정보는 삭제됩니다. 만료된 구독은 자동으로 삭제됩니다.
+          </p>
+        </SubSection>
+
         <SubSection title="브라우저 캐시 (정적 콘텐츠)">
           <p className="text-sm text-zinc-300 leading-relaxed">
             음원·커버 이미지 등 정적 콘텐츠는 빠른 재생을 위해 표준 HTTP 캐시(Cache-Control) 헤더로 사용자 브라우저에 일정 기간 저장됩니다. 개인을 식별하거나 행동을 추적하지 않으며, 사용자는 언제든 브라우저 설정에서 캐시를 삭제하거나 차단할 수 있습니다.
@@ -71,6 +77,7 @@ export default function PrivacyPage() {
           '회원 식별 및 가입·인증·계정 관리',
           '음악·이미지·가사 생성 및 결과 보관',
           '게시·공유·좋아요·컬렉션·재생 통계 등 서비스 기능 제공',
+          '회원 동의 시 곡 완성·좋아요·댓글·커뮤니티 활동·공지 등 푸시 알림 전송',
           '서비스 개선·신규 기능 개발·통계 분석',
           '부정 이용·어뷰징 탐지 및 대응',
           '법령 또는 약관 위반 대응',

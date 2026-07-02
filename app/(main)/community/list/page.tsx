@@ -1,10 +1,9 @@
 // 커뮤니티 섹션 전체보기 — /community/list?type=popular|new|mine|posts
 'use client'
 
-import { useState, useEffect, useCallback, useRef, Suspense } from 'react'
+import { useState, useEffect, useCallback, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { CommunityCard, CommunityListRow, PopularPostCard } from '@/components/community/hubCards'
-import { ScrollToTopButton } from '@/components/community/ScrollToTopButton'
 import type { Community, CommunityPost } from '@/types/domain'
 
 type ListType = 'popular' | 'new' | 'mine' | 'posts'
@@ -20,7 +19,6 @@ function CommunityListInner() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const type = (searchParams.get('type') ?? 'popular') as ListType
-  const scrollRef = useRef<HTMLDivElement>(null)
 
   const [communities, setCommunities] = useState<Community[] | null>(null)
   const [posts, setPosts] = useState<CommunityPost[] | null>(null)
@@ -41,8 +39,8 @@ function CommunityListInner() {
   const empty = isPosts ? (posts?.length ?? 0) === 0 : (communities?.length ?? 0) === 0
 
   return (
-    <div ref={scrollRef} className="h-full overflow-y-auto">
-      <div className="max-w-[860px] mx-auto px-5 py-6 space-y-6">
+    <div className="h-full overflow-y-auto">
+      <div className="max-w-[860px] mx-auto px-5 pt-6 pb-28 md:pb-20 space-y-6">
         <header className="flex items-center gap-2">
           <button onClick={() => router.back()} aria-label="뒤로" className="w-8 h-8 rounded-full hover:bg-white/[0.06] flex items-center justify-center transition active:scale-90">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#e4e4e7" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M15 18l-6-6 6-6" /></svg>
@@ -68,7 +66,6 @@ function CommunityListInner() {
           </div>
         )}
       </div>
-      <ScrollToTopButton scrollRef={scrollRef} />
     </div>
   )
 }

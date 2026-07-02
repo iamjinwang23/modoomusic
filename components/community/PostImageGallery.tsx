@@ -39,9 +39,10 @@ export function PostImageGallery({ images }: { images: string[] }) {
   return (
     <>
       <div className="mt-2.5 relative rounded-xl overflow-hidden bg-black/40 border border-white/[0.06]">
-        <div className="w-full aspect-[4/3] flex items-center justify-center" onClick={(e) => { e.stopPropagation(); setLightbox(true) }}>
+        <div className="w-full aspect-[4/3]" onClick={(e) => { e.stopPropagation(); setLightbox(true) }}>
+          {/* 긴축 기준 꽉 채움(object-cover) — 작은 이미지 빈공간 방지, 크롭 허용 */}
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={images[cur]} alt="" className="max-w-full max-h-full object-contain cursor-zoom-in" />
+          <img src={images[cur]} alt="" className="w-full h-full object-cover cursor-zoom-in" />
         </div>
         {total > 1 && (
           <>
