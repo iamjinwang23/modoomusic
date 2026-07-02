@@ -174,3 +174,21 @@ community_post_reports(id, reporter_id→profiles, post_id→community_posts, re
 **editPost 시그니처** — `editPost(userId, postId, content, imageUrls?, songId?, pollOptions?)`. `hadAttachment` 글은 클라가 `{content}`만 전송 → 서버는 이미지/곡/링크 기존값 보존. empty 체크는 기존 첨부(`song_id`·`image_url`·`image_urls`·`link_url`·poll) 고려.
 
 **수정 중 UX** — 모달이므로 더보기(⋯)는 항상 노출(인라인 상태 없음). 빈 본문+첨부없음 저장 시 토스트 안내.
+
+## 11. 소셜 알림·전체보기·프로필 이동 (2026-07-02 세션3, 커밋 6f5e8dc 배포 — 준비중 유지)
+
+**소셜 알림 (mig 053)** — 커뮤니티 좋아요·댓글·답글 → 인앱 + 웹푸시. `notifications.type`에 **`community_like`·`community_comment`** 추가(053 CHECK 갱신). `community-post.service.notifyCommunityActivity` 헬퍼(actor_id + payload `{url, postId, communityId, kind}` + `sendPushToUser`).
+- 댓글 → 글 작성자, 답글 → 부모 댓글 작성자, 좋아요 → 글 작성자. **본인 제외**, **좋아요 중복 방지**(같은 recipient·actor·postId 있으면 스킵, `payload->>postId`).
+- 렌더: actor 아바타 + "…님이 회원님의 글을/댓글에 …". 라우팅: payload.url → `/community/[id]?post=[postId]`.
+
+**알림 필터 알약** — 알림 페이지/오버레이 헤더 아래 `전체·음악·커뮤니티·새소식`. `categoryOf(n)`: community_* → 커뮤니티, system은 url이 `/community`면 커뮤니티(모더레이션)·아니면 새소식(공지), 그 외(like·comment·song_complete·follow·credit_charged) → 음악.
+
+**섹션 전체보기** — 허브 각 섹션 라벨 = `라벨 + Right-Line.svg(→)` 링크(둘러보기 패턴), 기본 노출 초과 시만 화살표. `HUB_LIMIT`: mine·popular·recent **6**, posts **9**. 전용 페이지 **`/community/list?type=popular|new|mine|posts`**(최대 100) + `/api/communities/list` + 서비스 `getCommunityList`. `getPopularPosts` 기본 limit **9**. 카드 공유 모듈 **`components/community/hubCards.tsx`**(CommunityCard·CommunityListRow·PopularPostCard). `/community/list`는 정적 세그먼트라 `[id]`와 충돌 없음.
+
+**첨부곡 게시상태 픽스** — `SongEmbedCard.buildDetail` 공개곡 분기가 `published`·`publishComment`·`publishCoverImage` 누락 → 게시된 곡이 미게시로 열리던 버그 수정.
+
+**프로필 이동** — 글 헤더·댓글의 이름·아바타 클릭 → `view-profile` 이벤트(layout이 `/profile/[username]` router.push). `CommunityPost.authorUsername` 추가(rowToPost 매핑, SELECT는 이미 username 조인).
+
+**스낵바** — 글 게시/수정/삭제 시 toast. (음악은 기존부터 완비)
+
+**콜드스타트 시드** — `scripts/seed-kpop-posts.mjs`·`fix-comment-count.mjs`(서비스롤키 하드코딩 → gitignore, 로컬 전용). "아이러브 K-POP"에 2026-07 K-POP 이슈 10글.

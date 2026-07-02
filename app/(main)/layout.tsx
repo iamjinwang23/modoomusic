@@ -244,18 +244,31 @@ export default function MainShellLayout({ children }: { children: React.ReactNod
                 {userMenuOpen && (
                   <>
                     <div className="fixed inset-0 z-[54]" onClick={() => setUserMenuOpen(false)} />
-                    <div className="absolute left-10 right-2 top-full mt-1 z-[55] bg-[#21252E] border border-white/[0.08] rounded-xl shadow-xl overflow-hidden">
-                      {/* 보유 크레딧 — 클릭 시 충전 */}
-                      <button
-                        onClick={() => { setUserMenuOpen(false); window.dispatchEvent(new Event('open-credit-purchase')) }}
-                        className="w-full flex items-center justify-between px-4 py-3 border-b border-white/[0.06] hover:bg-white/[0.04] transition-colors"
-                      >
-                        <span className="text-[11px] text-zinc-500">크레딧</span>
-                        <span className="flex items-center gap-1">
-                          <Image src="/Sparkles.svg" alt="" width={14} height={14} style={{ filter: 'invert(1)' }} />
-                          <span className="text-sm font-semibold text-white tabular-nums">{credits ?? '—'}</span>
+                    <div className="absolute left-10 top-full mt-1 z-[55] w-56 bg-[#21252E] border border-white/[0.08] rounded-xl shadow-xl overflow-hidden">
+                      {/* 보유 크레딧 (표시) */}
+                      <div className="flex items-center justify-between px-4 pt-3 pb-2">
+                        <span className="flex items-center gap-1.5 text-[11px] text-zinc-500">
+                          <Image src="/Sparkles.svg" alt="" width={13} height={13} style={{ filter: 'invert(0.6)' }} />
+                          AI 크레딧
                         </span>
-                      </button>
+                        <span className="text-sm font-semibold text-white tabular-nums">{credits ?? '—'}</span>
+                      </div>
+                      {/* 크레딧 충전 + 플랜 업그레이드 */}
+                      <div className="px-3 pb-3 space-y-2 border-b border-white/[0.06]">
+                        <button
+                          onClick={() => { setUserMenuOpen(false); window.dispatchEvent(new Event('open-credit-purchase')) }}
+                          className="w-full py-2 rounded-lg bg-white hover:bg-zinc-100 text-zinc-900 text-sm font-semibold transition active:scale-[0.98]"
+                        >
+                          크레딧 충전하기
+                        </button>
+                        <button
+                          onClick={() => { setUserMenuOpen(false); setComingSoon('sidebar') }}
+                          className="w-full py-2 rounded-lg bg-gradient-to-r from-violet-600 to-blue-500 hover:opacity-90 text-white text-sm font-semibold transition active:scale-[0.98]"
+                        >
+                          플랜 업그레이드
+                        </button>
+                        <p className="text-center text-[11px] text-zinc-500">업그레이드 시 추가 크레딧 제공</p>
+                      </div>
                       <button
                         onClick={() => {
                           setUserMenuOpen(false)

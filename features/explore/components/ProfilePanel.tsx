@@ -679,8 +679,20 @@ export function ProfilePanel({ username }: Props) {
 function SelfSettingsMenu() {
   const [open, setOpen] = useState(false)
   const [pos, setPos] = useState<{ top: number; right: number } | null>(null)
+  const [credits, setCredits] = useState<number | null>(null)
   const btnRef = useRef<HTMLButtonElement>(null)
   const { user, signOut } = useAuth()
+
+  // 보유 크레딧 — 데스크톱 헤더 드롭다운과 동일 소스(1회 조회 + credits-updated 동기화)
+  useEffect(() => {
+    if (!user) { setCredits(null); return }
+    let cancelled = false
+    const toTotal = (s: { total?: number; remaining?: number; bonus?: number }) => s.total ?? ((s.remaining ?? 0) + (s.bonus ?? 0))
+    fetch('/api/credits/me').then((r) => r.ok ? r.json() : null).then((d) => { if (!cancelled && d) setCredits(toTotal(d)) })
+    function onUpd(e: Event) { const s = (e as CustomEvent).detail; if (s) setCredits(toTotal(s)) }
+    window.addEventListener('credits-updated', onUpd)
+    return () => { cancelled = true; window.removeEventListener('credits-updated', onUpd) }
+  }, [user?.id])
 
   function toggle() {
     if (open) { setOpen(false); return }
@@ -709,10 +721,7 @@ function SelfSettingsMenu() {
         className="w-10 h-10 rounded-full bg-black/25 backdrop-blur-sm text-white hover:bg-black/40 flex items-center justify-center transition-colors"
         title="설정"
       >
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-          <circle cx="12" cy="12" r="3" />
-          <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z" />
-        </svg>
+        <Image src="/More.svg" alt="설정" width={18} height={18} style={{ filter: 'invert(1)' }} />
       </button>
       {open && pos && typeof document !== 'undefined' && createPortal(
         <>
@@ -724,6 +733,30 @@ function SelfSettingsMenu() {
             <div className="px-4 py-3 border-b border-white/[0.06]">
               <p className="text-[11px] text-zinc-500">로그인 계정</p>
               <p className="text-xs text-white truncate mt-1">{user?.email}</p>
+            </div>
+            {/* 보유 크레딧 (표시) */}
+            <div className="flex items-center justify-between px-4 pt-3 pb-2">
+              <span className="flex items-center gap-1.5 text-[11px] text-zinc-500">
+                <Image src="/Sparkles.svg" alt="" width={13} height={13} style={{ filter: 'invert(0.6)' }} />
+                AI 크레딧
+              </span>
+              <span className="text-sm font-semibold text-white tabular-nums">{credits ?? '—'}</span>
+            </div>
+            {/* 크레딧 충전 + 플랜 업그레이드 */}
+            <div className="px-3 pb-3 space-y-2 border-b border-white/[0.06]">
+              <button
+                onClick={() => { setOpen(false); window.dispatchEvent(new Event('open-credit-purchase')) }}
+                className="w-full py-2 rounded-lg bg-white hover:bg-zinc-100 text-zinc-900 text-sm font-semibold transition active:scale-[0.98]"
+              >
+                크레딧 충전하기
+              </button>
+              <button
+                onClick={() => { setOpen(false); window.dispatchEvent(new CustomEvent('open-coming-soon', { detail: 'sidebar' })) }}
+                className="w-full py-2 rounded-lg bg-gradient-to-r from-violet-600 to-blue-500 hover:opacity-90 text-white text-sm font-semibold transition active:scale-[0.98]"
+              >
+                플랜 업그레이드
+              </button>
+              <p className="text-center text-[11px] text-zinc-500">업그레이드 시 추가 크레딧 제공</p>
             </div>
             {/* 계정 — 결제내역·환불·탈퇴 등. (법적·문의는 둘러보기 푸터로 이동) */}
             <Link

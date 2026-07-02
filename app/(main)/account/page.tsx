@@ -2,11 +2,24 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
+import Image from 'next/image'
+import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useAuth } from '@/components/AuthProvider'
 import { AccountDeletionModal } from '@/components/AccountDeletionModal'
 import { PushToggle } from '@/components/PushToggle'
 import { toast } from '@/components/toast/toast'
+
+// 더보기(푸터) 항목 — 모바일에서 접근 경로 확보 위해 내 계정에도 노출
+const INFO_LINKS: { href: string; label: string; icon: string; external?: boolean; mail?: boolean }[] = [
+  { href: '/announcements', label: "What's New", icon: '/Sparkles.svg' },
+  { href: '/terms', label: '이용약관', icon: '/terms.png', external: true },
+  { href: '/privacy', label: '개인정보처리방침', icon: '/security-policy.png', external: true },
+  { href: '/policy', label: '운영정책', icon: '/policy.png', external: true },
+  { href: '/help', label: '도움말', icon: '/Help.png', external: true },
+  { href: '/faq', label: '자주 묻는 질문', icon: '/faq.png', external: true },
+  { href: 'mailto:bee202408@gmail.com', label: '문의하기', icon: '/costumer.png', mail: true },
+]
 
 interface MyPayment {
   paymentId: string
@@ -151,15 +164,35 @@ export default function AccountPage() {
         {/* 계정 관리 */}
         <section className="space-y-2 pt-2">
           <PushToggle />
+
+          {/* 이용 안내 · 지원 (모바일 접근 경로 — 더보기와 동일 항목). 한 컨테이너로 묶고 내부 divide-y */}
+          <div className="rounded-xl border border-white/[0.06] bg-white/[0.02] overflow-hidden divide-y divide-white/[0.06]">
+            {INFO_LINKS.map((it) => {
+              const rowCls = 'w-full flex items-center justify-between gap-2 px-4 py-4 text-sm text-white hover:bg-white/[0.05] transition'
+              const inner = (
+                <>
+                  <span className="flex items-center gap-2.5">
+                    <Image src={it.icon} alt="" width={16} height={16} style={{ filter: 'invert(1) brightness(0.85)' }} />
+                    {it.label}
+                  </span>
+                  {it.external && <Image src="/External-Link.svg" alt="" width={14} height={14} style={{ filter: 'invert(0.4)' }} />}
+                </>
+              )
+              if (it.mail) return <a key={it.href} href={it.href} className={rowCls}>{inner}</a>
+              if (it.external) return <a key={it.href} href={it.href} target="_blank" rel="noopener noreferrer" className={rowCls}>{inner}</a>
+              return <Link key={it.href} href={it.href} className={rowCls}>{inner}</Link>
+            })}
+          </div>
+
           <button
             onClick={() => { signOut(); router.push('/') }}
-            className="w-full text-left px-4 py-3 rounded-xl border border-white/[0.06] bg-white/[0.02] text-sm text-white hover:bg-white/[0.05] transition"
+            className="w-full text-left px-4 py-4 rounded-xl border border-white/[0.06] bg-white/[0.02] text-sm text-white hover:bg-white/[0.05] transition"
           >
             로그아웃
           </button>
           <button
             onClick={() => setDeletionOpen(true)}
-            className="w-full text-left px-4 py-3 rounded-xl border border-white/[0.06] bg-white/[0.02] text-sm text-red-400 hover:bg-red-500/[0.06] transition"
+            className="w-full text-left px-4 py-4 rounded-xl border border-white/[0.06] bg-white/[0.02] text-sm text-red-400 hover:bg-red-500/[0.06] transition"
           >
             회원 탈퇴
           </button>
@@ -195,7 +228,7 @@ export default function AccountPage() {
 
 function Row({ label, value }: { label: string; value: string }) {
   return (
-    <div className="flex items-center justify-between px-4 py-3">
+    <div className="flex items-center justify-between px-4 py-4">
       <dt className="text-sm text-zinc-400">{label}</dt>
       <dd className="text-sm text-white truncate ml-3">{value}</dd>
     </div>
