@@ -8,15 +8,20 @@ interface OG { title: string | null; image: string | null; siteName: string | nu
 export function LinkPreviewCard({ url }: { url: string }) {
   const [data, setData] = useState<OG | null>(null)
   const [done, setDone] = useState(false)
+  // href로 그대로 렌더되므로 http(s) 외 스킴(javascript: 등)은 차단
+  const safe = /^https?:\/\//i.test(url.trim())
 
   useEffect(() => {
+    if (!safe) return
     let cancelled = false
     fetch(`/api/og?url=${encodeURIComponent(url)}`)
       .then((r) => r.json())
       .then((d) => { if (!cancelled) { if (d && !d.error && (d.title || d.image)) setData(d); setDone(true) } })
       .catch(() => { if (!cancelled) setDone(true) })
     return () => { cancelled = true }
-  }, [url])
+  }, [url, safe])
+
+  if (!safe) return null
 
   let domain = ''
   try { domain = new URL(url).hostname.replace(/^www\./, '') } catch {}

@@ -92,6 +92,17 @@ function rowToPost(r: PostRow): CommunityPost {
   }
 }
 
+// 링크는 http(s)만 저장 — javascript: 등 스킴이 href로 렌더되는 저장형 XSS 차단
+function toSafeHttpUrl(raw?: string | null): string | null {
+  const t = raw?.trim()
+  if (!t) return null
+  try {
+    const u = new URL(t)
+    if (u.protocol === 'http:' || u.protocol === 'https:') return t
+  } catch {}
+  return null
+}
+
 async function isMember(admin: ReturnType<typeof createAdminClient>, communityId: string, userId: string): Promise<boolean> {
   const { data } = await admin.from('community_members').select('user_id').eq('community_id', communityId).eq('user_id', userId).maybeSingle()
   return !!data
@@ -126,7 +137,7 @@ export async function createPost(
   }
   const content = input.content.trim()
   const imageUrls = (input.imageUrls ?? []).slice(0, 10)
-  const linkUrl = input.linkUrl?.trim() || null
+  const linkUrl = toSafeHttpUrl(input.linkUrl)
   const pollOptions = input.poll ? input.poll.options.map((o) => o.trim()).filter(Boolean).slice(0, 4) : []
   const hasPoll = pollOptions.length >= 2
   if (!content && imageUrls.length === 0 && !input.songId && !linkUrl && !hasPoll) return { ok: false, error: 'empty' }
@@ -184,6 +195,9 @@ async function fillPolls(admin: ReturnType<typeof createAdminClient>, posts: Com
 // 투표 — 단일 선택, 1인 1표, 종료 후 불가
 export async function votePoll(userId: string, postId: string, optionIndex: number): Promise<{ ok: boolean; poll?: CommunityPoll; error?: string }> {
   const admin = createAdminClient()
+  // 블라인드(hidden) 글에는 투표 불가
+  const { data: post } = await admin.from('community_posts').select('status').eq('id', postId).maybeSingle()
+  if (!post || post.status !== 'active') return { ok: false, error: 'not_found' }
   const { data: poll } = await admin.from('community_post_polls').select('options, ends_at').eq('post_id', postId).maybeSingle()
   if (!poll) return { ok: false, error: 'not_found' }
   const options = poll.options as string[]
@@ -329,6 +343,9 @@ export async function togglePin(userId: string, postId: string): Promise<{ ok: b
 // 좋아요 토글 — 로그인 유저 누구나
 export async function toggleLike(userId: string, postId: string): Promise<{ ok: boolean; liked?: boolean; likeCount?: number; error?: string }> {
   const admin = createAdminClient()
+  // 블라인드(hidden) 글에는 좋아요 불가
+  const { data: target } = await admin.from('community_posts').select('status').eq('id', postId).maybeSingle()
+  if (!target || target.status !== 'active') return { ok: false, error: 'not_found' }
   const { data: existing } = await admin.from('community_post_likes').select('user_id').eq('post_id', postId).eq('user_id', userId).maybeSingle()
   let liked: boolean
   if (existing) { await admin.from('community_post_likes').delete().eq('post_id', postId).eq('user_id', userId); liked = false }
@@ -353,8 +370,8 @@ export async function addComment(userId: string, postId: string, body: string, p
   const text = body.trim()
   if (!text) return { ok: false, error: 'empty' }
   if (await findBannedWord(text)) return { ok: false, error: 'banned_word' }
-  const { data: post } = await admin.from('community_posts').select('id, author_id, community_id').eq('id', postId).maybeSingle()
-  if (!post) return { ok: false, error: 'not_found' }
+  const { data: post } = await admin.from('community_posts').select('id, author_id, community_id, status').eq('id', postId).maybeSingle()
+  if (!post || post.status !== 'active') return { ok: false, error: 'not_found' }
   // 대댓글이면 부모가 같은 글의 최상위 댓글인지 검증 (1단계만 허용)
   let parentAuthorId: string | null = null
   if (parentId) {
@@ -417,6 +434,9 @@ function rowToComment(r: CommentRow): CommunityPostComment {
 // 댓글 목록 — 최상위 + replies 중첩, 현재 유저 좋아요 여부 채움
 export async function listComments(postId: string, userId?: string): Promise<CommunityPostComment[]> {
   const admin = createAdminClient()
+  // 블라인드(hidden) 글의 댓글은 노출하지 않음
+  const { data: post } = await admin.from('community_posts').select('status').eq('id', postId).maybeSingle()
+  if (!post || post.status !== 'active') return []
   const { data } = await admin
     .from('community_post_comments')
     .select('id, post_id, parent_id, user_id, body, created_at, edited_at, like_count, profiles!user_id(username, display_name, avatar_url, avatar_hue)')
