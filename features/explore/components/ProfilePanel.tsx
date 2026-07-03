@@ -734,25 +734,24 @@ function SelfSettingsMenu() {
               <p className="text-[11px] text-zinc-500">로그인 계정</p>
               <p className="text-xs text-white truncate mt-1">{user?.email}</p>
             </div>
-            {/* 보유 크레딧 (표시) */}
-            <div className="flex items-center justify-between px-4 pt-3 pb-2">
-              <span className="flex items-center gap-1.5 text-[11px] text-zinc-500">
-                <Image src="/Sparkles.svg" alt="" width={13} height={13} style={{ filter: 'invert(0.6)' }} />
-                AI 크레딧
-              </span>
-              <span className="text-sm font-semibold text-white tabular-nums">{credits ?? '—'}</span>
-            </div>
-            {/* 크레딧 충전 + 플랜 업그레이드 */}
-            <div className="px-3 pb-3 space-y-2 border-b border-white/[0.06]">
+            {/* 크레딧 표시(짙은 회색 프레임) + 충전 + 플랜 업그레이드 */}
+            <div className="px-3 pt-3 pb-3 space-y-2 border-b border-white/[0.06]">
+              <div className="flex items-center justify-between px-3 py-3 rounded-lg bg-[#2C313D]">
+                <span className="flex items-center gap-1.5 text-sm text-white">
+                  <Image src="/Sparkles.svg" alt="" width={15} height={15} style={{ filter: 'invert(1)' }} />
+                  크레딧
+                </span>
+                <span className="text-sm font-semibold text-white tabular-nums">{credits ?? '—'}</span>
+              </div>
               <button
                 onClick={() => { setOpen(false); window.dispatchEvent(new Event('open-credit-purchase')) }}
-                className="w-full py-2 rounded-lg bg-white hover:bg-zinc-100 text-zinc-900 text-sm font-semibold transition active:scale-[0.98]"
+                className="w-full py-3 rounded-lg bg-white hover:bg-zinc-100 text-zinc-900 text-sm font-semibold transition active:scale-[0.98]"
               >
                 크레딧 충전하기
               </button>
               <button
                 onClick={() => { setOpen(false); window.dispatchEvent(new CustomEvent('open-coming-soon', { detail: 'sidebar' })) }}
-                className="w-full py-2 rounded-lg bg-gradient-to-r from-violet-600 to-blue-500 hover:opacity-90 text-white text-sm font-semibold transition active:scale-[0.98]"
+                className="w-full py-3 rounded-lg bg-violet-600 hover:bg-violet-500 text-white text-sm font-semibold transition active:scale-[0.98]"
               >
                 플랜 업그레이드
               </button>

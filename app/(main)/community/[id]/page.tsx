@@ -1,4 +1,4 @@
-// 커뮤니티(카페) 상세 — 헤더·가입/탈퇴·글쓰기(멤버)·피드·좋아요·댓글·고정/삭제(관리)
+// 커뮤니티(그룹 피드형·밴드류) 상세 — 헤더·가입/탈퇴·글쓰기(멤버)·피드·좋아요·댓글·고정/삭제(관리)
 'use client'
 
 import { useState, useEffect, useCallback, useRef } from 'react'
@@ -94,11 +94,13 @@ export default function CommunityCafePage() {
   const [comments, setComments] = useState<Record<string, CommunityPostComment[]>>({})
   const [openComment, setOpenComment] = useState<string | null>(null)
   const [commentText, setCommentText] = useState('')
+  const commentSubmittingRef = useRef(false)
   const [moreOpenId, setMoreOpenId] = useState<string | null>(null)
   const [editingPost, setEditingPost] = useState<CommunityPost | null>(null)
   const [reportPostId, setReportPostId] = useState<string | null>(null)
   const [confirmDelPost, setConfirmDelPost] = useState<CommunityPost | null>(null)
   const [confirmKick, setConfirmKick] = useState<CommunityPost | null>(null)
+  const [confirmLeave, setConfirmLeave] = useState(false)
   const [highlightPostId, setHighlightPostId] = useState<string | null>(null)
   const postRefs = useRef<Record<string, HTMLDivElement | null>>({})
   const hasScrolledRef = useRef(false)
@@ -195,8 +197,14 @@ export default function CommunityCafePage() {
   }
   async function toggleLike(p: CommunityPost) {
     if (!memberGate()) return
-    setPosts(prev => prev?.map(x => x.id === p.id ? { ...x, liked: !x.liked, likeCount: x.likeCount + (x.liked ? -1 : 1) } : x) ?? null)
-    await fetch(`/api/community-posts/${p.id}/like`, { method: 'POST' }).catch(() => {})
+    // 낙관적 업데이트 + 실패 시 롤백
+    const apply = (like: boolean) => setPosts(prev => prev?.map(x => x.id === p.id ? { ...x, liked: like, likeCount: x.likeCount + (like ? 1 : -1) } : x) ?? null)
+    const wasLiked = !!p.liked
+    apply(!wasLiked)
+    try {
+      const res = await fetch(`/api/community-posts/${p.id}/like`, { method: 'POST' })
+      if (!res.ok) apply(wasLiked)
+    } catch { apply(wasLiked) }
   }
   async function togglePin(p: CommunityPost) {
     const res = await fetch(`/api/community-posts/${p.id}/pin`, { method: 'POST' })
@@ -246,13 +254,16 @@ export default function CommunityCafePage() {
   }
   async function addComment(postId: string) {
     if (!memberGate()) return
-    if (!commentText.trim()) return
-    const res = await fetch(`/api/community-posts/${postId}/comments`, {
-      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ body: commentText.trim() }),
-    })
-    if (!res.ok) { const j = await res.json().catch(() => ({})); toast.error(j.error === 'banned_word' ? '부적절한 표현이 포함되어 있어요' : '댓글 작성에 실패했어요'); return }
-    setCommentText('')
-    await refetchComments(postId)
+    if (!commentText.trim() || commentSubmittingRef.current) return  // 중복 제출 가드
+    commentSubmittingRef.current = true
+    try {
+      const res = await fetch(`/api/community-posts/${postId}/comments`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ body: commentText.trim() }),
+      })
+      if (!res.ok) { const j = await res.json().catch(() => ({})); toast.error(j.error === 'banned_word' ? '부적절한 표현이 포함되어 있어요' : '댓글 작성에 실패했어요'); return }
+      setCommentText('')
+      await refetchComments(postId)
+    } finally { commentSubmittingRef.current = false }
   }
 
   if (community === null && posts !== null) {
@@ -286,7 +297,7 @@ export default function CommunityCafePage() {
     const roleBtn = isManager
       ? <button onClick={() => setEditOpen(true)} className={editCls}><Image src="/Edit.svg" alt="" width={14} height={14} style={{ filter: 'invert(1)' }} /> 수정</button>
       : isMember
-        ? <button onClick={busy ? undefined : leave} className={leaveCls}>탈퇴하기</button>
+        ? <button onClick={() => setConfirmLeave(true)} className={leaveCls}>탈퇴하기</button>
         : <button onClick={busy ? undefined : join} className={joinCls}>가입하기</button>
     return <div className="flex items-center gap-2">{roleBtn}{shareBtn}</div>
   }
@@ -588,7 +599,7 @@ export default function CommunityCafePage() {
                       />
                     ))}
                     <div className="relative pt-1">
-                      <input value={commentText} onChange={(e) => setCommentText(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter') addComment(p.id) }} placeholder="댓글 달기" className="w-full bg-white/[0.04] border border-white/[0.08] rounded-full pl-4 pr-12 py-2.5 text-sm text-white placeholder:text-zinc-600 focus:outline-none focus:ring-1 focus:ring-violet-500" />
+                      <input value={commentText} onChange={(e) => setCommentText(e.target.value)} maxLength={500} onKeyDown={(e) => { if (e.key === 'Enter' && !e.nativeEvent.isComposing) addComment(p.id) }} placeholder="댓글 달기" className="w-full bg-white/[0.04] border border-white/[0.08] rounded-full pl-4 pr-12 py-2.5 text-sm text-white placeholder:text-zinc-600 focus:outline-none focus:ring-1 focus:ring-violet-500" />
                       <button onClick={() => addComment(p.id)} aria-label="등록"
                         className={`absolute right-1.5 top-1/2 mt-0.5 w-8 h-8 rounded-full bg-violet-600 hover:bg-violet-500 flex items-center justify-center transition duration-200 active:scale-90 ${commentText.trim() ? 'opacity-100 scale-100 -translate-y-1/2' : 'opacity-0 scale-50 -translate-y-1/2 pointer-events-none'}`}>
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"><path d="M12 19V5M5 12l7-7 7 7" /></svg>
@@ -604,6 +615,7 @@ export default function CommunityCafePage() {
 
       <ConfirmModal open={!!confirmDelPost} title="이 글을 정말 삭제하시겠어요?" description="삭제 시 등록된 댓글도 함께 삭제되며 되돌릴 수 없어요." confirmLabel="삭제하기" cancelLabel="아니요" variant="danger" onClose={() => setConfirmDelPost(null)} onConfirm={() => { if (confirmDelPost) del(confirmDelPost); setConfirmDelPost(null) }} />
       <ConfirmModal open={!!confirmKick} title={`${confirmKick?.authorName ?? '이 사용자'}님을 강퇴할까요?`} description="커뮤니티에서 내보내지고 알림이 전송돼요. 이 회원은 다시 가입할 수 있어요." confirmLabel="강퇴하기" cancelLabel="아니요" variant="danger" onClose={() => setConfirmKick(null)} onConfirm={() => { if (confirmKick) kick(confirmKick); setConfirmKick(null) }} />
+      <ConfirmModal open={confirmLeave} title="이 커뮤니티를 정말 탈퇴하시겠어요?" description="탈퇴하면 이 커뮤니티에 다시 가입해야 글·댓글을 남길 수 있어요." confirmLabel="탈퇴하기" cancelLabel="아니요" variant="danger" busy={busy} onClose={() => setConfirmLeave(false)} onConfirm={() => { setConfirmLeave(false); leave() }} />
       {reportPostId && <CommunityPostReportModal postId={reportPostId} onClose={() => setReportPostId(null)} onSubmitted={() => reportDone(reportPostId)} />}
       {editOpen && community && <CommunityEditModal community={community} onClose={() => setEditOpen(false)} onSaved={(c) => setCommunity(c)} onClosed={() => router.push('/community')} />}
       {membersOpen && community && <CommunityMembersModal members={members} managerId={community.managerId} onClose={() => setMembersOpen(false)} />}

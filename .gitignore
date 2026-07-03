@@ -57,3 +57,4 @@ next-env.d.ts
 /scripts/fix-comment-count.mjs
 # 기획 아티팩트(앱 무관)
 /community-plan.html
+.obsidian/

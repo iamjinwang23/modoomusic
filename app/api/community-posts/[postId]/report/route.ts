@@ -28,6 +28,11 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ pos
   if (!user) return NextResponse.json({ error: '로그인이 필요해요', code: 'UNAUTHORIZED' }, { status: 401 })
 
   const admin = createAdminClient()
+  // 셀프 신고 차단 — 본인 글은 신고 불가
+  const { data: post } = await admin.from('community_posts').select('author_id').eq('id', postId).maybeSingle()
+  if (!post) return NextResponse.json({ error: '글을 찾을 수 없어요', code: 'NOT_FOUND' }, { status: 404 })
+  if (post.author_id === user.id) return NextResponse.json({ error: '본인 글은 신고할 수 없어요', code: 'SELF' }, { status: 400 })
+
   const { error } = await admin
     .from('community_post_reports')
     .insert({ reporter_id: user.id, post_id: postId, reason })

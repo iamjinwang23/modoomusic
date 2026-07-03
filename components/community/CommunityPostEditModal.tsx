@@ -112,7 +112,7 @@ export function CommunityPostEditModal({ post, communityId, onClose, onSaved }: 
         </div>
 
         <div className="flex-1 overflow-y-auto px-6 py-5 space-y-3">
-          <textarea ref={contentRef} value={content} onChange={(e) => setContent(e.target.value)} maxLength={2000} autoFocus placeholder="내용을 입력하세요"
+          <textarea ref={contentRef} value={content} onChange={(e) => setContent(e.target.value)} maxLength={500} autoFocus placeholder="내용을 입력하세요"
             className="w-full bg-transparent border-0 p-0 text-sm text-zinc-200 leading-relaxed placeholder:text-zinc-600 focus:outline-none resize-none overflow-y-auto" />
 
           {/* 첨부가 있던 글: 원글 형태 그대로 미리보기(읽기 전용). 첨부는 수정 불가, 본문만 편집. */}

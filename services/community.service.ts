@@ -94,8 +94,8 @@ export async function updateCommunity(
     if (name.length < 2 || name.length > 30) return { ok: false, error: 'invalid_name' }
     update.name = name
   }
-  if (patch.topic !== undefined) update.topic = patch.topic?.trim() || null
-  if (patch.description !== undefined) update.description = patch.description?.trim() || null
+  if (patch.topic !== undefined) update.topic = patch.topic?.trim().slice(0, 40) || null
+  if (patch.description !== undefined) update.description = patch.description?.trim().slice(0, 500) || null
   if (patch.coverImage !== undefined) update.cover_image = patch.coverImage
   if (patch.coverFocus !== undefined) update.cover_focus = patch.coverFocus
   if (patch.avatarImage !== undefined) update.avatar_image = patch.avatarImage
@@ -149,6 +149,9 @@ export async function kickMember(userId: string, communityId: string, targetUser
   if (!c) return { ok: false, error: 'not_found' }
   if (c.manager_id !== userId) return { ok: false, error: 'forbidden' }
   if (targetUserId === c.manager_id) return { ok: false, error: 'cannot_kick_manager' }
+  // 대상이 실제 멤버인지 확인 후 제거 — 비멤버에 대한 헛된 알림 방지
+  const { data: mem } = await admin.from('community_members').select('user_id').eq('community_id', communityId).eq('user_id', targetUserId).maybeSingle()
+  if (!mem) return { ok: false, error: 'not_member' }
   await admin.from('community_members').delete().eq('community_id', communityId).eq('user_id', targetUserId)
   await notifyCommunityModeration(targetUserId, '커뮤니티에서 내보내졌어요', `'${c.name}' 커뮤니티에서 내보내졌어요.`, `/community/${communityId}`)
   return { ok: true }

@@ -245,25 +245,24 @@ export default function MainShellLayout({ children }: { children: React.ReactNod
                   <>
                     <div className="fixed inset-0 z-[54]" onClick={() => setUserMenuOpen(false)} />
                     <div className="absolute left-10 top-full mt-1 z-[55] w-56 bg-[#21252E] border border-white/[0.08] rounded-xl shadow-xl overflow-hidden">
-                      {/* 보유 크레딧 (표시) */}
-                      <div className="flex items-center justify-between px-4 pt-3 pb-2">
-                        <span className="flex items-center gap-1.5 text-[11px] text-zinc-500">
-                          <Image src="/Sparkles.svg" alt="" width={13} height={13} style={{ filter: 'invert(0.6)' }} />
-                          AI 크레딧
-                        </span>
-                        <span className="text-sm font-semibold text-white tabular-nums">{credits ?? '—'}</span>
-                      </div>
-                      {/* 크레딧 충전 + 플랜 업그레이드 */}
-                      <div className="px-3 pb-3 space-y-2 border-b border-white/[0.06]">
+                      {/* 크레딧 표시(짙은 회색 프레임) + 충전 + 플랜 업그레이드 */}
+                      <div className="px-3 pt-3 pb-3 space-y-2 border-b border-white/[0.06]">
+                        <div className="flex items-center justify-between px-3 py-3 rounded-lg bg-[#2C313D]">
+                          <span className="flex items-center gap-1.5 text-sm text-white">
+                            <Image src="/Sparkles.svg" alt="" width={15} height={15} style={{ filter: 'invert(1)' }} />
+                            크레딧
+                          </span>
+                          <span className="text-sm font-semibold text-white tabular-nums">{credits ?? '—'}</span>
+                        </div>
                         <button
                           onClick={() => { setUserMenuOpen(false); window.dispatchEvent(new Event('open-credit-purchase')) }}
-                          className="w-full py-2 rounded-lg bg-white hover:bg-zinc-100 text-zinc-900 text-sm font-semibold transition active:scale-[0.98]"
+                          className="w-full py-3 rounded-lg bg-white hover:bg-zinc-100 text-zinc-900 text-sm font-semibold transition active:scale-[0.98]"
                         >
                           크레딧 충전하기
                         </button>
                         <button
                           onClick={() => { setUserMenuOpen(false); setComingSoon('sidebar') }}
-                          className="w-full py-2 rounded-lg bg-gradient-to-r from-violet-600 to-blue-500 hover:opacity-90 text-white text-sm font-semibold transition active:scale-[0.98]"
+                          className="w-full py-3 rounded-lg bg-violet-600 hover:bg-violet-500 text-white text-sm font-semibold transition active:scale-[0.98]"
                         >
                           플랜 업그레이드
                         </button>
@@ -275,13 +274,13 @@ export default function MainShellLayout({ children }: { children: React.ReactNod
                           const username = profile?.username ?? user.user_metadata?.username ?? user.email?.split('@')[0] ?? user.id.slice(0, 8)
                           router.push(`/profile/${username}`)
                         }}
-                        className="w-full text-left px-4 py-2.5 text-sm text-white hover:bg-white/[0.04] transition-colors"
+                        className="w-full text-left px-4 py-3 text-sm text-white hover:bg-white/[0.04] transition-colors"
                       >
                         내 프로필
                       </button>
                       <button
                         onClick={() => { setUserMenuOpen(false); router.push('/account') }}
-                        className="w-full text-left px-4 py-2.5 text-sm text-white hover:bg-white/[0.04] transition-colors"
+                        className="w-full text-left px-4 py-3 text-sm text-white hover:bg-white/[0.04] transition-colors"
                       >
                         내 계정
                       </button>
@@ -293,7 +292,7 @@ export default function MainShellLayout({ children }: { children: React.ReactNod
                           router.push('/')
                           signOut()
                         }}
-                        className="w-full text-left px-4 py-2.5 text-sm text-zinc-400 hover:text-white hover:bg-white/[0.04] transition-colors"
+                        className="w-full text-left px-4 py-3 text-sm text-zinc-400 hover:text-white hover:bg-white/[0.04] transition-colors"
                       >
                         로그아웃
                       </button>
@@ -392,7 +391,7 @@ export default function MainShellLayout({ children }: { children: React.ReactNod
                     <Link
                       href="/announcements"
                       onClick={() => setLegalMenuOpen(false)}
-                      className="flex items-center gap-2.5 px-4 py-2.5 text-sm text-zinc-300 hover:text-white hover:bg-white/[0.04] transition-colors border-b border-white/[0.06]"
+                      className="flex items-center gap-2.5 px-4 py-3 text-sm text-zinc-300 hover:text-white hover:bg-white/[0.04] transition-colors border-b border-white/[0.06]"
                     >
                       <Image src="/Sparkles.svg" alt="" width={16} height={16} style={{ filter: 'invert(1) brightness(0.85)' }} />
                       What&apos;s New
@@ -408,7 +407,7 @@ export default function MainShellLayout({ children }: { children: React.ReactNod
                         target="_blank"
                         rel="noopener noreferrer"
                         onClick={() => setLegalMenuOpen(false)}
-                        className="flex items-center justify-between gap-2 px-4 py-2.5 text-sm text-zinc-300 hover:text-white hover:bg-white/[0.04] transition-colors"
+                        className="flex items-center justify-between gap-2 px-4 py-3 text-sm text-zinc-300 hover:text-white hover:bg-white/[0.04] transition-colors"
                       >
                         <span className="flex items-center gap-2.5">
                           <Image src={icon} alt="" width={16} height={16} style={{ filter: 'invert(1) brightness(0.85)' }} />
@@ -422,7 +421,7 @@ export default function MainShellLayout({ children }: { children: React.ReactNod
                       target="_blank"
                       rel="noopener noreferrer"
                       onClick={() => setLegalMenuOpen(false)}
-                      className="flex items-center justify-between gap-2 px-4 py-2.5 text-sm text-zinc-300 hover:text-white hover:bg-white/[0.04] transition-colors border-t border-white/[0.06]"
+                      className="flex items-center justify-between gap-2 px-4 py-3 text-sm text-zinc-300 hover:text-white hover:bg-white/[0.04] transition-colors border-t border-white/[0.06]"
                     >
                       <span className="flex items-center gap-2.5">
                         <Image src="/Help.png" alt="" width={16} height={16} style={{ filter: 'invert(1) brightness(0.85)' }} />
@@ -435,7 +434,7 @@ export default function MainShellLayout({ children }: { children: React.ReactNod
                       target="_blank"
                       rel="noopener noreferrer"
                       onClick={() => setLegalMenuOpen(false)}
-                      className="flex items-center justify-between gap-2 px-4 py-2.5 text-sm text-zinc-300 hover:text-white hover:bg-white/[0.04] transition-colors"
+                      className="flex items-center justify-between gap-2 px-4 py-3 text-sm text-zinc-300 hover:text-white hover:bg-white/[0.04] transition-colors"
                     >
                       <span className="flex items-center gap-2.5">
                         <Image src="/faq.png" alt="" width={16} height={16} style={{ filter: 'invert(1) brightness(0.85)' }} />
@@ -446,7 +445,7 @@ export default function MainShellLayout({ children }: { children: React.ReactNod
                     <a
                       href="mailto:bee202408@gmail.com"
                       onClick={() => setLegalMenuOpen(false)}
-                      className="flex items-center gap-2.5 px-4 py-2.5 text-sm text-zinc-300 hover:text-white hover:bg-white/[0.04] transition-colors"
+                      className="flex items-center gap-2.5 px-4 py-3 text-sm text-zinc-300 hover:text-white hover:bg-white/[0.04] transition-colors"
                     >
                       <Image src="/costumer.png" alt="" width={16} height={16} style={{ filter: 'invert(1) brightness(0.85)' }} />
                       문의하기

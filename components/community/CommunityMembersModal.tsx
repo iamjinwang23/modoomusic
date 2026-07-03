@@ -1,5 +1,6 @@
 'use client'
 // 멤버 목록 모달 — 멤버 스택 클릭 시. 매니저 상단·칩 표기.
+import { createPortal } from 'react-dom'
 import Image from 'next/image'
 import { profileColor } from '@/utils/profileColor'
 import type { CommunityMember } from '@/types/domain'
@@ -22,7 +23,8 @@ export function CommunityMembersModal({ members, managerId, onClose }: {
     onClose()
   }
 
-  return (
+  if (typeof document === 'undefined') return null
+  return createPortal(
     <div className="fixed inset-0 z-[80] flex items-end md:items-center justify-center md:p-6">
       <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={onClose} />
       <div className="relative bg-[#181B22] border border-white/[0.10] rounded-t-2xl md:rounded-2xl w-full max-w-full md:max-w-[420px] max-h-[80vh] flex flex-col shadow-2xl" style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}>
@@ -45,6 +47,7 @@ export function CommunityMembersModal({ members, managerId, onClose }: {
           ))}
         </div>
       </div>
-    </div>
+    </div>,
+    document.body,
   )
 }

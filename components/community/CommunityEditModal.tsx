@@ -1,6 +1,7 @@
 'use client'
 // 커뮤니티 정보 수정(매니저) — 대표 이미지·커버·이름·주제·소개. 이미지는 즉시 업로드/반영.
 import { useRef, useState } from 'react'
+import { createPortal } from 'react-dom'
 import Image from 'next/image'
 import { toast } from '@/components/toast/toast'
 import { GRAY_COVER, GRAY_AVATAR, GRAY_AVATAR_TEXT } from '@/components/community/hubCards'
@@ -92,7 +93,8 @@ export function CommunityEditModal({ community, onClose, onSaved, onClosed }: {
     else toast.error('폐쇄에 실패했어요')
   }
 
-  return (
+  if (typeof document === 'undefined') return null
+  return createPortal(
     <div className="fixed inset-0 z-[80] flex md:items-center justify-center">
       <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={onClose} />
       <div className="relative z-10 w-full h-full md:h-auto md:max-w-[480px] md:max-h-[85vh] md:mx-4 bg-[#181B22] md:border border-white/[0.10] rounded-none md:rounded-2xl shadow-2xl flex flex-col" style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}>
@@ -193,6 +195,7 @@ export function CommunityEditModal({ community, onClose, onSaved, onClosed }: {
         onConfirm={(blob) => { setCropState(null); uploadAvatarBlob(blob) }}
         onConfirmFocus={(pos) => { const f = cropState?.file; setCropState(null); if (f) uploadCover(f, pos) }}
       />
-    </div>
+    </div>,
+    document.body,
   )
 }

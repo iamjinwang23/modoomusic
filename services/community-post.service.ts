@@ -92,6 +92,9 @@ function rowToPost(r: PostRow): CommunityPost {
   }
 }
 
+// 서버측 길이 상한 — 클라 maxLength 우회(직접 API 호출) 대비. UI와 동일 기준.
+const MAX = { content: 500, comment: 500, pollOption: 40 } as const
+
 // 링크는 http(s)만 저장 — javascript: 등 스킴이 href로 렌더되는 저장형 XSS 차단
 function toSafeHttpUrl(raw?: string | null): string | null {
   const t = raw?.trim()
@@ -135,10 +138,10 @@ export async function createPost(
     const { data: c } = await admin.from('communities').select('manager_id').eq('id', communityId).maybeSingle()
     if (c?.manager_id !== userId) return { ok: false, error: 'not_member' }
   }
-  const content = input.content.trim()
+  const content = input.content.trim().slice(0, MAX.content)
   const imageUrls = (input.imageUrls ?? []).slice(0, 10)
   const linkUrl = toSafeHttpUrl(input.linkUrl)
-  const pollOptions = input.poll ? input.poll.options.map((o) => o.trim()).filter(Boolean).slice(0, 4) : []
+  const pollOptions = input.poll ? input.poll.options.map((o) => o.trim().slice(0, MAX.pollOption)).filter(Boolean).slice(0, 4) : []
   const hasPoll = pollOptions.length >= 2
   if (!content && imageUrls.length === 0 && !input.songId && !linkUrl && !hasPoll) return { ok: false, error: 'empty' }
   if (await findBannedWord(content, ...pollOptions)) return { ok: false, error: 'banned_word' }
@@ -280,8 +283,10 @@ export async function editPost(
   pollOptions?: string[] | null,
 ): Promise<{ ok: true; post: CommunityPost } | { ok: false; error: string }> {
   const admin = createAdminClient()
-  const text = content.trim()
-  if (text && await findBannedWord(text)) return { ok: false, error: 'banned_word' }
+  const text = content.trim().slice(0, MAX.content)
+  // 본문 + 투표 옵션 금칙어 검사 (수정 시 투표 옵션 미검사 이슈 픽스)
+  const editPollOpts = pollOptions ? pollOptions.map(o => o.trim().slice(0, MAX.pollOption)).filter(Boolean) : null
+  if (await findBannedWord(text, ...(editPollOpts ?? []))) return { ok: false, error: 'banned_word' }
   const { data: post } = await admin.from('community_posts').select('author_id, song_id, image_url, image_urls, link_url').eq('id', postId).maybeSingle()
   if (!post) return { ok: false, error: 'not_found' }
   if (post.author_id !== userId) return { ok: false, error: 'forbidden' }
@@ -301,7 +306,7 @@ export async function editPost(
   if (error) { console.error('[community-post.edit]', error.message); return { ok: false, error: 'internal' } }
   // 투표 처리
   if (pollOptions !== undefined) {
-    const validOpts = (pollOptions ?? []).map(o => o.trim()).filter(Boolean)
+    const validOpts = editPollOpts ?? []
     if (validOpts.length >= 2) {
       // upsert — 기존 투표 있으면 옵션 업데이트, 없으면 새로 생성
       const { data: existing } = await admin.from('community_post_polls').select('post_id').eq('post_id', postId).maybeSingle()
@@ -319,7 +324,7 @@ export async function editPost(
   const result = rowToPost(data as PostRow)
   // 투표 정보 다시 채우기
   if (pollOptions !== undefined) {
-    const validOpts = (pollOptions ?? []).map(o => o.trim()).filter(Boolean)
+    const validOpts = editPollOpts ?? []
     if (validOpts.length >= 2) {
       const { data: poll } = await admin.from('community_post_polls').select('options, ends_at').eq('post_id', postId).maybeSingle()
       if (poll) result.poll = { options: poll.options as string[], endsAt: poll.ends_at as string, counts: (poll.options as string[]).map(() => 0), totalVotes: 0, myVote: null }
@@ -367,7 +372,7 @@ export async function toggleLike(userId: string, postId: string): Promise<{ ok: 
 // 댓글 작성 — 로그인 유저 누구나. parentId 있으면 대댓글.
 export async function addComment(userId: string, postId: string, body: string, parentId?: string | null): Promise<{ ok: boolean; error?: string }> {
   const admin = createAdminClient()
-  const text = body.trim()
+  const text = body.trim().slice(0, MAX.comment)
   if (!text) return { ok: false, error: 'empty' }
   if (await findBannedWord(text)) return { ok: false, error: 'banned_word' }
   const { data: post } = await admin.from('community_posts').select('id, author_id, community_id, status').eq('id', postId).maybeSingle()
