@@ -182,7 +182,7 @@ export function CommunityEditModal({ community, onClose, onSaved, onClosed }: {
         </div>
       </div>
 
-      <ConfirmModal open={confirmClose} title="이 커뮤니티를 정말 폐쇄하시겠어요?" description="모든 글·멤버가 삭제되며 되돌릴 수 없어요." confirmLabel="폐쇄하기" cancelLabel="아니요" variant="danger" onClose={() => setConfirmClose(false)} onConfirm={handleCloseCommunity} />
+      <ConfirmModal open={confirmClose} zClassName="z-[90]" title="이 커뮤니티를 정말 폐쇄하시겠어요?" description="모든 글·멤버가 삭제되며 되돌릴 수 없어요." confirmLabel="폐쇄하기" cancelLabel="아니요" variant="danger" onClose={() => setConfirmClose(false)} onConfirm={handleCloseCommunity} />
 
       <CropModal
         open={!!cropState}
