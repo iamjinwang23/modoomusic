@@ -1,6 +1,6 @@
 // 커뮤니티 글(뉴스피드) — 작성(멤버 가드)·피드·삭제·고정(매니저)·좋아요·댓글.
 import { createAdminClient } from '@/lib/supabase/admin'
-import { notifyCommunityModeration } from '@/services/community.service'
+import { notifyCommunityModeration, isCommunityClosing } from '@/services/community.service'
 import { sendPushToUser } from '@/services/push.service'
 import { findBannedWord } from '@/services/moderation.service'
 import type { CommunityPost, CommunityPostComment, CommunityPoll } from '@/types/domain'
@@ -133,6 +133,7 @@ export async function createPost(
   input: { content: string; imageUrls?: string[] | null; linkUrl?: string | null; songId?: string | null; poll?: { options: string[] } | null },
 ): Promise<{ ok: true; post: CommunityPost } | { ok: false; error: string }> {
   const admin = createAdminClient()
+  if (await isCommunityClosing(admin, communityId)) return { ok: false, error: 'community_closing' }  // 폐쇄 유예 = 읽기전용
   if (!(await isMember(admin, communityId, userId))) {
     // 매니저는 멤버 행이 없어도 글 가능 (자동가입 누락 안전망)
     const { data: c } = await admin.from('communities').select('manager_id').eq('id', communityId).maybeSingle()
@@ -199,8 +200,9 @@ async function fillPolls(admin: ReturnType<typeof createAdminClient>, posts: Com
 export async function votePoll(userId: string, postId: string, optionIndex: number): Promise<{ ok: boolean; poll?: CommunityPoll; error?: string }> {
   const admin = createAdminClient()
   // 블라인드(hidden) 글에는 투표 불가
-  const { data: post } = await admin.from('community_posts').select('status').eq('id', postId).maybeSingle()
+  const { data: post } = await admin.from('community_posts').select('status, community_id').eq('id', postId).maybeSingle()
   if (!post || post.status !== 'active') return { ok: false, error: 'not_found' }
+  if (await isCommunityClosing(admin, post.community_id as string)) return { ok: false, error: 'community_closing' }
   const { data: poll } = await admin.from('community_post_polls').select('options, ends_at').eq('post_id', postId).maybeSingle()
   if (!poll) return { ok: false, error: 'not_found' }
   const options = poll.options as string[]
@@ -349,8 +351,9 @@ export async function togglePin(userId: string, postId: string): Promise<{ ok: b
 export async function toggleLike(userId: string, postId: string): Promise<{ ok: boolean; liked?: boolean; likeCount?: number; error?: string }> {
   const admin = createAdminClient()
   // 블라인드(hidden) 글에는 좋아요 불가
-  const { data: target } = await admin.from('community_posts').select('status').eq('id', postId).maybeSingle()
+  const { data: target } = await admin.from('community_posts').select('status, community_id').eq('id', postId).maybeSingle()
   if (!target || target.status !== 'active') return { ok: false, error: 'not_found' }
+  if (await isCommunityClosing(admin, target.community_id as string)) return { ok: false, error: 'community_closing' }
   const { data: existing } = await admin.from('community_post_likes').select('user_id').eq('post_id', postId).eq('user_id', userId).maybeSingle()
   let liked: boolean
   if (existing) { await admin.from('community_post_likes').delete().eq('post_id', postId).eq('user_id', userId); liked = false }
@@ -377,6 +380,7 @@ export async function addComment(userId: string, postId: string, body: string, p
   if (await findBannedWord(text)) return { ok: false, error: 'banned_word' }
   const { data: post } = await admin.from('community_posts').select('id, author_id, community_id, status').eq('id', postId).maybeSingle()
   if (!post || post.status !== 'active') return { ok: false, error: 'not_found' }
+  if (await isCommunityClosing(admin, post.community_id as string)) return { ok: false, error: 'community_closing' }
   // 대댓글이면 부모가 같은 글의 최상위 댓글인지 검증 (1단계만 허용)
   let parentAuthorId: string | null = null
   if (parentId) {
@@ -468,8 +472,10 @@ export async function listComments(postId: string, userId?: string): Promise<Com
 // 댓글 좋아요 토글 — 로그인 유저 누구나
 export async function toggleCommentLike(userId: string, commentId: string): Promise<{ ok: boolean; liked?: boolean; likeCount?: number; error?: string }> {
   const admin = createAdminClient()
-  const { data: c } = await admin.from('community_post_comments').select('id').eq('id', commentId).maybeSingle()
+  const { data: c } = await admin.from('community_post_comments').select('id, post_id').eq('id', commentId).maybeSingle()
   if (!c) return { ok: false, error: 'not_found' }
+  const { data: post } = await admin.from('community_posts').select('community_id').eq('id', c.post_id).maybeSingle()
+  if (post && await isCommunityClosing(admin, post.community_id as string)) return { ok: false, error: 'community_closing' }
   const { data: existing } = await admin.from('community_post_comment_likes').select('user_id').eq('comment_id', commentId).eq('user_id', userId).maybeSingle()
   let liked: boolean
   if (existing) { await admin.from('community_post_comment_likes').delete().eq('comment_id', commentId).eq('user_id', userId); liked = false }
@@ -508,4 +514,47 @@ export async function deleteComment(userId: string, commentId: string): Promise<
   if (!allowed) return { ok: false, error: 'forbidden' }
   await admin.from('community_post_comments').delete().eq('id', commentId)
   return { ok: true }
+}
+
+export interface ExportPost {
+  content: string
+  images: string[]
+  linkUrl: string | null
+  songTitle: string | null
+  songUrl: string | null
+  createdAt: string
+}
+export interface MemberExport {
+  community: { id: string; name: string }
+  exportedAt: string
+  posts: ExportPost[]
+}
+
+// 본인 글 내보내기 — 이 커뮤니티에서 내가 쓴 글을 사람이 읽을 수 있는 백업으로. §13.3 세이프가드 ③.
+// 멤버 가드는 라우트에서. 곡은 제목+오디오 URL, 이미지·링크는 URL 참조(개인 보관 콘텐츠는 폐쇄로 사라지지 않음).
+export async function exportMemberContent(userId: string, communityId: string): Promise<MemberExport | null> {
+  const admin = createAdminClient()
+  const { data: community } = await admin.from('communities').select('id, name').eq('id', communityId).maybeSingle()
+  if (!community) return null
+
+  const { data: posts } = await admin.from('community_posts')
+    .select('id, content, image_url, image_urls, link_url, created_at, songs!song_id(title, audio_url)')
+    .eq('community_id', communityId).eq('author_id', userId)
+    .order('created_at', { ascending: true })
+
+  return {
+    community: { id: community.id as string, name: community.name as string },
+    exportedAt: new Date().toISOString(),
+    posts: (posts ?? []).map((p) => {
+      const song = (p as { songs?: { title?: string | null; audio_url?: string | null } | null }).songs
+      return {
+        content: (p.content as string) ?? '',
+        images: ((p.image_urls as string[] | null) ?? (p.image_url ? [p.image_url as string] : [])),
+        linkUrl: (p.link_url as string | null) ?? null,
+        songTitle: song?.title ?? null,
+        songUrl: song?.audio_url ?? null,
+        createdAt: p.created_at as string,
+      }
+    }),
+  }
 }

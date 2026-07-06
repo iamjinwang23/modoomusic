@@ -23,6 +23,9 @@ interface CommunityRow {
   avatar_image: string | null
   member_count: number
   created_at: string
+  status?: 'open' | 'closing'
+  closing_at?: string | null
+  close_scheduled_at?: string | null
 }
 
 function rowToCommunity(r: CommunityRow): Community {
@@ -37,10 +40,22 @@ function rowToCommunity(r: CommunityRow): Community {
     avatarImage: r.avatar_image,
     memberCount: r.member_count,
     createdAt: r.created_at,
+    status: r.status ?? 'open',
+    closingAt: r.closing_at ?? null,
+    closeScheduledAt: r.close_scheduled_at ?? null,
   }
 }
 
-const SELECT = 'id, manager_id, name, topic, description, cover_image, cover_focus, avatar_image, member_count, created_at'
+const SELECT = 'id, manager_id, name, topic, description, cover_image, cover_focus, avatar_image, member_count, created_at, status, closing_at, close_scheduled_at'
+
+// 폐쇄 유예 기간 — 14일(§13.2 확정).
+const CLOSING_GRACE_MS = 14 * 24 * 60 * 60 * 1000
+
+// closing(폐쇄 유예) 커뮤니티는 읽기전용 — 신규 쓰기 차단 여부. status만 조회(쓰기 경로 가드용).
+export async function isCommunityClosing(admin: ReturnType<typeof createAdminClient>, communityId: string): Promise<boolean> {
+  const { data } = await admin.from('communities').select('status').eq('id', communityId).maybeSingle()
+  return data?.status === 'closing'
+}
 
 // 개설 — 1인 1개. 단, 관리자(is_admin)는 테스트·운영 위해 다중 개설 허용. 개설자 자동 가입.
 export async function createCommunity(
@@ -108,22 +123,111 @@ export async function updateCommunity(
   return { ok: true, community }
 }
 
-// 폐쇄 — 매니저만. cascade로 멤버·글·댓글·좋아요 삭제.
-export async function closeCommunity(userId: string, communityId: string): Promise<{ ok: boolean; error?: string }> {
+// 폐쇄 — 매니저만. §13.2 조건부:
+//   다른 멤버(매니저 외) 콘텐츠 0건 → 즉시 하드삭제(cascade).
+//   1건이라도 있으면 → 14일 유예(status=closing, 읽기전용) + 전 멤버 예고 알림. 스윕이 만료분 삭제.
+export async function closeCommunity(
+  userId: string,
+  communityId: string,
+): Promise<{ ok: boolean; error?: string; deleted?: boolean; closeScheduledAt?: string }> {
   const admin = createAdminClient()
-  const { data: c } = await admin.from('communities').select('manager_id').eq('id', communityId).maybeSingle()
+  const { data: c } = await admin.from('communities').select('manager_id, name, status').eq('id', communityId).maybeSingle()
   if (!c) return { ok: false, error: 'not_found' }
   if (c.manager_id !== userId) return { ok: false, error: 'forbidden' }
-  const { error } = await admin.from('communities').delete().eq('id', communityId)
+  if (c.status === 'closing') return { ok: false, error: 'already_closing' }
+
+  // 다른 멤버 콘텐츠 존재 여부 — 글(author != manager) 또는 댓글(user != manager, 이 커뮤니티 글에 달린).
+  // 오판 시 남의 콘텐츠를 즉시 삭제하게 되므로, 임베드 필터 대신 2-step으로 확실히 판정.
+  const { data: othersPost } = await admin.from('community_posts')
+    .select('id').eq('community_id', communityId).neq('author_id', userId).limit(1).maybeSingle()
+  let hasOthersContent = !!othersPost
+  if (!hasOthersContent) {
+    const { data: postRows } = await admin.from('community_posts').select('id').eq('community_id', communityId)
+    const postIds = (postRows ?? []).map((r) => r.id as string)
+    if (postIds.length > 0) {
+      const { data: othersComment } = await admin.from('community_post_comments')
+        .select('id').in('post_id', postIds).neq('user_id', userId).limit(1).maybeSingle()
+      hasOthersContent = !!othersComment
+    }
+  }
+
+  if (!hasOthersContent) {
+    // 즉시 하드삭제 — 보호할 남의 콘텐츠 없음(테스트 개설·회수용)
+    const { error } = await admin.from('communities').delete().eq('id', communityId)
+    if (error) { console.error('[community.close]', error.message); return { ok: false, error: 'internal' } }
+    return { ok: true, deleted: true }
+  }
+
+  // 14일 유예 — closing 전환 + 타임스탬프
+  const now = Date.now()
+  const closingAt = new Date(now).toISOString()
+  const closeScheduledAt = new Date(now + CLOSING_GRACE_MS).toISOString()
+  const { error } = await admin.from('communities')
+    .update({ status: 'closing', closing_at: closingAt, close_scheduled_at: closeScheduledAt })
+    .eq('id', communityId)
   if (error) { console.error('[community.close]', error.message); return { ok: false, error: 'internal' } }
+
+  await notifyClosing(admin, communityId, c.name as string, closeScheduledAt, userId)
+  return { ok: true, deleted: false, closeScheduledAt }
+}
+
+// 폐쇄 철회 — 유예 중(closing) 매니저가 open으로 복귀(오조작·마음 변경 대비, §13.2).
+export async function cancelClosing(userId: string, communityId: string): Promise<{ ok: boolean; error?: string }> {
+  const admin = createAdminClient()
+  const { data: c } = await admin.from('communities').select('manager_id, status').eq('id', communityId).maybeSingle()
+  if (!c) return { ok: false, error: 'not_found' }
+  if (c.manager_id !== userId) return { ok: false, error: 'forbidden' }
+  if (c.status !== 'closing') return { ok: false, error: 'not_closing' }
+  const { error } = await admin.from('communities')
+    .update({ status: 'open', closing_at: null, close_scheduled_at: null })
+    .eq('id', communityId)
+  if (error) { console.error('[community.cancelClosing]', error.message); return { ok: false, error: 'internal' } }
   return { ok: true }
+}
+
+// 스윕 — 유예 만료(close_scheduled_at <= now)된 closing 커뮤니티를 하드삭제(cascade). cron에서 호출.
+export async function sweepClosedCommunities(): Promise<{ swept: number }> {
+  const admin = createAdminClient()
+  const nowIso = new Date().toISOString()
+  const { data } = await admin.from('communities').select('id')
+    .eq('status', 'closing').lte('close_scheduled_at', nowIso)
+  const ids = (data ?? []).map((r) => r.id as string)
+  if (ids.length === 0) return { swept: 0 }
+  const { error } = await admin.from('communities').delete().in('id', ids)
+  if (error) { console.error('[community.sweep]', error.message); return { swept: 0 } }
+  return { swept: ids.length }
+}
+
+// 폐쇄 예고 알림 — 전 멤버에게(매니저 본인 제외) 인앱 알림 + 웹푸시. §13.3 세이프가드 ①.
+async function notifyClosing(
+  admin: ReturnType<typeof createAdminClient>,
+  communityId: string,
+  communityName: string,
+  closeScheduledAt: string,
+  managerId: string,
+): Promise<void> {
+  const { data: members } = await admin.from('community_members').select('user_id').eq('community_id', communityId)
+  const recipients = (members ?? []).map((m) => m.user_id as string).filter((uid) => uid !== managerId)
+  if (recipients.length === 0) return
+  const d = new Date(closeScheduledAt)
+  const dateLabel = `${d.getMonth() + 1}월 ${d.getDate()}일`
+  const title = '커뮤니티 폐쇄 예고'
+  const body = `'${communityName}' 커뮤니티가 ${dateLabel}에 폐쇄돼요. 그 전에 내가 작성한 글을 내보낼 수 있어요.`
+  const url = `/community/${communityId}`
+  const rows = recipients.map((uid) => ({
+    user_id: uid, type: 'community_closing' as const, payload: { title, body, url, communityId, closeScheduledAt },
+  }))
+  const { error } = await admin.from('notifications').insert(rows)
+  if (error) console.error('[community.notifyClosing]', error.message)
+  for (const uid of recipients) sendPushToUser(uid, { title, body, url }).catch(() => {})
 }
 
 // 가입 — 멱등(이미 멤버면 무시).
 export async function joinCommunity(userId: string, communityId: string): Promise<{ ok: boolean; error?: string }> {
   const admin = createAdminClient()
-  const { data: c } = await admin.from('communities').select('id').eq('id', communityId).maybeSingle()
+  const { data: c } = await admin.from('communities').select('id, status').eq('id', communityId).maybeSingle()
   if (!c) return { ok: false, error: 'not_found' }
+  if (c.status === 'closing') return { ok: false, error: 'community_closing' }  // 폐쇄 유예 중 가입 차단
   const { error } = await admin.from('community_members').upsert(
     { community_id: communityId, user_id: userId },
     { onConflict: 'community_id,user_id', ignoreDuplicates: true },

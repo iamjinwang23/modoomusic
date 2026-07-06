@@ -17,6 +17,12 @@ const NAME_MAX = 30
 const TOPIC_MAX = 20
 const DESC_MAX = 500
 
+// 폐쇄 예정까지 남은 일수 (D-N)
+function daysLeft(iso?: string | null): number {
+  if (!iso) return 0
+  return Math.max(0, Math.ceil((new Date(iso).getTime() - Date.now()) / 86400000))
+}
+
 export function CommunityEditModal({ community, onClose, onSaved, onClosed }: {
   community: Community
   onClose: () => void
@@ -86,11 +92,31 @@ export function CommunityEditModal({ community, onClose, onSaved, onClosed }: {
     onClose()
   }
 
+  const isClosing = community.status === 'closing'
+
   async function handleCloseCommunity() {
     setConfirmClose(false)
     const res = await fetch(`/api/communities/${community.id}`, { method: 'DELETE' })
-    if (res.ok) { toast.success('커뮤니티를 폐쇄했어요'); onClosed() }
-    else toast.error('폐쇄에 실패했어요')
+    const j = await res.json().catch(() => ({}))
+    if (!res.ok) { toast.error(j.error === 'already_closing' ? '이미 폐쇄 예정이에요' : '폐쇄에 실패했어요'); return }
+    if (j.deleted) {
+      // 남의 콘텐츠 0건 → 즉시 삭제
+      toast.success('커뮤니티를 폐쇄했어요'); onClosed()
+    } else {
+      // 14일 유예 예약 — closing 상태로 반영 후 닫기
+      toast.success('폐쇄를 예약했어요. 14일 후 삭제돼요.')
+      onSaved({ ...community, status: 'closing', closingAt: new Date().toISOString(), closeScheduledAt: j.closeScheduledAt ?? null })
+      onClose()
+    }
+  }
+
+  async function handleCancelClosing() {
+    const res = await fetch(`/api/communities/${community.id}/cancel-closing`, { method: 'POST' })
+    if (res.ok) {
+      toast.success('폐쇄를 철회했어요')
+      onSaved({ ...community, status: 'open', closingAt: null, closeScheduledAt: null })
+      onClose()
+    } else toast.error('철회에 실패했어요')
   }
 
   if (typeof document === 'undefined') return null
@@ -164,12 +190,24 @@ export function CommunityEditModal({ community, onClose, onSaved, onClosed }: {
               className="w-full bg-white/[0.05] border border-white/[0.10] focus:border-violet-500 rounded-xl px-4 py-3 text-sm text-white placeholder:text-zinc-600 outline-none transition-colors resize-none" />
           </div>
 
-          {/* 폐쇄 (danger) */}
+          {/* 폐쇄 (danger) — closing 유예 중이면 D-day + 철회, 아니면 폐쇄 트리거 */}
           <div className="pt-2 border-t border-white/[0.06]">
-            <button type="button" onClick={() => setConfirmClose(true)} className="text-xs text-red-400/80 hover:text-red-400 transition-colors">
-              커뮤니티 폐쇄
-            </button>
-            <p className="text-[11px] text-zinc-600 mt-1">폐쇄하면 모든 글·멤버가 삭제되며 되돌릴 수 없어요.</p>
+            {isClosing ? (
+              <div className="rounded-xl bg-red-500/[0.08] border border-red-500/20 px-3.5 py-3">
+                <p className="text-xs font-medium text-red-300">폐쇄 예정 · D-{daysLeft(community.closeScheduledAt)}</p>
+                <p className="text-[11px] text-zinc-400 mt-1 leading-relaxed">유예 기간 동안 커뮤니티는 읽기전용이에요. 예정일에 모든 글·댓글·멤버가 삭제돼요.</p>
+                <button type="button" onClick={handleCancelClosing} className="mt-2.5 text-xs font-medium text-violet-300 hover:text-violet-200 transition-colors">
+                  폐쇄 철회하기
+                </button>
+              </div>
+            ) : (
+              <>
+                <button type="button" onClick={() => setConfirmClose(true)} className="text-xs text-red-400/80 hover:text-red-400 transition-colors">
+                  커뮤니티 폐쇄
+                </button>
+                <p className="text-[11px] text-zinc-600 mt-1">다른 회원의 글이 있으면 14일 예고 후 폐쇄돼요. 없으면 즉시 삭제돼요.</p>
+              </>
+            )}
           </div>
         </div>
 
@@ -182,7 +220,7 @@ export function CommunityEditModal({ community, onClose, onSaved, onClosed }: {
         </div>
       </div>
 
-      <ConfirmModal open={confirmClose} zClassName="z-[90]" title="이 커뮤니티를 정말 폐쇄하시겠어요?" description="모든 글·멤버가 삭제되며 되돌릴 수 없어요." confirmLabel="폐쇄하기" cancelLabel="아니요" variant="danger" onClose={() => setConfirmClose(false)} onConfirm={handleCloseCommunity} />
+      <ConfirmModal open={confirmClose} zClassName="z-[90]" title="이 커뮤니티를 폐쇄하시겠어요?" description="다른 회원이 남긴 글·댓글이 있으면 14일 예고 후 폐쇄돼요(그 전엔 읽기전용). 남의 글이 없으면 즉시 삭제돼요. 회원이 첨부한 곡은 사라지지 않아요." confirmLabel="폐쇄하기" cancelLabel="아니요" variant="danger" onClose={() => setConfirmClose(false)} onConfirm={handleCloseCommunity} />
 
       <CropModal
         open={!!cropState}

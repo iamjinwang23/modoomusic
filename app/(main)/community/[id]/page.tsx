@@ -230,6 +230,20 @@ export default function CommunityCafePage() {
       toast.success('링크를 복사했어요')
     } catch { toast.error('링크 복사에 실패했어요') }
   }
+  // 폐쇄 유예 중 본인 글·댓글 JSON 내보내기(세이프가드 ③)
+  async function exportMyContent() {
+    try {
+      const res = await fetch(`/api/communities/${id}/my-content-export`)
+      if (!res.ok) { toast.error('내보내기에 실패했어요'); return }
+      const blob = await res.blob()
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url; a.download = `${community?.name ?? 'community'}-내글.txt`
+      document.body.appendChild(a); a.click(); a.remove()
+      URL.revokeObjectURL(url)
+      toast.success('내 글을 내보냈어요')
+    } catch { toast.error('내보내기에 실패했어요') }
+  }
   function startEdit(p: CommunityPost) {
     setEditingPost(p)
     setMoreOpenId(null)
@@ -272,6 +286,8 @@ export default function CommunityCafePage() {
 
   const isManager = !!community?.isManager
   const isMember = !!community?.isMember
+  const isClosing = community?.status === 'closing'
+  const closingDaysLeft = community?.closeScheduledAt ? Math.max(0, Math.ceil((new Date(community.closeScheduledAt).getTime() - Date.now()) / 86400000)) : 0
   const cover = community?.coverImage
     ? { backgroundImage: `url(${community.coverImage})`, backgroundSize: 'cover', backgroundPosition: community.coverFocus ?? 'center' }
     : { background: GRAY_COVER }
@@ -377,8 +393,23 @@ export default function CommunityCafePage() {
           {community?.topic && <span className="inline-block mt-3 px-2.5 py-1 rounded-full bg-violet-500/15 text-violet-300 text-xs font-medium">{community.topic}</span>}
         </div>
 
-        {/* 글쓰기 (멤버·매니저) */}
-        {(isMember || isManager) && (
+        {/* 폐쇄 예고 배너 (§13.3 세이프가드 ② — closing 동안 상시 노출, D-day + 내보내기) */}
+        {isClosing && (
+          <div className="px-5 mt-5">
+            <div className="rounded-xl bg-red-500/[0.08] border border-red-500/20 px-4 py-3.5 flex items-center justify-between gap-3">
+              <div className="min-w-0">
+                <p className="text-sm font-semibold text-red-300">폐쇄 예정 · D-{closingDaysLeft}</p>
+                <p className="text-xs text-zinc-400 mt-0.5 leading-relaxed">이 커뮤니티는 곧 폐쇄돼요. 지금은 읽기전용이에요. 내가 작성한 글을 미리 저장해두세요.</p>
+              </div>
+              {(isMember || isManager) && (
+                <button onClick={exportMyContent} className="shrink-0 px-3.5 py-2 rounded-full text-xs font-medium bg-white/[0.10] text-white hover:bg-white/[0.16] transition-colors">내 글 내보내기</button>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* 글쓰기 (멤버·매니저) — 폐쇄 유예 중이면 읽기전용이라 숨김 */}
+        {(isMember || isManager) && !isClosing && (
           <div className="px-5 mt-6">
             <div className="rounded-2xl border border-white/[0.08] bg-white/[0.02] p-3">
               <textarea ref={contentRef} value={content} onChange={(e) => setContent(e.target.value)} placeholder="이 커뮤니티에 글을 남겨보세요" maxLength={CONTENT_MAX}
@@ -482,6 +513,8 @@ export default function CommunityCafePage() {
 
               <input ref={imageInputRef} type="file" accept="image/*" multiple className="hidden" onChange={(e) => { handleImageFiles(e.target.files); e.target.value = '' }} />
             </div>
+            {/* 게시 시점 고지 (§13.6 법적 방어 핵심) */}
+            <p className="text-[11px] text-zinc-600 mt-2 px-1">커뮤니티가 폐쇄되면 이 글은 삭제될 수 있어요.</p>
           </div>
         )}
 

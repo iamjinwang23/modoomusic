@@ -13,7 +13,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ pos
   if (typeof body.optionIndex !== 'number') return NextResponse.json({ error: 'invalid_input' }, { status: 400 })
   const result = await votePoll(user.id, postId, body.optionIndex)
   if (!result.ok) {
-    const status = result.error === 'not_found' ? 404 : result.error === 'ended' || result.error === 'already_voted' || result.error === 'invalid_option' ? 400 : 500
+    const status = result.error === 'not_found' ? 404 : result.error === 'community_closing' ? 403 : result.error === 'ended' || result.error === 'already_voted' || result.error === 'invalid_option' ? 400 : 500
     return NextResponse.json({ error: result.error }, { status })
   }
   return NextResponse.json({ poll: result.poll })

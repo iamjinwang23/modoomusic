@@ -36,7 +36,7 @@
 - **개설**: 처음부터 오픈. **1인 1개** — 단 **관리자(`profiles.is_admin`)는 예외로 다중 개설**(테스트·운영용, mig 047에서 `manager_id UNIQUE` 제거·앱 레벨 가드로 이관). 개설자 자동 가입.
 - **가입**: 로그인 유저 누구나, 다수 가능 (`(community_id,user_id)` PK).
 - **탈퇴**: 멤버 가능. **매니저는 탈퇴 불가** → 폐쇄만.
-- **폐쇄**: 매니저만. **정책 확정 → [[#13-커뮤니티-폐쇄-정책-확정-2026-07-06-세션4]] 참조.** 요약: 다른 멤버 콘텐츠 0건이면 즉시 하드삭제, 있으면 **14일 유예(closing)** 후 삭제. 곡 자체는 삭제 안 함(`song_id ON DELETE SET NULL`). 폐쇄 UI는 **매니저 편집 모달 하단 danger 존**. ⚠️ **현행 코드는 무조건 즉시 하드삭제 — §13은 미구현 정책(스펙 확정, 구현 대기).**
+- **폐쇄**: 매니저만. **정책 확정·구현 완료 → [[#13-커뮤니티-폐쇄-정책-확정-2026-07-06-세션4]] 참조.** 요약: 다른 멤버 콘텐츠 0건이면 즉시 하드삭제, 있으면 **14일 유예(closing, 읽기전용)** 후 삭제. 곡 자체는 삭제 안 함(`song_id ON DELETE SET NULL`). 폐쇄 UI는 **매니저 편집 모달 하단 danger 존**(closing 중이면 D-day·철회). ✅ 마이그레이션 055로 이행.
 - **정보 수정**: 매니저만 — 이름(2~30자)·주제·소개·커버·대표 이미지(`PATCH /api/communities/[id]` + 이미지 라우트).
 - **글쓰기**: 멤버(매니저 포함). 읽기는 공개.
 - **글 수정**: 작성자 본인(본문). **삭제(글)**: 작성자 또는 매니저.
@@ -125,7 +125,7 @@ community_post_reports(id, reporter_id→profiles, post_id→community_posts, re
 - **Phase 1.5 (부분 완료)**: 커뮤니티 **커버·대표 이미지 업로드 완료**(`community-images` 버킷 + focal). 남음: **글 사진 첨부**, 비공개곡 첨부 재생(현재 공개곡만).
 - **Phase 2**: 리믹스 — 곡에서 리믹스 생성(MiniMax 참조음원) → `songs.parent_song_id` 계보 → 원곡에 리믹스 리스트업.
 - **Phase 3**: "팔로워 가입 커뮤니티" 허브 섹션 · 채널 페이지/탭 · 주제 탐색 · 카테고리 게시판(트래픽 후).
-- **폐쇄 정책 (스펙 확정 · 구현 대기)**: §13 — 조건부 즉시/14일 유예·읽기전용·알림 3종·내보내기·스케줄러·약관. 출시 전 이행 권장.
+- **폐쇄 정책 (스펙 확정 · 구현 완료)**: §13 — 조건부 즉시/14일 유예·읽기전용 가드+트리거·알림 3종·내보내기·cron 스윕(cleanup 통합)·약관. 마이그레이션 055.
 
 ---
 
@@ -215,7 +215,7 @@ community_post_reports(id, reporter_id→profiles, post_id→community_posts, re
 
 ## 13. 커뮤니티 폐쇄 정책 확정 (2026-07-06 세션4)
 
-> **상태: 정책 스펙 확정 · 구현 대기.** 현행 코드(`closeCommunity` — [[services/community.service.ts]]:112)는 조건 없이 즉시 하드삭제(cascade). 아래는 이를 대체할 확정 정책이며, 미출시(준비중) 상태에서 실데이터 없이 이행한다.
+> **상태: 정책 스펙 확정 · 구현 완료(2026-07-06 세션5, 마이그레이션 055).** `closeCommunity`([[services/community.service.ts]])가 조건부(즉시/14일 유예)로 동작하며, 읽기전용 가드·스윕·내보내기·알림·UI·약관까지 이행됨. 미출시(준비중) 상태 유지.
 
 ### 13.1 문제의식 (왜 바꾸나)
 
@@ -237,7 +237,7 @@ community_post_reports(id, reporter_id→profiles, post_id→community_posts, re
 
 1. **인앱 알림** — 기존 소셜 알림 시스템 재사용. 폐쇄 예고 시 전 멤버에게 "○○ 커뮤니티가 ○월○일 폐쇄됩니다" 발송(+ 웹푸시). 신규 `notifications.type` 예: `community_closing`.
 2. **커뮤니티 상단 배너** — `closing` 동안 상세 페이지 상시 노출: "폐쇄 예정 D-N · 콘텐츠를 저장하세요". 카운트다운.
-3. **본인 글 내보내기** — 멤버가 자기 글·댓글을 백업(다운로드)하는 버튼. 소유권 실질 보장의 핵심(이게 있어야 "손실"이 아닌 "이전"이 됨). 포맷: JSON(본문·작성일·첨부 곡/이미지 URL·댓글) 최소안, 추후 확장.
+3. **본인 글 내보내기** — 멤버가 자기 글을 백업(다운로드)하는 버튼. 소유권 실질 보장의 핵심(이게 있어야 "손실"이 아닌 "이전"이 됨). 포맷: **사람이 읽는 `.txt`**(작성일·본문·첨부 곡 제목/URL·이미지/링크 URL). 일반 사용자는 JSON을 못 쓰므로 읽기용 텍스트로 결정(세션5). 댓글은 제외(라벨 '내 글'과 일치).
 
 ### 13.4 탈퇴 멤버 글 처리 (확정)
 
@@ -253,12 +253,12 @@ community_post_reports(id, reporter_id→profiles, post_id→community_posts, re
 - **게시 시점 고지**(가장 중요): 글 작성창 근처 한 줄 — "커뮤니티가 폐쇄되면 이 글은 삭제될 수 있어요". 사후 기습이 아님을 성립시키는 핵심. 현재는 약관 본문([[app/(legal)/terms/page.tsx]]:104)에만 존재 → **작성 UI에 노출 추가**.
 - **약관 개정**: "폐쇄는 다른 회원 게시물이 있는 경우 **14일 예고 후** 진행되며, 회원은 그 기간 내 본인 콘텐츠를 내보낼 수 있다. 예고 종료 후 게시물·댓글은 삭제·복구 불가. 첨부 곡 등 개인 보관 콘텐츠는 삭제되지 않는다." (회원 불리 변경 아님 — 오히려 보호 강화라 즉시 반영 가능, but §9 관례상 개정 공지)
 
-### 13.7 구현 델타 (현행 → 목표)
+### 13.7 구현 델타 (현행 → 목표) — ✅ 구현 완료 (마이그레이션 055)
 
-- **마이그레이션(신규)**: `communities`에 `status text CHECK(open|closing) DEFAULT 'open'`·`closing_at timestamptz`·`close_scheduled_at timestamptz` 추가. `notifications` CHECK에 `community_closing` 추가.
-- **서비스**: `closeCommunity` 분기 — 다른멤버 콘텐츠 카운트(글 `author_id != manager` OR 댓글 `user_id != manager`) → 0이면 즉시 삭제 / >0이면 `status='closing'`·타임스탬프 세팅·전멤버 알림. 신규 `cancelClosing`(철회), 스케줄러용 `sweepClosedCommunities`(만료분 하드삭제).
-- **읽기전용 가드**: `closing` 커뮤니티의 글작성·댓글·좋아요·투표·가입 라우트에서 차단(에러 `community_closing`).
-- **스케줄러**: cron(예: Vercel cron `/api/cron/community-sweep`)이 `close_scheduled_at <= now()` 스윕. → [[vercel:vercel-functions]] cron.
-- **내보내기**: `GET /api/communities/[id]/my-content-export`(본인 글·댓글 JSON, 멤버 가드).
-- **UI**: 매니저 편집 모달 danger 존 — 즉시삭제 가능 케이스는 현행 confirm, 유예 케이스는 "14일 후 폐쇄" 안내로 분기. 상세 상단 `closing` 배너 + D-day. 작성창 고지 문구. 폐쇄 철회 버튼.
-- **약관/UI 문구**: §13.6.
+- **마이그레이션 `055_community_closure.sql`**: `communities`에 `status(open|closing) DEFAULT 'open'`·`closing_at`·`close_scheduled_at` 추가 + closing 스캔 인덱스. `notifications` CHECK에 `community_closing` 추가. **읽기전용 백스톱 트리거**(`community_readonly_guard`, SECURITY DEFINER) — 6개 자식 테이블(posts·members·comments·likes·comment_likes·poll_votes) BEFORE INSERT에서 부모가 `closing`이면 예외. 서비스 가드가 우선이지만 어떤 경로로도 새 콘텐츠 유입 차단.
+- **서비스**([[services/community.service.ts]]): `closeCommunity` 분기 — 다른멤버 콘텐츠 **존재 여부**(글 `author_id != manager` OR 댓글 `user_id != manager`, limit 1) → 없으면 즉시 삭제(`deleted:true`) / 있으면 `status='closing'`·`closing_at`·`close_scheduled_at(+14d)` 세팅·전멤버 알림(`deleted:false, closeScheduledAt`). `cancelClosing`(철회), `sweepClosedCommunities`(만료분 하드삭제), `isCommunityClosing`(가드 헬퍼), `notifyClosing`(예고 알림).
+- **읽기전용 가드**: `createPost`·`addComment`·`toggleLike`·`toggleCommentLike`·`votePoll`([[services/community-post.service.ts]])·`joinCommunity`에서 `community_closing` 반환. 라우트 매핑 → 403.
+- **스케줄러**: 신규 cron 경로 대신 **기존 `/api/cron/cleanup-notifications`에 `sweepClosedCommunities()` 통합** — Vercel Hobby cron 한도(2개·daily) 준수 + 기존 다중 스윕 통합 패턴(계정삭제·비디오·좀비) 따름. 일 1회(18:00 UTC) 스윕이면 14일 타이머에 충분.
+- **내보내기**: `GET /api/communities/[id]/my-content-export` — `exportMemberContent`(본인 글만, 곡 제목+오디오 URL·이미지·링크 URL) → 라우트에서 **읽기용 `.txt` 렌더**(KST 날짜, BOM, 한글 파일명 `filename*`). 멤버 가드.
+- **UI**: 편집 모달 danger 존 — 열림이면 조건부 confirm(즉시/14일 분기 안내), closing이면 **D-day + 폐쇄 철회** 버튼. 상세 상단 `closing` 배너 + D-day + **내 글 내보내기**. closing 중 글쓰기 박스 숨김. 작성창 하단 게시 시점 고지 문구. 알림은 `community_closing`(공지 스타일 렌더).
+- **약관**: [[app/(legal)/terms/page.tsx]] 제9조의2 — 14일 예고·읽기전용·내보내기·조건부 즉시 폐쇄 문구 반영.

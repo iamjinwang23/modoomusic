@@ -6,6 +6,7 @@ import { createAdminClient } from '@/lib/supabase/admin'
 import { cleanupGeneratingZombies } from '../cleanup-generating/route'
 import { finalizeDeletions } from '@/services/account.service'
 import { sweepVideoCovers } from '@/services/video-finalize.service'
+import { sweepClosedCommunities } from '@/services/community.service'
 
 export async function GET(req: Request) {
   const authHeader = req.headers.get('authorization')
@@ -46,9 +47,17 @@ export async function GET(req: Request) {
     videos = { error: e instanceof Error ? e.message : 'unknown' }
   }
 
+  // community §13 — 폐쇄 유예(closing) 만료분 하드삭제 스윕. (Hobby cron 한도 내에서 이 크론에 통합)
+  let communities: { swept: number } | { error: string }
+  try {
+    communities = await sweepClosedCommunities()
+  } catch (e) {
+    communities = { error: e instanceof Error ? e.message : 'unknown' }
+  }
+
   if (error) {
     console.error('[cron cleanup-notifications]', error.message)
-    return NextResponse.json({ error: error.message, zombies, deletions, videos }, { status: 500 })
+    return NextResponse.json({ error: error.message, zombies, deletions, videos, communities }, { status: 500 })
   }
-  return NextResponse.json({ ok: true, deletedNotifications: count ?? 0, cutoff, zombies, deletions, videos })
+  return NextResponse.json({ ok: true, deletedNotifications: count ?? 0, cutoff, zombies, deletions, videos, communities })
 }

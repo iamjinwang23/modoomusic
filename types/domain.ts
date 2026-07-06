@@ -109,7 +109,7 @@ export interface UserProfile {
 }
 
 // Design Ref: notifications §3.2 — 알림 5종 + 행위자·곡 join 메타
-export type NotificationType = 'like' | 'song_complete' | 'system' | 'follow' | 'comment' | 'credit_charged' | 'community_like' | 'community_comment'
+export type NotificationType = 'like' | 'song_complete' | 'system' | 'follow' | 'comment' | 'credit_charged' | 'community_like' | 'community_comment' | 'community_closing'
 
 export interface NotificationSystemPayload {
   title: string
@@ -208,6 +208,9 @@ export interface Community {
   memberCount: number
   recentPostCount?: number  // 24시간 내 게시글 수
   createdAt: string
+  status?: 'open' | 'closing'    // 폐쇄 정책 §13 — closing이면 읽기전용 유예 상태
+  closingAt?: string | null       // 폐쇄 예고 시각
+  closeScheduledAt?: string | null // 하드삭제 예정 시각(= closingAt + 14d), D-day 카운트다운용
   isMember?: boolean   // 현재 유저 가입 여부 (목록/상세 표시용)
   isManager?: boolean  // 현재 유저가 매니저인지
 }

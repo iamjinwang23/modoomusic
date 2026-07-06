@@ -41,8 +41,9 @@ export async function DELETE(_req: NextRequest, { params }: RouteParams) {
   if (!user) return NextResponse.json({ error: 'unauthorized' }, { status: 401 })
   const result = await closeCommunity(user.id, id)
   if (!result.ok) {
-    const status = result.error === 'forbidden' ? 403 : result.error === 'not_found' ? 404 : result.error === 'banned_word' ? 400 : 500
+    const status = result.error === 'forbidden' ? 403 : result.error === 'not_found' ? 404 : result.error === 'already_closing' ? 409 : result.error === 'banned_word' ? 400 : 500
     return NextResponse.json({ error: result.error }, { status })
   }
-  return NextResponse.json({ ok: true })
+  // deleted=true 즉시 삭제 / false 14일 유예 예약(closeScheduledAt)
+  return NextResponse.json({ ok: true, deleted: result.deleted, closeScheduledAt: result.closeScheduledAt })
 }

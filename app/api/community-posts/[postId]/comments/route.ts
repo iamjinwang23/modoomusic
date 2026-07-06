@@ -23,7 +23,7 @@ export async function POST(req: NextRequest, { params }: RouteParams) {
   const parentId = typeof body.parentId === 'string' ? body.parentId : null
   const result = await addComment(user.id, postId, typeof body.body === 'string' ? body.body : '', parentId)
   if (!result.ok) {
-    const status = result.error === 'empty' ? 400 : result.error === 'not_found' ? 404 : result.error === 'bad_parent' ? 400 : result.error === 'banned_word' ? 400 : 500
+    const status = result.error === 'empty' ? 400 : result.error === 'not_found' ? 404 : result.error === 'community_closing' ? 403 : result.error === 'bad_parent' ? 400 : result.error === 'banned_word' ? 400 : 500
     return NextResponse.json({ error: result.error }, { status })
   }
   return NextResponse.json({ ok: true })
