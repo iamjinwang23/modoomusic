@@ -67,10 +67,10 @@ export function SongRealtimeBridge() {
 
           // 비디오 커버 완료/실패 토스트 (음악과 분리)
           if (prevVideoStatus === 'generating' && next.video_cover_status === 'done') {
-            toast.success('영상 커버가 완성됐어요', { description: next.title?.trim() || '새 곡' })
+            toast.success('영상이 완성됐어요', { description: next.title?.trim() || '새 곡' })
             window.dispatchEvent(new Event('notifications-changed'))
           } else if (prevVideoStatus === 'generating' && next.video_cover_status === 'failed') {
-            toast.error('영상 커버 생성에 실패했어요', { description: '체험권·크레딧이 자동 환불되었어요' })
+            toast.error('영상 생성에 실패했어요', { description: '체험권·크레딧이 자동 환불되었어요' })
             window.dispatchEvent(new Event('notifications-changed'))
           }
 

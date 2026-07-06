@@ -158,7 +158,7 @@ export function VideoCoverModal({ open, songId, title, coverImage, onClose, onCo
       <div className="relative w-full md:w-[480px] max-h-[90dvh] overflow-y-auto bg-[#181B22] border border-white/[0.10] rounded-t-2xl md:rounded-2xl shadow-2xl flex flex-col pb-[env(safe-area-inset-bottom,0px)]">
         {/* 헤더 */}
         <header className="flex items-center justify-between px-5 py-4">
-          <h2 className="text-base font-semibold text-white">영상 커버 만들기</h2>
+          <h2 className="text-base font-semibold text-white">영상 만들기</h2>
           <button onClick={onClose} className="w-7 h-7 rounded-full hover:bg-white/[0.08] flex items-center justify-center text-zinc-400">✕</button>
         </header>
 
