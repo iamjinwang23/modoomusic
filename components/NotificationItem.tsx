@@ -24,8 +24,8 @@ function renderText(n: Notification): React.ReactNode {
     case 'song_complete': {
       // payload.kind로 곡/비디오커버 분기
       const p = (n.payload as { kind?: string }) ?? {}
-      if (p.kind === 'video_cover') return <>{title}의 비디오 커버 생성이 완료되었어요</>
-      if (p.kind === 'video_cover_failed') return <>{title}의 비디오 커버 생성에 실패했어요 (크레딧 환불)</>
+      if (p.kind === 'video_cover') return <>{title}의 영상 커버 생성이 완료되었어요</>
+      if (p.kind === 'video_cover_failed') return <>{title}의 영상 커버 생성에 실패했어요 (크레딧 환불)</>
       return <>{title} 생성이 완료되었어요</>
     }
     case 'follow':

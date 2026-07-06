@@ -14,7 +14,7 @@ const TOC = [
   { id: 'getting-started', label: '시작하기' },
   { id: 'make-music',      label: '음악 만들기' },
   { id: 'lyrics',          label: '가사 작성' },
-  { id: 'video-cover',     label: '비디오 커버' },
+  { id: 'video-cover',     label: '영상 커버' },
   { id: 'share',           label: '공유·게시' },
   { id: 'community',        label: '커뮤니티' },
   { id: 'credits',         label: '크레딧' },
@@ -176,7 +176,7 @@ export default function HelpPage() {
               </div>
             </Section>
 
-            <Section id="video-cover" title="비디오 커버">
+            <Section id="video-cover" title="영상 커버">
               <p>곡에 6초짜리 움직이는 커버 영상을 만들 수 있어요.</p>
               <List items={[
                 '곡 상세의 {videoCover} 버튼(또는 {more} 메뉴)에서 만들 수 있어요.',
@@ -338,7 +338,7 @@ function renderMd(s: string): string {
     .replace(/\{make\}/g,     `<span style="${BTN_GRAY}"><img src="/Ai-Generate-Music.svg" alt="" style="${BTN_ICON}" />음악 만들기</span>`)
     .replace(/\{contact\}/g,  `<span style="${BTN_GRAY}"><img src="/costumer.png" alt="" style="${BTN_ICON}" />문의하기</span>`)
     .replace(/\{createCommunity\}/g, `<span style="${BTN_GRAY}"><img src="/Add.svg" alt="" style="${BTN_ICON}" />만들기</span>`)
-    .replace(/\{videoCover\}/g, `<span style="${BTN_GRAY}"><img src="/Sparkles.svg" alt="" style="${BTN_ICON}" />비디오 커버</span>`)
+    .replace(/\{videoCover\}/g, `<span style="${BTN_GRAY}"><img src="/Sparkles.svg" alt="" style="${BTN_ICON}" />영상 커버</span>`)
     .replace(/\{flag\}/g,     `<span style="${BTN_RED}"><img src="/Flag.svg" alt="" style="${BTN_ICON_RED}" />신고</span>`)
     .replace(/\{v20\}/g,     `<span style="${BADGE_GRAY}">v2.0</span>`)
     .replace(/\{v25\}/g,     `<span style="${BADGE_GRAY}">v2.5+</span>`)

@@ -455,7 +455,7 @@ function MoreMenu({ onEdit, onDelete, onPublish, onDownload, onVideoCover, disab
                 className="w-full flex items-center gap-2.5 px-3 py-2.5 text-sm text-white hover:bg-white/[0.06] transition-colors"
               >
                 <Image src="/Sparkles.svg" alt="" width={14} height={14} style={{ filter: ICON_FILTER }} />
-                비디오 커버
+                영상 커버
               </button>
             )}
             <button

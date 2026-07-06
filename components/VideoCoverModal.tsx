@@ -158,7 +158,7 @@ export function VideoCoverModal({ open, songId, title, coverImage, onClose, onCo
       <div className="relative w-full md:w-[480px] max-h-[90dvh] overflow-y-auto bg-[#181B22] border border-white/[0.10] rounded-t-2xl md:rounded-2xl shadow-2xl flex flex-col pb-[env(safe-area-inset-bottom,0px)]">
         {/* 헤더 */}
         <header className="flex items-center justify-between px-5 py-4">
-          <h2 className="text-base font-semibold text-white">비디오 커버 만들기</h2>
+          <h2 className="text-base font-semibold text-white">영상 커버 만들기</h2>
           <button onClick={onClose} className="w-7 h-7 rounded-full hover:bg-white/[0.08] flex items-center justify-center text-zinc-400">✕</button>
         </header>
 
@@ -181,7 +181,7 @@ export function VideoCoverModal({ open, songId, title, coverImage, onClose, onCo
           <div className="rounded-xl bg-white/[0.04] border border-white/[0.08] p-3 space-y-3">
             {/* 탭 (활성만 언더라인, 전체 구분선 없음) */}
             <div className="flex gap-4">
-              {([['image_to_video', '이미지 → 비디오'], ['text_to_video', '텍스트 → 비디오']] as const).map(([k, label]) => {
+              {([['image_to_video', '이미지 → 영상'], ['text_to_video', '텍스트 → 영상']] as const).map(([k, label]) => {
                 const disabled = k === 'image_to_video' && !sourceImage
                 return (
                   <button
@@ -275,7 +275,7 @@ export function VideoCoverModal({ open, songId, title, coverImage, onClose, onCo
                 </span>
               ) : (
                 <span className="flex items-center justify-center gap-2">
-                  <span>{phase === 'failed' ? '다시 시도' : '비디오 만들기'}</span>
+                  <span>{phase === 'failed' ? '다시 시도' : '영상 만들기'}</span>
                   <span className="inline-flex items-center gap-1">
                     <Image src="/Sparkles.svg" alt="" width={16} height={16} style={{ filter: 'invert(1)' }} />
                     <span className="font-extrabold tabular-nums">{trial > 0 ? '무료' : tierInfo.cr}</span>

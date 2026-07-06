@@ -569,7 +569,7 @@ export function ProfilePanel({ username }: Props) {
               </button>
               <button className="flex-1 py-2.5 flex items-center justify-center gap-1.5 text-sm text-zinc-600 cursor-default" disabled>
                 <Image src="/Movie.svg" alt="" width={20} height={20} style={{ filter: 'invert(0.3)' }} />
-                <span className="hidden md:inline">뮤직비디오</span>
+                <span className="hidden md:inline">영상</span>
               </button>
             </div>
             {songs.length === 0 ? (

@@ -351,7 +351,7 @@ export function SongDetailPage({ onBack, profile }: Props) {
               className="w-full hidden md:flex items-center justify-center gap-1.5 py-2.5 rounded-xl bg-white/[0.06] hover:bg-white/[0.12] text-sm font-medium text-white transition-colors disabled:opacity-50"
             >
               <Image src="/Sparkles.svg" alt="" width={16} height={16} style={{ filter: 'invert(1)' }} />
-              {song.videoCoverStatus === 'generating' ? '비디오 생성 중…' : song.videoCoverUrl ? '비디오 커버 다시 만들기' : '비디오 커버 만들기'}
+              {song.videoCoverStatus === 'generating' ? '영상 생성 중…' : song.videoCoverUrl ? '영상 커버 다시 만들기' : '영상 커버 만들기'}
             </button>
           )}
           {/* 모바일 전용: 커버 바로 아래 제목 — 긴 제목은 마퀴 롤링 */}
@@ -812,7 +812,7 @@ function SongMoreMenu({ isOwner, inCollection, onCollect, onPublish, onUnpublish
               )}
               {onVideoCover && (
                 <button onClick={() => { setOpen(false); onVideoCover() }} className="w-full flex items-center gap-2.5 px-3 py-2.5 text-sm text-white hover:bg-white/[0.06] transition-colors">
-                  <Image src="/Sparkles.svg" alt="" width={14} height={14} style={{ filter: 'invert(0.55)' }} /> 비디오 커버
+                  <Image src="/Sparkles.svg" alt="" width={14} height={14} style={{ filter: 'invert(0.55)' }} /> 영상 커버
                 </button>
               )}
               <div className="my-1 h-px bg-white/[0.06]" />
