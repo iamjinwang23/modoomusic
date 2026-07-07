@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { ActivityIndicator, FlatList, Pressable, RefreshControl, StyleSheet, Text, View } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
-import { router, useLocalSearchParams } from 'expo-router'
+import { router, useFocusEffect, useLocalSearchParams } from 'expo-router'
 import { Image } from 'expo-image'
 import type { Community, CommunityPost } from '@mono/shared'
 import { api } from '@/lib/api'
@@ -16,6 +16,7 @@ export default function CommunityDetailScreen() {
   const [posts, setPosts] = useState<CommunityPost[] | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [refreshing, setRefreshing] = useState(false)
+  const [joinBusy, setJoinBusy] = useState(false)
 
   const load = useCallback(async () => {
     if (!id) return
@@ -34,10 +35,27 @@ export default function CommunityDetailScreen() {
   }, [id])
 
   useEffect(() => { load() }, [load])
+  // compose 모달에서 글 작성 후 돌아오면 피드 갱신
+  useFocusEffect(useCallback(() => { if (community) load() }, [community, load]))
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true); await load(); setRefreshing(false)
   }, [load])
+
+  // 가입/탈퇴 — 낙관적 토글 후 서버 반영. 매니저는 탈퇴 불가(서버 가드).
+  const toggleJoin = useCallback(async () => {
+    if (!id || !community || joinBusy) return
+    const next = !community.isMember
+    setJoinBusy(true)
+    setCommunity({ ...community, isMember: next, memberCount: community.memberCount + (next ? 1 : -1) })
+    try {
+      await api.post(`/api/communities/${id}/${next ? 'join' : 'leave'}`)
+    } catch {
+      setCommunity((c) => (c ? { ...c, isMember: !next, memberCount: c.memberCount + (next ? -1 : 1) } : c))
+    } finally {
+      setJoinBusy(false)
+    }
+  }, [id, community, joinBusy])
 
   const banner = community?.coverImage ?? community?.avatarImage
 
@@ -59,10 +77,27 @@ export default function CommunityDetailScreen() {
             </View>
             <Text style={styles.name}>{community?.name ?? '커뮤니티'}</Text>
             {community?.description ? <Text style={styles.desc}>{community.description}</Text> : null}
-            <Text style={styles.meta}>
-              멤버 {community?.memberCount?.toLocaleString() ?? '-'}
-              {community?.isMember ? '  ·  가입됨' : ''}
-            </Text>
+            <Text style={styles.meta}>멤버 {community?.memberCount?.toLocaleString() ?? '-'}</Text>
+
+            {community ? (
+              <View style={styles.actions}>
+                <Pressable
+                  onPress={toggleJoin}
+                  disabled={joinBusy}
+                  style={[styles.joinBtn, community.isMember ? styles.joinBtnOn : styles.joinBtnOff, joinBusy && styles.dim]}
+                >
+                  <Text style={[styles.joinText, community.isMember && styles.joinTextOn]}>
+                    {community.isMember ? '가입됨' : '가입하기'}
+                  </Text>
+                </Pressable>
+                {community.isMember ? (
+                  <Pressable onPress={() => router.push(`/compose?communityId=${id}`)} style={styles.writeBtn}>
+                    <Text style={styles.writeText}>글쓰기</Text>
+                  </Pressable>
+                ) : null}
+              </View>
+            ) : null}
+
             <Text style={styles.feedLabel}>게시글</Text>
           </View>
         }
@@ -93,6 +128,18 @@ const styles = StyleSheet.create({
   name: { color: mono.color.text, fontSize: mono.font.h1, fontWeight: '800', marginTop: 14, paddingHorizontal: 16 },
   desc: { color: mono.color.textSecondary, fontSize: mono.font.body, marginTop: 6, paddingHorizontal: 16 },
   meta: { color: mono.color.textTertiary, fontSize: mono.font.small, marginTop: 8, paddingHorizontal: 16 },
+  actions: { flexDirection: 'row', gap: 10, marginTop: 14, paddingHorizontal: 16 },
+  joinBtn: { paddingVertical: 10, paddingHorizontal: 20, borderRadius: mono.radius.pill },
+  joinBtnOff: { backgroundColor: mono.color.accent },
+  joinBtnOn: { backgroundColor: mono.color.fillStrong },
+  dim: { opacity: 0.5 },
+  joinText: { color: mono.color.text, fontSize: mono.font.small, fontWeight: '700' },
+  joinTextOn: { color: mono.color.accentLight },
+  writeBtn: {
+    paddingVertical: 10, paddingHorizontal: 20, borderRadius: mono.radius.pill,
+    backgroundColor: mono.color.fill, borderWidth: 1, borderColor: mono.color.border,
+  },
+  writeText: { color: mono.color.text, fontSize: mono.font.small, fontWeight: '700' },
   feedLabel: { color: mono.color.text, fontSize: mono.font.h2, fontWeight: '700', marginTop: 20, paddingHorizontal: 16 },
   empty: { color: mono.color.textSecondary, fontSize: mono.font.body, textAlign: 'center', marginTop: 32 },
 })
