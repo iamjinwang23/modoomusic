@@ -10,6 +10,7 @@ export const supabase = createClient(
       autoRefreshToken: true,
       persistSession: true,
       detectSessionInUrl: false, // RN엔 URL 세션 없음
+      flowType: 'pkce', // OAuth code → exchangeCodeForSession
     },
   },
 )
