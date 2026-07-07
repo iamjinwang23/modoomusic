@@ -20,6 +20,8 @@ import { CommunityEditModal } from '@/components/community/CommunityEditModal'
 import { CommunityPostEditModal } from '@/components/community/CommunityPostEditModal'
 import { CommunityMembersModal } from '@/components/community/CommunityMembersModal'
 import { ScrollToTopButton } from '@/components/community/ScrollToTopButton'
+import { CommunityGuestWall } from '@/components/community/CommunityGuestWall'
+import { useGuestCommunityWall } from '@/hooks/useGuestCommunityWall'
 import { PostImageGallery } from '@/components/community/PostImageGallery'
 import { PostEmbed } from '@/components/community/PostEmbed'
 import { PollCard } from '@/components/community/PollCard'
@@ -75,6 +77,7 @@ export default function CommunityCafePage() {
   const searchParams = useSearchParams()
   const focusPostId = searchParams.get('post')
   const { user } = useAuth()
+  const guestWalled = useGuestCommunityWall(id, !!user)  // 미로그인 소프트 월 (3번째 커뮤니티 진입)
   const [community, setCommunity] = useState<Community | null>(null)
   const [members, setMembers] = useState<CommunityMember[]>([])
   const [posts, setPosts] = useState<CommunityPost[] | null>(null)
@@ -560,6 +563,8 @@ export default function CommunityCafePage() {
                     <p className="text-[11px] text-zinc-500">{relativeTime(p.createdAt)}</p>
                   </div>
                   <div className="relative shrink-0">
+                    {/* 비로그인은 메뉴 항목이 전부 로그인/권한 필요 → ⋮ 자체를 숨김 */}
+                    {user && (<>
                     <button onClick={() => setMoreOpenId(v => v === p.id ? null : p.id)} className="w-7 h-7 rounded-full hover:bg-white/[0.06] flex items-center justify-center text-zinc-500 hover:text-white transition-colors" aria-label="더보기">
                       <Image src="/More.svg" alt="" width={16} height={16} style={{ filter: 'invert(0.5)' }} />
                     </button>
@@ -597,6 +602,7 @@ export default function CommunityCafePage() {
                         </div>
                       </>
                     )}
+                    </>)}
                   </div>
                 </div>
                 {p.content ? (
@@ -653,6 +659,7 @@ export default function CommunityCafePage() {
       {editOpen && community && <CommunityEditModal community={community} onClose={() => setEditOpen(false)} onSaved={(c) => setCommunity(c)} onClosed={() => router.push('/community')} />}
       {membersOpen && community && <CommunityMembersModal members={members} managerId={community.managerId} onClose={() => setMembersOpen(false)} />}
       {editingPost && <CommunityPostEditModal post={editingPost} communityId={id} onClose={() => setEditingPost(null)} onSaved={onEditSaved} />}
+      {guestWalled && <CommunityGuestWall />}
       <ScrollToTopButton scrollRef={scrollRef} />
     </div>
   )
