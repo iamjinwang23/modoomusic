@@ -1,6 +1,7 @@
 import { Image } from 'expo-image'
 import { Pressable, StyleSheet, Text, View } from 'react-native'
 import type { Song } from '@mono/shared'
+import { Icon } from '@/components/ui/icon'
 import { mono } from '@/theme/mono'
 
 // 곡 한 줄 — 커버·제목·상태·공개배지. 탭→재생, ⋯→액션(onMore).
@@ -29,7 +30,7 @@ export function SongRow({ song, onPress, onMore }: { song: Song; onPress?: () =>
       {generating ? (
         <View style={styles.dot} />
       ) : onMore ? (
-        <Pressable onPress={onMore} hitSlop={12} style={styles.more}><Text style={styles.moreText}>⋯</Text></Pressable>
+        <Pressable onPress={onMore} hitSlop={12} style={styles.more}><Icon name="ellipsis" size={18} color={mono.color.textSecondary} /></Pressable>
       ) : null}
     </Pressable>
   )

@@ -7,6 +7,7 @@ import { api } from '@/lib/api'
 import { subscribeSongUpdates } from '@/lib/generate'
 import { useSession } from '@/lib/use-session'
 import { SongRow } from '@/components/ui/song-row'
+import { Icon } from '@/components/ui/icon'
 import { playSong } from '@/lib/player'
 import { deleteSong, setSongPublished, shareSong } from '@/lib/song-actions'
 import { mono } from '@/theme/mono'
@@ -83,10 +84,10 @@ export default function LibraryScreen() {
         <Text style={styles.h1}>라이브러리</Text>
         <View style={styles.headerBtns}>
           <Pressable onPress={() => router.push('/notifications')} hitSlop={10} style={styles.profileBtn}>
-            <Text style={styles.profileIcon}>🔔</Text>
+            <Icon name="bell" size={19} color={mono.color.text} />
           </Pressable>
           <Pressable onPress={() => router.push('/profile')} hitSlop={10} style={styles.profileBtn}>
-            <Text style={styles.profileIcon}>☰</Text>
+            <Icon name="line.3.horizontal" size={20} color={mono.color.text} />
           </Pressable>
         </View>
       </View>
@@ -109,7 +110,8 @@ export default function LibraryScreen() {
       )}
 
       <Pressable style={[styles.fab, { bottom: insets.bottom + 76 }]} onPress={() => router.push('/create')}>
-        <Text style={styles.fabText}>＋  만들기</Text>
+        <Icon name="plus" size={18} color={mono.color.text} weight="bold" />
+        <Text style={styles.fabText}>만들기</Text>
       </Pressable>
     </View>
   )
@@ -129,8 +131,9 @@ const styles = StyleSheet.create({
   empty: { color: mono.color.textSecondary, fontSize: mono.font.body, textAlign: 'center', marginTop: 48 },
   fab: {
     position: 'absolute', alignSelf: 'center',
+    flexDirection: 'row', alignItems: 'center', gap: 7,
     backgroundColor: mono.color.accent, borderRadius: mono.radius.pill,
-    paddingVertical: 14, paddingHorizontal: 28,
+    paddingVertical: 14, paddingHorizontal: 26,
     // RN 0.86 New Arch: shadow* deprecated → boxShadow. elevation은 구아키텍처 안드 폴백.
     boxShadow: '0px 4px 12px rgba(0,0,0,0.35)', elevation: 6,
   },

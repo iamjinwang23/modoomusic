@@ -7,6 +7,7 @@ import { router, useLocalSearchParams } from 'expo-router'
 import { Image } from 'expo-image'
 import type { Song } from '@mono/shared'
 import { api } from '@/lib/api'
+import { Icon } from '@/components/ui/icon'
 import { mono } from '@/theme/mono'
 
 const MAX = 2000
@@ -87,7 +88,8 @@ export default function ComposeScreen() {
           </View>
         ) : (
           <Pressable style={styles.attachBtn} onPress={() => setPicker((v) => !v)}>
-            <Text style={styles.attachText}>🎵 내 곡 첨부</Text>
+            <Icon name="music.note" size={14} color={mono.color.textSecondary} />
+            <Text style={styles.attachText}>내 곡 첨부</Text>
           </Pressable>
         )}
 
@@ -137,6 +139,7 @@ const styles = StyleSheet.create({
     textAlignVertical: 'top', paddingTop: 4,
   },
   attachBtn: {
+    flexDirection: 'row', alignItems: 'center', gap: 6,
     alignSelf: 'flex-start', backgroundColor: mono.color.fill, borderRadius: mono.radius.pill,
     paddingVertical: 8, paddingHorizontal: 16, marginTop: 8,
   },

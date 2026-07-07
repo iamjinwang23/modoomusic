@@ -3,6 +3,7 @@ import { Pressable, StyleSheet, Text, View } from 'react-native'
 import { Image } from 'expo-image'
 import type { CommunityPost } from '@mono/shared'
 import { api } from '@/lib/api'
+import { Icon } from '@/components/ui/icon'
 import { mono } from '@/theme/mono'
 
 function initial(name: string | null): string {
@@ -66,9 +67,13 @@ export function PostCard({ post, onPress, onAuthorPress }: { post: CommunityPost
 
       <View style={styles.meta}>
         <Pressable onPress={toggleLike} hitSlop={8} style={styles.metaBtn}>
-          <Text style={[styles.metaText, liked && styles.liked]}>{liked ? '♥' : '♡'} {likeCount}</Text>
+          <Icon name={liked ? 'heart.fill' : 'heart'} size={15} color={liked ? mono.color.danger : mono.color.textTertiary} />
+          <Text style={[styles.metaText, liked && styles.liked]}>{likeCount}</Text>
         </Pressable>
-        <Text style={styles.metaText}>💬 {post.commentCount}</Text>
+        <View style={styles.metaBtn}>
+          <Icon name="bubble.left" size={15} color={mono.color.textTertiary} />
+          <Text style={styles.metaText}>{post.commentCount}</Text>
+        </View>
       </View>
     </Pressable>
   )
@@ -99,7 +104,7 @@ const styles = StyleSheet.create({
   songCover: { width: 32, height: 32, borderRadius: 6, overflow: 'hidden', backgroundColor: mono.color.surface2 },
   songTitle: { flex: 1, color: mono.color.textSecondary, fontSize: mono.font.small, fontWeight: '600' },
   meta: { flexDirection: 'row', gap: 16, alignItems: 'center' },
-  metaBtn: { paddingVertical: 2 },
+  metaBtn: { flexDirection: 'row', alignItems: 'center', gap: 5, paddingVertical: 2 },
   metaText: { color: mono.color.textTertiary, fontSize: mono.font.small },
   liked: { color: mono.color.danger },
 })

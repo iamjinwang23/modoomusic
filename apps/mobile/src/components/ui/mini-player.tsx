@@ -3,6 +3,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { router } from 'expo-router'
 import TrackPlayer, { State, useActiveTrack, usePlaybackState } from 'react-native-track-player'
 import { Image } from 'expo-image'
+import { Icon } from '@/components/ui/icon'
 import { mono } from '@/theme/mono'
 
 // 하단 미니 플레이어 — 현재 트랙·재생상태. 트랙 없으면 숨김. 탭바 위 고정.
@@ -23,7 +24,7 @@ export function MiniPlayer() {
         </View>
         <Text style={styles.title} numberOfLines={1}>{track.title ?? '재생 중'}</Text>
         <Pressable onPress={toggle} style={styles.btn} hitSlop={10}>
-          <Text style={styles.btnText}>{playing ? '❚❚' : '▶'}</Text>
+          <Icon name={playing ? 'pause.fill' : 'play.fill'} size={18} color={mono.color.text} />
         </Pressable>
       </Pressable>
     </View>

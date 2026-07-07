@@ -8,6 +8,7 @@ import TrackPlayer, { State, useActiveTrack, usePlaybackState, useProgress } fro
 import { api } from '@/lib/api'
 import { useNowPlaying } from '@/lib/now-playing'
 import { setSongPublished, shareSong } from '@/lib/song-actions'
+import { Icon } from '@/components/ui/icon'
 import { mono } from '@/theme/mono'
 
 function fmt(sec: number): string {
@@ -82,7 +83,7 @@ export default function PlayerScreen() {
       showsVerticalScrollIndicator={false}
     >
       <View style={styles.header}>
-        <Pressable onPress={() => router.back()} hitSlop={12}><Text style={styles.chevron}>⌄</Text></Pressable>
+        <Pressable onPress={() => router.back()} hitSlop={12}><Icon name="chevron.down" size={20} color={mono.color.textSecondary} /></Pressable>
         <Text style={styles.headerLabel}>재생 중</Text>
         <View style={{ width: 28 }} />
       </View>
@@ -121,33 +122,33 @@ export default function PlayerScreen() {
       </View>
 
       <View style={styles.controls}>
-        <Pressable onPress={() => seek(-1)} hitSlop={12}><Text style={styles.ctrlSecondary}>-10</Text></Pressable>
+        <Pressable onPress={() => seek(-1)} hitSlop={12}><Icon name="gobackward.10" size={26} color={mono.color.textSecondary} /></Pressable>
         <Pressable
           onPress={() => (playing ? TrackPlayer.pause() : TrackPlayer.play())}
           style={styles.playBtn}
         >
-          <Text style={styles.playIcon}>{playing ? '❚❚' : '▶'}</Text>
+          <Icon name={playing ? 'pause.fill' : 'play.fill'} size={26} color={mono.color.text} />
         </Pressable>
-        <Pressable onPress={() => seek(1)} hitSlop={12}><Text style={styles.ctrlSecondary}>+10</Text></Pressable>
+        <Pressable onPress={() => seek(1)} hitSlop={12}><Icon name="goforward.10" size={26} color={mono.color.textSecondary} /></Pressable>
       </View>
 
       {song ? (
         <View style={styles.actionsRow}>
           <Pressable onPress={toggleLike} disabled={likeBusy} style={styles.action} hitSlop={8}>
-            <Text style={[styles.actionText, liked && styles.likeOn]}>{liked ? '♥' : '♡'}</Text>
+            <Icon name={liked ? 'heart.fill' : 'heart'} size={22} color={liked ? mono.color.danger : mono.color.textSecondary} />
             <Text style={styles.actionLabel}>좋아요</Text>
           </Pressable>
           <Pressable onPress={togglePublish} disabled={pubBusy} style={styles.action} hitSlop={8}>
-            <Text style={[styles.actionText, published && styles.pubOn]}>{published ? '◉' : '○'}</Text>
+            <Icon name={published ? 'globe' : 'lock'} size={22} color={published ? mono.color.accentLight : mono.color.textSecondary} />
             <Text style={styles.actionLabel}>{published ? '공개됨' : '공개'}</Text>
           </Pressable>
           <Pressable onPress={() => shareSong(song.id, song.title)} style={styles.action} hitSlop={8}>
-            <Text style={styles.actionText}>↗</Text>
+            <Icon name="square.and.arrow.up" size={22} color={mono.color.textSecondary} />
             <Text style={styles.actionLabel}>공유</Text>
           </Pressable>
           {isOwn ? (
             <Pressable onPress={() => router.push(`/video-create?songId=${song.id}`)} style={styles.action} hitSlop={8}>
-              <Text style={styles.actionText}>▦</Text>
+              <Icon name="film" size={22} color={mono.color.textSecondary} />
               <Text style={styles.actionLabel}>영상</Text>
             </Pressable>
           ) : null}

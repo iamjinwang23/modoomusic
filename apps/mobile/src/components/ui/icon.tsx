@@ -1,0 +1,58 @@
+import type { StyleProp, ViewStyle } from 'react-native'
+import { mono } from '@/theme/mono'
+// 웹과 동일한 MingCute 아이콘(웹 public의 그 SVG 에셋). fill을 currentColor로 치환해 color prop으로 tint.
+import ThumbUp from '@/assets/mingcute/Thumb-Up.svg'
+import Chat from '@/assets/mingcute/chat.svg'
+import Share from '@/assets/mingcute/Share.svg'
+import Notification from '@/assets/mingcute/Notification.svg'
+import SearchSvg from '@/assets/mingcute/Search.svg'
+import PlaySvg from '@/assets/mingcute/Play.svg'
+import PauseSvg from '@/assets/mingcute/Pause.svg'
+import More from '@/assets/mingcute/More.svg'
+import Movie from '@/assets/mingcute/Movie.svg'
+import MusicSvg from '@/assets/mingcute/Music.svg'
+import GlobeSvg from '@/assets/mingcute/globe.svg'
+import Add from '@/assets/mingcute/Add.svg'
+import CloseFill from '@/assets/mingcute/Close-Fill.svg'
+import LeftSmall from '@/assets/mingcute/Left-Small.svg'
+import ArrowDown from '@/assets/mingcute/Arrow-To-Down.svg'
+import SkipPrevious from '@/assets/mingcute/Skip-Previous.svg'
+import SkipForward from '@/assets/mingcute/Skip-Forward.svg'
+import Profile from '@/assets/mingcute/Profile.svg'
+
+// 앱 아이콘 이름 → MingCute 컴포넌트. (좋아요=Thumb-Up 썸즈업, 웹과 동일)
+const MAP = {
+  bell: Notification,
+  'line.3.horizontal': Profile,   // 라이브러리 헤더 프로필 진입
+  plus: Add,
+  ellipsis: More,
+  'play.fill': PlaySvg,
+  'pause.fill': PauseSvg,
+  'chevron.down': ArrowDown,
+  'chevron.left': LeftSmall,
+  'gobackward.10': SkipPrevious,
+  'goforward.10': SkipForward,
+  magnifyingglass: SearchSvg,
+  heart: ThumbUp,        // 좋아요 = 썸즈업(웹 Thumb-Up)
+  'heart.fill': ThumbUp,
+  globe: GlobeSvg,
+  lock: GlobeSvg,
+  'square.and.arrow.up': Share,
+  film: Movie,
+  'bubble.left': Chat,
+  'music.note': MusicSvg,
+  close: CloseFill,
+} as const
+
+export type IconName = keyof typeof MAP
+
+export function Icon({ name, size = 22, color = mono.color.text, style }: {
+  name: IconName
+  size?: number
+  color?: string
+  weight?: 'regular' | 'medium' | 'semibold' | 'bold'
+  style?: StyleProp<ViewStyle>
+}) {
+  const C = MAP[name]
+  return <C width={size} height={size} color={color} style={style} />
+}

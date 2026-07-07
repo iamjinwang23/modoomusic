@@ -6,6 +6,7 @@ import type { PublicSong } from '@mono/shared'
 import { api } from '@/lib/api'
 import { playSong } from '@/lib/player'
 import { PublicSongRow } from '@/components/ui/public-song-row'
+import { Icon } from '@/components/ui/icon'
 import { mono } from '@/theme/mono'
 
 type Tab = 'recommended' | 'latest' | 'popular'
@@ -43,9 +44,9 @@ export default function DiscoverScreen() {
   return (
     <View style={[styles.container, { paddingTop: insets.top + 12 }]}>
       <View style={styles.headerRow}>
-        <Text style={styles.h1}>탐색</Text>
+        <Text style={styles.h1}>둘러보기</Text>
         <Pressable onPress={() => router.push('/search')} hitSlop={10} style={styles.searchBtn}>
-          <Text style={styles.searchIcon}>🔍</Text>
+          <Icon name="magnifyingglass" size={18} color={mono.color.text} />
         </Pressable>
       </View>
       <View style={styles.tabs}>
