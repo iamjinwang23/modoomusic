@@ -1,8 +1,35 @@
 # MONO 네이티브 모바일 앱 설계 (React Native / Expo · iOS + Android)
 
-> **상태: 설계 확정 · 구현 대기 (2026-07-06 브레인스토밍 · 2026-07-07 안드로이드 델타 추가).**
+> **상태: v1 핵심 구현·프로덕션 배포됨 (2026-07-06 설계 · 2026-07-07 구현·배포). iOS 우선, 안드로이드 델타 대기.**
 > 목표: 현재 웹(Next.js 16 + Supabase)을 **완전 네이티브 모바일 앱**으로. v1은 **웹 기능 전체 패리티**, **처음부터 iOS+안드로이드 듀얼플랫폼**.
 > 백엔드(Next.js API + Supabase)는 재사용, 프론트만 네이티브 신설. RN이라 앱 코드 대부분 양 플랫폼 공유(안드로이드는 §14 델타 참조).
+
+---
+
+## 0.5 구현 현황 (2026-07-07, main `112116f`)
+
+**✅ 프로덕션 배포됨** — apps/mobile(Expo SDK57). iOS 시뮬레이터 딥링크(`mobile://<route>`)로 전 화면 검증, 오디오 재생 유저 확인.
+
+| 영역 | 상태 | 비고 |
+|---|---|---|
+| 모노레포·shared·BFF(쿠키+Bearer) | ✅ | **npm workspaces**(pnpm 아님 — 라이브 레포 리스크로 변경) |
+| 인증(소셜 Google/Kakao/Apple·이메일·게스트) | ✅ | 소셜 OAuth 검증(Google). 세션 secure-store |
+| 음악 생성·실시간 완성·라이브러리 | ✅ | POST /api/generate, songs UPDATE 구독 |
+| 재생(미니/전체 플레이어·가사·좋아요·공개·공유) | ✅ | **react-native-track-player** |
+| 영상 커버(생성·재생) | ✅ | **expo-video**, generate-video BFF |
+| 커뮤니티(목록·상세·가입·글쓰기+곡첨부·좋아요·댓글) | ✅ | |
+| 탐색(공개곡)·검색·크리에이터 프로필·팔로우 | ✅ | 신규 BFF explore/feed·explore/profile |
+| 계정(프로필 탭=크리에이터 프로필·설정·알림) | ✅ | |
+| **결제/IAP** | ⬜ | Phase3 RevenueCat 미착수 |
+| **푸시** | ⬜ | Expo/APNs 미착수 |
+| **안드로이드·제출** | ⬜ | §14 델타·EAS·TestFlight 대기 |
+
+**설계 대비 주요 변경(divergence):**
+- **스타일: Nativewind 대신 MONO 토큰(`src/theme/mono.ts`)+StyleSheet** — SDK57 Nativewind 호환 리스크 회피.
+- **아이콘: 웹과 동일한 MingCute** — `react-native-svg`+`react-native-svg-transformer`로 웹 `public/*.svg` 채택(fill→currentColor tint). 좋아요=Thumb-Up 썸즈업.
+- **하단 네비: 웹 커스텀 바텀네비 파리티 5탭**(둘러보기·커뮤니티·만들기(중앙,모달)·라이브러리·프로필). NativeTabs 아님, expo-router JS Tabs.
+- **결제 마크업**: 설계 iOS +30% 유지(pricing.ts). 안드로이드 +15%.
+- 상세 구현·함정은 auto-memory `native-mobile-app.md` 참조.
 
 ---
 

@@ -41,3 +41,11 @@
 
 ## 5. 결론
 Phase 2~8의 "최대 변수"였던 엔드포인트 갭이 **국지적**(내곡·곡상세·피드·프로필 4종)으로 확정됨. 커뮤니티는 완비라 Phase 5는 프론트만. 각 신설 엔드포인트는 해당 Phase 계획의 선행 Task로 편입한다.
+
+## 6. 해소 현황 (2026-07-07, 구현 완료·배포)
+4개 갭 전부 신설·배포 완료:
+- ✅ `GET /api/songs/mine`, `GET /api/songs/[id]` — song-map.ts·song-query.service로 client/서버 공용.
+- ✅ `GET /api/explore/feed?tab=recommended|latest|popular` — exploreService.getFeed 재사용.
+- ✅ **프로필: `GET /api/explore/profile/[username]`** — ⚠️ 원안 `/api/profiles/[username]`은 기존 `/api/profiles/[id]/follow`와 **[id] 세그먼트 충돌**로 불가 → `explore/profile/[username]`로 신설. getProfile+getUserSongs, isFollowing은 authed 클라로 보정.
+- ✅ `GET /api/notifications` — 추가 신설(알림 인박스, actor·song 조인).
+전부 `createUserClient`(쿠키+Bearer)로 앱·웹 공용. 웹 기존 동작 무변경(additive).

@@ -2,6 +2,8 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
+> **✅ 상태(2026-07-07): 완료·프로덕션 배포됨** (main 머지). ⚠️ **변경점**: 레포는 **npm workspaces**(pnpm 아님 — 라이브 레포 리스크). DS 프리미티브는 Nativewind 대신 **MONO 토큰+StyleSheet**로 Phase2에 폴딩. 소셜 로그인은 Phase4→앞당겨 구현. 상세·함정은 auto-memory `native-mobile-app.md`.
+
 **Goal:** 기존 Next.js 웹을 무중단으로 모노레포화하고, 공유 패키지·인증(쿠키+Bearer BFF)·Expo 앱 스켈레톤·디자인 프리미티브를 세워 이후 페이즈가 올라탈 기반을 완성한다.
 
 **Architecture:** pnpm + Turborepo 모노레포. `apps/web`(기존 Next.js 이동), `apps/mobile`(Expo RN 신규), `packages/shared`(타입·에러코드·가격상수·API 클라이언트). 기존 Next.js API를 쿠키+Bearer 둘 다 받는 공용 BFF로 확장해 앱이 재사용한다.

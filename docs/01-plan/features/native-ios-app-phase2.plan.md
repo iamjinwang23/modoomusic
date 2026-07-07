@@ -2,6 +2,8 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: superpowers:subagent-driven-development 또는 superpowers:executing-plans. 스텝은 체크박스(`- [ ]`).
 
+> **✅ 상태(2026-07-07): 완료·프로덕션 배포됨** (main 머지). 생성·라이브러리·재생 핵심 루프 + 커뮤니티·탐색·검색·크리에이터·알림·영상까지 확장 구현. 신규 BFF: songs/mine·songs/[id]·explore/feed·explore/profile·notifications. 재생=track-player, 영상=expo-video. 아이콘=MingCute, 5탭 웹 파리티. 상세·함정은 auto-memory `native-mobile-app.md`.
+
 **Goal:** 앱에서 음악 생성 → 라이브러리(내 곡) → 재생(백그라운드·잠금화면)의 핵심 루프를 네이티브로 완성한다.
 
 **Architecture:** 신규 BFF 읽기 엔드포인트(`GET /api/songs/mine`·`/api/songs/[id]`)로 곡 데이터를 REST화(웹은 client supabase 직접쿼리 → RN은 BFF). 생성은 기존 `/api/generate` 재사용 + Supabase realtime로 상태 구독. 재생은 `react-native-track-player`(백그라운드 오디오·제어센터).
