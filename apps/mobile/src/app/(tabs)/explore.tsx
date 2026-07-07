@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { ActivityIndicator, FlatList, Pressable, RefreshControl, StyleSheet, Text, View } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
+import { router } from 'expo-router'
 import type { Community } from '@mono/shared'
 import { api } from '@/lib/api'
 import { CommunityCard } from '@/components/ui/community-card'
@@ -58,7 +59,7 @@ export default function ExploreScreen() {
         <FlatList
           data={items ?? []}
           keyExtractor={(x) => x.id}
-          renderItem={({ item }) => <CommunityCard community={item} />}
+          renderItem={({ item }) => <CommunityCard community={item} onPress={() => router.push(`/community/${item.id}`)} />}
           contentContainerStyle={{ paddingBottom: insets.bottom + 120, paddingTop: 12 }}
           refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={mono.color.textSecondary} />}
           ListEmptyComponent={
