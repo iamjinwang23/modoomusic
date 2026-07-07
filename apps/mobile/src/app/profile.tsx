@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
-import { router } from 'expo-router'
+import { router, useFocusEffect } from 'expo-router'
 import { Image } from 'expo-image'
 import { api } from '@/lib/api'
 import { supabase } from '@/lib/supabase'
@@ -34,6 +34,8 @@ export default function ProfileScreen() {
   }, [])
 
   useEffect(() => { load() }, [load])
+  // 편집 모달에서 돌아오면 갱신
+  useFocusEffect(useCallback(() => { load() }, [load]))
 
   const logout = async () => {
     await supabase.auth.signOut()
@@ -66,6 +68,9 @@ export default function ProfileScreen() {
             <Text style={styles.name}>{name}</Text>
             {profile?.username ? <Text style={styles.handle}>@{profile.username}</Text> : null}
             {email ? <Text style={styles.email}>{email}</Text> : null}
+            <Pressable style={styles.editBtn} onPress={() => router.push('/profile-edit')}>
+              <Text style={styles.editText}>프로필 편집</Text>
+            </Pressable>
           </View>
 
           <Text style={styles.section}>크레딧</Text>
@@ -109,6 +114,11 @@ const styles = StyleSheet.create({
   name: { color: mono.color.text, fontSize: mono.font.h2, fontWeight: '800' },
   handle: { color: mono.color.accentLight, fontSize: mono.font.small },
   email: { color: mono.color.textSecondary, fontSize: mono.font.small, marginTop: 2 },
+  editBtn: {
+    marginTop: 14, paddingVertical: 9, paddingHorizontal: 22, borderRadius: mono.radius.pill,
+    backgroundColor: mono.color.fillStrong,
+  },
+  editText: { color: mono.color.text, fontSize: mono.font.small, fontWeight: '700' },
   section: { color: mono.color.text, fontSize: mono.font.body, fontWeight: '700', marginTop: 28, marginBottom: 10 },
   card: {
     backgroundColor: mono.color.surface, borderRadius: mono.radius.lg, padding: 16,

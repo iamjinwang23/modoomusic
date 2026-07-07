@@ -29,6 +29,7 @@ export default function RootLayout() {
         <Stack.Screen name="compose" options={{ presentation: 'modal' }} />
         <Stack.Screen name="notifications" options={{ presentation: 'modal' }} />
         <Stack.Screen name="search" options={{ presentation: 'modal' }} />
+        <Stack.Screen name="profile-edit" options={{ presentation: 'modal' }} />
       </Stack>
       {/* 미로그인 & 게스트 아님 → 로그인 오버레이. 라우터는 유지. */}
       {!loading && !session && !guest && <LoginScreen onGuest={() => setGuest(true)} />}
