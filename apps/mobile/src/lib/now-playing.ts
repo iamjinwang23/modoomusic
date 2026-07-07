@@ -13,6 +13,8 @@ export interface NowPlaying {
   published?: boolean
   username?: string      // 공개곡(PublicSong)이면 크리에이터 핸들 — 플레이어에서 프로필 링크
   displayName?: string   // 크리에이터 표시명
+  videoCoverUrl?: string          // 영상 커버 URL(있으면 플레이어가 영상 재생)
+  videoCoverStatus?: 'generating' | 'done' | 'failed'
 }
 
 let current: NowPlaying | null = null

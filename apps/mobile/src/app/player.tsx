@@ -3,6 +3,7 @@ import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { router } from 'expo-router'
 import { Image } from 'expo-image'
+import { useVideoPlayer, VideoView } from 'expo-video'
 import TrackPlayer, { State, useActiveTrack, usePlaybackState, useProgress } from 'react-native-track-player'
 import { api } from '@/lib/api'
 import { useNowPlaying } from '@/lib/now-playing'
@@ -31,6 +32,12 @@ export default function PlayerScreen() {
 
   const playing = playback.state === State.Playing || playback.state === State.Buffering
   const pct = duration > 0 ? Math.min(1, position / duration) : 0
+
+  // 영상 커버 — 완료된 videoCoverUrl 있으면 정지 이미지 대신 무음 루프 재생(오디오는 track-player).
+  const videoUrl = song?.videoCoverStatus === 'done' ? song.videoCoverUrl ?? null : null
+  const videoPlayer = useVideoPlayer(videoUrl, (p) => { p.loop = true; p.muted = true; if (videoUrl) p.play() })
+  // 라이브러리(내) 곡만 영상 만들기 노출(공개곡은 username 있음)
+  const isOwn = song ? !song.username : false
 
   const toggleLike = async () => {
     if (!song || likeBusy) return
@@ -81,11 +88,16 @@ export default function PlayerScreen() {
       </View>
 
       <View style={styles.artWrap}>
-        {track.artwork ? (
+        {videoUrl ? (
+          <VideoView player={videoPlayer} style={styles.art} contentFit="cover" nativeControls={false} />
+        ) : track.artwork ? (
           <Image source={{ uri: String(track.artwork) }} style={styles.art} contentFit="cover" />
         ) : (
           <View style={[styles.art, styles.artPlaceholder]}><Text style={styles.artInitial}>♪</Text></View>
         )}
+        {song?.videoCoverStatus === 'generating' ? (
+          <View style={styles.videoBadge}><Text style={styles.videoBadgeText}>영상 생성 중…</Text></View>
+        ) : null}
       </View>
 
       <View style={styles.info}>
@@ -133,6 +145,12 @@ export default function PlayerScreen() {
             <Text style={styles.actionText}>↗</Text>
             <Text style={styles.actionLabel}>공유</Text>
           </Pressable>
+          {isOwn ? (
+            <Pressable onPress={() => router.push(`/video-create?songId=${song.id}`)} style={styles.action} hitSlop={8}>
+              <Text style={styles.actionText}>▦</Text>
+              <Text style={styles.actionLabel}>영상</Text>
+            </Pressable>
+          ) : null}
         </View>
       ) : null}
 
@@ -155,7 +173,12 @@ const styles = StyleSheet.create({
   chevron: { color: mono.color.text, fontSize: 30, lineHeight: 30, width: 28 },
   headerLabel: { color: mono.color.textSecondary, fontSize: mono.font.small, fontWeight: '600' },
   artWrap: { alignItems: 'center', marginTop: 24, marginBottom: 32 },
-  art: { width: '86%', aspectRatio: 1, borderRadius: mono.radius.xl, backgroundColor: mono.color.surface },
+  art: { width: '86%', aspectRatio: 1, borderRadius: mono.radius.xl, backgroundColor: mono.color.surface, overflow: 'hidden' },
+  videoBadge: {
+    position: 'absolute', bottom: 12, left: '9%',
+    backgroundColor: 'rgba(0,0,0,0.6)', borderRadius: mono.radius.pill, paddingVertical: 6, paddingHorizontal: 12,
+  },
+  videoBadgeText: { color: '#fff', fontSize: mono.font.tiny, fontWeight: '700' },
   artPlaceholder: { alignItems: 'center', justifyContent: 'center' },
   artInitial: { color: mono.color.textTertiary, fontSize: 64 },
   info: { alignItems: 'center', gap: 6, marginBottom: 28 },
