@@ -1,7 +1,30 @@
 {
   "$schema": "https://turbo.build/schema.json",
+  "globalEnv": ["NODE_ENV", "VERCEL", "VERCEL_ENV", "VERCEL_URL"],
   "tasks": {
-    "build": { "dependsOn": ["^build"], "outputs": [".next/**", "dist/**"] },
+    "build": {
+      "dependsOn": ["^build"],
+      "outputs": [".next/**", "dist/**"],
+      "env": [
+        "NEXT_PUBLIC_SUPABASE_URL",
+        "NEXT_PUBLIC_SUPABASE_ANON_KEY",
+        "NEXT_PUBLIC_PAYMENTS_ENABLED",
+        "NEXT_PUBLIC_PORTONE_CHANNEL_KEY",
+        "NEXT_PUBLIC_PORTONE_STORE_ID",
+        "NEXT_PUBLIC_VAPID_PUBLIC_KEY",
+        "SUPABASE_SERVICE_ROLE_KEY",
+        "MINIMAX_API_KEY",
+        "MINIMAX_MOCK",
+        "NAVER_CLIENT_ID",
+        "NAVER_CLIENT_SECRET",
+        "NAVER_SITE_VERIFICATION",
+        "PORTONE_API_SECRET",
+        "PORTONE_WEBHOOK_SECRET",
+        "VAPID_PRIVATE_KEY",
+        "VAPID_SUBJECT",
+        "CRON_SECRET"
+      ]
+    },
     "dev": { "cache": false, "persistent": true },
     "lint": {},
     "test": { "dependsOn": ["^build"] }
