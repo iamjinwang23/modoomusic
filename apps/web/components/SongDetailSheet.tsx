@@ -4,7 +4,7 @@ import { useRef, useState, useEffect, useCallback } from 'react'
 import Image from 'next/image'
 import { songService } from '@/services/song.service'
 import { SongEditModal } from '@/components/SongEditModal'
-import type { Song } from '@/types/domain'
+import type { Song } from '@mono/shared'
 
 interface Props {
   song: Song

@@ -2,7 +2,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createUserClient } from '@/lib/supabase/server'
 import { findBannedWord } from '@/services/moderation.service'
-import type { Comment } from '@/types/domain'
+import type { Comment } from '@mono/shared'
 
 type ProfileJoin = {
   username: string

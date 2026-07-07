@@ -7,7 +7,7 @@ import { VideoCoverPlayer } from '@/components/VideoCoverPlayer'
 import { useOptimisticToggle } from '@/hooks/useOptimisticToggle'
 import { useAuth } from '@/components/AuthProvider'
 import { toast } from '@/components/toast/toast'
-import type { PublicSong } from '@/types/domain'
+import type { PublicSong } from '@mono/shared'
 
 function coverGradient(hue: number) {
   const h2 = (hue + 55) % 360

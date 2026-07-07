@@ -4,7 +4,7 @@
 import Image from 'next/image'
 import { profileColor } from '@/utils/profileColor'
 import { relativeTime } from '@/utils/relativeTime'
-import type { Notification, NotificationSystemPayload } from '@/types/domain'
+import type { Notification, NotificationSystemPayload } from '@mono/shared'
 
 interface Props {
   notif: Notification

@@ -1,6 +1,6 @@
 'use client'
 
-import type { SocialLinks } from '@/types/domain'
+import type { SocialLinks } from '@mono/shared'
 
 type Key = keyof SocialLinks
 

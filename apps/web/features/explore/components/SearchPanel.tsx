@@ -11,7 +11,7 @@ import { useOptimisticToggle } from '@/hooks/useOptimisticToggle'
 import { profileColor } from '@/utils/profileColor'
 import { track, EVENTS } from '@/utils/analytics'
 import { PublicSongCard } from './PublicSongCard'
-import type { PublicSong, Song } from '@/types/domain'
+import type { PublicSong, Song } from '@mono/shared'
 import type { SearchUser, SearchTag, SearchResults } from '@/services/search.service'
 
 function toSong(pub: PublicSong): Song {

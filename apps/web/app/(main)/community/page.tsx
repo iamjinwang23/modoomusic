@@ -7,7 +7,7 @@ import Link from 'next/link'
 import { useAuth } from '@/components/AuthProvider'
 import { CreateCommunityModal } from '@/components/community/CreateCommunityModal'
 import { CommunityCard, PopularPostCard, CommunityStoryItem, CommunityRankRow } from '@/components/community/hubCards'
-import type { Community, CommunityPost } from '@/types/domain'
+import type { Community, CommunityPost } from '@mono/shared'
 
 // 허브 섹션 기본 노출 개수 (초과분은 "전체보기"로)
 const HUB_LIMIT = { mine: 6, posts: 9, popular: 6, recent: 6 }

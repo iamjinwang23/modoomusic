@@ -3,7 +3,7 @@
 import { useState, useRef } from 'react'
 import { songService } from '@/services/song.service'
 import { toast } from '@/components/toast/toast'
-import type { Song } from '@/types/domain'
+import type { Song } from '@mono/shared'
 import type { GenerationStatus } from '../types/song'
 
 // 백그라운드 생성 패턴 (Suno parity):

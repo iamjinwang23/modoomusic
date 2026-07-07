@@ -5,7 +5,7 @@ import { useState, useRef } from 'react'
 import Image from 'next/image'
 import { Markdown } from '@/components/Markdown'
 import { uploadAnnouncementImage } from '@/utils/imageUpload'
-import type { Announcement, AnnouncementCategory } from '@/types/domain'
+import type { Announcement, AnnouncementCategory } from '@mono/shared'
 
 interface Props {
   mode: 'new' | 'edit'

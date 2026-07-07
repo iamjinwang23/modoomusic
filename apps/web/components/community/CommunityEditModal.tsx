@@ -7,7 +7,7 @@ import { toast } from '@/components/toast/toast'
 import { GRAY_COVER, GRAY_AVATAR, GRAY_AVATAR_TEXT } from '@/components/community/hubCards'
 import { ConfirmModal } from '@/components/ConfirmModal'
 import { CropModal } from '@/components/CropModal'
-import type { Community } from '@/types/domain'
+import type { Community } from '@mono/shared'
 
 // 커버는 원본 전체 저장(홈 16:9). 크롭 툴(7:2)은 상세 배너에서 보일 '초점'만 지정(파괴적 X). 대표 이미지는 1:1 크롭.
 const COVER_ASPECT = 7 / 2

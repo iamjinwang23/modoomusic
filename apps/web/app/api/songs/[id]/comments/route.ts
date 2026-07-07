@@ -4,7 +4,7 @@ import { createUserClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { sendPushToUser } from '@/services/push.service'
 import { findBannedWord } from '@/services/moderation.service'
-import type { Comment } from '@/types/domain'
+import type { Comment } from '@mono/shared'
 
 type ProfileJoin = {
   username: string

@@ -10,7 +10,7 @@ import Image from 'next/image'
 import { exploreService } from '@/services/explore.service'
 import { GENRE_LABELS } from '@/utils/extractTags'
 import { PublicSongCard } from './PublicSongCard'
-import type { PublicSong, Song } from '@/types/domain'
+import type { PublicSong, Song } from '@mono/shared'
 
 function toSong(pub: PublicSong): Song {
   return {

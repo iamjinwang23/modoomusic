@@ -1,6 +1,6 @@
 'use client'
 
-import { GENRES, type Genre } from '@/types/domain'
+import { GENRES, type Genre } from '@mono/shared'
 
 interface Props {
   value: string

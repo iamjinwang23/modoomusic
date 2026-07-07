@@ -3,7 +3,7 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { createUserClient } from '@/lib/supabase/server'
 import { sendPushToAll } from '@/services/push.service'
-import type { Announcement, AnnouncementCategory } from '@/types/domain'
+import type { Announcement, AnnouncementCategory } from '@mono/shared'
 
 interface AnnouncementRow {
   id: string

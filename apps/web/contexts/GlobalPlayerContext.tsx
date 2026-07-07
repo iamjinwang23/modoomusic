@@ -3,7 +3,7 @@
 import { createContext, useContext, useReducer, useRef, useState, useEffect, useCallback } from 'react'
 import { songService } from '@/services/song.service'
 import { track, EVENTS } from '@/utils/analytics'
-import type { Song } from '@/types/domain'
+import type { Song } from '@mono/shared'
 
 interface State {
   feed: Song[]

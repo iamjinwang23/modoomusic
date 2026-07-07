@@ -3,7 +3,7 @@
 // SECURITY DEFINER 함수가 profiles/songs/follows RLS 우회 → admin client 불필요, anon client로 충분.
 
 import { createUserClient } from '@/lib/supabase/server'
-import type { RecommendedCreator } from '@/types/domain'
+import type { RecommendedCreator } from '@mono/shared'
 
 interface RpcRow {
   id: string

@@ -13,7 +13,7 @@ import { RecommendedCreators } from './RecommendedCreators'
 import { GenreSection } from './GenreSection'
 import { SearchPanel } from './SearchPanel'
 import type { SearchTag } from '@/services/search.service'
-import type { PublicSong, Song } from '@/types/domain'
+import type { PublicSong, Song } from '@mono/shared'
 
 // 동적 칩으로 전환 — DB 집계 결과에서 set 구성 (SectionAllView 안에서 사용)
 

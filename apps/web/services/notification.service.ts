@@ -1,7 +1,7 @@
 // Design Ref: notifications §4.3·§4.4 — RLS로 본인 알림만 SELECT/UPDATE
 // API route 우회. Supabase 클라이언트 직접 호출
 import { createClient } from '@/lib/supabase/client'
-import type { Notification, NotificationType, NotificationSystemPayload } from '@/types/domain'
+import type { Notification, NotificationType, NotificationSystemPayload } from '@mono/shared'
 
 interface Row {
   id: string

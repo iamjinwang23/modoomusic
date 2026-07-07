@@ -5,7 +5,7 @@ import { useState, useEffect } from 'react'
 import Image from 'next/image'
 import { commentService, COMMENT_REPORT_REASONS, type CommentReportReason } from '@/services/comment.service'
 import { toast } from '@/components/toast/toast'
-import type { Comment } from '@/types/domain'
+import type { Comment } from '@mono/shared'
 
 interface Props {
   comment: Comment

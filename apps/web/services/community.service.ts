@@ -2,7 +2,7 @@
 import { createAdminClient } from '@/lib/supabase/admin'
 import { sendPushToUser } from '@/services/push.service'
 import { findBannedWord } from '@/services/moderation.service'
-import type { Community, CommunityMember } from '@/types/domain'
+import type { Community, CommunityMember } from '@mono/shared'
 
 // 모더레이션(강퇴·게시물 삭제) 알림 — 시스템 알림 + 웹푸시
 export async function notifyCommunityModeration(targetUserId: string, title: string, body: string, url: string): Promise<void> {

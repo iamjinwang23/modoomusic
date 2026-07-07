@@ -3,7 +3,7 @@ import { createAdminClient } from '@/lib/supabase/admin'
 import { notifyCommunityModeration, isCommunityClosing } from '@/services/community.service'
 import { sendPushToUser } from '@/services/push.service'
 import { findBannedWord } from '@/services/moderation.service'
-import type { CommunityPost, CommunityPostComment, CommunityPoll } from '@/types/domain'
+import type { CommunityPost, CommunityPostComment, CommunityPoll } from '@mono/shared'
 
 // 커뮤니티 소셜 알림(좋아요·댓글·답글) — 인앱(actor 아바타 렌더) + 웹푸시. 본인 대상/중복은 호출부에서 가드.
 async function notifyCommunityActivity(

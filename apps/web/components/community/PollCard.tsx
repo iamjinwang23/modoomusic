@@ -2,7 +2,7 @@
 // 커뮤니티 글 투표 — 단일 선택. 투표 전=옵션 버튼, 투표/종료 후=막대+%·본인 선택 강조. 24h 후 종료.
 import { useState, useEffect } from 'react'
 import { toast } from '@/components/toast/toast'
-import type { CommunityPoll } from '@/types/domain'
+import type { CommunityPoll } from '@mono/shared'
 
 function remainLabel(endsAt: string): string {
   const diff = new Date(endsAt).getTime() - Date.now()

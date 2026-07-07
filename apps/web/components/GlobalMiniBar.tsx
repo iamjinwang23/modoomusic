@@ -7,7 +7,7 @@ import { CollectionPickerModal } from '@/features/song/components/CollectionPick
 import { toast } from '@/components/toast/toast'
 import { useAuth } from '@/components/AuthProvider'
 import { buildSongShareUrl } from '@/utils/shareUrl'
-import type { Song } from '@/types/domain'
+import type { Song } from '@mono/shared'
 import { MarqueeText } from '@/components/MarqueeText'
 
 function formatCount(n: number) {

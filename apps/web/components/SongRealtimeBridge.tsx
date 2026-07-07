@@ -10,7 +10,7 @@ import { useAuth } from '@/components/AuthProvider'
 import { createClient } from '@/lib/supabase/client'
 import { songService } from '@/services/song.service'
 import { toast } from '@/components/toast/toast'
-import type { Song } from '@/types/domain'
+import type { Song } from '@mono/shared'
 
 interface SongRow {
   id: string

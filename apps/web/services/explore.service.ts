@@ -1,6 +1,6 @@
 // Explore feed + 다른 사용자 프로필을 Supabase에서 조회
 // 모든 메서드는 async — 호출부는 useEffect로 fetch 후 setState 사용
-import type { PublicSong, UserProfile, SocialLinks } from '@/types/domain'
+import type { PublicSong, UserProfile, SocialLinks } from '@mono/shared'
 import { createClient } from '@/lib/supabase/client'
 
 export type FeedTab = 'recommended' | 'latest' | 'popular'

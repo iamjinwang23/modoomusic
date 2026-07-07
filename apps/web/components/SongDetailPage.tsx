@@ -22,7 +22,7 @@ import { buildSongShareUrl } from '@/utils/shareUrl'
 import { useOptimisticToggle } from '@/hooks/useOptimisticToggle'
 import { track, EVENTS } from '@/utils/analytics'
 import { createClient } from '@/lib/supabase/client'
-import type { Song } from '@/types/domain'
+import type { Song } from '@mono/shared'
 import { MarqueeText } from '@/components/MarqueeText'
 import { CommentsPanel } from '@/components/CommentsPanel'
 

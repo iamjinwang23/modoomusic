@@ -9,7 +9,7 @@ import { toast } from '@/components/toast/toast'
 import { uploadSongCover } from '@/utils/imageUpload'
 import { track, EVENTS } from '@/utils/analytics'
 import { CropModal } from '@/components/CropModal'
-import type { Song } from '@/types/domain'
+import type { Song } from '@mono/shared'
 
 interface Props {
   song: Song

@@ -20,7 +20,7 @@ import { buildSongShareUrl } from '@/utils/shareUrl'
 import { SoundWaveIcon } from '@/components/SoundWaveIcon'
 import { AnimatedGradientBackground } from '@/components/AnimatedGradientBackground'
 import { GeneratingPhrase } from '@/components/GeneratingPhrase'
-import type { Song } from '@/types/domain'
+import type { Song } from '@mono/shared'
 
 const ICON_FILTER = 'invert(0.45)'
 

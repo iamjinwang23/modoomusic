@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import type { Song } from '@/types/domain'
+import type { Song } from '@mono/shared'
 
 interface Props {
   song: Song

@@ -7,7 +7,7 @@ import { notificationService } from '@/services/notification.service'
 import { exploreService } from '@/services/explore.service'
 import { useAuth } from '@/components/AuthProvider'
 import { NotificationItem } from './NotificationItem'
-import type { Notification } from '@/types/domain'
+import type { Notification } from '@mono/shared'
 
 interface Props {
   mode: 'overlay' | 'page'

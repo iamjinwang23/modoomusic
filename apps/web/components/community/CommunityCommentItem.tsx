@@ -6,7 +6,7 @@ import { toast } from '@/components/toast/toast'
 import { profileColor } from '@/utils/profileColor'
 import { relativeTime } from '@/utils/relativeTime'
 import { ConfirmModal } from '@/components/ConfirmModal'
-import type { CommunityPostComment } from '@/types/domain'
+import type { CommunityPostComment } from '@mono/shared'
 
 interface Props {
   comment: CommunityPostComment

@@ -10,7 +10,7 @@ import { CommentItem } from './CommentItem'
 import { CommentReportModal } from './CommentReportModal'
 import { getMyReportedCommentIds } from '@/services/report.service'
 import { EmojiHotkeyBar } from './EmojiHotkeyBar'
-import type { Comment } from '@/types/domain'
+import type { Comment } from '@mono/shared'
 
 interface Props {
   songId: string

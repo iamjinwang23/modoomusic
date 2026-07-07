@@ -7,7 +7,7 @@ import { collectionService } from '@/services/collection.service'
 import { songService } from '@/services/song.service'
 import { useAuth } from '@/components/AuthProvider'
 import { toast } from '@/components/toast/toast'
-import type { Collection, Song } from '@/types/domain'
+import type { Collection, Song } from '@mono/shared'
 
 function hueGradient(id: string) {
   const hue = (id.split('').reduce((acc, c) => acc + c.charCodeAt(0), 0) * 137) % 360

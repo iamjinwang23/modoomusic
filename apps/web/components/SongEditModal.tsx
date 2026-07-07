@@ -8,7 +8,7 @@ import { toast } from '@/components/toast/toast'
 import { uploadSongCover } from '@/utils/imageUpload'
 import { CropModal } from '@/components/CropModal'
 import { useAuth } from '@/components/AuthProvider'
-import type { Song } from '@/types/domain'
+import type { Song } from '@mono/shared'
 
 const COVER_HUES = [0, 30, 60, 120, 180, 210, 260, 300]
 

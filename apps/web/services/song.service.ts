@@ -1,5 +1,5 @@
 // Design Ref: §3.4 songs 테이블 + §10 Forward Compatibility — 동기 인터페이스 유지 + 내부 Supabase 백엔드
-import type { Song, SongStatus } from '@/types/domain'
+import type { Song, SongStatus } from '@mono/shared'
 import { createClient } from '@/lib/supabase/client'
 
 let currentUserId: string | null = null

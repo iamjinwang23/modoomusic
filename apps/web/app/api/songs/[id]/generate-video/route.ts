@@ -7,7 +7,7 @@ import { createAdminClient } from '@/lib/supabase/admin'
 import { consumeVideoTrial, refundVideoTrial, tryConsumeCredits, refundCredits, type ConsumedBreakdown } from '@/services/credit.service'
 import { createVideoTask, VIDEO_TIERS } from '@/services/video.service'
 import { uploadFromUrl } from '@/services/storage.service'
-import type { VideoCoverMode, VideoCoverTier } from '@/types/domain'
+import type { VideoCoverMode, VideoCoverTier } from '@mono/shared'
 
 interface Params { id: string }
 

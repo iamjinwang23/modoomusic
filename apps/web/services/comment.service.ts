@@ -1,6 +1,6 @@
 // Design Ref: comments §4.2 — 댓글 API 클라이언트 래퍼.
 // 인증·알림 INSERT는 서버 라우트에서 처리, 여기는 fetch만.
-import type { Comment } from '@/types/domain'
+import type { Comment } from '@mono/shared'
 
 async function jsonOrThrow<T>(res: Response): Promise<T> {
   const data = await res.json().catch(() => ({}))

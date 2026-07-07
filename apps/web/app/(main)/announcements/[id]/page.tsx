@@ -4,7 +4,7 @@ import Image from 'next/image'
 import { notFound } from 'next/navigation'
 import { getPublishedAnnouncement } from '@/services/announcement.service'
 import { Markdown } from '@/components/Markdown'
-import { ANNOUNCEMENT_CATEGORY_LABEL } from '@/types/domain'
+import { ANNOUNCEMENT_CATEGORY_LABEL } from '@mono/shared'
 
 export const revalidate = 60
 

@@ -4,8 +4,8 @@
 import { useState, useMemo } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
-import type { Announcement, AnnouncementCategory } from '@/types/domain'
-import { ANNOUNCEMENT_CATEGORY_LABEL } from '@/types/domain'
+import type { Announcement, AnnouncementCategory } from '@mono/shared'
+import { ANNOUNCEMENT_CATEGORY_LABEL } from '@mono/shared'
 
 type Filter = 'all' | AnnouncementCategory
 

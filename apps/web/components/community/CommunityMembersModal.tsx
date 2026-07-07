@@ -3,7 +3,7 @@
 import { createPortal } from 'react-dom'
 import Image from 'next/image'
 import { profileColor } from '@/utils/profileColor'
-import type { CommunityMember } from '@/types/domain'
+import type { CommunityMember } from '@mono/shared'
 
 function Avatar({ name, hue, url, size = 36 }: { name: string | null; hue: number | null; url: string | null; size?: number }) {
   const c = profileColor(hue ?? 0)

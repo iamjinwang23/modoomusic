@@ -27,7 +27,7 @@ import { PostEmbed } from '@/components/community/PostEmbed'
 import { PollCard } from '@/components/community/PollCard'
 import { SongEmbedCard } from '@/components/community/SongEmbedCard'
 import { getMyReportedPostIds } from '@/services/report.service'
-import type { Community, CommunityPost, CommunityMember, CommunityPostComment, Song } from '@/types/domain'
+import type { Community, CommunityPost, CommunityMember, CommunityPostComment, Song } from '@mono/shared'
 
 const VIOLET_FILTER = 'brightness(0) saturate(100%) invert(44%) sepia(51%) saturate(1569%) hue-rotate(221deg) brightness(101%) contrast(96%)'
 

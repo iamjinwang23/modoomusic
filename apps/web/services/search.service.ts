@@ -5,7 +5,7 @@
 import { createUserClient } from '@/lib/supabase/server'
 import { GENRE_LABELS, MOOD_LABELS } from '@/utils/extractTags'
 import { SONG_SELECT, rowToPublicSong, type SongRow } from '@/services/explore.service'
-import type { PublicSong } from '@/types/domain'
+import type { PublicSong } from '@mono/shared'
 
 // Design Ref: §3.1 — Search 결과 타입
 export interface SearchUser {

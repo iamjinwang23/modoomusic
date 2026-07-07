@@ -1,4 +1,4 @@
-import type { Collection } from '@/types/domain'
+import type { Collection } from '@mono/shared'
 
 let currentUserId: string | null = null
 

@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
-import type { Community, CommunityPost } from '@/types/domain'
+import type { Community, CommunityPost } from '@mono/shared'
 
 export const GRAY_COVER = '#363A47'       // 커버 기본 배경
 export const GRAY_AVATAR = '#3E4250'      // 아바타 기본 배경

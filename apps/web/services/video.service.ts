@@ -2,7 +2,7 @@
 // 음악(동기)과 달리 영상은 비동기: createVideoTask→task_id → queryVideoTask(status)
 //   → retrieveFileUrl(file_id)→download_url. 폴링은 호출측(상태 라우트/크론)이 담당.
 // ⚠️ model 식별자는 MiniMax 콘솔/문서 기준으로 확인 필요(TIERS에 분리). 단가: video-cover.plan §갱신.
-import type { VideoCoverMode, VideoCoverTier } from '@/types/domain'
+import type { VideoCoverMode, VideoCoverTier } from '@mono/shared'
 
 const MOCK_MODE = process.env.MINIMAX_MOCK === 'true' || !process.env.MINIMAX_API_KEY
 const API = 'https://api.minimax.io/v1'

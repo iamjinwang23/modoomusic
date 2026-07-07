@@ -6,7 +6,7 @@ import { commentService, formatRelativeKo } from '@/services/comment.service'
 import { toast } from '@/components/toast/toast'
 import { profileColor } from '@/utils/profileColor'
 import { ConfirmModal } from '@/components/ConfirmModal'
-import type { Comment } from '@/types/domain'
+import type { Comment } from '@mono/shared'
 
 interface Props {
   comment: Comment

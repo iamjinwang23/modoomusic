@@ -4,7 +4,7 @@
 import { useState, useEffect, useCallback, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { CommunityCard, CommunityListRow, PopularPostCard } from '@/components/community/hubCards'
-import type { Community, CommunityPost } from '@/types/domain'
+import type { Community, CommunityPost } from '@mono/shared'
 
 type ListType = 'popular' | 'new' | 'mine' | 'posts'
 

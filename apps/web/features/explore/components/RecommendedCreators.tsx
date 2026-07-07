@@ -10,7 +10,7 @@ import { useAuth } from '@/components/AuthProvider'
 import { useOptimisticToggle } from '@/hooks/useOptimisticToggle'
 import { profileColor } from '@/utils/profileColor'
 import { track, EVENTS } from '@/utils/analytics'
-import type { RecommendedCreator } from '@/types/domain'
+import type { RecommendedCreator } from '@mono/shared'
 
 function CreatorCard({ creator, position }: { creator: RecommendedCreator; position: number }) {
   const { user } = useAuth()

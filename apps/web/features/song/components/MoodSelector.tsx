@@ -1,6 +1,6 @@
 'use client'
 
-import { MOODS, type Mood } from '@/types/domain'
+import { MOODS, type Mood } from '@mono/shared'
 
 interface Props {
   value: string

@@ -7,7 +7,7 @@ import { createPortal } from 'react-dom'
 import Image from 'next/image'
 import { useAuth } from '@/components/AuthProvider'
 import { songService } from '@/services/song.service'
-import type { VideoCoverMode, VideoCoverTier } from '@/types/domain'
+import type { VideoCoverMode, VideoCoverTier } from '@mono/shared'
 
 interface Props {
   open: boolean

@@ -6,8 +6,8 @@ import Image from 'next/image'
 import { AdminPanel } from '@/components/admin/AdminPanel'
 import { AdminConfirm } from '@/components/admin/AdminConfirm'
 import { AnnouncementEditor } from '@/components/admin/AnnouncementEditor'
-import { ANNOUNCEMENT_CATEGORY_LABEL } from '@/types/domain'
-import type { Announcement } from '@/types/domain'
+import { ANNOUNCEMENT_CATEGORY_LABEL } from '@mono/shared'
+import type { Announcement } from '@mono/shared'
 
 type EditorState = { mode: 'new' } | { mode: 'edit'; item: Announcement } | null
 type ConfirmState =

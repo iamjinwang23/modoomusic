@@ -11,7 +11,7 @@ import { PostImageGallery } from '@/components/community/PostImageGallery'
 import { PostEmbed } from '@/components/community/PostEmbed'
 import { PollCard } from '@/components/community/PollCard'
 import { SongEmbedCard } from '@/components/community/SongEmbedCard'
-import type { CommunityPost } from '@/types/domain'
+import type { CommunityPost } from '@mono/shared'
 
 function SongCover({ coverImage, coverHue, size = 40 }: { coverImage?: string | null; coverHue?: number | null; size?: number }) {
   const c = profileColor(coverHue ?? 0)

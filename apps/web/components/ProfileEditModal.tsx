@@ -5,7 +5,7 @@ import Image from 'next/image'
 import { createClient } from '@/lib/supabase/client'
 import { toast } from '@/components/toast/toast'
 import { profileColor } from '@/utils/profileColor'
-import type { SocialLinks } from '@/types/domain'
+import type { SocialLinks } from '@mono/shared'
 import { AccountDeletionModal } from '@/components/AccountDeletionModal'
 
 const NAME_MAX = 30
