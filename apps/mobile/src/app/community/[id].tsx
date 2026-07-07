@@ -5,6 +5,7 @@ import { router, useFocusEffect, useLocalSearchParams } from 'expo-router'
 import { Image } from 'expo-image'
 import type { Community, CommunityPost } from '@mono/shared'
 import { api } from '@/lib/api'
+import { setSelectedPost } from '@/lib/selected-post'
 import { PostCard } from '@/components/ui/post-card'
 import { mono } from '@/theme/mono'
 
@@ -64,7 +65,9 @@ export default function CommunityDetailScreen() {
       <FlatList
         data={posts ?? []}
         keyExtractor={(p) => p.id}
-        renderItem={({ item }) => <PostCard post={item} />}
+        renderItem={({ item }) => (
+          <PostCard post={item} onPress={() => { setSelectedPost(item); router.push(`/post/${item.id}`) }} />
+        )}
         contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: insets.bottom + 40 }}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={mono.color.textSecondary} />}
         ListHeaderComponent={

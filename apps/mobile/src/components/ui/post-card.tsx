@@ -1,17 +1,38 @@
-import { StyleSheet, Text, View } from 'react-native'
+import { useState } from 'react'
+import { Pressable, StyleSheet, Text, View } from 'react-native'
 import { Image } from 'expo-image'
 import type { CommunityPost } from '@mono/shared'
+import { api } from '@/lib/api'
 import { mono } from '@/theme/mono'
 
 function initial(name: string | null): string {
   return (name?.trim().charAt(0) || '?').toUpperCase()
 }
 
-// 게시글 카드 — 작성자/본문/첨부이미지/곡/좋아요·댓글 수. 커뮤니티 피드 파리티(읽기).
-export function PostCard({ post }: { post: CommunityPost }) {
+// 게시글 카드 — 작성자/본문/첨부이미지/곡/좋아요·댓글. 좋아요 토글, 탭→상세.
+export function PostCard({ post, onPress }: { post: CommunityPost; onPress?: () => void }) {
   const img = post.imageUrls?.[0] ?? post.imageUrl
+  const [liked, setLiked] = useState(!!post.liked)
+  const [likeCount, setLikeCount] = useState(post.likeCount)
+  const [busy, setBusy] = useState(false)
+
+  const toggleLike = async () => {
+    if (busy) return
+    const next = !liked
+    setLiked(next); setLikeCount((c) => c + (next ? 1 : -1)); setBusy(true)
+    try {
+      const r = await api.post(`/api/community-posts/${post.id}/like`) as { liked?: boolean; likeCount?: number }
+      if (typeof r.liked === 'boolean') setLiked(r.liked)
+      if (typeof r.likeCount === 'number') setLikeCount(r.likeCount)
+    } catch {
+      setLiked(!next); setLikeCount((c) => c + (next ? -1 : 1))
+    } finally {
+      setBusy(false)
+    }
+  }
+
   return (
-    <View style={styles.card}>
+    <Pressable onPress={onPress} style={({ pressed }) => [styles.card, pressed && onPress && styles.pressed]}>
       <View style={styles.head}>
         <View style={styles.avatar}>
           {post.authorAvatarUrl ? (
@@ -42,10 +63,12 @@ export function PostCard({ post }: { post: CommunityPost }) {
       ) : null}
 
       <View style={styles.meta}>
-        <Text style={styles.metaText}>♥ {post.likeCount}</Text>
+        <Pressable onPress={toggleLike} hitSlop={8} style={styles.metaBtn}>
+          <Text style={[styles.metaText, liked && styles.liked]}>{liked ? '♥' : '♡'} {likeCount}</Text>
+        </Pressable>
         <Text style={styles.metaText}>💬 {post.commentCount}</Text>
       </View>
-    </View>
+    </Pressable>
   )
 }
 
@@ -55,6 +78,7 @@ const styles = StyleSheet.create({
     backgroundColor: mono.color.surface, borderRadius: mono.radius.lg, padding: 14,
     borderWidth: 1, borderColor: mono.color.borderSoft, marginBottom: 10, gap: 10,
   },
+  pressed: { opacity: 0.9 },
   head: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   avatar: {
     width: 36, height: 36, borderRadius: 18, overflow: 'hidden',
@@ -72,6 +96,8 @@ const styles = StyleSheet.create({
   },
   songCover: { width: 32, height: 32, borderRadius: 6, overflow: 'hidden', backgroundColor: mono.color.surface2 },
   songTitle: { flex: 1, color: mono.color.textSecondary, fontSize: mono.font.small, fontWeight: '600' },
-  meta: { flexDirection: 'row', gap: 16 },
+  meta: { flexDirection: 'row', gap: 16, alignItems: 'center' },
+  metaBtn: { paddingVertical: 2 },
   metaText: { color: mono.color.textTertiary, fontSize: mono.font.small },
+  liked: { color: mono.color.danger },
 })
