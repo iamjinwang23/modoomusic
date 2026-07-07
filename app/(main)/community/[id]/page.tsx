@@ -78,6 +78,7 @@ export default function CommunityCafePage() {
   const focusPostId = searchParams.get('post')
   const { user } = useAuth()
   const guestWalled = useGuestCommunityWall(id, !!user)  // 미로그인 소프트 월 (3번째 커뮤니티 진입)
+  const [wallDismissed, setWallDismissed] = useState(false)  // 로그인 클릭 시 월 닫고 로그인 모달 노출
   const [community, setCommunity] = useState<Community | null>(null)
   const [members, setMembers] = useState<CommunityMember[]>([])
   const [posts, setPosts] = useState<CommunityPost[] | null>(null)
@@ -659,7 +660,7 @@ export default function CommunityCafePage() {
       {editOpen && community && <CommunityEditModal community={community} onClose={() => setEditOpen(false)} onSaved={(c) => setCommunity(c)} onClosed={() => router.push('/community')} />}
       {membersOpen && community && <CommunityMembersModal members={members} managerId={community.managerId} onClose={() => setMembersOpen(false)} />}
       {editingPost && <CommunityPostEditModal post={editingPost} communityId={id} onClose={() => setEditingPost(null)} onSaved={onEditSaved} />}
-      {guestWalled && <CommunityGuestWall />}
+      {guestWalled && !wallDismissed && <CommunityGuestWall onLogin={() => { setWallDismissed(true); window.dispatchEvent(new Event('open-login')) }} />}
       <ScrollToTopButton scrollRef={scrollRef} />
     </div>
   )
