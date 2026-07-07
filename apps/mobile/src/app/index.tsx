@@ -1,18 +1,24 @@
-import { useCallback, useEffect, useState } from 'react'
-import { ActivityIndicator, FlatList, RefreshControl, StyleSheet, Text, View } from 'react-native'
+import { useCallback, useEffect, useRef, useState } from 'react'
+import { ActivityIndicator, FlatList, Pressable, RefreshControl, StyleSheet, Text, View } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
+import { router, useFocusEffect } from 'expo-router'
 import type { Song } from '@mono/shared'
 import { api } from '@/lib/api'
+import { subscribeSongUpdates } from '@/lib/generate'
+import { useSession } from '@/lib/use-session'
 import { SongRow } from '@/components/ui/song-row'
 import { playSong } from '@/lib/player'
 import { mono } from '@/theme/mono'
 
 // 라이브러리 — 내 곡(GET /api/songs/mine, 인증 필요). MONO 디자인.
+// 생성 중 곡은 실시간(songs UPDATE 구독)으로 done/failed 전환 시 갱신.
 export default function LibraryScreen() {
   const insets = useSafeAreaInsets()
+  const { session } = useSession()
   const [songs, setSongs] = useState<Song[] | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [refreshing, setRefreshing] = useState(false)
+  const loadedOnce = useRef(false)
 
   const load = useCallback(async () => {
     setError(null)
@@ -26,16 +32,28 @@ export default function LibraryScreen() {
     }
   }, [])
 
-  useEffect(() => { load() }, [load])
+  useEffect(() => { load(); loadedOnce.current = true }, [load])
+
+  // 화면 복귀 시 갱신(생성 화면에서 만들기 후 돌아왔을 때)
+  useFocusEffect(useCallback(() => { if (loadedOnce.current) load() }, [load]))
+
+  // 실시간: 내 곡 상태 전환 시 목록 재로딩(생성 완료 반영)
+  useEffect(() => {
+    const uid = session?.user?.id
+    if (!uid) return
+    return subscribeSongUpdates(uid, () => load())
+  }, [session?.user?.id, load])
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true); await load(); setRefreshing(false)
   }, [load])
 
+  const generating = (songs ?? []).some((s) => s.status === 'generating')
+
   return (
     <View style={[styles.container, { paddingTop: insets.top + 12 }]}>
       <Text style={styles.h1}>라이브러리</Text>
-      <Text style={styles.sub}>내가 만든 음악</Text>
+      <Text style={styles.sub}>{generating ? '곡을 만들고 있어요…' : '내가 만든 음악'}</Text>
 
       {songs === null && !error ? (
         <ActivityIndicator color={mono.color.accent} style={{ marginTop: 32 }} />
@@ -44,7 +62,7 @@ export default function LibraryScreen() {
           data={songs ?? []}
           keyExtractor={(s) => s.id}
           renderItem={({ item }) => <SongRow song={item} onPress={() => playSong(item)} />}
-          contentContainerStyle={{ paddingBottom: insets.bottom + 100, paddingTop: 8 }}
+          contentContainerStyle={{ paddingBottom: insets.bottom + 160, paddingTop: 8 }}
           refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={mono.color.textSecondary} />}
           ListEmptyComponent={
             <Text style={styles.empty}>{error ? `불러오지 못했어요 (${error})` : '아직 만든 음악이 없어요'}</Text>
@@ -52,6 +70,10 @@ export default function LibraryScreen() {
           showsVerticalScrollIndicator={false}
         />
       )}
+
+      <Pressable style={[styles.fab, { bottom: insets.bottom + 76 }]} onPress={() => router.push('/create')}>
+        <Text style={styles.fabText}>＋  만들기</Text>
+      </Pressable>
     </View>
   )
 }
@@ -61,4 +83,11 @@ const styles = StyleSheet.create({
   h1: { color: mono.color.text, fontSize: mono.font.h1, fontWeight: '800' },
   sub: { color: mono.color.textSecondary, fontSize: mono.font.small, marginTop: 2, marginBottom: 8 },
   empty: { color: mono.color.textSecondary, fontSize: mono.font.body, textAlign: 'center', marginTop: 48 },
+  fab: {
+    position: 'absolute', alignSelf: 'center',
+    backgroundColor: mono.color.accent, borderRadius: mono.radius.pill,
+    paddingVertical: 14, paddingHorizontal: 28,
+    shadowColor: '#000', shadowOpacity: 0.35, shadowRadius: 12, shadowOffset: { width: 0, height: 4 }, elevation: 6,
+  },
+  fabText: { color: mono.color.text, fontSize: mono.font.body, fontWeight: '700' },
 })
