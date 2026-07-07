@@ -1,44 +1,70 @@
-import { useEffect, useState } from 'react'
-import { ActivityIndicator, FlatList, StyleSheet, Text, View } from 'react-native'
+import { useCallback, useEffect, useState } from 'react'
+import { ActivityIndicator, FlatList, Pressable, RefreshControl, StyleSheet, Text, View } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
+import type { Community } from '@mono/shared'
 import { api } from '@/lib/api'
+import { CommunityCard } from '@/components/ui/community-card'
+import { mono } from '@/theme/mono'
 
-// T9 BFF 스모크 — 앱이 공용 API(/api/communities/list)를 호출해 데이터를 그린다.
-// 앱→(Bearer 있으면 첨부)→기존 Next.js API→Supabase 경로 실증.
-interface Community { id: string; name: string; memberCount?: number }
+type Tab = 'popular' | 'new'
+const TABS: { key: Tab; label: string }[] = [
+  { key: 'popular', label: '인기' },
+  { key: 'new', label: '최신' },
+]
 
+// 커뮤니티 — 인기/최신 탭 + MONO 카드 목록. 공용 API(/api/communities/list) 재사용.
 export default function ExploreScreen() {
   const insets = useSafeAreaInsets()
+  const [tab, setTab] = useState<Tab>('popular')
   const [items, setItems] = useState<Community[] | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const [refreshing, setRefreshing] = useState(false)
 
-  useEffect(() => {
-    api.get('/api/communities/list?type=popular')
-      .then((j: { communities?: Community[] }) => setItems(j.communities ?? []))
-      .catch((e: { error?: string }) => setError(e?.error ?? 'network_error'))
+  const load = useCallback(async (t: Tab) => {
+    setError(null)
+    try {
+      const j: { communities?: Community[] } = await api.get(`/api/communities/list?type=${t}`)
+      setItems(j.communities ?? [])
+    } catch (e) {
+      setError((e as { error?: string })?.error ?? 'network_error')
+      setItems([])
+    }
   }, [])
 
+  useEffect(() => { setItems(null); load(tab) }, [tab, load])
+
+  const onRefresh = useCallback(async () => {
+    setRefreshing(true); await load(tab); setRefreshing(false)
+  }, [load, tab])
+
   return (
-    <View style={[styles.container, { paddingTop: insets.top + 16 }]}>
+    <View style={[styles.container, { paddingTop: insets.top + 12 }]}>
       <Text style={styles.h1}>커뮤니티</Text>
-      <Text style={styles.sub}>BFF 스모크 · /api/communities/list</Text>
-      {error ? <Text style={styles.error}>에러: {error}</Text> : null}
+
+      <View style={styles.tabs}>
+        {TABS.map((t) => {
+          const on = tab === t.key
+          return (
+            <Pressable key={t.key} onPress={() => setTab(t.key)} style={[styles.tab, on && styles.tabOn]}>
+              <Text style={[styles.tabText, on && styles.tabTextOn]}>{t.label}</Text>
+            </Pressable>
+          )
+        })}
+      </View>
+
       {items === null && !error ? (
-        <ActivityIndicator color="#7c3aed" style={{ marginTop: 24 }} />
+        <ActivityIndicator color={mono.color.accent} style={{ marginTop: 32 }} />
       ) : (
         <FlatList
           data={items ?? []}
           keyExtractor={(x) => x.id}
-          contentContainerStyle={{ paddingBottom: insets.bottom + 24 }}
-          renderItem={({ item }) => (
-            <View style={styles.row}>
-              <Text style={styles.name}>{item.name}</Text>
-              {typeof item.memberCount === 'number' ? (
-                <Text style={styles.meta}>멤버 {item.memberCount}</Text>
-              ) : null}
-            </View>
-          )}
-          ListEmptyComponent={items ? <Text style={styles.meta}>커뮤니티가 없어요</Text> : null}
+          renderItem={({ item }) => <CommunityCard community={item} />}
+          contentContainerStyle={{ paddingBottom: insets.bottom + 120, paddingTop: 12 }}
+          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={mono.color.textSecondary} />}
+          ListEmptyComponent={
+            <Text style={styles.empty}>{error ? `불러오지 못했어요 (${error})` : '아직 커뮤니티가 없어요'}</Text>
+          }
+          showsVerticalScrollIndicator={false}
         />
       )}
     </View>
@@ -46,14 +72,15 @@ export default function ExploreScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#111318', paddingHorizontal: 20 },
-  h1: { color: '#fff', fontSize: 26, fontWeight: '800' },
-  sub: { color: '#6b7280', fontSize: 12, marginTop: 2, marginBottom: 16 },
-  error: { color: '#f87171', fontSize: 14, marginTop: 8 },
-  row: {
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-    paddingVertical: 14, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: 'rgba(255,255,255,0.08)',
+  container: { flex: 1, backgroundColor: mono.color.bg, paddingHorizontal: 20 },
+  h1: { color: mono.color.text, fontSize: mono.font.h1, fontWeight: '800', marginBottom: 12 },
+  tabs: { flexDirection: 'row', gap: 8 },
+  tab: {
+    paddingVertical: 8, paddingHorizontal: 18, borderRadius: mono.radius.pill,
+    backgroundColor: mono.color.fill,
   },
-  name: { color: '#fff', fontSize: 16, fontWeight: '600' },
-  meta: { color: '#9ca3af', fontSize: 13 },
+  tabOn: { backgroundColor: mono.color.accent },
+  tabText: { color: mono.color.textSecondary, fontSize: mono.font.small, fontWeight: '600' },
+  tabTextOn: { color: mono.color.text, fontWeight: '700' },
+  empty: { color: mono.color.textSecondary, fontSize: mono.font.body, textAlign: 'center', marginTop: 48 },
 })
