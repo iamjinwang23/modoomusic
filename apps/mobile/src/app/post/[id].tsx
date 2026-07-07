@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
 import {
-  ActivityIndicator, FlatList, KeyboardAvoidingView, Platform, Pressable, StyleSheet, Text, TextInput, View,
+  ActivityIndicator, Alert, FlatList, KeyboardAvoidingView, Platform, Pressable, StyleSheet, Text, TextInput, View,
 } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { router, useLocalSearchParams } from 'expo-router'
@@ -8,6 +8,7 @@ import { Image } from 'expo-image'
 import type { CommunityPost, CommunityPostComment } from '@mono/shared'
 import { api } from '@/lib/api'
 import { getSelectedPost } from '@/lib/selected-post'
+import { useSession } from '@/lib/use-session'
 import { mono } from '@/theme/mono'
 
 function initial(name: string | null): string {
@@ -18,6 +19,8 @@ function initial(name: string | null): string {
 export default function PostDetailScreen() {
   const insets = useSafeAreaInsets()
   const { id } = useLocalSearchParams<{ id: string }>()
+  const { session } = useSession()
+  const myId = session?.user?.id
   const [post] = useState<CommunityPost | null>(() => getSelectedPost())
   const [comments, setComments] = useState<CommunityPostComment[] | null>(null)
   const [input, setInput] = useState('')
@@ -34,6 +37,21 @@ export default function PostDetailScreen() {
   }, [id])
 
   useEffect(() => { load() }, [load])
+
+  const deletePost = () => {
+    if (!id) return
+    Alert.alert('게시글을 삭제할까요?', undefined, [
+      { text: '취소', style: 'cancel' },
+      { text: '삭제', style: 'destructive', onPress: async () => { try { await api.del(`/api/community-posts/${id}`) } catch {} ; router.back() } },
+    ])
+  }
+
+  const deleteComment = (commentId: string) => {
+    Alert.alert('댓글을 삭제할까요?', undefined, [
+      { text: '취소', style: 'cancel' },
+      { text: '삭제', style: 'destructive', onPress: async () => { try { await api.del(`/api/community-comments/${commentId}`) } catch {} ; load() } },
+    ])
+  }
 
   const send = async () => {
     const body = input.trim()
@@ -56,7 +74,9 @@ export default function PostDetailScreen() {
         <View style={styles.header}>
           <Pressable onPress={() => router.back()} hitSlop={12}><Text style={styles.close}>‹</Text></Pressable>
           <Text style={styles.title}>게시글</Text>
-          <View style={{ width: 24 }} />
+          {post && post.authorId === myId ? (
+            <Pressable onPress={deletePost} hitSlop={12}><Text style={styles.delete}>삭제</Text></Pressable>
+          ) : <View style={{ width: 24 }} />}
         </View>
 
         <FlatList
@@ -99,6 +119,9 @@ export default function PostDetailScreen() {
                 <Text style={styles.cAuthor}>{item.user.displayName ?? item.user.username ?? '익명'}</Text>
                 <Text style={styles.cBody}>{item.body}</Text>
               </View>
+              {item.authorId === myId ? (
+                <Pressable onPress={() => deleteComment(item.id)} hitSlop={8}><Text style={styles.cDelete}>삭제</Text></Pressable>
+              ) : null}
             </View>
           )}
           ListEmptyComponent={comments && comments.length === 0 ? <Text style={styles.empty}>첫 댓글을 남겨보세요</Text> : null}
@@ -129,6 +152,8 @@ const styles = StyleSheet.create({
   header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 },
   close: { color: mono.color.text, fontSize: 30, lineHeight: 30, width: 24 },
   title: { color: mono.color.text, fontSize: mono.font.h2, fontWeight: '700' },
+  delete: { color: mono.color.danger, fontSize: mono.font.small, fontWeight: '700' },
+  cDelete: { color: mono.color.textTertiary, fontSize: mono.font.tiny, fontWeight: '600' },
   post: { paddingVertical: 12, gap: 10, borderBottomWidth: 1, borderBottomColor: mono.color.borderSoft },
   postHead: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   avatar: { width: 40, height: 40, borderRadius: 20, overflow: 'hidden', backgroundColor: mono.color.surface2, alignItems: 'center', justifyContent: 'center' },
