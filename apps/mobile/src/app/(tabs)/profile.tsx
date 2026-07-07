@@ -1,129 +1,131 @@
 import { useCallback, useEffect, useState } from 'react'
-import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native'
+import { ActivityIndicator, FlatList, Pressable, StyleSheet, Text, View } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { router, useFocusEffect } from 'expo-router'
 import { Image } from 'expo-image'
+import type { PublicSong, UserProfile } from '@mono/shared'
 import { api } from '@/lib/api'
 import { supabase } from '@/lib/supabase'
-import { Button } from '@/components/ui/button'
+import { playSong } from '@/lib/player'
+import { PublicSongRow } from '@/components/ui/public-song-row'
+import { Icon } from '@/components/ui/icon'
 import { mono } from '@/theme/mono'
 
-interface CreditState { used: number; limit: number; remaining: number; bonus: number; paid: number; total: number }
-interface Profile { username: string | null; display_name: string | null; avatar_url: string | null }
-
-// 프로필 — 계정 정보 + 크레딧 잔액 + 로그아웃. 라이브러리 헤더에서 진입.
-export default function ProfileScreen() {
+// 프로필 탭 — 내 크리에이터 프로필(배너·아바타·소개·팔로워/곡·내 공개곡). 설정은 톱니.
+export default function ProfileTab() {
   const insets = useSafeAreaInsets()
-  const [profile, setProfile] = useState<Profile | null>(null)
-  const [email, setEmail] = useState<string | null>(null)
-  const [credits, setCredits] = useState<CreditState | null>(null)
+  const [profile, setProfile] = useState<UserProfile | null>(null)
+  const [songs, setSongs] = useState<PublicSong[]>([])
   const [loading, setLoading] = useState(true)
 
   const load = useCallback(async () => {
     const { data: { user } } = await supabase.auth.getUser()
-    setEmail(user?.email ?? null)
-    const [{ data: prof }, creditRes] = await Promise.all([
-      user
-        ? supabase.from('profiles').select('username, display_name, avatar_url').eq('id', user.id).maybeSingle()
-        : Promise.resolve({ data: null }),
-      api.get('/api/credits/me').catch(() => null) as Promise<CreditState | null>,
-    ])
-    setProfile((prof as Profile) ?? null)
-    setCredits(creditRes)
-    setLoading(false)
+    if (!user) { setLoading(false); return }
+    const { data: prof } = await supabase.from('profiles').select('username').eq('id', user.id).maybeSingle()
+    const username = (prof as { username?: string } | null)?.username
+    if (!username) { setLoading(false); return }
+    try {
+      const j = await api.get(`/api/explore/profile/${username}`) as { profile?: UserProfile; songs?: PublicSong[] }
+      setProfile(j.profile ?? null)
+      setSongs(j.songs ?? [])
+    } catch {
+      // 무시
+    } finally {
+      setLoading(false)
+    }
   }, [])
 
   useEffect(() => { load() }, [load])
-  // 편집 모달에서 돌아오면 갱신
   useFocusEffect(useCallback(() => { load() }, [load]))
 
-  const logout = async () => {
-    await supabase.auth.signOut()
-    router.replace('/')
+  if (loading) {
+    return <View style={[styles.container, styles.center]}><ActivityIndicator color={mono.color.accent} /></View>
   }
 
-  const name = profile?.display_name ?? profile?.username ?? '내 계정'
+  const name = profile?.displayName || profile?.username || '내 프로필'
   const initial = (name.trim().charAt(0) || '?').toUpperCase()
 
   return (
-    <View style={[styles.container, { paddingTop: insets.top + 8 }]}>
-      <View style={styles.header}>
-        <Text style={styles.h1}>프로필</Text>
-      </View>
-
-      {loading ? (
-        <ActivityIndicator color={mono.color.accent} style={{ marginTop: 48 }} />
-      ) : (
-        <ScrollView contentContainerStyle={{ paddingBottom: insets.bottom + 24 }}>
-          <View style={styles.account}>
-            <View style={styles.avatar}>
-              {profile?.avatar_url ? (
-                <Image source={{ uri: profile.avatar_url }} style={styles.avatarImg} contentFit="cover" />
-              ) : (
-                <Text style={styles.avatarText}>{initial}</Text>
-              )}
+    <View style={styles.container}>
+      <FlatList
+        data={songs}
+        keyExtractor={(s) => s.id}
+        renderItem={({ item }) => <PublicSongRow song={item} onPress={() => playSong(item)} showCreator={false} />}
+        contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: insets.bottom + 40 }}
+        ListHeaderComponent={
+          <View style={styles.header}>
+            <View style={styles.bannerWrap}>
+              {profile?.coverImage ? <Image source={{ uri: profile.coverImage }} style={styles.banner} contentFit="cover" /> : <View style={[styles.banner, styles.bannerFallback]} />}
+              <Pressable onPress={() => router.push('/settings')} style={[styles.gear, { top: insets.top + 8 }]} hitSlop={10}>
+                <Icon name="ellipsis" size={18} color={mono.color.onMedia} />
+              </Pressable>
             </View>
+
+            <View style={styles.avatarWrap}>
+              <View style={styles.avatar}>
+                {profile?.avatarImage ? <Image source={{ uri: profile.avatarImage }} style={styles.avatarImg} contentFit="cover" /> : <Text style={styles.avatarText}>{initial}</Text>}
+              </View>
+            </View>
+
             <Text style={styles.name}>{name}</Text>
             {profile?.username ? <Text style={styles.handle}>@{profile.username}</Text> : null}
-            {email ? <Text style={styles.email}>{email}</Text> : null}
+            {profile?.bio ? <Text style={styles.bio}>{profile.bio}</Text> : null}
+
+            <View style={styles.counts}>
+              <Count label="곡" value={profile?.songCount ?? songs.length} />
+              <Count label="팔로워" value={profile?.followerCount ?? 0} />
+              <Count label="팔로잉" value={profile?.followingCount ?? 0} />
+            </View>
+
             <Pressable style={styles.editBtn} onPress={() => router.push('/profile-edit')}>
               <Text style={styles.editText}>프로필 편집</Text>
             </Pressable>
-          </View>
 
-          <Text style={styles.section}>크레딧</Text>
-          <View style={styles.card}>
-            <Row label="오늘 남은 크레딧" value={credits ? `${credits.remaining} / ${credits.limit}` : '-'} strong />
-            <Row label="보너스" value={credits ? `${credits.bonus}` : '-'} />
-            <Row label="충전(유상)" value={credits ? `${credits.paid}` : '-'} />
-            <View style={styles.divider} />
-            <Row label="사용 가능 총량" value={credits ? `${credits.total}` : '-'} strong />
+            <Text style={styles.songsLabel}>공개 곡</Text>
           </View>
-
-          <View style={{ height: 24 }} />
-          <Button label="로그아웃" variant="secondary" onPress={logout} />
-        </ScrollView>
-      )}
+        }
+        ListEmptyComponent={<Text style={styles.empty}>공개한 곡이 아직 없어요</Text>}
+        showsVerticalScrollIndicator={false}
+      />
     </View>
   )
 }
 
-function Row({ label, value, strong }: { label: string; value: string; strong?: boolean }) {
+function Count({ label, value }: { label: string; value: number }) {
   return (
-    <View style={styles.row}>
-      <Text style={[styles.rowLabel, strong && styles.rowStrong]}>{label}</Text>
-      <Text style={[styles.rowValue, strong && styles.rowStrong]}>{value}</Text>
+    <View>
+      <Text style={styles.countValue}>{value.toLocaleString()}</Text>
+      <Text style={styles.countLabel}>{label}</Text>
     </View>
   )
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: mono.color.bg, paddingHorizontal: 20 },
-  header: { marginTop: 4, marginBottom: 8 },
-  h1: { color: mono.color.text, fontSize: mono.font.h1, fontWeight: '800' },
-  account: { alignItems: 'center', gap: 4, marginTop: 20, marginBottom: 8 },
+  container: { flex: 1, backgroundColor: mono.color.bg },
+  center: { alignItems: 'center', justifyContent: 'center' },
+  header: { marginHorizontal: -16, marginBottom: 8 },
+  bannerWrap: { position: 'relative' },
+  banner: { width: '100%', height: 130, backgroundColor: mono.color.surface2 },
+  bannerFallback: { backgroundColor: mono.color.surface },
+  gear: { position: 'absolute', right: 12, width: 36, height: 36, borderRadius: 18, backgroundColor: mono.color.overlay, alignItems: 'center', justifyContent: 'center' },
+  avatarWrap: { paddingHorizontal: 16, marginTop: -34 },
   avatar: {
-    width: 84, height: 84, borderRadius: 42, overflow: 'hidden', marginBottom: 8,
+    width: 76, height: 76, borderRadius: 38, overflow: 'hidden', borderWidth: 3, borderColor: mono.color.bg,
     backgroundColor: mono.color.surface2, alignItems: 'center', justifyContent: 'center',
   },
   avatarImg: { width: '100%', height: '100%' },
-  avatarText: { color: mono.color.accentLight, fontSize: 34, fontWeight: '800' },
-  name: { color: mono.color.text, fontSize: mono.font.h2, fontWeight: '800' },
-  handle: { color: mono.color.accentLight, fontSize: mono.font.small },
-  email: { color: mono.color.textSecondary, fontSize: mono.font.small, marginTop: 2 },
+  avatarText: { color: mono.color.accentLight, fontSize: 30, fontWeight: '800' },
+  name: { color: mono.color.text, fontSize: mono.font.h1, fontWeight: '800', marginTop: 10, paddingHorizontal: 16 },
+  handle: { color: mono.color.accentLight, fontSize: mono.font.small, paddingHorizontal: 16, marginTop: 2 },
+  bio: { color: mono.color.textSecondary, fontSize: mono.font.body, paddingHorizontal: 16, marginTop: 8, lineHeight: 20 },
+  counts: { flexDirection: 'row', gap: 24, paddingHorizontal: 16, marginTop: 14 },
+  countValue: { color: mono.color.text, fontSize: mono.font.body, fontWeight: '800' },
+  countLabel: { color: mono.color.textTertiary, fontSize: mono.font.tiny },
   editBtn: {
-    marginTop: 14, paddingVertical: 9, paddingHorizontal: 22, borderRadius: mono.radius.pill,
-    backgroundColor: mono.color.fillStrong,
+    marginHorizontal: 16, marginTop: 16, paddingVertical: 11, borderRadius: mono.radius.pill,
+    backgroundColor: mono.color.fillStrong, alignItems: 'center',
   },
   editText: { color: mono.color.text, fontSize: mono.font.small, fontWeight: '700' },
-  section: { color: mono.color.text, fontSize: mono.font.body, fontWeight: '700', marginTop: 28, marginBottom: 10 },
-  card: {
-    backgroundColor: mono.color.surface, borderRadius: mono.radius.lg, padding: 16,
-    borderWidth: 1, borderColor: mono.color.borderSoft, gap: 12,
-  },
-  row: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  rowLabel: { color: mono.color.textSecondary, fontSize: mono.font.body },
-  rowValue: { color: mono.color.text, fontSize: mono.font.body, fontWeight: '600' },
-  rowStrong: { color: mono.color.text, fontWeight: '800' },
-  divider: { height: 1, backgroundColor: mono.color.borderSoft },
+  songsLabel: { color: mono.color.text, fontSize: mono.font.h2, fontWeight: '700', marginTop: 24, paddingHorizontal: 16 },
+  empty: { color: mono.color.textSecondary, fontSize: mono.font.body, textAlign: 'center', marginTop: 24 },
 })

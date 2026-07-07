@@ -27,6 +27,12 @@ export function SongRow({ song, onPress, onMore }: { song: Song; onPress?: () =>
           {generating ? '생성 중…' : [song.genre, song.mood].filter(Boolean).join(' · ') || '내 음악'}
         </Text>
       </View>
+      {!generating && (song.likeCount ?? 0) > 0 ? (
+        <View style={styles.like}>
+          <Icon name="heart" size={14} color={mono.color.textTertiary} />
+          <Text style={styles.likeText}>{song.likeCount}</Text>
+        </View>
+      ) : null}
       {generating ? (
         <View style={styles.dot} />
       ) : onMore ? (
@@ -50,6 +56,8 @@ const styles = StyleSheet.create({
   },
   sub: { color: mono.color.textSecondary, fontSize: mono.font.small, marginTop: 2 },
   dot: { width: 8, height: 8, borderRadius: 4, backgroundColor: mono.color.accent },
+  like: { flexDirection: 'row', alignItems: 'center', gap: 4 },
+  likeText: { color: mono.color.textTertiary, fontSize: mono.font.small },
   more: { width: 32, height: 32, alignItems: 'center', justifyContent: 'center' },
   moreText: { color: mono.color.textSecondary, fontSize: 20, fontWeight: '700' },
 })

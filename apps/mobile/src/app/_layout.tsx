@@ -1,7 +1,15 @@
 import { useState } from 'react';
 import { DarkTheme, DefaultTheme, Stack, ThemeProvider } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
-import { useColorScheme } from 'react-native';
+import { LogBox, useColorScheme } from 'react-native';
+
+// 알려진 무해 경고 억제(다른 경고는 유지):
+// - track-player 4.1.2 슬립타이머 메서드 시그니처(미사용 기능, 라이브러리 quirk)
+// - OAuth 리다이렉트 스킴 'mono'(Supabase에 등록돼 동작 중, app.json 스킴과 별개)
+LogBox.ignoreLogs([
+  /SleepTimer|sleepWhenActiveTrackReachesEnd/,
+  /Linking scheme 'mono'/,
+]);
 
 import { AnimatedSplashOverlay } from '@/components/animated-icon';
 import { LoginScreen } from '@/components/login-screen';
@@ -29,6 +37,7 @@ export default function RootLayout() {
         <Stack.Screen name="notifications" options={{ presentation: 'modal' }} />
         <Stack.Screen name="search" options={{ presentation: 'modal' }} />
         <Stack.Screen name="profile-edit" options={{ presentation: 'modal' }} />
+        <Stack.Screen name="settings" options={{ presentation: 'modal' }} />
         <Stack.Screen name="video-create" options={{ presentation: 'modal' }} />
       </Stack>
       {/* 미로그인 & 게스트 아님 → 로그인 오버레이. 라우터는 유지. */}

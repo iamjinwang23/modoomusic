@@ -1,6 +1,7 @@
 import { Pressable, StyleSheet, Text, View } from 'react-native'
 import { Image } from 'expo-image'
 import type { PublicSong } from '@mono/shared'
+import { Icon } from '@/components/ui/icon'
 import { mono } from '@/theme/mono'
 
 // 공개곡 행 — 탐색·크리에이터 프로필 공용. 커버/제목/크리에이터/좋아요, 탭→재생.
@@ -29,7 +30,10 @@ export function PublicSongRow({ song, onPress, onCreatorPress, showCreator = tru
           </Text>
         ) : null}
       </View>
-      <Text style={styles.stat}>♥ {song.likeCount}</Text>
+      <View style={styles.stat}>
+        <Icon name="heart" size={15} color={mono.color.textTertiary} />
+        <Text style={styles.statText}>{song.likeCount}</Text>
+      </View>
     </Pressable>
   )
 }
@@ -42,5 +46,6 @@ const styles = StyleSheet.create({
   body: { flex: 1, gap: 3 },
   title: { color: mono.color.text, fontSize: mono.font.body, fontWeight: '600' },
   creator: { color: mono.color.textSecondary, fontSize: mono.font.small },
-  stat: { color: mono.color.textTertiary, fontSize: mono.font.small },
+  stat: { flexDirection: 'row', alignItems: 'center', gap: 4 },
+  statText: { color: mono.color.textTertiary, fontSize: mono.font.small },
 })
