@@ -258,7 +258,7 @@ git commit -m "feat(shared): @mono/shared 생성 + 도메인 타입 이전, 웹 
 - Create: `packages/shared/src/errors.ts`, `packages/shared/src/pricing.ts`, `packages/shared/src/pricing.test.ts`
 
 **Interfaces:**
-- Produces: `API_ERROR`(에러코드 상수 맵), `CREDIT_PACKS`(플랫폼별 가격 테이블), `packPrice(packId, platform)`.
+- Produces: `API_ERROR`(에러코드 상수 맵), `CREDIT_PACKS`(가격 테이블), `packPrice(packId, platform)`. **platform 축은 `web`/`ios`/`android` 3개**(설계 §14.2 — 스토어별 최적화: iOS +30%, Android +15%).
 
 - [ ] **Step 1: 실패 테스트 작성**
 
@@ -268,9 +268,17 @@ import { describe, it, expect } from 'vitest'
 import { CREDIT_PACKS, packPrice } from './pricing'
 
 describe('pricing', () => {
-  it('앱 가격은 웹 대비 +30% (반올림)', () => {
+  it('iOS 가격은 웹 대비 +30% (반올림)', () => {
     const pack = CREDIT_PACKS[0]
-    expect(packPrice(pack.id, 'app')).toBe(Math.round(pack.webPriceKrw * 1.3))
+    expect(packPrice(pack.id, 'ios')).toBe(Math.round(pack.webPriceKrw * 1.3))
+  })
+  it('Android 가격은 웹 대비 +15% (Play 수수료 반영)', () => {
+    const pack = CREDIT_PACKS[0]
+    expect(packPrice(pack.id, 'android')).toBe(Math.round(pack.webPriceKrw * 1.15))
+  })
+  it('web 가격은 원가 그대로', () => {
+    const pack = CREDIT_PACKS[0]
+    expect(packPrice(pack.id, 'web')).toBe(pack.webPriceKrw)
   })
   it('알 수 없는 팩은 에러', () => {
     expect(() => packPrice('nope', 'web')).toThrow()
@@ -303,28 +311,29 @@ export type ApiErrorCode = (typeof API_ERROR)[keyof typeof API_ERROR]
 
 `packages/shared/src/pricing.ts`:
 ```ts
-export type Platform = 'web' | 'app'
+export type Platform = 'web' | 'ios' | 'android'
 export interface CreditPack { id: string; credits: number; webPriceKrw: number }
 
-// webPriceKrw = 웹(PortOne) 가격. 앱은 Apple IAP 로 +30%.
+// webPriceKrw = 웹(PortOne) 가격. 스토어별 마크업(설계 §14.2):
+//   iOS(Apple 30%) +30% · Android(Play ~15%) +15%. 크레딧 잔액은 웹/앱 공유.
 export const CREDIT_PACKS: CreditPack[] = [
   { id: 'pack_100', credits: 100, webPriceKrw: 4900 },
   { id: 'pack_300', credits: 300, webPriceKrw: 12900 },
   { id: 'pack_1000', credits: 1000, webPriceKrw: 39000 },
 ]
 
-const APP_MARKUP = 1.3
+const MARKUP: Record<Platform, number> = { web: 1.0, ios: 1.3, android: 1.15 }
 export function packPrice(packId: string, platform: Platform): number {
   const pack = CREDIT_PACKS.find((p) => p.id === packId)
   if (!pack) throw new Error(`unknown pack: ${packId}`)
-  return platform === 'app' ? Math.round(pack.webPriceKrw * APP_MARKUP) : pack.webPriceKrw
+  return Math.round(pack.webPriceKrw * MARKUP[platform])
 }
 ```
 
 - [ ] **Step 4: 테스트 통과 확인**
 
 Run: `pnpm --filter @mono/shared test 2>&1 | tail -5`
-Expected: PASS (2 passed).
+Expected: PASS (4 passed).
 
 - [ ] **Step 5: Commit**
 
@@ -409,7 +418,7 @@ export function createApiClient(opts: ApiClientOpts) {
 - [ ] **Step 4: 테스트 통과 확인**
 
 Run: `pnpm --filter @mono/shared test 2>&1 | tail -5`
-Expected: PASS (4 passed 누적).
+Expected: PASS (6 passed 누적).
 
 - [ ] **Step 5: Commit**
 

@@ -1,8 +1,8 @@
-# MONO 네이티브 iOS 앱 설계 (React Native / Expo)
+# MONO 네이티브 모바일 앱 설계 (React Native / Expo · iOS + Android)
 
-> **상태: 설계 확정 · 구현 대기 (2026-07-06 세션5 브레인스토밍).**
-> 목표: 현재 웹(Next.js 16 + Supabase)을 **완전 네이티브 iOS 앱**으로. v1은 **웹 기능 전체 패리티**.
-> 백엔드(Next.js API + Supabase)는 재사용, 프론트만 네이티브 신설.
+> **상태: 설계 확정 · 구현 대기 (2026-07-06 브레인스토밍 · 2026-07-07 안드로이드 델타 추가).**
+> 목표: 현재 웹(Next.js 16 + Supabase)을 **완전 네이티브 모바일 앱**으로. v1은 **웹 기능 전체 패리티**, **처음부터 iOS+안드로이드 듀얼플랫폼**.
+> 백엔드(Next.js API + Supabase)는 재사용, 프론트만 네이티브 신설. RN이라 앱 코드 대부분 양 플랫폼 공유(안드로이드는 §14 델타 참조).
 
 ---
 
@@ -193,3 +193,28 @@ RN(RevenueCat SDK) ─구매─▶ App Store ─▶ RevenueCat
 - 백엔드·Supabase·모더레이션·폐쇄정책·크레딧 소비 로직은 **재사용**(신규 개발 아님).
 - 신규 개발의 대부분은 **RN 프론트 + 인증 토큰화 + IAP/푸시 네이티브 채널 + 읽기 엔드포인트 보강**.
 - 관련: [[community.design]] §13(폐쇄정책), [[video-cover.design]], [[community-launch-announcement]](웹 오픈 예약).
+
+---
+
+## 14. 안드로이드 (듀얼플랫폼 델타) — 2026-07-07
+
+> **결정: 처음부터 iOS+안드로이드 듀얼플랫폼.** RN이라 앱 코드 대부분 공유 → "안드로이드 개발"의 대부분은 각 페이즈를 **안드로이드에서도 검증**하는 것. 아래는 안드로이드-특화 델타.
+
+### 14.1 공유 (추가작업 0)
+모든 화면·비즈로직·`packages/shared`·BFF·인증(Bearer)·realtime·**재생(track-player, Android 지원)**·**영상(expo-video)**·커뮤니티 — 그대로 동작.
+
+### 14.2 안드로이드-특화 델타
+
+| # | 항목 | 내용 |
+|---|---|---|
+| 1 | **결제 (Play Billing)** | RevenueCat이 App Store + **Google Play Billing 둘 다 추상화** → SDK 그대로. Play Console 상품 등록 + Android Offerings 구성. 크레딧 지급 웹훅은 **동일 엔드포인트**(RevenueCat이 스토어 구분). |
+| 2 | **가격 (스토어별 최적화)** | `pricing.ts` 축을 **`web`/`ios`/`android`** 3개로 확장. Apple 30% → iOS **+30%**, Play ~15% → android **+15%**(기본, 조정 가능). 크레딧 잔액은 여전히 웹/앱 **공유**. |
+| 3 | **푸시 (FCM)** | Expo Notifications가 FCM 추상화. `google-services.json` + FCM 자격증명 EAS 등록. 서버 전송은 Expo Push API 동일, 토큰만 플랫폼 구분(`push_subscriptions.platform`). |
+| 4 | **스토어 제출** | Google Play Console, 어댑티브 아이콘, target API level(Play 최신 정책), 데이터 안전 폼, EAS Submit. |
+| 5 | **플랫폼 UX** | 하드웨어 뒤로가기, 엣지투엣지, 상태바, Material 리플. Expo Router가 대부분 처리 — 뒤로가기·상태바만 점검. |
+| 6 | **빌드/CI** | EAS Build 프로필에 android(dev/preview/production) 추가, 듀얼 빌드·제출. |
+
+### 14.3 기존 계획 반영
+- **Phase 1의 `pricing.ts`를 `web`/`ios`/`android` 3축으로 수정**(iOS 계획 델타).
+- **각 페이즈에 "안드로이드 검증" 스텝 추가**(듀얼플랫폼 전제).
+- 안드로이드-특화 작업(FCM·Play 상품·Play Console·어댑티브 아이콘·EAS android)은 **별도 `native-android-delta.plan.md`**로.
