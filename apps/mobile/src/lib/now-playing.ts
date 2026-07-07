@@ -11,6 +11,8 @@ export interface NowPlaying {
   lyrics?: string | null
   liked?: boolean
   published?: boolean
+  username?: string      // 공개곡(PublicSong)이면 크리에이터 핸들 — 플레이어에서 프로필 링크
+  displayName?: string   // 크리에이터 표시명
 }
 
 let current: NowPlaying | null = null

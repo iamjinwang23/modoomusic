@@ -28,7 +28,7 @@ export async function playSong(song: NowPlaying) {
     id: song.id,
     url: song.audioUrl,
     title: song.title?.trim() || '제목 없음',
-    artist: '내 음악',
+    artist: song.displayName?.trim() || '내 음악',
     artwork: song.coverImage,
     duration: song.duration ?? undefined,
   })

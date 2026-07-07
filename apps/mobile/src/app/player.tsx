@@ -90,7 +90,14 @@ export default function PlayerScreen() {
 
       <View style={styles.info}>
         <Text style={styles.title} numberOfLines={1}>{track.title ?? '제목 없음'}</Text>
-        <Text style={styles.artist} numberOfLines={1}>{track.artist ?? '내 음악'}</Text>
+        <Text
+          style={[styles.artist, song?.username && styles.artistLink]}
+          numberOfLines={1}
+          onPress={song?.username ? () => { router.back(); router.push(`/creator/${song.username}`) } : undefined}
+          suppressHighlighting
+        >
+          {track.artist ?? '내 음악'}
+        </Text>
       </View>
 
       <View style={styles.progress}>
@@ -154,6 +161,7 @@ const styles = StyleSheet.create({
   info: { alignItems: 'center', gap: 6, marginBottom: 28 },
   title: { color: mono.color.text, fontSize: mono.font.h2, fontWeight: '800', textAlign: 'center' },
   artist: { color: mono.color.textSecondary, fontSize: mono.font.body },
+  artistLink: { color: mono.color.accentLight, fontWeight: '600' },
   progress: { marginBottom: 32 },
   track: { height: 4, borderRadius: 2, backgroundColor: mono.color.fillStrong, overflow: 'hidden' },
   fill: { height: '100%', backgroundColor: mono.color.accent },
