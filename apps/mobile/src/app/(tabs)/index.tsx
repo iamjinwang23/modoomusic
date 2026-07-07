@@ -87,7 +87,8 @@ const styles = StyleSheet.create({
     position: 'absolute', alignSelf: 'center',
     backgroundColor: mono.color.accent, borderRadius: mono.radius.pill,
     paddingVertical: 14, paddingHorizontal: 28,
-    shadowColor: '#000', shadowOpacity: 0.35, shadowRadius: 12, shadowOffset: { width: 0, height: 4 }, elevation: 6,
+    // RN 0.86 New Arch: shadow* deprecated → boxShadow. elevation은 구아키텍처 안드 폴백.
+    boxShadow: '0px 4px 12px rgba(0,0,0,0.35)', elevation: 6,
   },
   fabText: { color: mono.color.text, fontSize: mono.font.body, fontWeight: '700' },
 })
