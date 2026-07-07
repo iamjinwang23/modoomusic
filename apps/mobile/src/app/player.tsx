@@ -6,6 +6,7 @@ import { Image } from 'expo-image'
 import TrackPlayer, { State, useActiveTrack, usePlaybackState, useProgress } from 'react-native-track-player'
 import { api } from '@/lib/api'
 import { useNowPlaying } from '@/lib/now-playing'
+import { setSongPublished, shareSong } from '@/lib/song-actions'
 import { mono } from '@/theme/mono'
 
 function fmt(sec: number): string {
@@ -25,6 +26,8 @@ export default function PlayerScreen() {
 
   const [liked, setLiked] = useState<boolean>(!!song?.liked)
   const [likeBusy, setLikeBusy] = useState(false)
+  const [published, setPublished] = useState<boolean>(!!song?.published)
+  const [pubBusy, setPubBusy] = useState(false)
 
   const playing = playback.state === State.Playing || playback.state === State.Buffering
   const pct = duration > 0 ? Math.min(1, position / duration) : 0
@@ -41,6 +44,15 @@ export default function PlayerScreen() {
     } finally {
       setLikeBusy(false)
     }
+  }
+
+  const togglePublish = async () => {
+    if (!song || pubBusy) return
+    const next = !published
+    setPublished(next); setPubBusy(true)
+    const ok = await setSongPublished(song.id, next)
+    if (!ok) setPublished(!next)
+    setPubBusy(false)
   }
 
   if (!track) {
@@ -101,9 +113,20 @@ export default function PlayerScreen() {
       </View>
 
       {song ? (
-        <Pressable onPress={toggleLike} disabled={likeBusy} style={styles.likeRow} hitSlop={8}>
-          <Text style={[styles.like, liked && styles.likeOn]}>{liked ? '♥ 좋아요' : '♡ 좋아요'}</Text>
-        </Pressable>
+        <View style={styles.actionsRow}>
+          <Pressable onPress={toggleLike} disabled={likeBusy} style={styles.action} hitSlop={8}>
+            <Text style={[styles.actionText, liked && styles.likeOn]}>{liked ? '♥' : '♡'}</Text>
+            <Text style={styles.actionLabel}>좋아요</Text>
+          </Pressable>
+          <Pressable onPress={togglePublish} disabled={pubBusy} style={styles.action} hitSlop={8}>
+            <Text style={[styles.actionText, published && styles.pubOn]}>{published ? '◉' : '○'}</Text>
+            <Text style={styles.actionLabel}>{published ? '공개됨' : '공개'}</Text>
+          </Pressable>
+          <Pressable onPress={() => shareSong(song.id, song.title)} style={styles.action} hitSlop={8}>
+            <Text style={styles.actionText}>↗</Text>
+            <Text style={styles.actionLabel}>공유</Text>
+          </Pressable>
+        </View>
       ) : null}
 
       {lyrics ? (
@@ -143,9 +166,12 @@ const styles = StyleSheet.create({
     alignItems: 'center', justifyContent: 'center',
   },
   playIcon: { color: mono.color.text, fontSize: 26, fontWeight: '700' },
-  likeRow: { alignItems: 'center', marginTop: 28 },
-  like: { color: mono.color.textSecondary, fontSize: mono.font.body, fontWeight: '700' },
+  actionsRow: { flexDirection: 'row', justifyContent: 'space-around', marginTop: 28, paddingHorizontal: 12 },
+  action: { alignItems: 'center', gap: 4, minWidth: 64 },
+  actionText: { color: mono.color.textSecondary, fontSize: 22, fontWeight: '700' },
+  actionLabel: { color: mono.color.textTertiary, fontSize: mono.font.tiny, fontWeight: '600' },
   likeOn: { color: mono.color.danger },
+  pubOn: { color: mono.color.accentLight },
   lyricsWrap: { marginTop: 36 },
   lyricsLabel: { color: mono.color.text, fontSize: mono.font.body, fontWeight: '700', marginBottom: 10 },
   lyrics: { color: mono.color.textSecondary, fontSize: mono.font.body, lineHeight: 26 },
