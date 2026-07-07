@@ -2,8 +2,8 @@ import { useState } from 'react'
 import { ActivityIndicator, Pressable, StyleSheet, Text, TextInput, View } from 'react-native'
 import { supabase } from '@/lib/supabase'
 
-// 미로그인 오버레이 — 이메일/비번 로그인(소셜은 Phase4에서 확장)
-export function LoginScreen() {
+// 미로그인 오버레이 — 이메일/비번 로그인(소셜은 Phase4에서 확장) + 게스트 둘러보기
+export function LoginScreen({ onGuest }: { onGuest?: () => void }) {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [loading, setLoading] = useState(false)
@@ -50,6 +50,12 @@ export function LoginScreen() {
       >
         {loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.buttonText}>로그인</Text>}
       </Pressable>
+
+      {onGuest ? (
+        <Pressable style={styles.guest} onPress={onGuest}>
+          <Text style={styles.guestText}>게스트로 둘러보기</Text>
+        </Pressable>
+      ) : null}
     </View>
   )
 }
@@ -75,4 +81,6 @@ const styles = StyleSheet.create({
   },
   buttonDisabled: { backgroundColor: 'rgba(255,255,255,0.08)' },
   buttonText: { color: '#fff', fontSize: 15, fontWeight: '700' },
+  guest: { alignItems: 'center', marginTop: 18 },
+  guestText: { color: '#9ca3af', fontSize: 14 },
 })
