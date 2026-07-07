@@ -6,6 +6,7 @@ import { useColorScheme } from 'react-native';
 import { AnimatedSplashOverlay } from '@/components/animated-icon';
 import AppTabs from '@/components/app-tabs';
 import { LoginScreen } from '@/components/login-screen';
+import { MiniPlayer } from '@/components/ui/mini-player';
 import { useSession } from '@/lib/use-session';
 
 SplashScreen.preventAutoHideAsync();

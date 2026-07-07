@@ -4,6 +4,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import type { Song } from '@mono/shared'
 import { api } from '@/lib/api'
 import { SongRow } from '@/components/ui/song-row'
+import { playSong } from '@/lib/player'
 import { mono } from '@/theme/mono'
 
 // 라이브러리 — 내 곡(GET /api/songs/mine, 인증 필요). MONO 디자인.
@@ -42,7 +43,7 @@ export default function LibraryScreen() {
         <FlatList
           data={songs ?? []}
           keyExtractor={(s) => s.id}
-          renderItem={({ item }) => <SongRow song={item} />}
+          renderItem={({ item }) => <SongRow song={item} onPress={() => playSong(item)} />}
           contentContainerStyle={{ paddingBottom: insets.bottom + 100, paddingTop: 8 }}
           refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={mono.color.textSecondary} />}
           ListEmptyComponent={
