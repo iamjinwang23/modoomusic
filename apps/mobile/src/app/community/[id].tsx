@@ -129,9 +129,9 @@ const styles = StyleSheet.create({
   bannerFallback: { backgroundColor: mono.color.surface },
   back: {
     position: 'absolute', left: 12, width: 36, height: 36, borderRadius: 18,
-    backgroundColor: 'rgba(0,0,0,0.45)', alignItems: 'center', justifyContent: 'center',
+    backgroundColor: mono.color.overlay, alignItems: 'center', justifyContent: 'center',
   },
-  backText: { color: '#fff', fontSize: 26, lineHeight: 28, marginTop: -2 },
+  backText: { color: mono.color.onMedia, fontSize: 26, lineHeight: 28, marginTop: -2 },
   name: { color: mono.color.text, fontSize: mono.font.h1, fontWeight: '800', marginTop: 14, paddingHorizontal: 16 },
   desc: { color: mono.color.textSecondary, fontSize: mono.font.body, marginTop: 6, paddingHorizontal: 16 },
   meta: { color: mono.color.textTertiary, fontSize: mono.font.small, marginTop: 8, paddingHorizontal: 16 },

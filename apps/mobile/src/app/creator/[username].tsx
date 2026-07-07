@@ -138,8 +138,8 @@ const styles = StyleSheet.create({
   bannerWrap: { position: 'relative' },
   banner: { width: '100%', height: 140, backgroundColor: mono.color.surface2 },
   bannerFallback: { backgroundColor: mono.color.surface },
-  back: { position: 'absolute', left: 12, width: 36, height: 36, borderRadius: 18, backgroundColor: 'rgba(0,0,0,0.45)', alignItems: 'center', justifyContent: 'center' },
-  backText: { color: '#fff', fontSize: 26, lineHeight: 28, marginTop: -2 },
+  back: { position: 'absolute', left: 12, width: 36, height: 36, borderRadius: 18, backgroundColor: mono.color.overlay, alignItems: 'center', justifyContent: 'center' },
+  backText: { color: mono.color.onMedia, fontSize: 26, lineHeight: 28, marginTop: -2 },
   avatarWrap: { paddingHorizontal: 16, marginTop: -36 },
   avatar: {
     width: 76, height: 76, borderRadius: 38, overflow: 'hidden', borderWidth: 3, borderColor: mono.color.bg,

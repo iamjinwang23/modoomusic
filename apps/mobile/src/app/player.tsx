@@ -176,9 +176,9 @@ const styles = StyleSheet.create({
   art: { width: '86%', aspectRatio: 1, borderRadius: mono.radius.xl, backgroundColor: mono.color.surface, overflow: 'hidden' },
   videoBadge: {
     position: 'absolute', bottom: 12, left: '9%',
-    backgroundColor: 'rgba(0,0,0,0.6)', borderRadius: mono.radius.pill, paddingVertical: 6, paddingHorizontal: 12,
+    backgroundColor: mono.color.overlayStrong, borderRadius: mono.radius.pill, paddingVertical: 6, paddingHorizontal: 12,
   },
-  videoBadgeText: { color: '#fff', fontSize: mono.font.tiny, fontWeight: '700' },
+  videoBadgeText: { color: mono.color.onMedia, fontSize: mono.font.tiny, fontWeight: '700' },
   artPlaceholder: { alignItems: 'center', justifyContent: 'center' },
   artInitial: { color: mono.color.textTertiary, fontSize: 64 },
   info: { alignItems: 'center', gap: 6, marginBottom: 28 },

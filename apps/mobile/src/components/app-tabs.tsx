@@ -1,17 +1,15 @@
 import { NativeTabs } from 'expo-router/unstable-native-tabs';
-import { useColorScheme } from 'react-native';
 
-import { Colors } from '@/constants/theme';
+import { mono } from '@/theme/mono';
 
+// 탭바 — MONO 토큰. 선택 틴트 = 바이올렛 액센트(아이콘·라벨), 배경/인디케이터도 토큰.
 export default function AppTabs() {
-  const scheme = useColorScheme();
-  const colors = Colors[scheme === 'unspecified' ? 'light' : scheme];
-
   return (
     <NativeTabs
-      backgroundColor={colors.background}
-      indicatorColor={colors.backgroundElement}
-      labelStyle={{ selected: { color: colors.text } }}>
+      backgroundColor={mono.color.bg}
+      tintColor={mono.color.accent}
+      indicatorColor={mono.color.surface}
+      labelStyle={{ selected: { color: mono.color.accent } }}>
       <NativeTabs.Trigger name="index">
         <NativeTabs.Trigger.Label>라이브러리</NativeTabs.Trigger.Label>
         <NativeTabs.Trigger.Icon

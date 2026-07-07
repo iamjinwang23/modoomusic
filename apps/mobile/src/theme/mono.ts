@@ -18,6 +18,9 @@ export const mono = {
     danger: '#f87171',
     kakao: '#FEE500',
     kakaoText: '#191600',
+    overlay: 'rgba(0,0,0,0.45)',      // 미디어 위 반투명(뒤로가기 버튼 등)
+    overlayStrong: 'rgba(0,0,0,0.6)',  // 배지 등 대비 필요 시
+    onMedia: '#ffffff',                // 이미지/영상 위 텍스트·아이콘
   },
   radius: { sm: 8, md: 12, lg: 16, xl: 20, pill: 999 },
   space: (n: number) => n * 4, // 4pt 그리드
