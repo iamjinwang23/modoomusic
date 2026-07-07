@@ -1,10 +1,11 @@
 import { useCallback, useEffect, useState } from 'react'
 import { ActivityIndicator, FlatList, Pressable, RefreshControl, StyleSheet, Text, View } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
-import { Image } from 'expo-image'
+import { router } from 'expo-router'
 import type { PublicSong } from '@mono/shared'
 import { api } from '@/lib/api'
 import { playSong } from '@/lib/player'
+import { PublicSongRow } from '@/components/ui/public-song-row'
 import { mono } from '@/theme/mono'
 
 type Tab = 'recommended' | 'latest' | 'popular'
@@ -59,7 +60,13 @@ export default function DiscoverScreen() {
         <FlatList
           data={songs ?? []}
           keyExtractor={(s) => s.id}
-          renderItem={({ item }) => <PublicSongRow song={item} onPress={() => playSong(item)} />}
+          renderItem={({ item }) => (
+            <PublicSongRow
+              song={item}
+              onPress={() => playSong(item)}
+              onCreatorPress={() => router.push(`/creator/${item.username}`)}
+            />
+          )}
           contentContainerStyle={{ paddingBottom: insets.bottom + 120, paddingTop: 12 }}
           refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={mono.color.textSecondary} />}
           ListEmptyComponent={<Text style={styles.empty}>{error ? `불러오지 못했어요 (${error})` : '공개된 곡이 없어요'}</Text>}
@@ -67,21 +74,6 @@ export default function DiscoverScreen() {
         />
       )}
     </View>
-  )
-}
-
-function PublicSongRow({ song, onPress }: { song: PublicSong; onPress: () => void }) {
-  return (
-    <Pressable onPress={onPress} style={({ pressed }) => [styles.row, pressed && styles.pressed]}>
-      <View style={styles.cover}>
-        {song.coverImage ? <Image source={{ uri: song.coverImage }} style={styles.coverImg} contentFit="cover" /> : null}
-      </View>
-      <View style={styles.rowBody}>
-        <Text style={styles.title} numberOfLines={1}>{song.title ?? '제목 없음'}</Text>
-        <Text style={styles.creator} numberOfLines={1}>{song.displayName || song.username}</Text>
-      </View>
-      <Text style={styles.stat}>♥ {song.likeCount}</Text>
-    </Pressable>
   )
 }
 
@@ -94,12 +86,4 @@ const styles = StyleSheet.create({
   tabText: { color: mono.color.textSecondary, fontSize: mono.font.small, fontWeight: '600' },
   tabTextOn: { color: mono.color.text, fontWeight: '700' },
   empty: { color: mono.color.textSecondary, fontSize: mono.font.body, textAlign: 'center', marginTop: 48 },
-  row: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 8 },
-  pressed: { opacity: 0.7 },
-  cover: { width: 52, height: 52, borderRadius: mono.radius.sm, overflow: 'hidden', backgroundColor: mono.color.surface2 },
-  coverImg: { width: '100%', height: '100%' },
-  rowBody: { flex: 1, gap: 3 },
-  title: { color: mono.color.text, fontSize: mono.font.body, fontWeight: '600' },
-  creator: { color: mono.color.textSecondary, fontSize: mono.font.small },
-  stat: { color: mono.color.textTertiary, fontSize: mono.font.small },
 })

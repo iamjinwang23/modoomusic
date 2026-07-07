@@ -66,7 +66,11 @@ export default function CommunityDetailScreen() {
         data={posts ?? []}
         keyExtractor={(p) => p.id}
         renderItem={({ item }) => (
-          <PostCard post={item} onPress={() => { setSelectedPost(item); router.push(`/post/${item.id}`) }} />
+          <PostCard
+            post={item}
+            onPress={() => { setSelectedPost(item); router.push(`/post/${item.id}`) }}
+            onAuthorPress={item.authorUsername ? () => router.push(`/creator/${item.authorUsername}`) : undefined}
+          />
         )}
         contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: insets.bottom + 40 }}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={mono.color.textSecondary} />}

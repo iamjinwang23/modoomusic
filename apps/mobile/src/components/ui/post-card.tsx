@@ -9,8 +9,8 @@ function initial(name: string | null): string {
   return (name?.trim().charAt(0) || '?').toUpperCase()
 }
 
-// 게시글 카드 — 작성자/본문/첨부이미지/곡/좋아요·댓글. 좋아요 토글, 탭→상세.
-export function PostCard({ post, onPress }: { post: CommunityPost; onPress?: () => void }) {
+// 게시글 카드 — 작성자/본문/첨부이미지/곡/좋아요·댓글. 좋아요 토글, 탭→상세, 작성자→프로필.
+export function PostCard({ post, onPress, onAuthorPress }: { post: CommunityPost; onPress?: () => void; onAuthorPress?: () => void }) {
   const img = post.imageUrls?.[0] ?? post.imageUrl
   const [liked, setLiked] = useState(!!post.liked)
   const [likeCount, setLikeCount] = useState(post.likeCount)
@@ -42,7 +42,9 @@ export function PostCard({ post, onPress }: { post: CommunityPost; onPress?: () 
           )}
         </View>
         <View style={styles.flex}>
-          <Text style={styles.author} numberOfLines={1}>{post.authorName ?? post.authorUsername ?? '익명'}</Text>
+          <Text style={styles.author} numberOfLines={1} onPress={post.authorUsername ? onAuthorPress : undefined} suppressHighlighting>
+            {post.authorName ?? post.authorUsername ?? '익명'}
+          </Text>
         </View>
         {post.pinned ? <Text style={styles.pin}>고정</Text> : null}
       </View>
