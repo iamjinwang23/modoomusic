@@ -20,6 +20,11 @@ export default function AppTabs() {
         />
       </NativeTabs.Trigger>
 
+      <NativeTabs.Trigger name="discover">
+        <NativeTabs.Trigger.Label>탐색</NativeTabs.Trigger.Label>
+        <NativeTabs.Trigger.Icon sf="sparkles" />
+      </NativeTabs.Trigger>
+
       <NativeTabs.Trigger name="explore">
         <NativeTabs.Trigger.Label>커뮤니티</NativeTabs.Trigger.Label>
         <NativeTabs.Trigger.Icon

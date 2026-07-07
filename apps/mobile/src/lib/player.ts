@@ -1,6 +1,5 @@
 import TrackPlayer, { AppKilledPlaybackBehavior, Capability } from 'react-native-track-player'
-import type { Song } from '@mono/shared'
-import { setNowPlaying } from './now-playing'
+import { setNowPlaying, type NowPlaying } from './now-playing'
 
 let ready = false
 
@@ -20,7 +19,7 @@ export async function setupPlayer() {
 }
 
 // 단일 곡 재생 — 큐 리셋 후 추가·재생. audioUrl 없으면 무시.
-export async function playSong(song: Song) {
+export async function playSong(song: NowPlaying) {
   if (!song.audioUrl) return
   setNowPlaying(song)
   await setupPlayer()
