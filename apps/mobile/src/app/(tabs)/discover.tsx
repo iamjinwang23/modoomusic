@@ -42,7 +42,12 @@ export default function DiscoverScreen() {
 
   return (
     <View style={[styles.container, { paddingTop: insets.top + 12 }]}>
-      <Text style={styles.h1}>탐색</Text>
+      <View style={styles.headerRow}>
+        <Text style={styles.h1}>탐색</Text>
+        <Pressable onPress={() => router.push('/search')} hitSlop={10} style={styles.searchBtn}>
+          <Text style={styles.searchIcon}>🔍</Text>
+        </Pressable>
+      </View>
       <View style={styles.tabs}>
         {TABS.map((t) => {
           const on = tab === t.key
@@ -79,7 +84,10 @@ export default function DiscoverScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: mono.color.bg, paddingHorizontal: 20 },
-  h1: { color: mono.color.text, fontSize: mono.font.h1, fontWeight: '800', marginBottom: 12 },
+  headerRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 },
+  searchBtn: { width: 40, height: 40, borderRadius: 20, backgroundColor: mono.color.fill, alignItems: 'center', justifyContent: 'center' },
+  searchIcon: { fontSize: 16 },
+  h1: { color: mono.color.text, fontSize: mono.font.h1, fontWeight: '800' },
   tabs: { flexDirection: 'row', gap: 8 },
   tab: { paddingVertical: 8, paddingHorizontal: 18, borderRadius: mono.radius.pill, backgroundColor: mono.color.fill },
   tabOn: { backgroundColor: mono.color.accent },
