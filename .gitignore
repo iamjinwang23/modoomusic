@@ -1,7 +1,7 @@
 # See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
 
 # dependencies
-/node_modules
+node_modules/
 /.pnp
 .pnp.*
 .yarn/*
@@ -13,10 +13,9 @@
 # testing
 /coverage
 
-# next.js
-/.next
-/.next/
-/out/
+# next.js (monorepo: match at any depth, e.g. apps/web/.next)
+.next/
+out/
 
 # 에디터 임시/스왑 파일
 *.swp
@@ -53,8 +52,8 @@ next-env.d.ts
 /.next.nosync/
 
 # 로컬 일회성 시드/유틸 스크립트 (서비스 롤 키 하드코딩 — 커밋 금지)
-/scripts/seed-kpop-posts.mjs
-/scripts/fix-comment-count.mjs
+apps/web/scripts/seed-kpop-posts.mjs
+apps/web/scripts/fix-comment-count.mjs
 # 기획 아티팩트(앱 무관)
 /community-plan.html
 .obsidian/
