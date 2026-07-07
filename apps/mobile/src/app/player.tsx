@@ -1,8 +1,11 @@
-import { Pressable, StyleSheet, Text, View } from 'react-native'
+import { useState } from 'react'
+import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { router } from 'expo-router'
 import { Image } from 'expo-image'
 import TrackPlayer, { State, useActiveTrack, usePlaybackState, useProgress } from 'react-native-track-player'
+import { api } from '@/lib/api'
+import { useNowPlaying } from '@/lib/now-playing'
 import { mono } from '@/theme/mono'
 
 function fmt(sec: number): string {
@@ -16,11 +19,29 @@ function fmt(sec: number): string {
 export default function PlayerScreen() {
   const insets = useSafeAreaInsets()
   const track = useActiveTrack()
+  const song = useNowPlaying()
   const playback = usePlaybackState()
   const { position, duration } = useProgress(500)
 
+  const [liked, setLiked] = useState<boolean>(!!song?.liked)
+  const [likeBusy, setLikeBusy] = useState(false)
+
   const playing = playback.state === State.Playing || playback.state === State.Buffering
   const pct = duration > 0 ? Math.min(1, position / duration) : 0
+
+  const toggleLike = async () => {
+    if (!song || likeBusy) return
+    const next = !liked
+    setLiked(next); setLikeBusy(true)
+    try {
+      const r = await api.post(`/api/songs/${song.id}/like`) as { liked?: boolean }
+      if (typeof r.liked === 'boolean') setLiked(r.liked)
+    } catch {
+      setLiked(!next)
+    } finally {
+      setLikeBusy(false)
+    }
+  }
 
   if (!track) {
     return (
@@ -33,8 +54,14 @@ export default function PlayerScreen() {
 
   const seek = (dir: -1 | 1) => TrackPlayer.seekTo(Math.max(0, Math.min(duration || 0, position + dir * 10)))
 
+  const lyrics = song?.lyrics?.trim()
+
   return (
-    <View style={[styles.container, { paddingTop: insets.top + 8, paddingBottom: insets.bottom + 24 }]}>
+    <ScrollView
+      style={styles.container}
+      contentContainerStyle={{ paddingTop: insets.top + 8, paddingBottom: insets.bottom + 32, paddingHorizontal: 24 }}
+      showsVerticalScrollIndicator={false}
+    >
       <View style={styles.header}>
         <Pressable onPress={() => router.back()} hitSlop={12}><Text style={styles.chevron}>⌄</Text></Pressable>
         <Text style={styles.headerLabel}>재생 중</Text>
@@ -72,13 +99,26 @@ export default function PlayerScreen() {
         </Pressable>
         <Pressable onPress={() => seek(1)} hitSlop={12}><Text style={styles.ctrlSecondary}>+10</Text></Pressable>
       </View>
-    </View>
+
+      {song ? (
+        <Pressable onPress={toggleLike} disabled={likeBusy} style={styles.likeRow} hitSlop={8}>
+          <Text style={[styles.like, liked && styles.likeOn]}>{liked ? '♥ 좋아요' : '♡ 좋아요'}</Text>
+        </Pressable>
+      ) : null}
+
+      {lyrics ? (
+        <View style={styles.lyricsWrap}>
+          <Text style={styles.lyricsLabel}>가사</Text>
+          <Text style={styles.lyrics}>{lyrics}</Text>
+        </View>
+      ) : null}
+    </ScrollView>
   )
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: mono.color.bg, paddingHorizontal: 24 },
-  center: { alignItems: 'center', justifyContent: 'center', gap: 16 },
+  container: { flex: 1, backgroundColor: mono.color.bg },
+  center: { alignItems: 'center', justifyContent: 'center', gap: 16, paddingHorizontal: 24, flex: 1 },
   empty: { color: mono.color.textSecondary, fontSize: mono.font.body },
   link: { color: mono.color.accentLight, fontSize: mono.font.body, fontWeight: '700' },
   header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 },
@@ -103,4 +143,10 @@ const styles = StyleSheet.create({
     alignItems: 'center', justifyContent: 'center',
   },
   playIcon: { color: mono.color.text, fontSize: 26, fontWeight: '700' },
+  likeRow: { alignItems: 'center', marginTop: 28 },
+  like: { color: mono.color.textSecondary, fontSize: mono.font.body, fontWeight: '700' },
+  likeOn: { color: mono.color.danger },
+  lyricsWrap: { marginTop: 36 },
+  lyricsLabel: { color: mono.color.text, fontSize: mono.font.body, fontWeight: '700', marginBottom: 10 },
+  lyrics: { color: mono.color.textSecondary, fontSize: mono.font.body, lineHeight: 26 },
 })
