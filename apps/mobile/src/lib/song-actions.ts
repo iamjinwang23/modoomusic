@@ -17,3 +17,9 @@ export async function setSongPublished(songId: string, published: boolean): Prom
     .eq('id', songId)
   return !error
 }
+
+// 곡 삭제 — songs DELETE(RLS: 소유자만). 웹 song.service 패리티.
+export async function deleteSong(songId: string): Promise<boolean> {
+  const { error } = await supabase.from('songs').delete().eq('id', songId)
+  return !error
+}

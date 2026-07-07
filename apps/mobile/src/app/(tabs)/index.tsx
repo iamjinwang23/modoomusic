@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { ActivityIndicator, FlatList, Pressable, RefreshControl, StyleSheet, Text, View } from 'react-native'
+import { ActionSheetIOS, ActivityIndicator, Alert, FlatList, Platform, Pressable, RefreshControl, StyleSheet, Text, View } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { router, useFocusEffect } from 'expo-router'
 import type { Song } from '@mono/shared'
@@ -8,6 +8,7 @@ import { subscribeSongUpdates } from '@/lib/generate'
 import { useSession } from '@/lib/use-session'
 import { SongRow } from '@/components/ui/song-row'
 import { playSong } from '@/lib/player'
+import { deleteSong, setSongPublished, shareSong } from '@/lib/song-actions'
 import { mono } from '@/theme/mono'
 
 // 라이브러리 — 내 곡(GET /api/songs/mine, 인증 필요). MONO 디자인.
@@ -48,6 +49,32 @@ export default function LibraryScreen() {
     setRefreshing(true); await load(); setRefreshing(false)
   }, [load])
 
+  // 곡 액션 시트 — 공유 / 공개토글 / 삭제. iOS 네이티브 시트, 그 외 Alert 폴백.
+  const confirmDelete = useCallback((song: Song) => {
+    Alert.alert('곡을 삭제할까요?', song.title?.trim() || '제목 없음', [
+      { text: '취소', style: 'cancel' },
+      { text: '삭제', style: 'destructive', onPress: async () => { await deleteSong(song.id); load() } },
+    ])
+  }, [load])
+
+  const openMenu = useCallback((song: Song) => {
+    const pub = song.published
+    const doPublish = async () => { await setSongPublished(song.id, !pub); load() }
+    if (Platform.OS === 'ios') {
+      ActionSheetIOS.showActionSheetWithOptions(
+        { options: ['공유', pub ? '비공개로 전환' : '공개하기', '삭제', '취소'], destructiveButtonIndex: 2, cancelButtonIndex: 3, title: song.title?.trim() || '제목 없음' },
+        (i) => { if (i === 0) shareSong(song.id, song.title); else if (i === 1) doPublish(); else if (i === 2) confirmDelete(song) },
+      )
+    } else {
+      Alert.alert(song.title?.trim() || '제목 없음', undefined, [
+        { text: '공유', onPress: () => shareSong(song.id, song.title) },
+        { text: pub ? '비공개로 전환' : '공개하기', onPress: doPublish },
+        { text: '삭제', style: 'destructive', onPress: () => confirmDelete(song) },
+        { text: '취소', style: 'cancel' },
+      ])
+    }
+  }, [load, confirmDelete])
+
   const generating = (songs ?? []).some((s) => s.status === 'generating')
 
   return (
@@ -71,7 +98,7 @@ export default function LibraryScreen() {
         <FlatList
           data={songs ?? []}
           keyExtractor={(s) => s.id}
-          renderItem={({ item }) => <SongRow song={item} onPress={() => playSong(item)} />}
+          renderItem={({ item }) => <SongRow song={item} onPress={() => playSong(item)} onMore={() => openMenu(item)} />}
           contentContainerStyle={{ paddingBottom: insets.bottom + 160, paddingTop: 8 }}
           refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={mono.color.textSecondary} />}
           ListEmptyComponent={
