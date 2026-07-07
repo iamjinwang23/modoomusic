@@ -1,5 +1,6 @@
 import { Pressable, StyleSheet, Text, View } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
+import { router } from 'expo-router'
 import TrackPlayer, { State, useActiveTrack, usePlaybackState } from 'react-native-track-player'
 import { Image } from 'expo-image'
 import { mono } from '@/theme/mono'
@@ -16,7 +17,7 @@ export function MiniPlayer() {
 
   return (
     <View style={[styles.wrap, { paddingBottom: insets.bottom }]}>
-      <View style={styles.bar}>
+      <Pressable style={styles.bar} onPress={() => router.push('/player')}>
         <View style={styles.cover}>
           {track.artwork ? <Image source={{ uri: String(track.artwork) }} style={styles.coverImg} contentFit="cover" /> : null}
         </View>
@@ -24,7 +25,7 @@ export function MiniPlayer() {
         <Pressable onPress={toggle} style={styles.btn} hitSlop={10}>
           <Text style={styles.btnText}>{playing ? '❚❚' : '▶'}</Text>
         </Pressable>
-      </View>
+      </Pressable>
     </View>
   )
 }
