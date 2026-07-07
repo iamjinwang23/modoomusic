@@ -21,7 +21,6 @@ import { PopupAnnouncementCard } from '@/components/PopupAnnouncementCard'
 import { CreditPurchaseModal } from '@/components/CreditPurchaseModal'
 import { useAuth } from '@/components/AuthProvider'
 import { notificationService } from '@/services/notification.service'
-import { toast } from '@/components/toast/toast'
 
 import { profileColor } from '@/utils/profileColor'
 
@@ -314,9 +313,7 @@ export default function MainShellLayout({ children }: { children: React.ReactNod
             {NAV_ITEMS.map(({ href, label, icon }) => {
               // notifications §5.4 — 알림은 데스크톱에서 패널 토글 (라우팅 X)
               const isNotif = href === '/notifications'
-              // 커뮤니티 준비중 게이팅 — 로컬(dev)은 오픈, 프로덕션/프리뷰만 잠금
-              const communityGated = href === '/community' && process.env.NODE_ENV !== 'development'
-              const active = isNotif ? notifPanelOpen : communityGated ? false : isActiveNav(pathname, href)
+              const active = isNotif ? notifPanelOpen : isActiveNav(pathname, href)
               const className = `w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-base transition-colors text-left ${
                 active ? 'font-bold text-white bg-white/[0.06]' : 'text-white hover:bg-white/[0.04]'
               }`
@@ -327,18 +324,8 @@ export default function MainShellLayout({ children }: { children: React.ReactNod
                   {isNotif && notifUnread > 0 && (
                     <span className="ml-auto w-1.5 h-1.5 rounded-full bg-red-500" />
                   )}
-                  {communityGated && (
-                    <span className="ml-auto text-[10px] font-medium px-1.5 py-1 rounded-md bg-white/[0.08] text-zinc-400 leading-none">준비중</span>
-                  )}
                 </>
               )
-              if (communityGated) {
-                return (
-                  <button key={href} onClick={() => toast.info('커뮤니티는 곧 오픈해요')} className={className}>
-                    {inner}
-                  </button>
-                )
-              }
               if (isNotif) {
                 return (
                   <button key={href} onClick={() => setNotifPanelOpen((v) => !v)} className={className}>
