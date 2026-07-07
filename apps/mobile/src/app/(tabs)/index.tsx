@@ -52,7 +52,12 @@ export default function LibraryScreen() {
 
   return (
     <View style={[styles.container, { paddingTop: insets.top + 12 }]}>
-      <Text style={styles.h1}>라이브러리</Text>
+      <View style={styles.headerRow}>
+        <Text style={styles.h1}>라이브러리</Text>
+        <Pressable onPress={() => router.push('/profile')} hitSlop={10} style={styles.profileBtn}>
+          <Text style={styles.profileIcon}>☰</Text>
+        </Pressable>
+      </View>
       <Text style={styles.sub}>{generating ? '곡을 만들고 있어요…' : '내가 만든 음악'}</Text>
 
       {songs === null && !error ? (
@@ -80,6 +85,12 @@ export default function LibraryScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: mono.color.bg, paddingHorizontal: 20 },
+  headerRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  profileBtn: {
+    width: 40, height: 40, borderRadius: 20, backgroundColor: mono.color.fill,
+    alignItems: 'center', justifyContent: 'center',
+  },
+  profileIcon: { color: mono.color.text, fontSize: 18 },
   h1: { color: mono.color.text, fontSize: mono.font.h1, fontWeight: '800' },
   sub: { color: mono.color.textSecondary, fontSize: mono.font.small, marginTop: 2, marginBottom: 8 },
   empty: { color: mono.color.textSecondary, fontSize: mono.font.body, textAlign: 'center', marginTop: 48 },
