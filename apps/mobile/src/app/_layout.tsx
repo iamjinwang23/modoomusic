@@ -25,7 +25,6 @@ export default function RootLayout() {
         <Stack.Screen name="creator/[username]" />
         <Stack.Screen name="create" options={{ presentation: 'modal' }} />
         <Stack.Screen name="player" options={{ presentation: 'modal' }} />
-        <Stack.Screen name="profile" options={{ presentation: 'modal' }} />
         <Stack.Screen name="compose" options={{ presentation: 'modal' }} />
         <Stack.Screen name="notifications" options={{ presentation: 'modal' }} />
         <Stack.Screen name="search" options={{ presentation: 'modal' }} />

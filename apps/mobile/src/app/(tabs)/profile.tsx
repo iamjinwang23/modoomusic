@@ -48,9 +48,7 @@ export default function ProfileScreen() {
   return (
     <View style={[styles.container, { paddingTop: insets.top + 8 }]}>
       <View style={styles.header}>
-        <Pressable onPress={() => router.back()} hitSlop={12}><Text style={styles.close}>✕</Text></Pressable>
         <Text style={styles.h1}>프로필</Text>
-        <View style={{ width: 24 }} />
       </View>
 
       {loading ? (
@@ -101,9 +99,8 @@ function Row({ label, value, strong }: { label: string; value: string; strong?: 
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: mono.color.bg, paddingHorizontal: 20 },
-  header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 },
-  close: { color: mono.color.text, fontSize: 22, width: 24 },
-  h1: { color: mono.color.text, fontSize: mono.font.h2, fontWeight: '700' },
+  header: { marginTop: 4, marginBottom: 8 },
+  h1: { color: mono.color.text, fontSize: mono.font.h1, fontWeight: '800' },
   account: { alignItems: 'center', gap: 4, marginTop: 20, marginBottom: 8 },
   avatar: {
     width: 84, height: 84, borderRadius: 42, overflow: 'hidden', marginBottom: 8,

@@ -82,14 +82,9 @@ export default function LibraryScreen() {
     <View style={[styles.container, { paddingTop: insets.top + 12 }]}>
       <View style={styles.headerRow}>
         <Text style={styles.h1}>라이브러리</Text>
-        <View style={styles.headerBtns}>
-          <Pressable onPress={() => router.push('/notifications')} hitSlop={10} style={styles.profileBtn}>
-            <Icon name="bell" size={19} color={mono.color.text} />
-          </Pressable>
-          <Pressable onPress={() => router.push('/profile')} hitSlop={10} style={styles.profileBtn}>
-            <Icon name="line.3.horizontal" size={20} color={mono.color.text} />
-          </Pressable>
-        </View>
+        <Pressable onPress={() => router.push('/notifications')} hitSlop={10} style={styles.profileBtn}>
+          <Icon name="bell" size={19} color={mono.color.text} />
+        </Pressable>
       </View>
       <Text style={styles.sub}>{generating ? '곡을 만들고 있어요…' : '내가 만든 음악'}</Text>
 
@@ -109,10 +104,6 @@ export default function LibraryScreen() {
         />
       )}
 
-      <Pressable style={[styles.fab, { bottom: insets.bottom + 76 }]} onPress={() => router.push('/create')}>
-        <Icon name="plus" size={18} color={mono.color.text} weight="bold" />
-        <Text style={styles.fabText}>만들기</Text>
-      </Pressable>
     </View>
   )
 }
