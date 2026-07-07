@@ -208,7 +208,7 @@ export default function HelpPage() {
               <SubTitle>가입과 개설</SubTitle>
               <List items={[
                 '커뮤니티에 **가입**하면 글을 쓰고 좋아요·댓글·투표에 참여할 수 있어요. 가입은 여러 곳에 할 수 있어요.',
-                '커뮤니티 화면의 {createCommunity} 버튼으로 직접 개설할 수도 있어요(1인 1개). 개설자는 매니저가 돼요.',
+                '커뮤니티 화면의 {createCommunity} 버튼으로 직접 개설할 수도 있어요(1인 최대 3개). 개설자는 매니저가 돼요.',
               ]} />
               <SubTitle>글쓰기</SubTitle>
               <List items={[

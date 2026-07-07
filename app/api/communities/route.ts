@@ -1,4 +1,4 @@
-// GET /api/communities — 허브(인기·신규·내 가입) / POST — 커뮤니티 개설(1인 1개)
+// GET /api/communities — 허브(인기·신규·내 가입) / POST — 커뮤니티 개설(1인 최대 3개)
 import { NextRequest, NextResponse } from 'next/server'
 import { createUserClient } from '@/lib/supabase/server'
 import { createCommunity, getHub } from '@/services/community.service'
@@ -30,7 +30,7 @@ export async function POST(req: NextRequest) {
     coverImage: typeof body.coverImage === 'string' && body.coverImage ? body.coverImage : null,
   })
   if (!result.ok) {
-    const status = result.error === 'already_has_community' ? 409 : result.error === 'banned_word' ? 400 : 500
+    const status = result.error === 'community_limit_reached' ? 409 : result.error === 'banned_word' ? 400 : 500
     return NextResponse.json({ error: result.error }, { status })
   }
   return NextResponse.json({ community: result.community })

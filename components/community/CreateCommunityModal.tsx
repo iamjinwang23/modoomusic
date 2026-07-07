@@ -1,4 +1,4 @@
-// 커뮤니티 개설 모달 — 1인 1개. 이름·주제·소개. (커버 이미지는 추후)
+// 커뮤니티 개설 모달 — 1인 최대 3개. 이름·주제·소개. (커버 이미지는 추후)
 'use client'
 
 import { useState } from 'react'
@@ -31,7 +31,7 @@ export function CreateCommunityModal({ open, onClose }: Props) {
       })
       const j = await res.json().catch(() => ({}))
       if (!res.ok) {
-        toast.error(j.error === 'already_has_community' ? '이미 운영 중인 커뮤니티가 있어요 (1인 1개)' : j.error === 'banned_word' ? '부적절한 표현이 포함되어 있어요' : '개설에 실패했어요')
+        toast.error(j.error === 'community_limit_reached' ? '커뮤니티는 최대 3개까지 만들 수 있어요' : j.error === 'banned_word' ? '부적절한 표현이 포함되어 있어요' : '개설에 실패했어요')
         return
       }
       toast.success('커뮤니티를 만들었어요')
@@ -47,7 +47,7 @@ export function CreateCommunityModal({ open, onClose }: Props) {
       <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={busy ? undefined : onClose} />
       <div className="relative bg-[#21252E] border border-white/[0.10] rounded-2xl w-full max-w-[420px] p-5 shadow-2xl">
         <h2 className="text-base font-semibold text-white">커뮤니티 만들기</h2>
-        <p className="mt-1 text-xs text-zinc-400">한 명당 1개의 커뮤니티를 운영할 수 있어요. 당신이 매니저가 됩니다.</p>
+        <p className="mt-1 text-xs text-zinc-400">한 명당 최대 3개까지 운영할 수 있어요. 당신이 매니저가 됩니다.</p>
 
         <div className="mt-4 space-y-3">
           <div>

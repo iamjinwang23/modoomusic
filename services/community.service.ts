@@ -51,24 +51,27 @@ const SELECT = 'id, manager_id, name, topic, description, cover_image, cover_foc
 // 폐쇄 유예 기간 — 14일(§13.2 확정).
 const CLOSING_GRACE_MS = 14 * 24 * 60 * 60 * 1000
 
+// 1인 개설 가능한 커뮤니티 최대 개수 (관리자 예외).
+const MAX_COMMUNITIES_PER_USER = 3
+
 // closing(폐쇄 유예) 커뮤니티는 읽기전용 — 신규 쓰기 차단 여부. status만 조회(쓰기 경로 가드용).
 export async function isCommunityClosing(admin: ReturnType<typeof createAdminClient>, communityId: string): Promise<boolean> {
   const { data } = await admin.from('communities').select('status').eq('id', communityId).maybeSingle()
   return data?.status === 'closing'
 }
 
-// 개설 — 1인 1개. 단, 관리자(is_admin)는 테스트·운영 위해 다중 개설 허용. 개설자 자동 가입.
+// 개설 — 1인 최대 3개. 단, 관리자(is_admin)는 테스트·운영 위해 무제한. 개설자 자동 가입.
 export async function createCommunity(
   userId: string,
   input: { name: string; topic?: string | null; description?: string | null; coverImage?: string | null },
 ): Promise<{ ok: true; community: Community } | { ok: false; error: string }> {
   const admin = createAdminClient()
   if (await findBannedWord(input.name, input.topic, input.description)) return { ok: false, error: 'banned_word' }
-  // 1인 1개 제한 — 관리자는 예외
+  // 1인 최대 3개 제한 — 관리자는 예외
   const { data: prof } = await admin.from('profiles').select('is_admin').eq('id', userId).maybeSingle()
   if (!prof?.is_admin) {
-    const { data: existing } = await admin.from('communities').select('id').eq('manager_id', userId).limit(1).maybeSingle()
-    if (existing) return { ok: false, error: 'already_has_community' }
+    const { count } = await admin.from('communities').select('id', { count: 'exact', head: true }).eq('manager_id', userId)
+    if ((count ?? 0) >= MAX_COMMUNITIES_PER_USER) return { ok: false, error: 'community_limit_reached' }
   }
   const { data, error } = await admin
     .from('communities')
