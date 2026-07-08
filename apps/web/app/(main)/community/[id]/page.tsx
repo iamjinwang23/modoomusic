@@ -553,12 +553,6 @@ export default function CommunityCafePage() {
           {community?.description && <p className="text-sm text-zinc-400 mt-4 whitespace-pre-wrap leading-relaxed">{community.description}</p>}
           {/* 카테고리 */}
           {community?.topic && <span className="inline-block mt-3 px-2.5 py-1 rounded-full bg-violet-500/15 text-violet-300 text-xs font-medium">{community.topic}</span>}
-          {/* 매니저·비공개 — 가입 신청 관리 진입점(모달 연결은 Task 10) */}
-          {isManager && isPrivate && (
-            <button onClick={() => setManageOpen(true)} className="inline-flex items-center gap-1.5 mt-3 ml-2 px-3 py-1.5 rounded-full bg-white/[0.06] text-sm text-white hover:bg-white/[0.10] transition">
-              가입 신청{pendingCount > 0 && <span className="min-w-5 h-5 px-1.5 rounded-full bg-violet-600 text-white text-xs font-semibold flex items-center justify-center">{pendingCount}</span>}
-            </button>
-          )}
         </div>
 
         {/* 폐쇄 예고 배너 (§13.3 세이프가드 ② — closing 동안 상시 노출, D-day + 내보내기) */}
@@ -572,6 +566,19 @@ export default function CommunityCafePage() {
               {(isMember || isManager) && (
                 <button onClick={exportMyContent} className="shrink-0 px-3.5 py-2 rounded-full text-xs font-medium bg-white/[0.10] text-white hover:bg-white/[0.16] transition-colors">내 글 내보내기</button>
               )}
+            </div>
+          </div>
+        )}
+
+        {/* 매니저·비공개 — 가입 신청 대기 배너 (대기>0일 때만, 폐쇄 배너와 동일 패턴·게시글 폭). 폐쇄 중엔 승인 불가라 숨김 */}
+        {isManager && isPrivate && !isClosing && pendingCount > 0 && (
+          <div className="px-5 mt-5">
+            <div className="rounded-xl bg-violet-500/[0.08] border border-violet-500/20 px-4 py-3.5 flex items-center justify-between gap-3">
+              <div className="min-w-0">
+                <p className="text-sm font-semibold text-violet-200">가입 신청 {pendingCount}건이 대기 중이에요</p>
+                <p className="text-xs text-zinc-400 mt-0.5 leading-relaxed">승인·거절을 검토해 주세요.</p>
+              </div>
+              <button onClick={() => setManageOpen(true)} className="shrink-0 px-3.5 py-2 rounded-full text-xs font-medium bg-violet-600 text-white hover:bg-violet-500 transition-colors">관리하기</button>
             </div>
           </div>
         )}
