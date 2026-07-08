@@ -17,7 +17,7 @@ export async function POST(_req: NextRequest, { params }: { params: Promise<{ id
   if (result.error === 'needs_request') {
     const req = await requestJoin(user.id, id)
     if (req.ok) return NextResponse.json({ ok: true, requested: true, status: req.status })
-    const status = req.error === 'not_found' ? 404 : req.error === 'blocked' || req.error === 'rejoin_cooldown' || req.error === 'community_closing' ? 403 : 500
+    const status = req.error === 'not_found' ? 404 : req.error === 'blocked' || req.error === 'rejoin_cooldown' || req.error === 'community_closing' ? 403 : req.error === 'already_member' ? 409 : req.error === 'not_private' ? 400 : 500
     return NextResponse.json({ error: req.error }, { status })
   }
   const status = result.error === 'not_found' ? 404 : result.error === 'community_closing' || result.error === 'blocked' ? 403 : 500

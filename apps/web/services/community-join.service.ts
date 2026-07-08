@@ -79,6 +79,9 @@ export async function approveRequest(managerId: string, communityId: string, tar
   const admin = createAdminClient()
   const guard = await assertManager(admin, managerId, communityId)
   if (!guard.ok) return { ok: false, error: guard.error }
+  // 폐쇄 유예 중에는 055 읽기전용 트리거가 멤버 upsert를 거부함 — 미리 막아 "승인됨" 오알림 방지
+  const { data: c } = await admin.from('communities').select('status').eq('id', communityId).maybeSingle()
+  if (c?.status === 'closing') return { ok: false, error: 'community_closing' }
   const { data: req } = await admin.from('community_join_requests').select('status').eq('community_id', communityId).eq('user_id', targetUserId).maybeSingle()
   if (!req || req.status !== 'pending') return { ok: false, error: 'not_pending' }
   await admin.from('community_members').upsert(

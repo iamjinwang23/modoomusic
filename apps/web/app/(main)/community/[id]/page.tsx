@@ -458,6 +458,28 @@ export default function CommunityCafePage() {
     )
   }
 
+  // 잠금(비공개·비멤버) 미리보기 카드 — 읽기전용. 좋아요/댓글/⋮(신고) 등 상호작용 요소 없음.
+  function renderPreviewCard(p: CommunityPost) {
+    return (
+      <div key={p.id} className="px-4 py-4 md:rounded-2xl md:border md:border-white/[0.08] md:bg-white/[0.02]">
+        <div className="flex items-center gap-2.5">
+          <Avatar name={p.authorName} hue={p.authorAvatarHue} url={p.authorAvatarUrl} size={34} />
+          <div className="min-w-0 flex-1">
+            <div className="flex items-center gap-1.5 min-w-0">
+              <span className="text-sm font-medium text-white truncate">{p.authorName ?? '익명'}</span>
+              {p.authorId === community?.managerId && <span className="shrink-0 text-[10px] font-medium text-violet-300 bg-violet-500/15 px-1.5 py-0.5 rounded-full leading-none">매니저</span>}
+            </div>
+            <p className="text-[11px] text-zinc-500">{relativeTime(p.createdAt)}</p>
+          </div>
+        </div>
+        {p.content ? (
+          <p className="text-sm text-zinc-200 mt-2.5 whitespace-pre-wrap leading-relaxed">{linkify(p.content)}</p>
+        ) : null}
+        {p.imageUrls && p.imageUrls.length > 0 && <PostImageGallery images={p.imageUrls} />}
+      </div>
+    )
+  }
+
   // 로딩 — 헤더·피드 스켈레톤 (폴백 헤더 플래시 방지). not-found는 위에서 이미 처리됨
   if (community === null) {
     return (
@@ -669,7 +691,7 @@ export default function CommunityCafePage() {
           <div className="px-5 mt-8">
             {/* 미리보기 글 1건 (?post= 진입 시 preview 응답으로 로드) */}
             {posts && posts.length > 0 && (
-              <div className="mb-6">{posts.slice(0, 1).map(renderPostCard)}</div>
+              <div className="mb-6">{posts.slice(0, 1).map(renderPreviewCard)}</div>
             )}
             <div className="rounded-2xl border border-white/[0.08] bg-white/[0.02] px-5 py-8 text-center">
               <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mx-auto mb-3"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>

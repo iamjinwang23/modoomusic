@@ -10,7 +10,7 @@ export async function POST(_req: NextRequest, { params }: { params: Promise<{ id
   if (!user) return NextResponse.json({ error: 'unauthorized' }, { status: 401 })
   const result = await approveRequest(user.id, id, userId)
   if (!result.ok) {
-    const status = result.error === 'forbidden' ? 403 : result.error === 'not_found' || result.error === 'not_pending' ? 404 : 500
+    const status = result.error === 'forbidden' || result.error === 'community_closing' ? 403 : result.error === 'not_found' || result.error === 'not_pending' ? 404 : 500
     return NextResponse.json({ error: result.error }, { status })
   }
   return NextResponse.json({ ok: true })

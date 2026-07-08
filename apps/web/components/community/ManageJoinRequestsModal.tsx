@@ -1,4 +1,4 @@
-// 매니저 심사 — pending 승인/거절(사유) + 차단 목록/해제.
+// 매니저 심사 — pending 승인/거절(사유). 차단 목록/해제 탭은 후속 작업(미구현).
 'use client'
 import { createPortal } from 'react-dom'
 import { useEffect, useState } from 'react'
