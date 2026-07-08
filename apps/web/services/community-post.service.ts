@@ -515,7 +515,9 @@ export async function toggleCommentLike(userId: string, commentId: string): Prom
   const { data: c } = await admin.from('community_post_comments').select('id, post_id').eq('id', commentId).maybeSingle()
   if (!c) return { ok: false, error: 'not_found' }
   const { data: post } = await admin.from('community_posts').select('community_id').eq('id', c.post_id).maybeSingle()
-  if (post && await isCommunityClosing(admin, post.community_id as string)) return { ok: false, error: 'community_closing' }
+  if (!post) return { ok: false, error: 'not_found' }
+  if (await isCommunityClosing(admin, post.community_id as string)) return { ok: false, error: 'community_closing' }
+  if (!(await canAccessCommunity(admin, post.community_id as string, userId))) return { ok: false, error: 'not_member' }
   const { data: existing } = await admin.from('community_post_comment_likes').select('user_id').eq('comment_id', commentId).eq('user_id', userId).maybeSingle()
   let liked: boolean
   if (existing) { await admin.from('community_post_comment_likes').delete().eq('comment_id', commentId).eq('user_id', userId); liked = false }
