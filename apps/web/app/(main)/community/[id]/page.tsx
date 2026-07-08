@@ -179,7 +179,7 @@ export default function CommunityCafePage() {
     const j = await res.json().catch(() => ({}))
     setBusy(false)
     if (res.ok) { toast.success('탈퇴했어요'); load() }
-    else toast.error(j.error === 'manager_cannot_leave' ? '매니저는 탈퇴할 수 없어요 (폐쇄만 가능)' : '탈퇴에 실패했어요')
+    else toast.error(j.error === 'manager_cannot_leave' ? '매니저는 탈퇴할 수 없어요 (폐쇄만 가능)' : j.error === 'leave_cooldown' ? '가입 후 24시간이 지나야 탈퇴할 수 있어요' : '탈퇴에 실패했어요')
   }
   const pollReady = (pollOptions?.filter((o) => o.trim()).length ?? 0) >= 2
   // 첨부는 한 종류만 (음악/이미지/투표 중 하나) — 활성 시 + 버튼 숨김. 링크는 본문 URL로 자동 임베드.
@@ -238,9 +238,9 @@ export default function CommunityCafePage() {
     const res = await fetch(`/api/community-posts/${p.id}/pin`, { method: 'POST' })
     if (res.ok) load(); else toast.error('고정에 실패했어요')
   }
-  async function kick(p: CommunityPost) {
+  async function kick(p: CommunityPost, ban: boolean) {
     const res = await fetch(`/api/communities/${id}/kick`, {
-      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ userId: p.authorId }),
+      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ userId: p.authorId, ban }),
     })
     if (res.ok) { toast.success(`${p.authorName ?? '사용자'}님을 내보냈어요`); load() }
     else toast.error('강퇴에 실패했어요')
@@ -712,7 +712,7 @@ export default function CommunityCafePage() {
       </div>
 
       <ConfirmModal open={!!confirmDelPost} title="이 글을 정말 삭제하시겠어요?" description="삭제 시 등록된 댓글도 함께 삭제되며 되돌릴 수 없어요." confirmLabel="삭제하기" cancelLabel="아니요" variant="danger" onClose={() => setConfirmDelPost(null)} onConfirm={() => { if (confirmDelPost) del(confirmDelPost); setConfirmDelPost(null) }} />
-      <ConfirmModal open={!!confirmKick} title={`${confirmKick?.authorName ?? '이 사용자'}님을 강퇴할까요?`} description="커뮤니티에서 내보내지고 알림이 전송돼요. 이 회원은 다시 가입할 수 있어요." confirmLabel="강퇴하기" cancelLabel="아니요" variant="danger" onClose={() => setConfirmKick(null)} onConfirm={() => { if (confirmKick) kick(confirmKick); setConfirmKick(null) }} />
+      <ConfirmModal open={!!confirmKick} title={`${confirmKick?.authorName ?? '이 사용자'}님을 강퇴할까요?`} description="커뮤니티에서 내보내지고 알림이 전송돼요. 확인 후 재가입 차단 여부를 물어봐요." confirmLabel="강퇴하기" cancelLabel="아니요" variant="danger" onClose={() => setConfirmKick(null)} onConfirm={() => { if (confirmKick) { const ban = window.confirm('이 회원의 재가입을 영구 차단할까요?\n확인=차단 후 강퇴 / 취소=차단 없이 강퇴'); kick(confirmKick, ban) } setConfirmKick(null) }} />
       <ConfirmModal open={confirmLeave} title="이 커뮤니티를 정말 탈퇴하시겠어요?" description="탈퇴하면 이 커뮤니티에 다시 가입해야 글·댓글을 남길 수 있어요." confirmLabel="탈퇴하기" cancelLabel="아니요" variant="danger" busy={busy} onClose={() => setConfirmLeave(false)} onConfirm={() => { setConfirmLeave(false); leave() }} />
       {reportPostId && <CommunityPostReportModal postId={reportPostId} onClose={() => setReportPostId(null)} onSubmitted={() => reportDone(reportPostId)} />}
       {editOpen && community && <CommunityEditModal community={community} onClose={() => setEditOpen(false)} onSaved={(c) => setCommunity(c)} onClosed={() => router.push('/community')} />}
