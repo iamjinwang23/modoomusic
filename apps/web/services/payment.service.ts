@@ -3,6 +3,7 @@
 import { createAdminClient } from '@/lib/supabase/admin'
 import { getPortonePayment } from '@/lib/portone'
 import { type CreditProduct } from '@/lib/credit-products'
+import { sendPushToUser } from '@/services/push.service'
 
 export { CREDIT_PRODUCTS, getCreditProduct, type CreditProduct } from '@/lib/credit-products'
 
@@ -225,6 +226,7 @@ export async function markPaymentPaidAndGrant(opts: {
     .from('notifications')
     .insert({ user_id: userId, type: 'credit_charged', payload: { credits, amount } })
   if (notifErr) console.error('[payment.grant] 알림 INSERT 실패:', notifErr.message)
+  await sendPushToUser(userId, { title: '크레딧이 충전됐어요', body: '', tag: 'credit', data: { route: '/settings' } }, 'credit')
 
   return { granted: true, credits, userId }
 }

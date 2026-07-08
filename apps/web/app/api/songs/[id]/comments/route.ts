@@ -129,7 +129,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
       payload: { kind: 'comment', songTitle },
     })
     if (nErr) console.error('[comments POST notif]', nErr.message)
-    await sendPushToUser(song.user_id, { title: '새 댓글', body: `${songTitle}에 댓글이 달렸어요`, url: `/?song=${songId}`, tag: `comment-${songId}` })
+    await sendPushToUser(song.user_id, { title: '새 댓글', body: `${songTitle}에 댓글이 달렸어요`, url: `/?song=${songId}`, tag: `comment-${songId}`, data: { route: '/(tabs)' } }, 'comments')
   }
 
   return NextResponse.json({ comment: toComment(inserted as unknown as CommentRow, new Set()) })

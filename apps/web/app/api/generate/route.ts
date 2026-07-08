@@ -204,7 +204,7 @@ export async function POST(req: NextRequest) {
         .insert({ user_id: user.id, type: 'song_complete', song_id: songId })
       if (notifErr) console.error('[generate bg] notif INSERT 실패:', notifErr.message)
       const doneTitle = (typeof updatePatch.title === 'string' ? updatePatch.title : inserted.title) || '새 곡'
-      await sendPushToUser(user.id, { title: '곡이 완성됐어요', body: doneTitle, url: '/library', tag: `song-${songId}` })
+      await sendPushToUser(user.id, { title: '곡이 완성됐어요', body: doneTitle, url: '/library', tag: `song-${songId}`, data: { route: '/(tabs)' } }, 'song_complete')
     } catch (e) {
       console.error('[generate bg] 실패:', e instanceof Error ? e.message : e)
       await admin.from('songs').update({ status: 'failed' }).eq('id', songId)

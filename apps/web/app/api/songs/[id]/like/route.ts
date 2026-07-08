@@ -69,7 +69,7 @@ export async function POST(_req: Request, { params }: { params: Promise<Params> 
       }
       // 첫 좋아요 알림일 때만 푸시(중복이면 스킵 — 스팸 방지)
       if (!notifErr) {
-        await sendPushToUser(song.user_id, { title: '새 좋아요', body: '내 곡을 좋아했어요', url: `/?song=${songId}`, tag: `like-${songId}` })
+        await sendPushToUser(song.user_id, { title: '새 좋아요', body: '내 곡을 좋아했어요', url: `/?song=${songId}`, tag: `like-${songId}`, data: { route: '/(tabs)' } }, 'likes')
       }
     }
   }

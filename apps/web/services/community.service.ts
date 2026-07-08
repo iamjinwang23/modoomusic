@@ -222,7 +222,7 @@ async function notifyClosing(
   }))
   const { error } = await admin.from('notifications').insert(rows)
   if (error) console.error('[community.notifyClosing]', error.message)
-  for (const uid of recipients) sendPushToUser(uid, { title, body, url }).catch(() => {})
+  for (const uid of recipients) sendPushToUser(uid, { title, body, url, data: { route: `/community/${communityId}` } }, 'community').catch(() => {})
 }
 
 // 가입 — 멱등(이미 멤버면 무시).

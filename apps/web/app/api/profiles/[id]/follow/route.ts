@@ -3,6 +3,7 @@
 import { NextResponse } from 'next/server'
 import { createUserClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
+import { sendPushToUser } from '@/services/push.service'
 
 interface Params { id: string }
 
@@ -84,6 +85,13 @@ export async function POST(_req: Request, { params }: { params: Promise<Params> 
           payload: { username: actor?.username ?? null },
         })
       if (notifErr) console.error('[follow notify]', notifErr.message)
+      const followerUsername = actor?.username ?? null
+      await sendPushToUser(targetUserId, {
+        title: '새 팔로워',
+        body: `${followerUsername ?? '누군가'}님이 회원님을 팔로우해요`,
+        tag: `follow-${user.id}`,
+        data: { route: followerUsername ? `/creator/${followerUsername}` : '/(tabs)' },
+      }, 'follow')
     }
   }
 

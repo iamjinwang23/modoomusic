@@ -35,6 +35,7 @@ export async function finalizeVideoCover(song: VideoSongRow): Promise<FinalizeRe
     await admin.from('songs').update({ video_cover_status: 'failed' }).eq('id', song.id)
     // 실패 알림 (크레딧/체험권 환불 안내)
     await admin.from('notifications').insert({ user_id: song.user_id, type: 'song_complete', song_id: song.id, payload: { kind: 'video_cover_failed' } })
+    await sendPushToUser(song.user_id, { title: '영상 커버 생성 실패', body: '', tag: `videocover-fail-${song.id}`, data: { route: '/(tabs)' } }, 'song_complete')
   }
 
   const isTimedOut = !!song.video_cover_started_at && Date.now() - new Date(song.video_cover_started_at).getTime() > TIMEOUT_MS
@@ -61,7 +62,7 @@ export async function finalizeVideoCover(song: VideoSongRow): Promise<FinalizeRe
         video_cover_generated_at: new Date().toISOString(),
       }).eq('id', song.id)
       await admin.from('notifications').insert({ user_id: song.user_id, type: 'song_complete', song_id: song.id, payload: { kind: 'video_cover' } })
-      await sendPushToUser(song.user_id, { title: '영상 완성', body: '영상 생성이 완료됐어요', url: '/library', tag: `videocover-${song.id}` })
+      await sendPushToUser(song.user_id, { title: '영상 완성', body: '영상 생성이 완료됐어요', url: '/library', tag: `videocover-${song.id}`, data: { route: '/(tabs)' } }, 'song_complete')
       return { status: 'done', videoCoverUrl: bustedUrl }
     }
     if (status === 'Fail') { await markFailed(); return { status: 'failed' } }

@@ -43,7 +43,7 @@ async function notifyCommunityActivity(
     payload,
   })
   if (error) { console.error('[community.notifyActivity]', error.message); return }
-  sendPushToUser(opts.recipientId, { title: opts.pushTitle, body: opts.pushBody, url }).catch(() => {})
+  sendPushToUser(opts.recipientId, { title: opts.pushTitle, body: opts.pushBody, url, data: { route: `/community/${opts.communityId}` } }, 'community').catch(() => {})
 }
 
 interface PostRow {
