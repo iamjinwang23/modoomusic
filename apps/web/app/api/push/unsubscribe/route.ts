@@ -8,9 +8,12 @@ export async function POST(req: NextRequest) {
   const { data: { user } } = await userClient.auth.getUser()
   if (!user) return NextResponse.json({ error: 'unauthorized' }, { status: 401 })
 
-  let body: { endpoint?: unknown }
+  let body: { endpoint?: unknown; token?: unknown }
   try { body = await req.json() } catch { return NextResponse.json({ error: 'invalid_input' }, { status: 400 }) }
-  const endpoint = typeof body.endpoint === 'string' ? body.endpoint : ''
+  // token(expo) 또는 endpoint(web) 중 하나를 받아 동일한 endpoint 컬럼으로 매칭
+  const endpoint = typeof body.token === 'string' && body.token
+    ? body.token
+    : (typeof body.endpoint === 'string' ? body.endpoint : '')
   if (!endpoint) return NextResponse.json({ error: 'invalid_input' }, { status: 400 })
 
   const admin = createAdminClient()

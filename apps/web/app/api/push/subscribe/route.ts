@@ -8,8 +8,20 @@ export async function POST(req: NextRequest) {
   const { data: { user } } = await userClient.auth.getUser()
   if (!user) return NextResponse.json({ error: 'unauthorized' }, { status: 401 })
 
-  let body: { endpoint?: unknown; keys?: { p256dh?: unknown; auth?: unknown } }
+  let body: { endpoint?: unknown; keys?: { p256dh?: unknown; auth?: unknown }; platform?: unknown; token?: unknown }
   try { body = await req.json() } catch { return NextResponse.json({ error: 'invalid_input' }, { status: 400 }) }
+
+  // Expo/APNs 토큰 등록 (모바일)
+  if (body.platform === 'expo') {
+    const token = typeof body.token === 'string' ? body.token : ''
+    if (!token) return NextResponse.json({ error: 'invalid_input' }, { status: 400 })
+    const admin = createAdminClient()
+    const { error } = await admin
+      .from('push_subscriptions')
+      .upsert({ user_id: user.id, endpoint: token, platform: 'expo' }, { onConflict: 'endpoint' })
+    if (error) { console.error('[push.subscribe.expo]', error.message); return NextResponse.json({ error: 'internal' }, { status: 500 }) }
+    return NextResponse.json({ ok: true })
+  }
 
   const endpoint = typeof body.endpoint === 'string' ? body.endpoint : ''
   const p256dh = typeof body.keys?.p256dh === 'string' ? body.keys.p256dh : ''
