@@ -5,6 +5,7 @@ import { router } from 'expo-router'
 import type { Community } from '@mono/shared'
 import { api } from '@/lib/api'
 import { CommunityCard } from '@/components/ui/community-card'
+import { Icon } from '@/components/ui/icon'
 import { mono } from '@/theme/mono'
 
 type Tab = 'popular' | 'new'
@@ -40,7 +41,12 @@ export default function ExploreScreen() {
 
   return (
     <View style={[styles.container, { paddingTop: insets.top + 12 }]}>
-      <Text style={styles.h1}>커뮤니티</Text>
+      <View style={styles.headerRow}>
+        <Text style={styles.h1}>커뮤니티</Text>
+        <Pressable onPress={() => router.push('/notifications')} hitSlop={10} style={styles.iconBtn}>
+          <Icon name="bell" size={18} color={mono.color.text} />
+        </Pressable>
+      </View>
 
       <View style={styles.tabs}>
         {TABS.map((t) => {
@@ -74,7 +80,9 @@ export default function ExploreScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: mono.color.bg, paddingHorizontal: 20 },
-  h1: { color: mono.color.text, fontSize: mono.font.h1, fontWeight: '800', marginBottom: 12 },
+  headerRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 },
+  iconBtn: { width: 40, height: 40, borderRadius: 20, backgroundColor: mono.color.fill, alignItems: 'center', justifyContent: 'center' },
+  h1: { color: mono.color.text, fontSize: mono.font.h1, fontWeight: '800' },
   tabs: { flexDirection: 'row', gap: 8 },
   tab: {
     paddingVertical: 8, paddingHorizontal: 18, borderRadius: mono.radius.pill,

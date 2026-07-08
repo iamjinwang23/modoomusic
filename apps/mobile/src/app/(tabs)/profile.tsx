@@ -56,9 +56,14 @@ export default function ProfileTab() {
           <View style={styles.header}>
             <View style={styles.bannerWrap}>
               {profile?.coverImage ? <Image source={{ uri: profile.coverImage }} style={styles.banner} contentFit="cover" /> : <View style={[styles.banner, styles.bannerFallback]} />}
-              <Pressable onPress={() => router.push('/settings')} style={[styles.gear, { top: insets.top + 8 }]} hitSlop={10}>
-                <Icon name="ellipsis" size={18} color={mono.color.onMedia} />
-              </Pressable>
+              <View style={[styles.headerActions, { top: insets.top + 8 }]}>
+                <Pressable onPress={() => router.push('/settings')} style={styles.gear} hitSlop={10}>
+                  <Icon name="ellipsis" size={18} color={mono.color.onMedia} />
+                </Pressable>
+                <Pressable onPress={() => router.push('/notifications')} style={styles.gear} hitSlop={10}>
+                  <Icon name="bell" size={18} color={mono.color.onMedia} />
+                </Pressable>
+              </View>
             </View>
 
             <View style={styles.avatarWrap}>
@@ -107,7 +112,8 @@ const styles = StyleSheet.create({
   bannerWrap: { position: 'relative' },
   banner: { width: '100%', height: 130, backgroundColor: mono.color.surface2 },
   bannerFallback: { backgroundColor: mono.color.surface },
-  gear: { position: 'absolute', right: 12, width: 36, height: 36, borderRadius: 18, backgroundColor: mono.color.overlay, alignItems: 'center', justifyContent: 'center' },
+  headerActions: { position: 'absolute', right: 12, flexDirection: 'row', gap: 8 },
+  gear: { width: 36, height: 36, borderRadius: 18, backgroundColor: mono.color.overlay, alignItems: 'center', justifyContent: 'center' },
   avatarWrap: { paddingHorizontal: 16, marginTop: -34 },
   avatar: {
     width: 76, height: 76, borderRadius: 38, overflow: 'hidden', borderWidth: 3, borderColor: mono.color.bg,

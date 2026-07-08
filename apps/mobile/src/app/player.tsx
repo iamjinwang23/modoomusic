@@ -83,8 +83,7 @@ export default function PlayerScreen() {
       showsVerticalScrollIndicator={false}
     >
       <View style={styles.header}>
-        <Pressable onPress={() => router.back()} hitSlop={12}><Icon name="chevron.down" size={20} color={mono.color.textSecondary} /></Pressable>
-        <Text style={styles.headerLabel}>재생 중</Text>
+        <Pressable onPress={() => router.back()} hitSlop={12}><Icon name="chevron.down" size={22} color={mono.color.textSecondary} /></Pressable>
         <View style={{ width: 28 }} />
       </View>
 
@@ -138,10 +137,12 @@ export default function PlayerScreen() {
             <Icon name={liked ? 'heart.fill' : 'heart'} size={22} color={liked ? mono.color.danger : mono.color.textSecondary} />
             <Text style={styles.actionLabel}>좋아요</Text>
           </Pressable>
-          <Pressable onPress={togglePublish} disabled={pubBusy} style={styles.action} hitSlop={8}>
-            <Icon name={published ? 'globe' : 'lock'} size={22} color={published ? mono.color.accentLight : mono.color.textSecondary} />
-            <Text style={styles.actionLabel}>{published ? '공개됨' : '공개'}</Text>
-          </Pressable>
+          {isOwn ? (
+            <Pressable onPress={togglePublish} disabled={pubBusy} style={styles.action} hitSlop={8}>
+              <Icon name={published ? 'globe' : 'lock'} size={22} color={published ? mono.color.accentLight : mono.color.textSecondary} />
+              <Text style={styles.actionLabel}>{published ? '게시됨' : '게시'}</Text>
+            </Pressable>
+          ) : null}
           <Pressable onPress={() => shareSong(song.id, song.title)} style={styles.action} hitSlop={8}>
             <Icon name="square.and.arrow.up" size={22} color={mono.color.textSecondary} />
             <Text style={styles.actionLabel}>공유</Text>
@@ -173,10 +174,11 @@ const styles = StyleSheet.create({
   header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 },
   chevron: { color: mono.color.text, fontSize: 30, lineHeight: 30, width: 28 },
   headerLabel: { color: mono.color.textSecondary, fontSize: mono.font.small, fontWeight: '600' },
-  artWrap: { alignItems: 'center', marginTop: 24, marginBottom: 32 },
-  art: { width: '86%', aspectRatio: 1, borderRadius: mono.radius.xl, backgroundColor: mono.color.surface, overflow: 'hidden' },
+  artWrap: { alignItems: 'center', marginTop: 16, marginBottom: 28 },
+  // 커버 = 세로(포스터형) — 브랜드 정체성(웹 파리티)
+  art: { width: '68%', aspectRatio: 3 / 4, borderRadius: mono.radius.xl, backgroundColor: mono.color.surface, overflow: 'hidden' },
   videoBadge: {
-    position: 'absolute', bottom: 12, left: '9%',
+    position: 'absolute', bottom: 12, left: '18%',
     backgroundColor: mono.color.overlayStrong, borderRadius: mono.radius.pill, paddingVertical: 6, paddingHorizontal: 12,
   },
   videoBadgeText: { color: mono.color.onMedia, fontSize: mono.font.tiny, fontWeight: '700' },
@@ -185,7 +187,7 @@ const styles = StyleSheet.create({
   info: { alignItems: 'center', gap: 6, marginBottom: 28 },
   title: { color: mono.color.text, fontSize: mono.font.h2, fontWeight: '800', textAlign: 'center' },
   artist: { color: mono.color.textSecondary, fontSize: mono.font.body },
-  artistLink: { color: mono.color.accentLight, fontWeight: '600' },
+  artistLink: { color: mono.color.textSecondary, fontWeight: '600' },
   progress: { marginBottom: 32 },
   track: { height: 4, borderRadius: 2, backgroundColor: mono.color.fillStrong, overflow: 'hidden' },
   fill: { height: '100%', backgroundColor: mono.color.accent },

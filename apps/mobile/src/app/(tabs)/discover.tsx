@@ -45,9 +45,14 @@ export default function DiscoverScreen() {
     <View style={[styles.container, { paddingTop: insets.top + 12 }]}>
       <View style={styles.headerRow}>
         <Text style={styles.h1}>둘러보기</Text>
-        <Pressable onPress={() => router.push('/search')} hitSlop={10} style={styles.searchBtn}>
-          <Icon name="magnifyingglass" size={18} color={mono.color.text} />
-        </Pressable>
+        <View style={styles.headerActions}>
+          <Pressable onPress={() => router.push('/search')} hitSlop={10} style={styles.searchBtn}>
+            <Icon name="magnifyingglass" size={18} color={mono.color.text} />
+          </Pressable>
+          <Pressable onPress={() => router.push('/notifications')} hitSlop={10} style={styles.searchBtn}>
+            <Icon name="bell" size={18} color={mono.color.text} />
+          </Pressable>
+        </View>
       </View>
       <View style={styles.tabs}>
         {TABS.map((t) => {
@@ -86,6 +91,7 @@ export default function DiscoverScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: mono.color.bg, paddingHorizontal: 20 },
   headerRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 },
+  headerActions: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   searchBtn: { width: 40, height: 40, borderRadius: 20, backgroundColor: mono.color.fill, alignItems: 'center', justifyContent: 'center' },
   searchIcon: { fontSize: 16 },
   h1: { color: mono.color.text, fontSize: mono.font.h1, fontWeight: '800' },

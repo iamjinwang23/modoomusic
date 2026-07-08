@@ -15,6 +15,7 @@ import GlobeSvg from '@/assets/mingcute/globe.svg'
 import Add from '@/assets/mingcute/Add.svg'
 import CloseFill from '@/assets/mingcute/Close-Fill.svg'
 import LeftSmall from '@/assets/mingcute/Left-Small.svg'
+import DownSmall from '@/assets/mingcute/Down-Small.svg'
 import ArrowDown from '@/assets/mingcute/Arrow-To-Down.svg'
 import SkipPrevious from '@/assets/mingcute/Skip-Previous.svg'
 import SkipForward from '@/assets/mingcute/Skip-Forward.svg'
@@ -28,7 +29,8 @@ const MAP = {
   ellipsis: More,
   'play.fill': PlaySvg,
   'pause.fill': PauseSvg,
-  'chevron.down': ArrowDown,
+  'chevron.down': DownSmall,     // 플레이어 내리기(minimize) — 다운로드 아이콘 아님
+  download: ArrowDown,           // 실제 다운로드(곡 더보기)
   'chevron.left': LeftSmall,
   'gobackward.10': SkipPrevious,
   'goforward.10': SkipForward,

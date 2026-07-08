@@ -29,10 +29,20 @@ export function PublicSongRow({ song, onPress, onCreatorPress, showCreator = tru
             {song.displayName || song.username}
           </Text>
         ) : null}
-      </View>
-      <View style={styles.stat}>
-        <Icon name="heart" size={15} color={mono.color.textTertiary} />
-        <Text style={styles.statText}>{song.likeCount}</Text>
+        <View style={styles.stats}>
+          <View style={styles.stat}>
+            <Icon name="play.fill" size={13} color={mono.color.textTertiary} />
+            <Text style={styles.statText}>{song.playCount}</Text>
+          </View>
+          <View style={styles.stat}>
+            <Icon name="heart" size={13} color={mono.color.textTertiary} />
+            <Text style={styles.statText}>{song.likeCount}</Text>
+          </View>
+          <View style={styles.stat}>
+            <Icon name="bubble.left" size={13} color={mono.color.textTertiary} />
+            <Text style={styles.statText}>{song.commentCount}</Text>
+          </View>
+        </View>
       </View>
     </Pressable>
   )
@@ -41,11 +51,13 @@ export function PublicSongRow({ song, onPress, onCreatorPress, showCreator = tru
 const styles = StyleSheet.create({
   row: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 8 },
   pressed: { opacity: 0.7 },
-  cover: { width: 52, height: 52, borderRadius: mono.radius.sm, overflow: 'hidden', backgroundColor: mono.color.surface2 },
+  // 커버 = 세로(포트레이트) — 브랜드 정체성(웹 파리티)
+  cover: { width: 54, aspectRatio: 3 / 4, borderRadius: mono.radius.sm, overflow: 'hidden', backgroundColor: mono.color.surface2 },
   coverImg: { width: '100%', height: '100%' },
-  body: { flex: 1, gap: 3 },
+  body: { flex: 1, gap: 4 },
   title: { color: mono.color.text, fontSize: mono.font.body, fontWeight: '600' },
   creator: { color: mono.color.textSecondary, fontSize: mono.font.small },
-  stat: { flexDirection: 'row', alignItems: 'center', gap: 4 },
+  stats: { flexDirection: 'row', alignItems: 'center', gap: 12, marginTop: 1 },
+  stat: { flexDirection: 'row', alignItems: 'center', gap: 3 },
   statText: { color: mono.color.textTertiary, fontSize: mono.font.small },
 })
