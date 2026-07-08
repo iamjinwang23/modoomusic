@@ -3,6 +3,7 @@ import { createAdminClient } from '@/lib/supabase/admin'
 import { sendPushToUser } from '@/services/push.service'
 import { findBannedWord } from '@/services/moderation.service'
 import type { Community, CommunityMember } from '@mono/shared'
+import { rejoinAvailableAtIso } from '@mono/shared'
 
 // 모더레이션(강퇴·게시물 삭제) 알림 — 시스템 알림 + 웹푸시
 export async function notifyCommunityModeration(targetUserId: string, title: string, body: string, url: string): Promise<void> {
@@ -26,6 +27,8 @@ interface CommunityRow {
   status?: 'open' | 'closing'
   closing_at?: string | null
   close_scheduled_at?: string | null
+  visibility?: 'public' | 'private'
+  join_rules?: string | null
 }
 
 function rowToCommunity(r: CommunityRow): Community {
@@ -43,10 +46,12 @@ function rowToCommunity(r: CommunityRow): Community {
     status: r.status ?? 'open',
     closingAt: r.closing_at ?? null,
     closeScheduledAt: r.close_scheduled_at ?? null,
+    visibility: r.visibility ?? 'public',
+    joinRules: r.join_rules ?? null,
   }
 }
 
-const SELECT = 'id, manager_id, name, topic, description, cover_image, cover_focus, avatar_image, member_count, created_at, status, closing_at, close_scheduled_at'
+const SELECT = 'id, manager_id, name, topic, description, cover_image, cover_focus, avatar_image, member_count, created_at, status, closing_at, close_scheduled_at, visibility, join_rules'
 
 // 폐쇄 유예 기간 — 14일(§13.2 확정).
 const CLOSING_GRACE_MS = 14 * 24 * 60 * 60 * 1000
@@ -63,7 +68,7 @@ export async function isCommunityClosing(admin: ReturnType<typeof createAdminCli
 // 개설 — 1인 최대 3개. 단, 관리자(is_admin)는 테스트·운영 위해 무제한. 개설자 자동 가입.
 export async function createCommunity(
   userId: string,
-  input: { name: string; topic?: string | null; description?: string | null; coverImage?: string | null },
+  input: { name: string; topic?: string | null; description?: string | null; coverImage?: string | null; visibility?: 'public' | 'private'; joinRules?: string | null },
 ): Promise<{ ok: true; community: Community } | { ok: false; error: string }> {
   const admin = createAdminClient()
   if (await findBannedWord(input.name, input.topic, input.description)) return { ok: false, error: 'banned_word' }
@@ -81,6 +86,8 @@ export async function createCommunity(
       topic: input.topic ?? null,
       description: input.description ?? null,
       cover_image: input.coverImage ?? null,
+      visibility: input.visibility === 'private' ? 'private' : 'public',
+      join_rules: input.visibility === 'private' ? (input.joinRules ?? null) : null,
     })
     .select(SELECT)
     .single()
@@ -98,7 +105,7 @@ export async function createCommunity(
 export async function updateCommunity(
   userId: string,
   communityId: string,
-  patch: { name?: string; topic?: string | null; description?: string | null; coverImage?: string | null; coverFocus?: string | null; avatarImage?: string | null },
+  patch: { name?: string; topic?: string | null; description?: string | null; coverImage?: string | null; coverFocus?: string | null; avatarImage?: string | null; visibility?: 'public' | 'private'; joinRules?: string | null },
 ): Promise<{ ok: true; community: Community } | { ok: false; error: string }> {
   const admin = createAdminClient()
   const { data: c } = await admin.from('communities').select('manager_id').eq('id', communityId).maybeSingle()
@@ -117,10 +124,29 @@ export async function updateCommunity(
   if (patch.coverImage !== undefined) update.cover_image = patch.coverImage
   if (patch.coverFocus !== undefined) update.cover_focus = patch.coverFocus
   if (patch.avatarImage !== undefined) update.avatar_image = patch.avatarImage
+  if (patch.visibility !== undefined) update.visibility = patch.visibility === 'private' ? 'private' : 'public'
+  if (patch.joinRules !== undefined) update.join_rules = patch.joinRules?.trim().slice(0, 1000) || null
   if (Object.keys(update).length === 0) return { ok: false, error: 'empty' }
 
   const { data, error } = await admin.from('communities').update(update).eq('id', communityId).select(SELECT).single()
   if (error) { console.error('[community.update]', error.message); return { ok: false, error: 'internal' } }
+
+  // 비공개→공개 전환: 대기 신청 전원 자동 수락(멤버 편입 + 승인 알림)
+  if (patch.visibility === 'public') {
+    const { data: pend } = await admin.from('community_join_requests')
+      .select('user_id').eq('community_id', communityId).eq('status', 'pending')
+    const userIds = (pend ?? []).map((r) => r.user_id as string)
+    if (userIds.length) {
+      await admin.from('community_members').upsert(
+        userIds.map((uid) => ({ community_id: communityId, user_id: uid })),
+        { onConflict: 'community_id,user_id', ignoreDuplicates: true },
+      )
+      await admin.from('community_join_requests').delete().eq('community_id', communityId)
+      const { data: cRow } = await admin.from('communities').select('name').eq('id', communityId).maybeSingle()
+      for (const uid of userIds) notifyJoinDecision(admin, uid, (cRow?.name as string) ?? '', communityId, 'approved')
+    }
+  }
+
   const community = rowToCommunity(data as CommunityRow)
   community.isMember = true; community.isManager = true
   return { ok: true, community }
@@ -276,6 +302,22 @@ export async function getCommunity(communityId: string, userId?: string): Promis
       .eq('community_id', communityId).eq('user_id', userId).maybeSingle()
     community.isMember = !!m
     community.isManager = community.managerId === userId
+    if (community.visibility === 'private' && !community.isMember && !community.isManager) {
+      const { data: blk } = await admin.from('community_blocks')
+        .select('user_id').eq('community_id', communityId).eq('user_id', userId).maybeSingle()
+      community.isBlocked = !!blk
+      const { data: reqRow } = await admin.from('community_join_requests')
+        .select('status, decided_at').eq('community_id', communityId).eq('user_id', userId).maybeSingle()
+      if (!reqRow) {
+        community.joinRequestStatus = 'none'
+      } else if (reqRow.status === 'pending') {
+        community.joinRequestStatus = 'pending'
+      } else {
+        community.joinRequestStatus = 'rejected'
+        community.rejoinAvailableAt = reqRow.decided_at
+          ? rejoinAvailableAtIso(reqRow.decided_at as string) : null
+      }
+    }
   }
   return community
 }
@@ -383,4 +425,24 @@ export async function getMyManagedCommunity(userId: string): Promise<Community |
   // 관리자는 여러 개일 수 있으니 limit(1) — maybeSingle 다중행 에러 방지
   const { data } = await admin.from('communities').select(SELECT).eq('manager_id', userId).order('created_at', { ascending: true }).limit(1).maybeSingle()
   return data ? rowToCommunity(data as CommunityRow) : null
+}
+
+// 가입 심사 결과 알림 — 신청자에게 인앱 + 웹푸시. Task 5 승인/거절·전환 자동수락에서 재사용.
+export function notifyJoinDecision(
+  admin: ReturnType<typeof createAdminClient>,
+  userId: string,
+  communityName: string,
+  communityId: string,
+  kind: 'approved' | 'rejected',
+  reason?: string,
+): void {
+  const url = `/community/${communityId}`
+  const title = kind === 'approved' ? '가입이 승인됐어요' : '가입이 거절됐어요'
+  const body = kind === 'approved'
+    ? `'${communityName}' 커뮤니티 가입이 승인됐어요.`
+    : `'${communityName}' 커뮤니티 가입이 거절됐어요.${reason ? ` 사유: ${reason}` : ''}`
+  const type = kind === 'approved' ? 'community_join_approved' : 'community_join_rejected'
+  admin.from('notifications').insert({ user_id: userId, type, payload: { title, body, url } })
+    .then(({ error }) => { if (error) console.error('[community.notifyJoinDecision]', error.message) })
+  sendPushToUser(userId, { title, body, url }).catch(() => {})
 }
