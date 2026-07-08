@@ -1,5 +1,6 @@
-import { useState } from 'react';
-import { DarkTheme, DefaultTheme, Stack, ThemeProvider } from 'expo-router';
+import { useEffect, useRef, useState } from 'react';
+import { DarkTheme, DefaultTheme, router, Stack, ThemeProvider } from 'expo-router';
+import * as Notifications from 'expo-notifications';
 import * as SplashScreen from 'expo-splash-screen';
 import { LogBox, useColorScheme } from 'react-native';
 
@@ -14,14 +15,46 @@ LogBox.ignoreLogs([
 import { AnimatedSplashOverlay } from '@/components/animated-icon';
 import { LoginScreen } from '@/components/login-screen';
 import { useSession } from '@/lib/use-session';
+import { configureNotificationHandler, registerForPush, unregisterForPush } from '@/lib/push';
 
 SplashScreen.preventAutoHideAsync();
+
+// 모듈 로드 시 1회 — 알림이 도착하기 전에 포그라운드 핸들러를 설정.
+configureNotificationHandler();
 
 export default function RootLayout() {
   const colorScheme = useColorScheme();
   const { session, loading } = useSession();
   // 게스트 둘러보기 — 커뮤니티는 공개 읽기라 로그인 없이 탐색 가능.
   const [guest, setGuest] = useState(false);
+
+  // 로그인/로그아웃 전환에 따라 푸시 토큰 등록/해제 (매 렌더가 아닌 전환 시점에만).
+  const wasAuthed = useRef(false);
+  useEffect(() => {
+    if (session && !wasAuthed.current) {
+      wasAuthed.current = true;
+      registerForPush();
+    }
+    if (!session && wasAuthed.current) {
+      wasAuthed.current = false;
+      unregisterForPush();
+    }
+  }, [session]);
+
+  // 알림 탭 → data.route로 딥링크. 콜드스타트(알림 탭으로 앱이 열린 경우)도 처리.
+  useEffect(() => {
+    const go = (route?: unknown) => {
+      if (typeof route === 'string' && route) router.push(route as never);
+    };
+    const sub = Notifications.addNotificationResponseReceivedListener((r) => {
+      go(r.notification.request.content.data?.route);
+    });
+    Notifications.getLastNotificationResponseAsync().then((r) => {
+      if (r) go(r.notification.request.content.data?.route);
+    });
+    return () => sub.remove();
+  }, []);
+
   return (
     <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
       <AnimatedSplashOverlay />
