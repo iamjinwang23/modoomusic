@@ -576,7 +576,6 @@ export default function CommunityCafePage() {
             <div className="rounded-xl bg-violet-500/[0.08] border border-violet-500/20 px-4 py-3.5 flex items-center justify-between gap-3">
               <div className="min-w-0">
                 <p className="text-sm font-semibold text-violet-200">가입 신청 {pendingCount}건이 대기 중이에요</p>
-                <p className="text-xs text-zinc-400 mt-0.5 leading-relaxed">승인·거절을 검토해 주세요.</p>
               </div>
               <button onClick={() => setManageOpen(true)} className="shrink-0 px-3.5 py-2 rounded-full text-xs font-medium bg-violet-600 text-white hover:bg-violet-500 transition-colors">관리하기</button>
             </div>
@@ -688,8 +687,6 @@ export default function CommunityCafePage() {
 
               <input ref={imageInputRef} type="file" accept="image/*" multiple className="hidden" onChange={(e) => { handleImageFiles(e.target.files); e.target.value = '' }} />
             </div>
-            {/* 게시 시점 고지 (§13.6 법적 방어 핵심) */}
-            <p className="text-[11px] text-zinc-600 mt-2 px-1">커뮤니티가 폐쇄되면 이 글은 삭제될 수 있어요.</p>
           </div>
         )}
 
