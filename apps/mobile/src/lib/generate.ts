@@ -32,9 +32,12 @@ export async function generateSong(input: GenerateInput): Promise<GenerateResult
 
 // 내 songs UPDATE 실시간 구독 — generating→done/failed 전환 콜백.
 // 반환한 함수를 호출하면 구독 해제. (웹 SongRealtimeBridge 패턴)
+// 채널 토픽에 시퀀스를 붙여 매번 고유화 — dev StrictMode 이중 마운트나 재구독 시
+// supabase가 동일 토픽의 (이미 subscribe된) 채널을 재사용해 `.on()`이 거부되는 문제 방지.
+let channelSeq = 0
 export function subscribeSongUpdates(userId: string, onChange: (row: { id: string; status: string | null }) => void) {
   const channel = supabase
-    .channel(`songs:user:${userId}`)
+    .channel(`songs:user:${userId}:${++channelSeq}`)
     .on(
       'postgres_changes',
       { event: 'UPDATE', schema: 'public', table: 'songs', filter: `user_id=eq.${userId}` },
