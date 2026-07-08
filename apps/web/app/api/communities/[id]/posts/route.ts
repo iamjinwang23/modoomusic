@@ -5,11 +5,12 @@ import { listPosts, createPost } from '@/services/community-post.service'
 
 interface RouteParams { params: Promise<{ id: string }> }
 
-export async function GET(_req: NextRequest, { params }: RouteParams) {
+export async function GET(req: NextRequest, { params }: RouteParams) {
   const { id } = await params
   const userClient = await createUserClient()
   const { data: { user } } = await userClient.auth.getUser()
-  const posts = await listPosts(id, user?.id)
+  const previewPostId = new URL(req.url).searchParams.get('preview') ?? undefined
+  const posts = await listPosts(id, user?.id, { previewPostId })
   return NextResponse.json({ posts })
 }
 

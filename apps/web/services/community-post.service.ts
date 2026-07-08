@@ -225,9 +225,36 @@ export async function votePoll(userId: string, postId: string, optionIndex: numb
   return { ok: true, poll: { options, endsAt: poll.ends_at as string, counts, totalVotes: total, myVote } }
 }
 
-// 커뮤니티 피드 — 고정글 우선, 최신순
-export async function listPosts(communityId: string, userId?: string, limit = 50): Promise<CommunityPost[]> {
+// 커뮤니티 피드 — 고정글 우선, 최신순. 비공개+비멤버는 잠금(previewPostId 있으면 그 1건만).
+export async function listPosts(
+  communityId: string,
+  userId?: string,
+  opts: { limit?: number; previewPostId?: string } = {},
+): Promise<CommunityPost[]> {
   const admin = createAdminClient()
+  const limit = opts.limit ?? 50
+
+  // 비공개 + 비멤버/비매니저 → 잠금. previewPostId 있으면 그 1건만 노출.
+  const { data: c } = await admin.from('communities').select('manager_id, visibility').eq('id', communityId).maybeSingle()
+  if (c?.visibility === 'private') {
+    let allowed = false
+    if (userId) {
+      if (c.manager_id === userId) allowed = true
+      else {
+        const { data: m } = await admin.from('community_members').select('user_id').eq('community_id', communityId).eq('user_id', userId).maybeSingle()
+        allowed = !!m
+      }
+    }
+    if (!allowed) {
+      if (!opts.previewPostId) return []
+      const { data } = await admin.from('community_posts').select(POST_SELECT)
+        .eq('community_id', communityId).eq('id', opts.previewPostId).eq('status', 'active').maybeSingle()
+      if (!data) return []
+      const one = rowToPost(data as PostRow)
+      return fillPolls(admin, await fillLiked(admin, [one], userId), userId)
+    }
+  }
+
   const { data } = await admin
     .from('community_posts')
     .select(POST_SELECT)
