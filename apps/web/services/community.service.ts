@@ -87,7 +87,7 @@ export async function createCommunity(
       description: input.description ?? null,
       cover_image: input.coverImage ?? null,
       visibility: input.visibility === 'private' ? 'private' : 'public',
-      join_rules: input.visibility === 'private' ? (input.joinRules ?? null) : null,
+      join_rules: input.visibility === 'private' ? (input.joinRules?.trim().slice(0, 1000) || null) : null,
     })
     .select(SELECT)
     .single()
