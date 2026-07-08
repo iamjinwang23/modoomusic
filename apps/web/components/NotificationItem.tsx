@@ -46,7 +46,10 @@ function renderText(n: Notification): React.ReactNode {
       return <>{actor}님이 회원님의 글에 댓글을 남겼어요</>
     }
     case 'system':
-    case 'community_closing': {
+    case 'community_closing':
+    case 'community_join_request':
+    case 'community_join_approved':
+    case 'community_join_rejected': {
       const p = (n.payload as NotificationSystemPayload) ?? { title: '', body: '' }
       return (
         <>
@@ -73,7 +76,8 @@ export function NotificationItem({ notif, onClick }: Props) {
   const c = profileColor(notif.actorAvatarHue ?? 0)
 
   // 좌측 비주얼: system은 공지(나팔), credit_charged는 크레딧(반짝) 아이콘, 그 외는 actor 아바타
-  const visual = notif.type === 'system' || notif.type === 'community_closing' ? (
+  const visual = notif.type === 'system' || notif.type === 'community_closing'
+    || notif.type === 'community_join_request' || notif.type === 'community_join_approved' || notif.type === 'community_join_rejected' ? (
     <div className="w-10 h-10 rounded-full bg-violet-500/20 flex items-center justify-center shrink-0">
       <Image src="/notice.svg" alt="" width={18} height={18} style={{ filter: 'invert(1)' }} />
     </div>

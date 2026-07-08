@@ -25,6 +25,7 @@ const CATEGORY_TABS: { key: NotifCategory; label: string }[] = [
 // 알림 → 카테고리. 커뮤니티 모더레이션(system + /community url)은 커뮤니티, 그 외 system(공지)은 새소식.
 function categoryOf(n: Notification): Exclude<NotifCategory, 'all'> {
   if (n.type === 'community_like' || n.type === 'community_comment') return 'community'
+  if (n.type === 'community_join_request' || n.type === 'community_join_approved' || n.type === 'community_join_rejected') return 'community'
   if (n.type === 'system') {
     const url = (n.payload as { url?: string })?.url
     return url?.startsWith('/community') ? 'community' : 'news'
@@ -102,7 +103,10 @@ export function NotificationPanel({ mode, onClose }: Props) {
       const payload = n.payload as { username?: string }
       const username = payload?.username || n.actorName
       if (username) window.dispatchEvent(new CustomEvent('view-profile', { detail: username }))
-    } else if (n.type === 'system' || n.type === 'community_like' || n.type === 'community_comment') {
+    } else if (
+      n.type === 'system' || n.type === 'community_like' || n.type === 'community_comment'
+      || n.type === 'community_join_request' || n.type === 'community_join_approved' || n.type === 'community_join_rejected'
+    ) {
       const payload = n.payload as { url?: string }
       if (payload?.url) router.push(payload.url)
     }

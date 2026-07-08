@@ -28,6 +28,12 @@ function message(n: Notification): string {
     case 'community_like': return `${who}님이 게시글을 좋아해요`
     case 'community_comment': return `${who}님이 게시글에 댓글을 남겼어요`
     case 'community_closing': return '가입한 커뮤니티가 곧 닫혀요'
+    case 'community_join_request':
+    case 'community_join_approved':
+    case 'community_join_rejected': {
+      const p = (n.payload as { title?: string; body?: string }) ?? {}
+      return p.body || p.title || '커뮤니티 알림이 있어요'
+    }
     case 'credit_charged': return '크레딧이 충전됐어요'
     default: return '새 알림이 있어요'
   }
