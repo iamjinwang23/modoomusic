@@ -19,6 +19,8 @@ import { CommunityPostReportModal } from '@/components/community/CommunityPostRe
 import { CommunityEditModal } from '@/components/community/CommunityEditModal'
 import { CommunityPostEditModal } from '@/components/community/CommunityPostEditModal'
 import { CommunityMembersModal } from '@/components/community/CommunityMembersModal'
+import { JoinRequestModal } from '@/components/community/JoinRequestModal'
+import { ManageJoinRequestsModal } from '@/components/community/ManageJoinRequestsModal'
 import { ScrollToTopButton } from '@/components/community/ScrollToTopButton'
 import { CommunityGuestWall } from '@/components/community/CommunityGuestWall'
 import { useGuestCommunityWall } from '@/hooks/useGuestCommunityWall'
@@ -715,6 +717,8 @@ export default function CommunityCafePage() {
       {reportPostId && <CommunityPostReportModal postId={reportPostId} onClose={() => setReportPostId(null)} onSubmitted={() => reportDone(reportPostId)} />}
       {editOpen && community && <CommunityEditModal community={community} onClose={() => setEditOpen(false)} onSaved={(c) => setCommunity(c)} onClosed={() => router.push('/community')} />}
       {membersOpen && community && <CommunityMembersModal members={members} managerId={community.managerId} onClose={() => setMembersOpen(false)} />}
+      {joinReqOpen && community && <JoinRequestModal communityId={id} communityName={community.name} joinRules={community.joinRules} onClose={() => setJoinReqOpen(false)} onRequested={load} />}
+      {manageOpen && <ManageJoinRequestsModal communityId={id} onClose={() => setManageOpen(false)} onChanged={load} />}
       {editingPost && <CommunityPostEditModal post={editingPost} communityId={id} onClose={() => setEditingPost(null)} onSaved={onEditSaved} />}
       {guestWalled && !wallDismissed && <CommunityGuestWall onLogin={() => { setWallDismissed(true); window.dispatchEvent(new Event('open-login')) }} />}
       <ScrollToTopButton scrollRef={scrollRef} />
