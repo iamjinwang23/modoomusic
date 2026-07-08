@@ -21,7 +21,7 @@ export function SongRow({ song, onPress, onMore }: { song: Song; onPress?: () =>
       <View style={styles.meta}>
         <View style={styles.titleRow}>
           <Text style={styles.title} numberOfLines={1}>{song.title?.trim() || '제목 없음'}</Text>
-          {song.published ? <Text style={styles.badge}>공개</Text> : null}
+          {song.published ? <Text style={styles.badge}>게시됨</Text> : null}
         </View>
         <Text style={styles.sub} numberOfLines={1}>
           {generating ? '생성 중…' : [song.genre, song.mood].filter(Boolean).join(' · ') || '내 음악'}

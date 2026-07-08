@@ -86,7 +86,7 @@ export default function LibraryScreen() {
           <Icon name="bell" size={19} color={mono.color.text} />
         </Pressable>
       </View>
-      <Text style={styles.sub}>{generating ? '곡을 만들고 있어요…' : '내가 만든 음악'}</Text>
+      {generating ? <Text style={styles.sub}>곡을 만들고 있어요…</Text> : null}
 
       {songs === null && !error ? (
         <ActivityIndicator color={mono.color.accent} style={{ marginTop: 32 }} />
