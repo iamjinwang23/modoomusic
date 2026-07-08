@@ -305,6 +305,16 @@ export interface CommunityJoinRequest {
   createdAt: string
 }
 
+export interface CommunityBlockedUser {
+  userId: string
+  displayName: string | null
+  username: string | null
+  avatarUrl: string | null
+  avatarHue: number | null
+  createdAt: string
+  reason: string | null
+}
+
 // 커뮤니티 가입/탈퇴 쿨다운 — 순수 로직(서비스에서 재사용)
 export const LEAVE_COOLDOWN_MS = 86_400_000      // 24시간
 export const REJOIN_COOLDOWN_MS = 172_800_000    // 2일

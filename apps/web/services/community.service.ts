@@ -2,7 +2,7 @@
 import { createAdminClient } from '@/lib/supabase/admin'
 import { sendPushToUser } from '@/services/push.service'
 import { findBannedWord } from '@/services/moderation.service'
-import type { Community, CommunityMember } from '@mono/shared'
+import type { Community, CommunityMember, CommunityBlockedUser } from '@mono/shared'
 import { canLeaveCommunity, rejoinAvailableAtIso } from '@mono/shared'
 
 // 모더레이션(강퇴·게시물 삭제) 알림 — 시스템 알림 + 웹푸시
@@ -312,6 +312,32 @@ export async function unblockMember(userId: string, communityId: string, targetU
   if (c.manager_id !== userId) return { ok: false, error: 'forbidden' }
   await admin.from('community_blocks').delete().eq('community_id', communityId).eq('user_id', targetUserId)
   return { ok: true }
+}
+
+// 차단 목록 — 매니저만. 프로필 조인.
+export async function listBlocks(userId: string, communityId: string): Promise<{ ok: boolean; error?: string; blocks?: CommunityBlockedUser[] }> {
+  const admin = createAdminClient()
+  const { data: c } = await admin.from('communities').select('manager_id').eq('id', communityId).maybeSingle()
+  if (!c) return { ok: false, error: 'not_found' }
+  if (c.manager_id !== userId) return { ok: false, error: 'forbidden' }
+  const { data } = await admin
+    .from('community_blocks')
+    .select('user_id, reason, created_at, profiles!user_id(username, display_name, avatar_url, avatar_hue)')
+    .eq('community_id', communityId)
+    .order('created_at', { ascending: false })
+  const blocks: CommunityBlockedUser[] = (data ?? []).map((r) => {
+    const p = (r as { profiles?: { username?: string; display_name?: string; avatar_url?: string; avatar_hue?: number } }).profiles
+    return {
+      userId: r.user_id as string,
+      displayName: p?.display_name ?? null,
+      username: p?.username ?? null,
+      avatarUrl: p?.avatar_url ?? null,
+      avatarHue: p?.avatar_hue ?? null,
+      createdAt: r.created_at as string,
+      reason: (r.reason as string | null) ?? null,
+    }
+  })
+  return { ok: true, blocks }
 }
 
 // 단건 조회 (+ 현재 유저 가입/매니저 여부)
