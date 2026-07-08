@@ -1,5 +1,17 @@
 # 커뮤니티 공개/비공개 설정 Implementation Plan
 
+> ## ✅ 상태: 구현·머지·프로덕션 배포 완료 (2026-07-08)
+>
+> 아래 전 태스크 구현 완료. main 머지 및 Vercel 프로덕션 배포 완료. 마이그레이션 `057`은 프로덕션 Supabase에 수동 적용 완료. (개별 `- [ ]` 체크박스는 이력 추적용으로 원본 유지 — 진행 상태는 이 배너 기준.)
+>
+> **머지된 PR**: #1·#2(기능 본체) → #3(가입 진입점 배너화) → #4(문구 정리) → #5(suppressHydrationWarning).
+>
+> **배포 후 수정(전부 배포됨)**:
+> - 가입 알림 3종(`community_join_request`/`approved`/`rejected`)이 웹·모바일 알림 UI switch에 누락돼 "내용 없음·클릭 무반응"이던 버그 수정 → 기존 `system` 경로에 편입(`NotificationItem`·`NotificationPanel`·mobile `notifications.tsx`).
+> - 매니저 가입 신청 진입점: 카테고리 옆 알약 → 작성란 위 게시글폭 대기 배너(폐쇄 배너 패턴, `pendingCount>0`일 때만).
+> - 거절 버튼 라벨 "거절 확정"→"거절하기". 배너 서브텍스트·작성란 폐쇄 고지 문구 삭제(폐쇄 삭제 약관은 policy 페이지 유지).
+> - hydration mismatch(브라우저 확장 `data-hwp-extension` 주입, 무해) → root `<html>` `suppressHydrationWarning`로 경고 억제.
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** 커뮤니티에 공개/비공개 설정을 추가한다 — 비공개는 콘텐츠 잠금 + 매니저 승인 가입(수칙·심사·차단), 24h 탈퇴 쿨다운, 2일 재신청 쿨다운.
