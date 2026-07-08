@@ -35,6 +35,8 @@ export function CommunityEditModal({ community, onClose, onSaved, onClosed }: {
   const [coverUrl, setCoverUrl] = useState(community.coverImage)
   const [coverFocus, setCoverFocus] = useState(community.coverFocus ?? '50% 50%')
   const [avatarUrl, setAvatarUrl] = useState(community.avatarImage)
+  const [visibility, setVisibility] = useState<'public' | 'private'>(community.visibility)
+  const [joinRules, setJoinRules] = useState(community.joinRules ?? '')
   const [uploading, setUploading] = useState<'cover' | 'avatar' | null>(null)
   const [saving, setSaving] = useState(false)
   const [confirmClose, setConfirmClose] = useState(false)
@@ -75,10 +77,13 @@ export function CommunityEditModal({ community, onClose, onSaved, onClosed }: {
 
   async function handleSave() {
     if (!canSave) return
+    if (community.visibility === 'private' && visibility === 'public') {
+      if (!window.confirm('공개로 바꾸면 대기 중인 가입 신청이 모두 자동 수락돼요. 계속할까요?')) return
+    }
     setSaving(true)
     const res = await fetch(`/api/communities/${community.id}`, {
       method: 'PATCH', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name: name.trim(), topic: topic.trim() || null, description: description.trim() || null }),
+      body: JSON.stringify({ name: name.trim(), topic: topic.trim() || null, description: description.trim() || null, visibility, joinRules: visibility === 'private' ? joinRules.trim() : '' }),
     })
     setSaving(false)
     if (!res.ok) {
@@ -189,6 +194,23 @@ export function CommunityEditModal({ community, onClose, onSaved, onClosed }: {
             <textarea value={description} onChange={(e) => setDescription(e.target.value)} maxLength={DESC_MAX} rows={4} placeholder="커뮤니티를 소개해 주세요"
               className="w-full bg-white/[0.05] border border-white/[0.10] focus:border-violet-500 rounded-xl px-4 py-3 text-sm text-white placeholder:text-zinc-600 outline-none transition-colors resize-none" />
           </div>
+
+          {/* 공개 설정 */}
+          <div>
+            <label className="text-xs text-zinc-500">공개 설정</label>
+            <div className="mt-1.5 flex gap-2">
+              <button type="button" onClick={() => setVisibility('public')} className={`flex-1 py-2.5 rounded-xl text-sm font-medium transition ${visibility === 'public' ? 'bg-violet-600 text-white' : 'bg-white/[0.05] text-zinc-400 hover:bg-white/[0.10]'}`}>공개</button>
+              <button type="button" onClick={() => setVisibility('private')} className={`flex-1 py-2.5 rounded-xl text-sm font-medium transition ${visibility === 'private' ? 'bg-violet-600 text-white' : 'bg-white/[0.05] text-zinc-400 hover:bg-white/[0.10]'}`}>비공개</button>
+            </div>
+            <p className="mt-1.5 text-[11px] text-zinc-500">{visibility === 'private' ? '멤버만 글을 볼 수 있고, 가입은 매니저 승인이 필요해요.' : '누구나 글을 보고 바로 가입할 수 있어요.'}</p>
+          </div>
+          {visibility === 'private' && (
+            <div>
+              <label className="text-xs text-zinc-500">가입 수칙</label>
+              <textarea value={joinRules} onChange={(e) => setJoinRules(e.target.value)} maxLength={1000} rows={3} placeholder="가입 신청 시 보여줄 안내나 규칙"
+                className="mt-1.5 w-full bg-white/[0.05] border border-white/[0.10] focus:border-violet-500 rounded-xl px-4 py-3 text-sm text-white placeholder:text-zinc-600 outline-none transition-colors resize-none" />
+            </div>
+          )}
 
           {/* 폐쇄 (danger) — closing 유예 중이면 D-day + 철회, 아니면 폐쇄 트리거 */}
           <div className="pt-2 border-t border-white/[0.06]">

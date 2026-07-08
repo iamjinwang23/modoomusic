@@ -20,12 +20,14 @@ export async function PATCH(req: NextRequest, { params }: RouteParams) {
   const userClient = await createUserClient()
   const { data: { user } } = await userClient.auth.getUser()
   if (!user) return NextResponse.json({ error: 'unauthorized' }, { status: 401 })
-  let body: { name?: unknown; topic?: unknown; description?: unknown }
+  let body: { name?: unknown; topic?: unknown; description?: unknown; visibility?: unknown; joinRules?: unknown }
   try { body = await req.json() } catch { return NextResponse.json({ error: 'invalid_input' }, { status: 400 }) }
-  const patch: { name?: string; topic?: string | null; description?: string | null } = {}
+  const patch: { name?: string; topic?: string | null; description?: string | null; visibility?: 'public' | 'private'; joinRules?: string | null } = {}
   if (typeof body.name === 'string') patch.name = body.name
   if (typeof body.topic === 'string' || body.topic === null) patch.topic = body.topic as string | null
   if (typeof body.description === 'string' || body.description === null) patch.description = body.description as string | null
+  if (body.visibility === 'public' || body.visibility === 'private') patch.visibility = body.visibility
+  if (typeof body.joinRules === 'string' || body.joinRules === null) patch.joinRules = body.joinRules as string | null
   const result = await updateCommunity(user.id, id, patch)
   if (!result.ok) {
     const status = result.error === 'forbidden' ? 403 : result.error === 'not_found' ? 404 : result.error === 'invalid_name' ? 400 : result.error === 'empty' ? 400 : result.error === 'banned_word' ? 400 : 500

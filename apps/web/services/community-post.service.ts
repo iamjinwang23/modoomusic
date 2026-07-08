@@ -111,6 +111,16 @@ async function isMember(admin: ReturnType<typeof createAdminClient>, communityId
   return !!data
 }
 
+// 비공개 커뮤니티 접근 권한 — public/미존재는 통과(호출부가 not_found 처리), private는 멤버/매니저만.
+async function canAccessCommunity(admin: ReturnType<typeof createAdminClient>, communityId: string, userId?: string): Promise<boolean> {
+  const { data: c } = await admin.from('communities').select('manager_id, visibility').eq('id', communityId).maybeSingle()
+  if (!c || c.visibility !== 'private') return true
+  if (!userId) return false
+  if (c.manager_id === userId) return true
+  const { data: m } = await admin.from('community_members').select('user_id').eq('community_id', communityId).eq('user_id', userId).maybeSingle()
+  return !!m
+}
+
 // 첨부 곡 검증 — 본인 소유 + 공개(게시)된 곡만 허용
 async function isPublicOwnedSong(admin: ReturnType<typeof createAdminClient>, userId: string, songId: string): Promise<boolean> {
   const { data } = await admin.from('songs').select('user_id, is_public').eq('id', songId).maybeSingle()
@@ -225,9 +235,36 @@ export async function votePoll(userId: string, postId: string, optionIndex: numb
   return { ok: true, poll: { options, endsAt: poll.ends_at as string, counts, totalVotes: total, myVote } }
 }
 
-// 커뮤니티 피드 — 고정글 우선, 최신순
-export async function listPosts(communityId: string, userId?: string, limit = 50): Promise<CommunityPost[]> {
+// 커뮤니티 피드 — 고정글 우선, 최신순. 비공개+비멤버는 잠금(previewPostId 있으면 그 1건만).
+export async function listPosts(
+  communityId: string,
+  userId?: string,
+  opts: { limit?: number; previewPostId?: string } = {},
+): Promise<CommunityPost[]> {
   const admin = createAdminClient()
+  const limit = opts.limit ?? 50
+
+  // 비공개 + 비멤버/비매니저 → 잠금. previewPostId 있으면 그 1건만 노출.
+  const { data: c } = await admin.from('communities').select('manager_id, visibility').eq('id', communityId).maybeSingle()
+  if (c?.visibility === 'private') {
+    let allowed = false
+    if (userId) {
+      if (c.manager_id === userId) allowed = true
+      else {
+        const { data: m } = await admin.from('community_members').select('user_id').eq('community_id', communityId).eq('user_id', userId).maybeSingle()
+        allowed = !!m
+      }
+    }
+    if (!allowed) {
+      if (!opts.previewPostId) return []
+      const { data } = await admin.from('community_posts').select(POST_SELECT)
+        .eq('community_id', communityId).eq('id', opts.previewPostId).eq('status', 'active').maybeSingle()
+      if (!data) return []
+      const one = rowToPost(data as PostRow)
+      return fillPolls(admin, await fillLiked(admin, [one], userId), userId)
+    }
+  }
+
   const { data } = await admin
     .from('community_posts')
     .select(POST_SELECT)
@@ -354,6 +391,7 @@ export async function toggleLike(userId: string, postId: string): Promise<{ ok: 
   const { data: target } = await admin.from('community_posts').select('status, community_id').eq('id', postId).maybeSingle()
   if (!target || target.status !== 'active') return { ok: false, error: 'not_found' }
   if (await isCommunityClosing(admin, target.community_id as string)) return { ok: false, error: 'community_closing' }
+  if (!(await canAccessCommunity(admin, target.community_id as string, userId))) return { ok: false, error: 'not_member' }
   const { data: existing } = await admin.from('community_post_likes').select('user_id').eq('post_id', postId).eq('user_id', userId).maybeSingle()
   let liked: boolean
   if (existing) { await admin.from('community_post_likes').delete().eq('post_id', postId).eq('user_id', userId); liked = false }
@@ -381,6 +419,7 @@ export async function addComment(userId: string, postId: string, body: string, p
   const { data: post } = await admin.from('community_posts').select('id, author_id, community_id, status').eq('id', postId).maybeSingle()
   if (!post || post.status !== 'active') return { ok: false, error: 'not_found' }
   if (await isCommunityClosing(admin, post.community_id as string)) return { ok: false, error: 'community_closing' }
+  if (!(await canAccessCommunity(admin, post.community_id as string, userId))) return { ok: false, error: 'not_member' }
   // 대댓글이면 부모가 같은 글의 최상위 댓글인지 검증 (1단계만 허용)
   let parentAuthorId: string | null = null
   if (parentId) {
@@ -444,8 +483,9 @@ function rowToComment(r: CommentRow): CommunityPostComment {
 export async function listComments(postId: string, userId?: string): Promise<CommunityPostComment[]> {
   const admin = createAdminClient()
   // 블라인드(hidden) 글의 댓글은 노출하지 않음
-  const { data: post } = await admin.from('community_posts').select('status').eq('id', postId).maybeSingle()
+  const { data: post } = await admin.from('community_posts').select('status, community_id').eq('id', postId).maybeSingle()
   if (!post || post.status !== 'active') return []
+  if (!(await canAccessCommunity(admin, post.community_id as string, userId))) return []
   const { data } = await admin
     .from('community_post_comments')
     .select('id, post_id, parent_id, user_id, body, created_at, edited_at, like_count, profiles!user_id(username, display_name, avatar_url, avatar_hue)')
@@ -475,7 +515,9 @@ export async function toggleCommentLike(userId: string, commentId: string): Prom
   const { data: c } = await admin.from('community_post_comments').select('id, post_id').eq('id', commentId).maybeSingle()
   if (!c) return { ok: false, error: 'not_found' }
   const { data: post } = await admin.from('community_posts').select('community_id').eq('id', c.post_id).maybeSingle()
-  if (post && await isCommunityClosing(admin, post.community_id as string)) return { ok: false, error: 'community_closing' }
+  if (!post) return { ok: false, error: 'not_found' }
+  if (await isCommunityClosing(admin, post.community_id as string)) return { ok: false, error: 'community_closing' }
+  if (!(await canAccessCommunity(admin, post.community_id as string, userId))) return { ok: false, error: 'not_member' }
   const { data: existing } = await admin.from('community_post_comment_likes').select('user_id').eq('comment_id', commentId).eq('user_id', userId).maybeSingle()
   let liked: boolean
   if (existing) { await admin.from('community_post_comment_likes').delete().eq('comment_id', commentId).eq('user_id', userId); liked = false }

@@ -10,7 +10,7 @@ export async function POST(_req: NextRequest, { params }: { params: Promise<{ co
   if (!user) return NextResponse.json({ error: 'unauthorized' }, { status: 401 })
   const result = await toggleCommentLike(user.id, commentId)
   if (!result.ok) {
-    const status = result.error === 'not_found' ? 404 : 500
+    const status = result.error === 'not_found' ? 404 : (result.error === 'not_member' || result.error === 'community_closing' ? 403 : 500)
     return NextResponse.json({ error: result.error }, { status })
   }
   return NextResponse.json({ liked: result.liked, likeCount: result.likeCount })

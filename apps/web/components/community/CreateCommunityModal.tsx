@@ -16,6 +16,8 @@ export function CreateCommunityModal({ open, onClose }: Props) {
   const [name, setName] = useState('')
   const [topic, setTopic] = useState('')
   const [description, setDescription] = useState('')
+  const [visibility, setVisibility] = useState<'public' | 'private'>('public')
+  const [joinRules, setJoinRules] = useState('')
   const [busy, setBusy] = useState(false)
 
   if (!open || typeof document === 'undefined') return null
@@ -27,7 +29,7 @@ export function CreateCommunityModal({ open, onClose }: Props) {
     try {
       const res = await fetch('/api/communities', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name: name.trim(), topic: topic.trim(), description: description.trim() }),
+        body: JSON.stringify({ name: name.trim(), topic: topic.trim(), description: description.trim(), visibility, joinRules: visibility === 'private' ? joinRules.trim() : '' }),
       })
       const j = await res.json().catch(() => ({}))
       if (!res.ok) {
@@ -65,6 +67,21 @@ export function CreateCommunityModal({ open, onClose }: Props) {
             <textarea value={description} onChange={(e) => setDescription(e.target.value)} maxLength={500} placeholder="어떤 커뮤니티인가요?"
               className="mt-1 w-full h-20 bg-white/[0.04] border border-white/[0.10] rounded-lg px-3 py-2 text-sm text-white placeholder:text-zinc-600 focus:outline-none focus:ring-2 focus:ring-violet-500 resize-none" />
           </div>
+          <div>
+            <label className="text-[11px] text-zinc-400">공개 설정</label>
+            <div className="mt-1 flex gap-2">
+              <button type="button" onClick={() => setVisibility('public')} className={`flex-1 py-2 rounded-lg text-sm font-medium transition ${visibility === 'public' ? 'bg-violet-600 text-white' : 'bg-white/[0.04] text-zinc-400 hover:bg-white/[0.08]'}`}>공개</button>
+              <button type="button" onClick={() => setVisibility('private')} className={`flex-1 py-2 rounded-lg text-sm font-medium transition ${visibility === 'private' ? 'bg-violet-600 text-white' : 'bg-white/[0.04] text-zinc-400 hover:bg-white/[0.08]'}`}>비공개</button>
+            </div>
+            <p className="mt-1 text-[11px] text-zinc-500">{visibility === 'private' ? '멤버만 글을 볼 수 있고, 가입은 매니저 승인이 필요해요.' : '누구나 글을 보고 바로 가입할 수 있어요.'}</p>
+          </div>
+          {visibility === 'private' && (
+            <div>
+              <label className="text-[11px] text-zinc-400">가입 수칙 (선택)</label>
+              <textarea value={joinRules} onChange={(e) => setJoinRules(e.target.value)} maxLength={1000} placeholder="가입 신청 시 보여줄 안내나 규칙을 적어주세요"
+                className="mt-1 w-full h-20 bg-white/[0.04] border border-white/[0.10] rounded-lg px-3 py-2 text-sm text-white placeholder:text-zinc-600 focus:outline-none focus:ring-2 focus:ring-violet-500 resize-none" />
+            </div>
+          )}
         </div>
 
         <div className="mt-4 flex justify-end gap-2">

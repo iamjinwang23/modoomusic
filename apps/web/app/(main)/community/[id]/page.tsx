@@ -19,6 +19,8 @@ import { CommunityPostReportModal } from '@/components/community/CommunityPostRe
 import { CommunityEditModal } from '@/components/community/CommunityEditModal'
 import { CommunityPostEditModal } from '@/components/community/CommunityPostEditModal'
 import { CommunityMembersModal } from '@/components/community/CommunityMembersModal'
+import { JoinRequestModal } from '@/components/community/JoinRequestModal'
+import { ManageJoinRequestsModal } from '@/components/community/ManageJoinRequestsModal'
 import { ScrollToTopButton } from '@/components/community/ScrollToTopButton'
 import { CommunityGuestWall } from '@/components/community/CommunityGuestWall'
 import { useGuestCommunityWall } from '@/hooks/useGuestCommunityWall'
@@ -93,6 +95,9 @@ export default function CommunityCafePage() {
   const contentRef = useRef<HTMLTextAreaElement>(null)
   const [posting, setPosting] = useState(false)
   const [busy, setBusy] = useState(false)
+  const [joinReqOpen, setJoinReqOpen] = useState(false)   // 비공개 가입 신청 모달(연결은 Task 10)
+  const [manageOpen, setManageOpen] = useState(false)     // 매니저 가입 신청 관리 모달(연결은 Task 10)
+  const [pendingCount, setPendingCount] = useState(0)     // 대기 중 가입 신청 수(진입점 배지)
   const [editOpen, setEditOpen] = useState(false)
   const [membersOpen, setMembersOpen] = useState(false)
   const [comments, setComments] = useState<Record<string, CommunityPostComment[]>>({})
@@ -125,13 +130,18 @@ export default function CommunityCafePage() {
   const load = useCallback(async () => {
     const [d, p, reported] = await Promise.all([
       fetch(`/api/communities/${id}`).then(r => r.ok ? r.json() : null),
-      fetch(`/api/communities/${id}/posts`).then(r => r.ok ? r.json() : { posts: [] }),
+      fetch(`/api/communities/${id}/posts${focusPostId ? `?preview=${focusPostId}` : ''}`).then(r => r.ok ? r.json() : { posts: [] }),
       getMyReportedPostIds(),
     ])
     if (!d) { setCommunity(null); setPosts([]); return }
     setCommunity(d.community); setMembers(d.members ?? [])
     setPosts((p.posts ?? []).filter((x: CommunityPost) => !reported.has(x.id)))
-  }, [id, user?.id])
+    // 매니저·비공개면 대기 중인 가입 신청 수를 조회해 진입점 배지에 표시
+    if (d?.community?.isManager && d.community.visibility === 'private') {
+      const rq = await fetch(`/api/communities/${id}/join-requests`).then(r => r.ok ? r.json() : { requests: [] })
+      setPendingCount((rq.requests ?? []).length)
+    } else setPendingCount(0)
+  }, [id, user?.id, focusPostId])
   useEffect(() => { load() }, [load])
 
   // 작성 textarea auto-grow — 최소 h-20(80px), 내용 따라 최대 240px까지 확장
@@ -142,12 +152,26 @@ export default function CommunityCafePage() {
     el.style.height = `${Math.min(el.scrollHeight, 240)}px`
   }, [content])
 
+  // 가입 진입점 — 비로그인=로그인, 비공개=신청 모달(Task 10), 공개=즉시 가입
+  function openJoin() {
+    if (!user) { window.dispatchEvent(new Event('open-login')); return }
+    if (isPrivate) setJoinReqOpen(true)
+    else join()
+  }
   async function join() {
     if (!user) { window.dispatchEvent(new Event('open-login')); return }
     setBusy(true)
     const res = await fetch(`/api/communities/${id}/join`, { method: 'POST' })
+    const j = await res.json().catch(() => ({}))
     setBusy(false)
-    if (res.ok) { toast.success('가입했어요'); load() } else toast.error('가입에 실패했어요')
+    if (res.ok) {
+      toast.success(j.requested ? '가입을 신청했어요' : '가입했어요'); load(); return
+    }
+    toast.error(
+      j.error === 'blocked' ? '이 커뮤니티에 가입할 수 없어요' :
+      j.error === 'rejoin_cooldown' ? '아직 재신청할 수 없어요' :
+      j.error === 'community_closing' ? '폐쇄 예정이라 가입할 수 없어요' : '가입에 실패했어요',
+    )
   }
   async function leave() {
     setBusy(true)
@@ -155,7 +179,7 @@ export default function CommunityCafePage() {
     const j = await res.json().catch(() => ({}))
     setBusy(false)
     if (res.ok) { toast.success('탈퇴했어요'); load() }
-    else toast.error(j.error === 'manager_cannot_leave' ? '매니저는 탈퇴할 수 없어요 (폐쇄만 가능)' : '탈퇴에 실패했어요')
+    else toast.error(j.error === 'manager_cannot_leave' ? '매니저는 탈퇴할 수 없어요 (폐쇄만 가능)' : j.error === 'leave_cooldown' ? '가입 후 24시간이 지나야 탈퇴할 수 있어요' : '탈퇴에 실패했어요')
   }
   const pollReady = (pollOptions?.filter((o) => o.trim()).length ?? 0) >= 2
   // 첨부는 한 종류만 (음악/이미지/투표 중 하나) — 활성 시 + 버튼 숨김. 링크는 본문 URL로 자동 임베드.
@@ -214,9 +238,9 @@ export default function CommunityCafePage() {
     const res = await fetch(`/api/community-posts/${p.id}/pin`, { method: 'POST' })
     if (res.ok) load(); else toast.error('고정에 실패했어요')
   }
-  async function kick(p: CommunityPost) {
+  async function kick(p: CommunityPost, ban: boolean) {
     const res = await fetch(`/api/communities/${id}/kick`, {
-      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ userId: p.authorId }),
+      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ userId: p.authorId, ban }),
     })
     if (res.ok) { toast.success(`${p.authorName ?? '사용자'}님을 내보냈어요`); load() }
     else toast.error('강퇴에 실패했어요')
@@ -291,6 +315,8 @@ export default function CommunityCafePage() {
   const isManager = !!community?.isManager
   const isMember = !!community?.isMember
   const isClosing = community?.status === 'closing'
+  const isPrivate = community?.visibility === 'private'
+  const locked = isPrivate && !isMember && !isManager   // 비공개·비멤버 = 잠금
   const closingDaysLeft = community?.closeScheduledAt ? Math.max(0, Math.ceil((new Date(community.closeScheduledAt).getTime() - Date.now()) / 86400000)) : 0
   const cover = community?.coverImage
     ? { backgroundImage: `url(${community.coverImage})`, backgroundSize: 'cover', backgroundPosition: community.coverFocus ?? 'center' }
@@ -318,8 +344,140 @@ export default function CommunityCafePage() {
       ? <button onClick={() => setEditOpen(true)} className={editCls}><Image src="/Edit.svg" alt="" width={14} height={14} style={{ filter: 'invert(1)' }} /> 수정</button>
       : isMember
         ? <button onClick={() => setConfirmLeave(true)} className={leaveCls}>탈퇴하기</button>
-        : <button onClick={busy ? undefined : join} className={joinCls}>가입하기</button>
+        : <button onClick={busy ? undefined : openJoin} className={joinCls}>가입하기</button>
     return <div className="flex items-center gap-2">{roleBtn}{shareBtn}</div>
+  }
+
+  // 피드 카드 1건 렌더 — 정상 피드와 잠금 뷰 미리보기에서 동일 카드 재사용
+  function renderPostCard(p: CommunityPost) {
+    const canDelete = p.authorId === user?.id || isManager
+    return (
+      <div key={p.id} ref={el => { postRefs.current[p.id] = el }} className={`px-4 py-4 md:rounded-2xl md:border md:border-white/[0.08] md:bg-white/[0.02] transition-colors duration-700 ${highlightPostId === p.id ? 'bg-violet-500/10 md:border-violet-500/30' : ''}`}>
+        {p.pinned && (
+          <div className="flex items-center gap-1.5 mb-3 pb-2.5 border-b border-white/[0.06] text-sm font-medium text-white">
+            <Image src="/Pin.svg" alt="" width={15} height={15} style={{ filter: 'invert(1)' }} />
+            매니저가 상단 고정함
+          </div>
+        )}
+        <div className="flex items-center gap-2.5">
+          <button onClick={() => goProfile(p.authorUsername)} disabled={!p.authorUsername} className="shrink-0 disabled:cursor-default transition active:scale-95">
+            <Avatar name={p.authorName} hue={p.authorAvatarHue} url={p.authorAvatarUrl} size={34} />
+          </button>
+          <div className="min-w-0 flex-1">
+            <div className="flex items-center gap-1.5 min-w-0">
+              <button onClick={() => goProfile(p.authorUsername)} disabled={!p.authorUsername} className="text-sm font-medium text-white truncate hover:underline disabled:no-underline disabled:cursor-default">{p.authorName ?? '익명'}</button>
+              {p.authorId === community?.managerId && <span className="shrink-0 text-[10px] font-medium text-violet-300 bg-violet-500/15 px-1.5 py-0.5 rounded-full leading-none">매니저</span>}
+            </div>
+            <p className="text-[11px] text-zinc-500">{relativeTime(p.createdAt)}</p>
+          </div>
+          <div className="relative shrink-0">
+            {/* 비로그인은 메뉴 항목이 전부 로그인/권한 필요 → ⋮ 자체를 숨김 */}
+            {user && (<>
+            <button onClick={() => setMoreOpenId(v => v === p.id ? null : p.id)} className="w-7 h-7 rounded-full hover:bg-white/[0.06] flex items-center justify-center text-zinc-500 hover:text-white transition-colors" aria-label="더보기">
+              <Image src="/More.svg" alt="" width={16} height={16} style={{ filter: 'invert(0.5)' }} />
+            </button>
+            {moreOpenId === p.id && (
+              <>
+                <div className="fixed inset-0 z-[54]" onClick={() => setMoreOpenId(null)} />
+                <div className="absolute right-0 top-8 z-[55] w-32 bg-[#282D38] border border-white/[0.08] rounded-xl py-1 shadow-xl overflow-hidden">
+                  {p.authorId === user?.id && (
+                    <button onClick={() => startEdit(p)} className="w-full flex items-center gap-2 px-3 py-2 text-sm text-white hover:bg-white/[0.06] transition-colors">
+                      <Image src="/Edit.svg" alt="" width={12} height={12} style={{ filter: 'invert(0.55)' }} /> 수정
+                    </button>
+                  )}
+                  {isManager && (
+                    <button onClick={() => { setMoreOpenId(null); togglePin(p) }} className="w-full flex items-center gap-2 px-3 py-2 text-sm text-white hover:bg-white/[0.06] transition-colors">
+                      <Image src="/Pin.svg" alt="" width={12} height={12} style={{ filter: 'invert(0.55)' }} />
+                      {p.pinned ? '고정해제' : '고정'}
+                    </button>
+                  )}
+                  {canDelete && (
+                    <button onClick={() => { setMoreOpenId(null); setConfirmDelPost(p) }} className="w-full flex items-center gap-2 px-3 py-2 text-sm text-red-400 hover:bg-red-500/10 transition-colors">
+                      <Image src="/Delete-2.svg" alt="" width={12} height={12} style={{ filter: 'invert(0.4) sepia(1) saturate(3) hue-rotate(300deg)' }} /> 삭제
+                    </button>
+                  )}
+                  {isManager && p.authorId !== community?.managerId && (
+                    <button onClick={() => { setMoreOpenId(null); setConfirmKick(p) }} className="w-full flex items-center gap-2 px-3 py-2 text-sm text-red-400 hover:bg-red-500/10 transition-colors">
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="17" y1="8" x2="22" y2="13"/><line x1="22" y1="8" x2="17" y2="13"/></svg>
+                      강퇴
+                    </button>
+                  )}
+                  {user && p.authorId !== user.id && (
+                    <button onClick={() => { setMoreOpenId(null); setReportPostId(p.id) }} className="w-full flex items-center gap-2 px-3 py-2 text-sm text-red-400 hover:bg-red-500/10 transition-colors">
+                      <Image src="/Flag.svg" alt="" width={12} height={12} style={{ filter: 'invert(0.4) sepia(1) saturate(3) hue-rotate(300deg)' }} /> 신고
+                    </button>
+                  )}
+                </div>
+              </>
+            )}
+            </>)}
+          </div>
+        </div>
+        {p.content ? (
+          <p className="text-sm text-zinc-200 mt-2.5 whitespace-pre-wrap leading-relaxed">{linkify(p.content)}</p>
+        ) : null}
+        {p.imageUrls && p.imageUrls.length > 0 && <PostImageGallery images={p.imageUrls} />}
+        {/* 임베드/미리보기 — 명시 첨부 우선, 없으면 본문 첫 URL 자동 감지 */}
+        {(() => {
+          const url = p.linkUrl || (p.content ? firstUrl(p.content) : null)
+          return url ? <PostEmbed url={url} /> : null
+        })()}
+        {p.poll && <PollCard poll={p.poll} postId={p.id} gate={memberGate} />}
+        {p.song && <SongEmbedCard song={p.song} artist={p.authorName} ownerUserId={p.authorId} ownerAvatarUrl={p.authorAvatarUrl} ownerAvatarHue={p.authorAvatarHue} currentUserId={user?.id ?? null} />}
+        <div className="flex items-center gap-4 mt-3">
+          <button onClick={() => toggleLike(p)} className={`text-sm flex items-center gap-1.5 transition active:scale-95 ${p.liked ? 'text-violet-300' : 'text-zinc-500 hover:text-white'}`}>
+            <Image src="/Thumb-Up.svg" alt="좋아요" width={18} height={18} style={{ filter: p.liked ? VIOLET_FILTER : 'invert(0.4)' }} /> {p.likeCount}
+          </button>
+          <button onClick={() => openComments(p.id)} className="text-sm flex items-center gap-1.5 text-zinc-500 hover:text-white transition active:scale-95">
+            <Image src="/chat.svg" alt="댓글" width={18} height={18} style={{ filter: 'invert(0.4)' }} /> {p.commentCount}
+          </button>
+        </div>
+
+        {openComment === p.id && (
+          <div className="mt-3 pt-3 border-t border-white/[0.06] space-y-3">
+            {(comments[p.id] ?? []).map(cm => (
+              <CommunityCommentItem
+                key={cm.id}
+                comment={cm}
+                currentUserId={user?.id ?? null}
+                isManager={isManager}
+                onMutated={() => refetchComments(p.id)}
+                gate={memberGate}
+              />
+            ))}
+            <div className="relative pt-1">
+              <input value={commentText} onChange={(e) => setCommentText(e.target.value)} maxLength={500} onKeyDown={(e) => { if (e.key === 'Enter' && !e.nativeEvent.isComposing) addComment(p.id) }} placeholder="댓글 달기" className="w-full bg-white/[0.04] border border-white/[0.08] rounded-full pl-4 pr-12 py-2.5 text-sm text-white placeholder:text-zinc-600 focus:outline-none focus:ring-1 focus:ring-violet-500" />
+              <button onClick={() => addComment(p.id)} aria-label="등록"
+                className={`absolute right-1.5 top-1/2 mt-0.5 w-8 h-8 rounded-full bg-violet-600 hover:bg-violet-500 flex items-center justify-center transition duration-200 active:scale-90 ${commentText.trim() ? 'opacity-100 scale-100 -translate-y-1/2' : 'opacity-0 scale-50 -translate-y-1/2 pointer-events-none'}`}>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"><path d="M12 19V5M5 12l7-7 7 7" /></svg>
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
+    )
+  }
+
+  // 잠금(비공개·비멤버) 미리보기 카드 — 읽기전용. 좋아요/댓글/⋮(신고) 등 상호작용 요소 없음.
+  function renderPreviewCard(p: CommunityPost) {
+    return (
+      <div key={p.id} className="px-4 py-4 md:rounded-2xl md:border md:border-white/[0.08] md:bg-white/[0.02]">
+        <div className="flex items-center gap-2.5">
+          <Avatar name={p.authorName} hue={p.authorAvatarHue} url={p.authorAvatarUrl} size={34} />
+          <div className="min-w-0 flex-1">
+            <div className="flex items-center gap-1.5 min-w-0">
+              <span className="text-sm font-medium text-white truncate">{p.authorName ?? '익명'}</span>
+              {p.authorId === community?.managerId && <span className="shrink-0 text-[10px] font-medium text-violet-300 bg-violet-500/15 px-1.5 py-0.5 rounded-full leading-none">매니저</span>}
+            </div>
+            <p className="text-[11px] text-zinc-500">{relativeTime(p.createdAt)}</p>
+          </div>
+        </div>
+        {p.content ? (
+          <p className="text-sm text-zinc-200 mt-2.5 whitespace-pre-wrap leading-relaxed">{linkify(p.content)}</p>
+        ) : null}
+        {p.imageUrls && p.imageUrls.length > 0 && <PostImageGallery images={p.imageUrls} />}
+      </div>
+    )
   }
 
   // 로딩 — 헤더·피드 스켈레톤 (폴백 헤더 플래시 방지). not-found는 위에서 이미 처리됨
@@ -395,6 +553,12 @@ export default function CommunityCafePage() {
           {community?.description && <p className="text-sm text-zinc-400 mt-4 whitespace-pre-wrap leading-relaxed">{community.description}</p>}
           {/* 카테고리 */}
           {community?.topic && <span className="inline-block mt-3 px-2.5 py-1 rounded-full bg-violet-500/15 text-violet-300 text-xs font-medium">{community.topic}</span>}
+          {/* 매니저·비공개 — 가입 신청 관리 진입점(모달 연결은 Task 10) */}
+          {isManager && isPrivate && (
+            <button onClick={() => setManageOpen(true)} className="inline-flex items-center gap-1.5 mt-3 ml-2 px-3 py-1.5 rounded-full bg-white/[0.06] text-sm text-white hover:bg-white/[0.10] transition">
+              가입 신청{pendingCount > 0 && <span className="min-w-5 h-5 px-1.5 rounded-full bg-violet-600 text-white text-xs font-semibold flex items-center justify-center">{pendingCount}</span>}
+            </button>
+          )}
         </div>
 
         {/* 폐쇄 예고 배너 (§13.3 세이프가드 ② — closing 동안 상시 노출, D-day + 내보내기) */}
@@ -522,7 +686,29 @@ export default function CommunityCafePage() {
           </div>
         )}
 
-        {/* 피드 — 모바일: 라인 구분(풀폭·박스 X) / 데스크탑: 박스 카드 */}
+        {/* 피드 — 잠금(비공개·비멤버)이면 미리보기 1건 + 가입 패널, 아니면 정상 피드 */}
+        {locked ? (
+          <div className="px-5 mt-8">
+            {/* 미리보기 글 1건 (?post= 진입 시 preview 응답으로 로드) */}
+            {posts && posts.length > 0 && (
+              <div className="mb-6">{posts.slice(0, 1).map(renderPreviewCard)}</div>
+            )}
+            <div className="rounded-2xl border border-white/[0.08] bg-white/[0.02] px-5 py-8 text-center">
+              <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mx-auto mb-3"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+              <p className="text-sm font-medium text-white">멤버만 볼 수 있는 커뮤니티예요</p>
+              <p className="text-xs text-zinc-500 mt-1">가입하면 모든 글과 대화를 볼 수 있어요.</p>
+              {community?.isBlocked ? (
+                <p className="mt-4 text-xs text-red-300">가입이 제한된 커뮤니티예요.</p>
+              ) : community?.joinRequestStatus === 'pending' ? (
+                <button disabled className="mt-4 px-5 py-2.5 rounded-full text-sm font-semibold bg-white/[0.08] text-zinc-400 cursor-default">승인 대기 중</button>
+              ) : community?.joinRequestStatus === 'rejected' && community.rejoinAvailableAt && new Date(community.rejoinAvailableAt).getTime() > Date.now() ? (
+                <button disabled className="mt-4 px-5 py-2.5 rounded-full text-sm font-semibold bg-white/[0.08] text-zinc-400 cursor-default">{Math.ceil((new Date(community.rejoinAvailableAt).getTime() - Date.now()) / 86400000)}일 후 재신청 가능</button>
+              ) : (
+                <button onClick={busy ? undefined : openJoin} className="mt-4 px-5 py-2.5 rounded-full text-sm font-semibold text-white bg-violet-600 hover:bg-violet-500 transition">가입하기</button>
+              )}
+            </div>
+          </div>
+        ) : (
         <div className="mt-6 md:px-5 divide-y divide-white/[0.06] md:divide-y-0 md:space-y-3">
           {posts === null ? (
             [0, 1].map(i => (
@@ -542,123 +728,19 @@ export default function CommunityCafePage() {
             ))
           ) : posts.length === 0 ? (
             <p className="text-sm text-zinc-500 py-10 text-center">아직 글이 없어요. {isMember ? '첫 글을 남겨보세요!' : '가입하고 첫 글을 남겨보세요!'}</p>
-          ) : posts.map(p => {
-            const canDelete = p.authorId === user?.id || isManager
-            return (
-              <div key={p.id} ref={el => { postRefs.current[p.id] = el }} className={`px-4 py-4 md:rounded-2xl md:border md:border-white/[0.08] md:bg-white/[0.02] transition-colors duration-700 ${highlightPostId === p.id ? 'bg-violet-500/10 md:border-violet-500/30' : ''}`}>
-                {p.pinned && (
-                  <div className="flex items-center gap-1.5 mb-3 pb-2.5 border-b border-white/[0.06] text-sm font-medium text-white">
-                    <Image src="/Pin.svg" alt="" width={15} height={15} style={{ filter: 'invert(1)' }} />
-                    매니저가 상단 고정함
-                  </div>
-                )}
-                <div className="flex items-center gap-2.5">
-                  <button onClick={() => goProfile(p.authorUsername)} disabled={!p.authorUsername} className="shrink-0 disabled:cursor-default transition active:scale-95">
-                    <Avatar name={p.authorName} hue={p.authorAvatarHue} url={p.authorAvatarUrl} size={34} />
-                  </button>
-                  <div className="min-w-0 flex-1">
-                    <div className="flex items-center gap-1.5 min-w-0">
-                      <button onClick={() => goProfile(p.authorUsername)} disabled={!p.authorUsername} className="text-sm font-medium text-white truncate hover:underline disabled:no-underline disabled:cursor-default">{p.authorName ?? '익명'}</button>
-                      {p.authorId === community?.managerId && <span className="shrink-0 text-[10px] font-medium text-violet-300 bg-violet-500/15 px-1.5 py-0.5 rounded-full leading-none">매니저</span>}
-                    </div>
-                    <p className="text-[11px] text-zinc-500">{relativeTime(p.createdAt)}</p>
-                  </div>
-                  <div className="relative shrink-0">
-                    {/* 비로그인은 메뉴 항목이 전부 로그인/권한 필요 → ⋮ 자체를 숨김 */}
-                    {user && (<>
-                    <button onClick={() => setMoreOpenId(v => v === p.id ? null : p.id)} className="w-7 h-7 rounded-full hover:bg-white/[0.06] flex items-center justify-center text-zinc-500 hover:text-white transition-colors" aria-label="더보기">
-                      <Image src="/More.svg" alt="" width={16} height={16} style={{ filter: 'invert(0.5)' }} />
-                    </button>
-                    {moreOpenId === p.id && (
-                      <>
-                        <div className="fixed inset-0 z-[54]" onClick={() => setMoreOpenId(null)} />
-                        <div className="absolute right-0 top-8 z-[55] w-32 bg-[#282D38] border border-white/[0.08] rounded-xl py-1 shadow-xl overflow-hidden">
-                          {p.authorId === user?.id && (
-                            <button onClick={() => startEdit(p)} className="w-full flex items-center gap-2 px-3 py-2 text-sm text-white hover:bg-white/[0.06] transition-colors">
-                              <Image src="/Edit.svg" alt="" width={12} height={12} style={{ filter: 'invert(0.55)' }} /> 수정
-                            </button>
-                          )}
-                          {isManager && (
-                            <button onClick={() => { setMoreOpenId(null); togglePin(p) }} className="w-full flex items-center gap-2 px-3 py-2 text-sm text-white hover:bg-white/[0.06] transition-colors">
-                              <Image src="/Pin.svg" alt="" width={12} height={12} style={{ filter: 'invert(0.55)' }} />
-                              {p.pinned ? '고정해제' : '고정'}
-                            </button>
-                          )}
-                          {canDelete && (
-                            <button onClick={() => { setMoreOpenId(null); setConfirmDelPost(p) }} className="w-full flex items-center gap-2 px-3 py-2 text-sm text-red-400 hover:bg-red-500/10 transition-colors">
-                              <Image src="/Delete-2.svg" alt="" width={12} height={12} style={{ filter: 'invert(0.4) sepia(1) saturate(3) hue-rotate(300deg)' }} /> 삭제
-                            </button>
-                          )}
-                          {isManager && p.authorId !== community?.managerId && (
-                            <button onClick={() => { setMoreOpenId(null); setConfirmKick(p) }} className="w-full flex items-center gap-2 px-3 py-2 text-sm text-red-400 hover:bg-red-500/10 transition-colors">
-                              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="17" y1="8" x2="22" y2="13"/><line x1="22" y1="8" x2="17" y2="13"/></svg>
-                              강퇴
-                            </button>
-                          )}
-                          {user && p.authorId !== user.id && (
-                            <button onClick={() => { setMoreOpenId(null); setReportPostId(p.id) }} className="w-full flex items-center gap-2 px-3 py-2 text-sm text-red-400 hover:bg-red-500/10 transition-colors">
-                              <Image src="/Flag.svg" alt="" width={12} height={12} style={{ filter: 'invert(0.4) sepia(1) saturate(3) hue-rotate(300deg)' }} /> 신고
-                            </button>
-                          )}
-                        </div>
-                      </>
-                    )}
-                    </>)}
-                  </div>
-                </div>
-                {p.content ? (
-                  <p className="text-sm text-zinc-200 mt-2.5 whitespace-pre-wrap leading-relaxed">{linkify(p.content)}</p>
-                ) : null}
-                {p.imageUrls && p.imageUrls.length > 0 && <PostImageGallery images={p.imageUrls} />}
-                {/* 임베드/미리보기 — 명시 첨부 우선, 없으면 본문 첫 URL 자동 감지 */}
-                {(() => {
-                  const url = p.linkUrl || (p.content ? firstUrl(p.content) : null)
-                  return url ? <PostEmbed url={url} /> : null
-                })()}
-                {p.poll && <PollCard poll={p.poll} postId={p.id} gate={memberGate} />}
-                {p.song && <SongEmbedCard song={p.song} artist={p.authorName} ownerUserId={p.authorId} ownerAvatarUrl={p.authorAvatarUrl} ownerAvatarHue={p.authorAvatarHue} currentUserId={user?.id ?? null} />}
-                <div className="flex items-center gap-4 mt-3">
-                  <button onClick={() => toggleLike(p)} className={`text-sm flex items-center gap-1.5 transition active:scale-95 ${p.liked ? 'text-violet-300' : 'text-zinc-500 hover:text-white'}`}>
-                    <Image src="/Thumb-Up.svg" alt="좋아요" width={18} height={18} style={{ filter: p.liked ? VIOLET_FILTER : 'invert(0.4)' }} /> {p.likeCount}
-                  </button>
-                  <button onClick={() => openComments(p.id)} className="text-sm flex items-center gap-1.5 text-zinc-500 hover:text-white transition active:scale-95">
-                    <Image src="/chat.svg" alt="댓글" width={18} height={18} style={{ filter: 'invert(0.4)' }} /> {p.commentCount}
-                  </button>
-                </div>
-
-                {openComment === p.id && (
-                  <div className="mt-3 pt-3 border-t border-white/[0.06] space-y-3">
-                    {(comments[p.id] ?? []).map(cm => (
-                      <CommunityCommentItem
-                        key={cm.id}
-                        comment={cm}
-                        currentUserId={user?.id ?? null}
-                        isManager={isManager}
-                        onMutated={() => refetchComments(p.id)}
-                        gate={memberGate}
-                      />
-                    ))}
-                    <div className="relative pt-1">
-                      <input value={commentText} onChange={(e) => setCommentText(e.target.value)} maxLength={500} onKeyDown={(e) => { if (e.key === 'Enter' && !e.nativeEvent.isComposing) addComment(p.id) }} placeholder="댓글 달기" className="w-full bg-white/[0.04] border border-white/[0.08] rounded-full pl-4 pr-12 py-2.5 text-sm text-white placeholder:text-zinc-600 focus:outline-none focus:ring-1 focus:ring-violet-500" />
-                      <button onClick={() => addComment(p.id)} aria-label="등록"
-                        className={`absolute right-1.5 top-1/2 mt-0.5 w-8 h-8 rounded-full bg-violet-600 hover:bg-violet-500 flex items-center justify-center transition duration-200 active:scale-90 ${commentText.trim() ? 'opacity-100 scale-100 -translate-y-1/2' : 'opacity-0 scale-50 -translate-y-1/2 pointer-events-none'}`}>
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"><path d="M12 19V5M5 12l7-7 7 7" /></svg>
-                      </button>
-                    </div>
-                  </div>
-                )}
-              </div>
-            )
-          })}
+          ) : posts.map(renderPostCard)}
         </div>
+        )}
       </div>
 
       <ConfirmModal open={!!confirmDelPost} title="이 글을 정말 삭제하시겠어요?" description="삭제 시 등록된 댓글도 함께 삭제되며 되돌릴 수 없어요." confirmLabel="삭제하기" cancelLabel="아니요" variant="danger" onClose={() => setConfirmDelPost(null)} onConfirm={() => { if (confirmDelPost) del(confirmDelPost); setConfirmDelPost(null) }} />
-      <ConfirmModal open={!!confirmKick} title={`${confirmKick?.authorName ?? '이 사용자'}님을 강퇴할까요?`} description="커뮤니티에서 내보내지고 알림이 전송돼요. 이 회원은 다시 가입할 수 있어요." confirmLabel="강퇴하기" cancelLabel="아니요" variant="danger" onClose={() => setConfirmKick(null)} onConfirm={() => { if (confirmKick) kick(confirmKick); setConfirmKick(null) }} />
+      <ConfirmModal open={!!confirmKick} title={`${confirmKick?.authorName ?? '이 사용자'}님을 강퇴할까요?`} description="커뮤니티에서 내보내지고 알림이 전송돼요. 확인 후 재가입 차단 여부를 물어봐요." confirmLabel="강퇴하기" cancelLabel="아니요" variant="danger" onClose={() => setConfirmKick(null)} onConfirm={() => { if (confirmKick) { const ban = window.confirm('이 회원의 재가입을 영구 차단할까요?\n확인=차단 후 강퇴 / 취소=차단 없이 강퇴'); kick(confirmKick, ban) } setConfirmKick(null) }} />
       <ConfirmModal open={confirmLeave} title="이 커뮤니티를 정말 탈퇴하시겠어요?" description="탈퇴하면 이 커뮤니티에 다시 가입해야 글·댓글을 남길 수 있어요." confirmLabel="탈퇴하기" cancelLabel="아니요" variant="danger" busy={busy} onClose={() => setConfirmLeave(false)} onConfirm={() => { setConfirmLeave(false); leave() }} />
       {reportPostId && <CommunityPostReportModal postId={reportPostId} onClose={() => setReportPostId(null)} onSubmitted={() => reportDone(reportPostId)} />}
       {editOpen && community && <CommunityEditModal community={community} onClose={() => setEditOpen(false)} onSaved={(c) => setCommunity(c)} onClosed={() => router.push('/community')} />}
-      {membersOpen && community && <CommunityMembersModal members={members} managerId={community.managerId} onClose={() => setMembersOpen(false)} />}
+      {membersOpen && community && <CommunityMembersModal members={members} managerId={community.managerId} communityId={id} isManager={isManager} onClose={() => setMembersOpen(false)} onChanged={load} />}
+      {joinReqOpen && community && <JoinRequestModal communityId={id} communityName={community.name} joinRules={community.joinRules} onClose={() => setJoinReqOpen(false)} onRequested={load} />}
+      {manageOpen && <ManageJoinRequestsModal communityId={id} onClose={() => setManageOpen(false)} onChanged={load} />}
       {editingPost && <CommunityPostEditModal post={editingPost} communityId={id} onClose={() => setEditingPost(null)} onSaved={onEditSaved} />}
       {guestWalled && !wallDismissed && <CommunityGuestWall onLogin={() => { setWallDismissed(true); window.dispatchEvent(new Event('open-login')) }} />}
       <ScrollToTopButton scrollRef={scrollRef} />

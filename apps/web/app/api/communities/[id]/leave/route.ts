@@ -10,7 +10,7 @@ export async function POST(_req: NextRequest, { params }: { params: Promise<{ id
   if (!user) return NextResponse.json({ error: 'unauthorized' }, { status: 401 })
   const result = await leaveCommunity(user.id, id)
   if (!result.ok) {
-    const status = result.error === 'manager_cannot_leave' ? 400 : result.error === 'not_found' ? 404 : 500
+    const status = result.error === 'manager_cannot_leave' || result.error === 'leave_cooldown' ? 400 : result.error === 'not_found' ? 404 : 500
     return NextResponse.json({ error: result.error }, { status })
   }
   return NextResponse.json({ ok: true })
