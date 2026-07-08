@@ -174,10 +174,11 @@ const styles = StyleSheet.create({
   header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 },
   chevron: { color: mono.color.text, fontSize: 30, lineHeight: 30, width: 28 },
   headerLabel: { color: mono.color.textSecondary, fontSize: mono.font.small, fontWeight: '600' },
-  artWrap: { alignItems: 'center', marginTop: 24, marginBottom: 32 },
-  art: { width: '86%', aspectRatio: 1, borderRadius: mono.radius.xl, backgroundColor: mono.color.surface, overflow: 'hidden' },
+  artWrap: { alignItems: 'center', marginTop: 16, marginBottom: 28 },
+  // 커버 = 세로(포스터형) — 브랜드 정체성(웹 파리티)
+  art: { width: '68%', aspectRatio: 3 / 4, borderRadius: mono.radius.xl, backgroundColor: mono.color.surface, overflow: 'hidden' },
   videoBadge: {
-    position: 'absolute', bottom: 12, left: '9%',
+    position: 'absolute', bottom: 12, left: '18%',
     backgroundColor: mono.color.overlayStrong, borderRadius: mono.radius.pill, paddingVertical: 6, paddingHorizontal: 12,
   },
   videoBadgeText: { color: mono.color.onMedia, fontSize: mono.font.tiny, fontWeight: '700' },
