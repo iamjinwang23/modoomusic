@@ -738,7 +738,7 @@ export default function CommunityCafePage() {
       <ConfirmModal open={confirmLeave} title="이 커뮤니티를 정말 탈퇴하시겠어요?" description="탈퇴하면 이 커뮤니티에 다시 가입해야 글·댓글을 남길 수 있어요." confirmLabel="탈퇴하기" cancelLabel="아니요" variant="danger" busy={busy} onClose={() => setConfirmLeave(false)} onConfirm={() => { setConfirmLeave(false); leave() }} />
       {reportPostId && <CommunityPostReportModal postId={reportPostId} onClose={() => setReportPostId(null)} onSubmitted={() => reportDone(reportPostId)} />}
       {editOpen && community && <CommunityEditModal community={community} onClose={() => setEditOpen(false)} onSaved={(c) => setCommunity(c)} onClosed={() => router.push('/community')} />}
-      {membersOpen && community && <CommunityMembersModal members={members} managerId={community.managerId} onClose={() => setMembersOpen(false)} />}
+      {membersOpen && community && <CommunityMembersModal members={members} managerId={community.managerId} communityId={id} isManager={isManager} onClose={() => setMembersOpen(false)} onChanged={load} />}
       {joinReqOpen && community && <JoinRequestModal communityId={id} communityName={community.name} joinRules={community.joinRules} onClose={() => setJoinReqOpen(false)} onRequested={load} />}
       {manageOpen && <ManageJoinRequestsModal communityId={id} onClose={() => setManageOpen(false)} onChanged={load} />}
       {editingPost && <CommunityPostEditModal post={editingPost} communityId={id} onClose={() => setEditingPost(null)} onSaved={onEditSaved} />}
