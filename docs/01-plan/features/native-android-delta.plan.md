@@ -16,7 +16,7 @@
 - **가격**: `pricing.ts`의 `android` 마크업 **+15%**(Play ~15% 수수료 반영). iOS는 +30%, web 원가. (설계 §14.2)
 - **크레딧 잔액**: 스토어 무관 **웹/앱 공유**(같은 Supabase 계정). 스토어는 구매 채널일 뿐.
 - **크레딧 지급 웹훅**: iOS와 **동일 엔드포인트**(`/api/iap/revenuecat-webhook`). RevenueCat이 `store` 필드로 app_store/play_store 구분.
-- **패키지명**: `com.modoomusic.app`(iOS bundle id와 정합. 2026-07-08 `com.modoomusic.app`→`com.modoomusic.app`로 정정 — BeeNoo 애플 팀에 등록된 실제 식별자). 확정 후 변경 금지(스토어 귀속).
+- **패키지명**: `com.modoomusic.app`(iOS bundle id와 정합 — BeeNoo 애플 팀에 등록된 실제 식별자. 2026-07-08 옛 `com.mono.app`에서 정정). 확정 후 변경 금지(스토어 귀속).
 - **min SDK / target**: Expo 기본(min 24+), target은 Play 최신 정책 준수.
 - **외부결제 문구 금지**: Play 정책상 앱 내 웹 결제 유도 금지(iOS와 동일 원칙).
 
