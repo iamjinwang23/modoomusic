@@ -64,7 +64,10 @@ export function CommunityListRow({ c }: { c: Community }) {
         {c.avatarImage ? <img src={c.avatarImage} alt="" className="w-full h-full object-cover" /> : c.name.slice(0, 1).toUpperCase()}
       </div>
       <div className="min-w-0 flex-1">
-        <p className="text-sm font-bold text-white truncate">{c.name}</p>
+        <p className="text-sm font-bold text-white truncate flex items-center gap-1">
+          <span className="truncate">{c.name}</span>
+          {c.visibility === 'private' && <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" strokeWidth="2" className="shrink-0"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>}
+        </p>
         <p className="text-[11px] text-zinc-400 truncate mt-0.5">멤버 {c.memberCount.toLocaleString()} · 새 글 {(c.recentPostCount ?? 0)}</p>
       </div>
     </Link>
