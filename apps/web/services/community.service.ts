@@ -3,7 +3,7 @@ import { createAdminClient } from '@/lib/supabase/admin'
 import { sendPushToUser } from '@/services/push.service'
 import { findBannedWord } from '@/services/moderation.service'
 import type { Community, CommunityMember } from '@mono/shared'
-import { rejoinAvailableAtIso } from '@mono/shared'
+import { canLeaveCommunity, rejoinAvailableAtIso } from '@mono/shared'
 
 // 모더레이션(강퇴·게시물 삭제) 알림 — 시스템 알림 + 웹푸시
 export async function notifyCommunityModeration(targetUserId: string, title: string, body: string, url: string): Promise<void> {
@@ -271,12 +271,17 @@ export async function leaveCommunity(userId: string, communityId: string): Promi
   const { data: c } = await admin.from('communities').select('manager_id').eq('id', communityId).maybeSingle()
   if (!c) return { ok: false, error: 'not_found' }
   if (c.manager_id === userId) return { ok: false, error: 'manager_cannot_leave' }
+  const { data: mem } = await admin.from('community_members')
+    .select('joined_at').eq('community_id', communityId).eq('user_id', userId).maybeSingle()
+  if (mem && !canLeaveCommunity(mem.joined_at as string, Date.now())) {
+    return { ok: false, error: 'leave_cooldown' }
+  }
   await admin.from('community_members').delete().eq('community_id', communityId).eq('user_id', userId)
   return { ok: true }
 }
 
-// 강퇴 — 매니저만. 대상 멤버십 제거(매니저 자신은 불가).
-export async function kickMember(userId: string, communityId: string, targetUserId: string): Promise<{ ok: boolean; error?: string }> {
+// 강퇴 — 매니저만. 대상 멤버십 제거(매니저 자신은 불가). ban이면 재가입 차단(community_blocks).
+export async function kickMember(userId: string, communityId: string, targetUserId: string, ban = false): Promise<{ ok: boolean; error?: string }> {
   const admin = createAdminClient()
   const { data: c } = await admin.from('communities').select('manager_id, name').eq('id', communityId).maybeSingle()
   if (!c) return { ok: false, error: 'not_found' }
@@ -286,7 +291,23 @@ export async function kickMember(userId: string, communityId: string, targetUser
   const { data: mem } = await admin.from('community_members').select('user_id').eq('community_id', communityId).eq('user_id', targetUserId).maybeSingle()
   if (!mem) return { ok: false, error: 'not_member' }
   await admin.from('community_members').delete().eq('community_id', communityId).eq('user_id', targetUserId)
+  if (ban) {
+    await admin.from('community_blocks').upsert(
+      { community_id: communityId, user_id: targetUserId },
+      { onConflict: 'community_id,user_id', ignoreDuplicates: true },
+    )
+  }
   await notifyCommunityModeration(targetUserId, '커뮤니티에서 내보내졌어요', `'${c.name}' 커뮤니티에서 내보내졌어요.`, `/community/${communityId}`)
+  return { ok: true }
+}
+
+// 차단 해제 — 매니저만. community_blocks 행 제거.
+export async function unblockMember(userId: string, communityId: string, targetUserId: string): Promise<{ ok: boolean; error?: string }> {
+  const admin = createAdminClient()
+  const { data: c } = await admin.from('communities').select('manager_id').eq('id', communityId).maybeSingle()
+  if (!c) return { ok: false, error: 'not_found' }
+  if (c.manager_id !== userId) return { ok: false, error: 'forbidden' }
+  await admin.from('community_blocks').delete().eq('community_id', communityId).eq('user_id', targetUserId)
   return { ok: true }
 }
 
