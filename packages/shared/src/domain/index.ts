@@ -109,7 +109,7 @@ export interface UserProfile {
 }
 
 // Design Ref: notifications §3.2 — 알림 5종 + 행위자·곡 join 메타
-export type NotificationType = 'like' | 'song_complete' | 'system' | 'follow' | 'comment' | 'credit_charged' | 'community_like' | 'community_comment' | 'community_closing'
+export type NotificationType = 'like' | 'song_complete' | 'system' | 'follow' | 'comment' | 'credit_charged' | 'community_like' | 'community_comment' | 'community_closing' | 'community_join_request' | 'community_join_approved' | 'community_join_rejected'
 
 // 푸시 알림 카테고리 — 설정 화면 토글 단위. system(공지)은 토글 대상 아님.
 export type PushCategory = 'song_complete' | 'likes' | 'comments' | 'follow' | 'community' | 'credit'
@@ -135,7 +135,10 @@ export function notificationTypeToCategory(type: NotificationType): PushCategory
     case 'follow': return 'follow'
     case 'community_like':
     case 'community_comment':
-    case 'community_closing': return 'community'
+    case 'community_closing':
+    case 'community_join_request':
+    case 'community_join_approved':
+    case 'community_join_rejected': return 'community'
     case 'credit_charged': return 'credit'
     default: return null // 'system'
   }
@@ -243,6 +246,11 @@ export interface Community {
   closeScheduledAt?: string | null // 하드삭제 예정 시각(= closingAt + 14d), D-day 카운트다운용
   isMember?: boolean   // 현재 유저 가입 여부 (목록/상세 표시용)
   isManager?: boolean  // 현재 유저가 매니저인지
+  visibility: 'public' | 'private'
+  joinRules: string | null
+  joinRequestStatus?: 'none' | 'pending' | 'rejected'  // 현재 유저 기준(비공개 상세용)
+  rejoinAvailableAt?: string | null                    // 거절 쿨다운 해제 시각
+  isBlocked?: boolean                                  // 강퇴 차단 여부
 }
 
 export interface CommunityPost {
@@ -286,6 +294,29 @@ export interface CommunityMember {
   avatarUrl: string | null
   avatarHue: number | null
   joinedAt: string
+}
+
+export interface CommunityJoinRequest {
+  userId: string
+  displayName: string | null
+  username: string | null
+  avatarUrl: string | null
+  avatarHue: number | null
+  createdAt: string
+}
+
+// 커뮤니티 가입/탈퇴 쿨다운 — 순수 로직(서비스에서 재사용)
+export const LEAVE_COOLDOWN_MS = 86_400_000      // 24시간
+export const REJOIN_COOLDOWN_MS = 172_800_000    // 2일
+
+export function canLeaveCommunity(joinedAtIso: string, nowMs: number): boolean {
+  return nowMs - new Date(joinedAtIso).getTime() >= LEAVE_COOLDOWN_MS
+}
+export function rejoinAvailableAtIso(decidedAtIso: string): string {
+  return new Date(new Date(decidedAtIso).getTime() + REJOIN_COOLDOWN_MS).toISOString()
+}
+export function isRejoinCooldownActive(decidedAtIso: string, nowMs: number): boolean {
+  return nowMs - new Date(decidedAtIso).getTime() < REJOIN_COOLDOWN_MS
 }
 
 export interface CommunityPostComment {
