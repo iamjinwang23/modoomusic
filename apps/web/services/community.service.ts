@@ -254,9 +254,12 @@ async function notifyClosing(
 // 가입 — 멱등(이미 멤버면 무시).
 export async function joinCommunity(userId: string, communityId: string): Promise<{ ok: boolean; error?: string }> {
   const admin = createAdminClient()
-  const { data: c } = await admin.from('communities').select('id, status').eq('id', communityId).maybeSingle()
+  const { data: c } = await admin.from('communities').select('id, status, visibility').eq('id', communityId).maybeSingle()
   if (!c) return { ok: false, error: 'not_found' }
   if (c.status === 'closing') return { ok: false, error: 'community_closing' }  // 폐쇄 유예 중 가입 차단
+  const { data: blk } = await admin.from('community_blocks').select('user_id').eq('community_id', communityId).eq('user_id', userId).maybeSingle()
+  if (blk) return { ok: false, error: 'blocked' }
+  if (c.visibility === 'private') return { ok: false, error: 'needs_request' }
   const { error } = await admin.from('community_members').upsert(
     { community_id: communityId, user_id: userId },
     { onConflict: 'community_id,user_id', ignoreDuplicates: true },
