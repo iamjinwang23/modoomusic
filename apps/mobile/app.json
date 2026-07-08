@@ -9,10 +9,10 @@
     "userInterfaceStyle": "automatic",
     "ios": {
       "icon": "./assets/expo.icon",
-      "bundleIdentifier": "com.mono.app"
+      "bundleIdentifier": "com.modoomusic.app"
     },
     "android": {
-      "package": "com.mono.app",
+      "package": "com.modoomusic.app",
       "adaptiveIcon": {
         "backgroundColor": "#E6F4FE",
         "foregroundImage": "./assets/images/android-icon-foreground.png",
