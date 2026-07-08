@@ -75,7 +75,7 @@ export function ManageJoinRequestsModal({ communityId, onClose, onChanged }: {
                 <div className="mt-2.5 flex gap-2">
                   <input value={reason} onChange={(e) => setReason(e.target.value)} maxLength={300} placeholder="거절 사유(선택)"
                     className="flex-1 bg-white/[0.05] border border-white/[0.10] rounded-lg px-3 py-2 text-sm text-white placeholder:text-zinc-600 focus:outline-none focus:ring-1 focus:ring-violet-500" />
-                  <button disabled={busy} onClick={() => decide(r.userId, 'reject', reason.trim() || undefined)} className="px-3 py-2 rounded-lg text-xs font-semibold text-white bg-red-500/80 hover:bg-red-500 transition disabled:opacity-40">거절 확정</button>
+                  <button disabled={busy} onClick={() => decide(r.userId, 'reject', reason.trim() || undefined)} className="px-3 py-2 rounded-lg text-xs font-semibold text-white bg-red-500/80 hover:bg-red-500 transition disabled:opacity-40">거절하기</button>
                 </div>
               )}
             </div>
