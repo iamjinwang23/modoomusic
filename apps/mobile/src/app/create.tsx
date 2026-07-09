@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import {
-  ActionSheetIOS, ActivityIndicator, Animated, KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, StyleSheet, Switch, Text, TextInput, View,
+  ActionSheetIOS, ActivityIndicator, Animated, Keyboard, KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, StyleSheet, Switch, Text, TextInput, View,
 } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { router } from 'expo-router'
@@ -41,6 +41,24 @@ export default function CreateScreen() {
   useEffect(() => {
     api.get('/api/credits/me').then((c) => setCredits((c as { total?: number })?.total ?? null)).catch(() => {})
   }, [])
+
+  // 키보드 실제 높이 추적(자동완성 바 포함) — CTA를 키보드에 정확히 붙이기 위해 컨테이너 하단을 그만큼 띄움
+  const [kbHeight, setKbHeight] = useState(0)
+  useEffect(() => {
+    const show = Keyboard.addListener('keyboardWillShow', (e) => setKbHeight(e.endCoordinates.height))
+    const hide = Keyboard.addListener('keyboardWillHide', () => setKbHeight(0))
+    return () => { show.remove(); hide.remove() }
+  }, [])
+
+  // 심플 +가사 → 고급 전환 후 가사 인풋 자동 포커스
+  const lyricsRef = useRef<TextInput>(null)
+  const [focusLyrics, setFocusLyrics] = useState(false)
+  useEffect(() => {
+    if (mode === 'advanced' && focusLyrics) {
+      const t = setTimeout(() => { lyricsRef.current?.focus(); setFocusLyrics(false) }, 120)
+      return () => clearTimeout(t)
+    }
+  }, [mode, focusLyrics])
 
   // AI 가사 모달 — 딤은 페이드, 시트만 슬라이드업(분리 애니메이션)
   const [modalMounted, setModalMounted] = useState(false)
@@ -154,10 +172,8 @@ export default function CreateScreen() {
 
   return (
     <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-      <View style={[styles.container, { paddingTop: insets.top + 6 }]}>
-        <View style={styles.dismissRow}>
-          <Pressable onPress={() => router.back()} hitSlop={12}><Icon name="chevron.down" size={24} color={mono.color.text} /></Pressable>
-        </View>
+      <View style={[styles.container, { paddingTop: 8 }]}>
+        <View style={styles.handleRow}><View style={styles.handle} /></View>
 
         {/* 컨트롤 행: 크레딧 · 심플/고급 · 모델(고급) */}
         <View style={styles.controls}>
@@ -180,7 +196,8 @@ export default function CreateScreen() {
           ) : <View style={styles.modelPillGhost} />}
         </View>
 
-        <ScrollView contentContainerStyle={{ paddingBottom: insets.bottom + 16 }} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
+        <ScrollView style={styles.flex} contentContainerStyle={{ paddingBottom: 20 }} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
+
           {mode === 'simple' ? (
             /* 심플 = 설명 카드 하나 */
             <View style={styles.card}>
@@ -197,7 +214,7 @@ export default function CreateScreen() {
                 multiline
               />
               {!instrumental ? (
-                <Pressable onPress={() => setMode('advanced')} style={styles.addBtn} hitSlop={6}>
+                <Pressable onPress={() => { setMode('advanced'); setFocusLyrics(true) }} style={styles.addBtn} hitSlop={6}>
                   <Icon name="plus" size={16} color={mono.color.text} /><Text style={styles.addBtnText}>가사</Text>
                 </Pressable>
               ) : null}
@@ -213,6 +230,7 @@ export default function CreateScreen() {
                 {!instrumental ? (
                   <>
                     <TextInput
+                      ref={lyricsRef}
                       style={[styles.cardInput, styles.lyricsInput]}
                       placeholder={'직접 가사를 입력하세요 (최소 10자 이상)\n비워두면 자동으로 인스트루멘탈로 생성돼요\n\n[Verse] [Chorus] [Bridge] 태그로 구조를 지정할 수 있어요'}
                       placeholderTextColor={mono.color.textTertiary}
@@ -243,19 +261,8 @@ export default function CreateScreen() {
                 {chipRail}
               </View>
 
-              <View style={styles.titleWrap}>
-                <Icon name="music.file" size={18} color={mono.color.textTertiary} />
-                <TextInput
-                  style={styles.titleInput}
-                  placeholder="곡 제목 (선택)"
-                  placeholderTextColor={mono.color.textTertiary}
-                  value={title}
-                  onChangeText={setTitle}
-                />
-              </View>
-
-              <View style={styles.optRow}>
-                <Text style={styles.optLabel}>보컬 성별</Text>
+              <View style={[styles.card, styles.optCard]}>
+                <Text style={styles.cardTitle}>보컬 성별</Text>
                 <View style={styles.genderRow}>
                   {(['female', 'male'] as const).map((v) => {
                     const on = vocalGender === v
@@ -267,13 +274,24 @@ export default function CreateScreen() {
                   })}
                 </View>
               </View>
+
+              <View style={styles.titleWrap}>
+                <Icon name="music.file" size={18} color={mono.color.textTertiary} />
+                <TextInput
+                  style={styles.titleInput}
+                  placeholder="곡 제목 (선택)"
+                  placeholderTextColor={mono.color.textTertiary}
+                  value={title}
+                  onChangeText={setTitle}
+                />
+              </View>
             </>
           )}
 
           {error ? <Text style={styles.error}>{error}</Text> : null}
         </ScrollView>
 
-        <View style={[styles.footer, { paddingBottom: insets.bottom + 8 }]}>
+        <View style={[styles.footer, { paddingBottom: kbHeight > 0 ? 8 : insets.bottom + 8 }]}>
           <Pressable onPress={canSubmit ? submit : undefined} style={({ pressed }) => [styles.cta, !canSubmit && styles.ctaOff, pressed && canSubmit && styles.ctaPressed]}>
             {busy ? <ActivityIndicator color="#fff" /> : (
               <View style={styles.ctaInner}>
@@ -327,7 +345,8 @@ export default function CreateScreen() {
 const styles = StyleSheet.create({
   flex: { flex: 1 },
   container: { flex: 1, backgroundColor: mono.color.bg, paddingHorizontal: 16 },
-  dismissRow: { paddingBottom: 6 },
+  handleRow: { alignItems: 'center', paddingTop: 4, paddingBottom: 38 },
+  handle: { width: 40, height: 5, borderRadius: 3, backgroundColor: mono.color.fillStrong },
   controls: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16, gap: 8 },
   creditPill: { flexDirection: 'row', alignItems: 'center', gap: 5, backgroundColor: mono.color.fill, borderRadius: mono.radius.pill, paddingHorizontal: 14, paddingVertical: 9 },
   creditText: { color: mono.color.text, fontSize: mono.font.small, fontWeight: '700' },
@@ -365,13 +384,12 @@ const styles = StyleSheet.create({
   chip: { backgroundColor: mono.color.fill, borderRadius: mono.radius.pill, paddingHorizontal: 16, paddingVertical: 9 },
   chipText: { color: mono.color.text, fontSize: mono.font.small },
 
-  optRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14, paddingHorizontal: 2 },
-  optLabel: { color: mono.color.text, fontSize: mono.font.body, fontWeight: '600' },
+  optCard: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 14 },
   genderRow: { flexDirection: 'row', gap: 8 },
   gender: { paddingHorizontal: 20, paddingVertical: 9, borderRadius: mono.radius.pill, backgroundColor: mono.color.fill },
-  genderOn: { backgroundColor: mono.color.surface2, borderWidth: 1, borderColor: mono.color.accent },
+  genderOn: { backgroundColor: '#fff' },
   genderText: { color: mono.color.textSecondary, fontSize: mono.font.small, fontWeight: '600' },
-  genderTextOn: { color: mono.color.accentLight },
+  genderTextOn: { color: '#111' },
 
   titleWrap: { flexDirection: 'row', alignItems: 'center', gap: 10, backgroundColor: mono.color.surface, borderRadius: mono.radius.lg, borderWidth: 1, borderColor: mono.color.borderSoft, paddingHorizontal: 16, marginBottom: 4 },
   titleInput: { flex: 1, color: mono.color.text, fontSize: mono.font.body, paddingVertical: 16 },
