@@ -77,6 +77,33 @@ export function PopularPostCard({ post, width, onPress }: { post: CommunityPost;
   )
 }
 
+// 커뮤니티 커버 카드(새 커뮤니티) — 16:9 커버 + 하단 아바타·이름·멤버(웹 CommunityCard 파리티).
+export function CommunityCoverCard({ c, width, onPress }: { c: Community; width: number; onPress: () => void }) {
+  return (
+    <Pressable onPress={onPress} style={{ width }}>
+      <View style={[styles.coverThumb, { height: width * 9 / 16 }]}>
+        {c.coverImage ? <Image source={{ uri: c.coverImage }} style={styles.fill} contentFit="cover" transition={150} /> : null}
+        <View style={styles.thumbRing} pointerEvents="none" />
+      </View>
+      <View style={styles.coverFoot}>
+        <View style={styles.coverAvatar}>
+          {c.avatarImage ? (
+            <Image source={{ uri: c.avatarImage }} style={styles.fill} contentFit="cover" />
+          ) : (
+            <Text style={styles.coverInitial}>{initialOf(c.name)}</Text>
+          )}
+        </View>
+        <View style={styles.coverBody}>
+          <Text style={styles.coverName} numberOfLines={1}>{c.name}</Text>
+          <Text style={styles.coverMeta} numberOfLines={1}>
+            멤버 {c.memberCount.toLocaleString()}{c.recentPostCount ? `  ·  새 글 ${c.recentPostCount}` : ''}
+          </Text>
+        </View>
+      </View>
+    </Pressable>
+  )
+}
+
 // 인기 커뮤니티 순위 행 — 순위(1~3위 바이올렛) + 아바타 + 이름 + 멤버·새 글.
 export function CommunityRankRow({ c, rank, onPress }: { c: Community; rank: number; onPress: () => void }) {
   const top = rank <= 3
@@ -128,6 +155,18 @@ const styles = StyleSheet.create({
   postStats: { flexDirection: 'row', gap: 12, marginTop: 7 },
   stat: { flexDirection: 'row', alignItems: 'center', gap: 4 },
   statText: { color: mono.color.textTertiary, fontSize: mono.font.small },
+
+  // 커뮤니티 커버 카드
+  coverThumb: { width: '100%', borderRadius: mono.radius.md, overflow: 'hidden', backgroundColor: '#363A47' },
+  coverFoot: { flexDirection: 'row', alignItems: 'center', gap: 9, marginTop: 9 },
+  coverAvatar: {
+    width: 36, height: 36, borderRadius: mono.radius.sm, overflow: 'hidden', alignItems: 'center', justifyContent: 'center',
+    backgroundColor: GRAY_AVATAR,
+  },
+  coverInitial: { color: GRAY_AVATAR_TEXT, fontSize: 15, fontWeight: '800' },
+  coverBody: { flex: 1, minWidth: 0 },
+  coverName: { color: mono.color.text, fontSize: mono.font.small, fontWeight: '700' },
+  coverMeta: { color: mono.color.textTertiary, fontSize: mono.font.tiny, marginTop: 2 },
 
   // 순위 행
   rankRow: { flexDirection: 'row', alignItems: 'center', gap: 14, paddingVertical: 10 },

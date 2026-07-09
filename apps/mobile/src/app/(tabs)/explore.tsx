@@ -4,8 +4,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { router, useFocusEffect } from 'expo-router'
 import type { Community, CommunityPost } from '@mono/shared'
 import { api } from '@/lib/api'
-import { CommunityCard } from '@/components/ui/community-card'
-import { CommunityStory, PopularPostCard, CommunityRankRow } from '@/components/ui/hub-cards'
+import { CommunityStory, PopularPostCard, CommunityRankRow, CommunityCoverCard } from '@/components/ui/hub-cards'
 import { Icon } from '@/components/ui/icon'
 import { mono } from '@/theme/mono'
 
@@ -99,10 +98,12 @@ export default function ExploreScreen() {
             )}
           </Section>
 
-          {/* 새로 생긴 커뮤니티 */}
+          {/* 새로 생긴 커뮤니티 — 2열 커버 카드 */}
           {hub.recent.length > 0 && (
             <Section title="새로 생긴 커뮤니티">
-              {hub.recent.map((c) => <CommunityCard key={c.id} community={c} onPress={() => go(c.id)} />)}
+              <View style={styles.grid}>
+                {hub.recent.map((c) => <CommunityCoverCard key={c.id} c={c} width={cardW} onPress={() => go(c.id)} />)}
+              </View>
             </Section>
           )}
         </ScrollView>
