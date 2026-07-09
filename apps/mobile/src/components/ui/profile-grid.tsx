@@ -12,15 +12,15 @@ export function formatCount(n: number): string {
   return String(n)
 }
 
-// 커버 하단 스크림 — 웹 `bg-gradient-to-t from-black/60`. react-native-svg(아이콘용으로 이미 링크됨)
-// LinearGradient로 GPU 렌더 — 밴딩 없이 완전히 매끄러움. 상단 투명 → 하단 진함.
+// 커버 하단 스크림 — 커버 이미지가 하단에서 앱 배경으로 자연스럽게 사라짐(맨 아래=배경 100%).
+// react-native-svg LinearGradient로 GPU 렌더(밴딩 없음). 상단 투명 → 하단 배경색 불투명.
 export function CoverScrim() {
   return (
     <Svg style={StyleSheet.absoluteFill} pointerEvents="none">
       <Defs>
         <LinearGradient id="coverScrim" x1="0" y1="0" x2="0" y2="1">
-          <Stop offset="0.25" stopColor="#000000" stopOpacity={0} />
-          <Stop offset="1" stopColor="#000000" stopOpacity={0.62} />
+          <Stop offset="0.3" stopColor={mono.color.bg} stopOpacity={0} />
+          <Stop offset="1" stopColor={mono.color.bg} stopOpacity={1} />
         </LinearGradient>
       </Defs>
       <Rect x="0" y="0" width="100%" height="100%" fill="url(#coverScrim)" />
