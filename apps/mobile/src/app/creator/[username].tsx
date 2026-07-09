@@ -1,15 +1,16 @@
 import { useCallback, useEffect, useState } from 'react'
-import { ActivityIndicator, FlatList, Pressable, StyleSheet, Text, View } from 'react-native'
+import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { router, useLocalSearchParams } from 'expo-router'
 import { Image } from 'expo-image'
 import type { PublicSong, UserProfile } from '@mono/shared'
 import { api } from '@/lib/api'
 import { playSong } from '@/lib/player'
-import { PublicSongRow } from '@/components/ui/public-song-row'
+import { ProfileGrid, formatCount } from '@/components/ui/profile-grid'
+import { Icon } from '@/components/ui/icon'
 import { mono } from '@/theme/mono'
 
-// 크리에이터 프로필 — 배너/아바타/소개/카운트/팔로우 + 공개곡(GET /api/explore/profile/[username]).
+// 크리에이터 프로필 — 웹 파리티: 커버(아바타·이름 오버레이) + 팔로우 + 스탯 + 세로 그리드.
 export default function CreatorScreen() {
   const insets = useSafeAreaInsets()
   const { username } = useLocalSearchParams<{ username: string }>()
@@ -72,59 +73,63 @@ export default function CreatorScreen() {
 
   return (
     <View style={styles.container}>
-      <FlatList
-        data={songs}
-        keyExtractor={(s) => s.id}
-        renderItem={({ item }) => <PublicSongRow song={item} onPress={() => playSong(item)} showCreator={false} />}
-        contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: insets.bottom + 40 }}
-        ListHeaderComponent={
-          <View style={styles.header}>
-            <View style={styles.bannerWrap}>
-              {profile.coverImage ? <Image source={{ uri: profile.coverImage }} style={styles.banner} contentFit="cover" /> : <View style={[styles.banner, styles.bannerFallback]} />}
-              <Pressable onPress={() => router.back()} style={[styles.back, { top: insets.top + 8 }]} hitSlop={10}>
-                <Text style={styles.backText}>‹</Text>
-              </Pressable>
+      <ScrollView contentContainerStyle={{ paddingBottom: insets.bottom + 40 }} showsVerticalScrollIndicator={false}>
+        {/* ── 커버 + 아바타·이름 오버레이 ── */}
+        <View style={styles.cover}>
+          {profile.coverImage ? (
+            <Image source={{ uri: profile.coverImage }} style={StyleSheet.absoluteFill} contentFit="cover" />
+          ) : (
+            <View style={[StyleSheet.absoluteFill, styles.coverFallback]} />
+          )}
+          <View style={styles.scrim} pointerEvents="none" />
+          <View style={styles.scrimStrong} pointerEvents="none" />
+
+          {/* 뒤로가기 (좌상단) */}
+          <Pressable onPress={() => router.back()} style={[styles.back, { top: insets.top + 8 }]} hitSlop={10}>
+            <Icon name="chevron.left" size={22} color={mono.color.onMedia} />
+          </Pressable>
+
+          {/* 팔로우 (우상단) */}
+          <Pressable
+            onPress={toggleFollow}
+            disabled={followBusy}
+            style={[styles.followPill, { top: insets.top + 8 }, following && styles.followingPill, followBusy && styles.dim]}
+            hitSlop={8}
+          >
+            <Text style={styles.followText}>{following ? '팔로잉' : '팔로우'}</Text>
+          </Pressable>
+
+          {/* 좌하단 아바타 + 이름 */}
+          <View style={styles.identity}>
+            <View style={styles.avatar}>
+              {profile.avatarImage ? (
+                <Image source={{ uri: profile.avatarImage }} style={styles.avatarImg} contentFit="cover" />
+              ) : (
+                <Text style={styles.avatarText}>{initial}</Text>
+              )}
             </View>
-
-            <View style={styles.avatarWrap}>
-              <View style={styles.avatar}>
-                {profile.avatarImage ? <Image source={{ uri: profile.avatarImage }} style={styles.avatarImg} contentFit="cover" /> : <Text style={styles.avatarText}>{initial}</Text>}
-              </View>
+            <View style={styles.nameWrap}>
+              <Text style={styles.name} numberOfLines={1}>{name}</Text>
+              <Text style={styles.handle} numberOfLines={1}>@{profile.username}</Text>
             </View>
-
-            <Text style={styles.name}>{name}</Text>
-            <Text style={styles.handle}>@{profile.username}</Text>
-            {profile.bio ? <Text style={styles.bio}>{profile.bio}</Text> : null}
-
-            <View style={styles.counts}>
-              <Count label="곡" value={profile.songCount} />
-              <Count label="팔로워" value={followerCount} />
-              <Count label="팔로잉" value={profile.followingCount} />
-            </View>
-
-            <Pressable
-              onPress={toggleFollow}
-              disabled={followBusy}
-              style={[styles.followBtn, following ? styles.followingBtn : styles.followBtnOn, followBusy && styles.dim]}
-            >
-              <Text style={[styles.followText, following && styles.followingText]}>{following ? '팔로잉' : '팔로우'}</Text>
-            </Pressable>
-
-            <Text style={styles.songsLabel}>공개 곡</Text>
           </View>
-        }
-        ListEmptyComponent={<Text style={styles.empty}>공개된 곡이 없어요</Text>}
-        showsVerticalScrollIndicator={false}
-      />
-    </View>
-  )
-}
+        </View>
 
-function Count({ label, value }: { label: string; value: number }) {
-  return (
-    <View style={styles.count}>
-      <Text style={styles.countValue}>{value.toLocaleString()}</Text>
-      <Text style={styles.countLabel}>{label}</Text>
+        {/* ── 스탯 + 소개 ── */}
+        <View style={styles.meta}>
+          <View style={styles.stats}>
+            <Text style={styles.statItem}><Text style={styles.statNum}>{formatCount(profile.songCount)}</Text> 곡</Text>
+            <Text style={styles.statItem}><Text style={styles.statNum}>{followerCount.toLocaleString()}</Text> 팔로워</Text>
+            <Text style={styles.statItem}><Text style={styles.statNum}>{profile.followingCount.toLocaleString()}</Text> 팔로잉</Text>
+          </View>
+          {profile.bio ? <Text style={styles.bio}>{profile.bio}</Text> : null}
+        </View>
+
+        {/* ── 음악/영상 탭 + 그리드 ── */}
+        <View style={styles.gridWrap}>
+          <ProfileGrid songs={songs} onPlay={(s) => playSong(s)} empty="공개된 곡이 없어요" />
+        </View>
+      </ScrollView>
     </View>
   )
 }
@@ -134,32 +139,32 @@ const styles = StyleSheet.create({
   center: { alignItems: 'center', justifyContent: 'center', gap: 14 },
   err: { color: mono.color.textSecondary, fontSize: mono.font.body },
   link: { color: mono.color.accentLight, fontSize: mono.font.body, fontWeight: '700' },
-  header: { marginHorizontal: -16, marginBottom: 8 },
-  bannerWrap: { position: 'relative' },
-  banner: { width: '100%', height: 140, backgroundColor: mono.color.surface2 },
-  bannerFallback: { backgroundColor: mono.color.surface },
-  back: { position: 'absolute', left: 12, width: 36, height: 36, borderRadius: 18, backgroundColor: mono.color.overlay, alignItems: 'center', justifyContent: 'center' },
-  backText: { color: mono.color.onMedia, fontSize: 26, lineHeight: 28, marginTop: -2 },
-  avatarWrap: { paddingHorizontal: 16, marginTop: -36 },
+  cover: { width: '100%', aspectRatio: 16 / 9, backgroundColor: mono.color.surface2, overflow: 'hidden' },
+  coverFallback: { backgroundColor: mono.color.surface },
+  scrim: { position: 'absolute', left: 0, right: 0, bottom: 0, height: '55%', backgroundColor: 'rgba(0,0,0,0.28)' },
+  scrimStrong: { position: 'absolute', left: 0, right: 0, bottom: 0, height: '28%', backgroundColor: 'rgba(0,0,0,0.34)' },
+  back: { position: 'absolute', left: 12, width: 34, height: 34, borderRadius: 17, backgroundColor: mono.color.overlay, alignItems: 'center', justifyContent: 'center' },
+  followPill: {
+    position: 'absolute', right: 12, paddingHorizontal: 16, height: 34, borderRadius: 17,
+    backgroundColor: mono.color.overlay, alignItems: 'center', justifyContent: 'center',
+  },
+  followingPill: { backgroundColor: 'rgba(0,0,0,0.55)' },
+  dim: { opacity: 0.5 },
+  followText: { color: mono.color.onMedia, fontSize: mono.font.small, fontWeight: '700' },
+  identity: { position: 'absolute', left: 16, bottom: 14, right: 16, flexDirection: 'row', alignItems: 'center', gap: 12 },
   avatar: {
-    width: 76, height: 76, borderRadius: 38, overflow: 'hidden', borderWidth: 3, borderColor: mono.color.bg,
+    width: 76, height: 76, borderRadius: 38, overflow: 'hidden', borderWidth: 2, borderColor: 'rgba(255,255,255,0.85)',
     backgroundColor: mono.color.surface2, alignItems: 'center', justifyContent: 'center',
   },
   avatarImg: { width: '100%', height: '100%' },
-  avatarText: { color: mono.color.accentLight, fontSize: 30, fontWeight: '800' },
-  name: { color: mono.color.text, fontSize: mono.font.h1, fontWeight: '800', marginTop: 10, paddingHorizontal: 16 },
-  handle: { color: mono.color.accentLight, fontSize: mono.font.small, paddingHorizontal: 16, marginTop: 2 },
-  bio: { color: mono.color.textSecondary, fontSize: mono.font.body, paddingHorizontal: 16, marginTop: 8, lineHeight: 20 },
-  counts: { flexDirection: 'row', gap: 24, paddingHorizontal: 16, marginTop: 14 },
-  count: { alignItems: 'flex-start' },
-  countValue: { color: mono.color.text, fontSize: mono.font.body, fontWeight: '800' },
-  countLabel: { color: mono.color.textTertiary, fontSize: mono.font.tiny },
-  followBtn: { marginHorizontal: 16, marginTop: 16, paddingVertical: 12, borderRadius: mono.radius.pill, alignItems: 'center' },
-  followBtnOn: { backgroundColor: mono.color.accent },
-  followingBtn: { backgroundColor: mono.color.fillStrong },
-  dim: { opacity: 0.5 },
-  followText: { color: mono.color.text, fontSize: mono.font.body, fontWeight: '700' },
-  followingText: { color: mono.color.accentLight },
-  songsLabel: { color: mono.color.text, fontSize: mono.font.h2, fontWeight: '700', marginTop: 24, paddingHorizontal: 16 },
-  empty: { color: mono.color.textSecondary, fontSize: mono.font.body, textAlign: 'center', marginTop: 24 },
+  avatarText: { color: mono.color.onMedia, fontSize: 30, fontWeight: '800' },
+  nameWrap: { flex: 1, minWidth: 0 },
+  name: { color: mono.color.onMedia, fontSize: mono.font.h1, fontWeight: '800' },
+  handle: { color: 'rgba(255,255,255,0.7)', fontSize: mono.font.small, marginTop: 2 },
+  meta: { paddingHorizontal: 16, paddingTop: 16, gap: 12 },
+  stats: { flexDirection: 'row', gap: 20 },
+  statItem: { color: mono.color.textTertiary, fontSize: mono.font.small },
+  statNum: { color: mono.color.text, fontWeight: '700' },
+  bio: { color: mono.color.textSecondary, fontSize: mono.font.body, lineHeight: 20 },
+  gridWrap: { marginTop: 18 },
 })
