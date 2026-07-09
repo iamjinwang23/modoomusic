@@ -20,6 +20,10 @@ import ArrowDown from '@/assets/mingcute/Arrow-To-Down.svg'
 import SkipPrevious from '@/assets/mingcute/Skip-Previous.svg'
 import SkipForward from '@/assets/mingcute/Skip-Forward.svg'
 import Profile from '@/assets/mingcute/Profile.svg'
+import Refresh from '@/assets/mingcute/Refresh.svg'
+import Sparkles from '@/assets/mingcute/Sparkles.svg'
+import AiGenerateText from '@/assets/mingcute/Ai-Generate-Text.svg'
+import FileMusic from '@/assets/mingcute/File-Music.svg'
 
 // 앱 아이콘 이름 → MingCute 컴포넌트. (좋아요=Thumb-Up 썸즈업, 웹과 동일)
 const MAP = {
@@ -44,6 +48,10 @@ const MAP = {
   'bubble.left': Chat,
   'music.note': MusicSvg,
   close: CloseFill,
+  refresh: Refresh,              // 스타일 칩 다시 섞기(웹 Refresh)
+  sparkle: Sparkles,             // 크레딧·CTA(웹 Sparkles)
+  'ai.lyrics': AiGenerateText,   // AI 가사(웹 Ai-Generate-Text)
+  'music.file': FileMusic,       // 곡 제목(웹 File-Music)
 } as const
 
 export type IconName = keyof typeof MAP
