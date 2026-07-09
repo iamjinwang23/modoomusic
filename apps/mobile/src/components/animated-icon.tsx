@@ -7,6 +7,7 @@ import { scheduleOnRN } from 'react-native-worklets';
 
 const INITIAL_SCALE_FACTOR = Dimensions.get('screen').height / 90;
 const DURATION = 600;
+const SPLASH_DURATION = 1000;  // 스플래시 오버레이 유지+페이드(약 1초)
 
 export function AnimatedSplashOverlay() {
   const [animate, setAnimate] = useState(false);
@@ -19,12 +20,8 @@ export function AnimatedSplashOverlay() {
       transform: [{ scale: 1 }],
       opacity: 1,
     },
-    20: {
+    60: {
       opacity: 1,
-    },
-    70: {
-      opacity: 0,
-      easing: Easing.elastic(0.7),
     },
     100: {
       opacity: 0,
@@ -33,11 +30,11 @@ export function AnimatedSplashOverlay() {
     },
   });
 
-  const image = <Image style={styles.image} source={require('@/assets/images/expo-logo.png')} />;
+  const image = <Image style={styles.wordmark} source={require('@/assets/images/mono-wordmark.png')} contentFit="contain" />;
 
   return animate ? (
     <Animated.View
-      entering={splashKeyframe.duration(DURATION).withCallback((finished) => {
+      entering={splashKeyframe.duration(SPLASH_DURATION).withCallback((finished) => {
         'worklet';
         if (finished) {
           scheduleOnRN(setVisible, false);
@@ -131,6 +128,11 @@ const styles = StyleSheet.create({
     width: 76,
     height: 71,
   },
+  // mono 워드마크(스플래시) — 720x163 비율
+  wordmark: {
+    width: 140,
+    height: 140 * 163 / 720,
+  },
   background: {
     borderRadius: 40,
     experimental_backgroundImage: `linear-gradient(180deg, #3C9FFE, #0274DF)`,
@@ -140,7 +142,7 @@ const styles = StyleSheet.create({
   },
   splashOverlay: {
     ...StyleSheet.absoluteFill,
-    backgroundColor: '#208AEF',
+    backgroundColor: '#000000',
     alignItems: 'center',
     justifyContent: 'center',
     zIndex: 1000,

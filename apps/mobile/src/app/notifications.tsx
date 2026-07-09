@@ -5,7 +5,30 @@ import { router } from 'expo-router'
 import { Image } from 'expo-image'
 import type { Notification } from '@mono/shared'
 import { api } from '@/lib/api'
+import { supabase } from '@/lib/supabase'
+import { Icon } from '@/components/ui/icon'
 import { mono } from '@/theme/mono'
+
+type Category = 'all' | 'music' | 'community' | 'news'
+const FILTERS: { key: Category; label: string }[] = [
+  { key: 'all', label: '전체' },
+  { key: 'music', label: '음악' },
+  { key: 'community', label: '커뮤니티' },
+  { key: 'news', label: '새소식' },
+]
+
+const NOTICE_TYPES = ['system', 'community_closing', 'community_join_request', 'community_join_approved', 'community_join_rejected']
+
+// 알림 → 카테고리(웹 NotificationPanel 파리티).
+function categoryOf(n: Notification): Exclude<Category, 'all'> {
+  if (n.type === 'community_like' || n.type === 'community_comment') return 'community'
+  if (n.type === 'community_join_request' || n.type === 'community_join_approved' || n.type === 'community_join_rejected' || n.type === 'community_closing') return 'community'
+  if (n.type === 'system') {
+    const url = (n.payload as { url?: string })?.url
+    return url?.startsWith('/community') ? 'community' : 'news'
+  }
+  return 'music'  // like·comment·song_complete·follow·credit_charged
+}
 
 function timeAgo(iso: string): string {
   const diff = Date.now() - new Date(iso).getTime()
@@ -39,10 +62,38 @@ function message(n: Notification): string {
   }
 }
 
-// 알림 인박스 — GET /api/notifications. 좋아요/댓글/완성/팔로우 등.
+// 좌측 비주얼 — 소식/커뮤니티공지=원형 아이콘, 크레딧=원형 반짝, 곡 완성=사각 커버, 그 외=원형 아바타(웹 파리티).
+function Visual({ n }: { n: Notification }) {
+  if (NOTICE_TYPES.includes(n.type)) {
+    return <View style={styles.iconCircle}><Icon name="bell" size={18} color={mono.color.accentLight} /></View>
+  }
+  if (n.type === 'credit_charged') {
+    return <View style={styles.iconCircle}><Icon name="sparkle" size={18} color={mono.color.accentLight} /></View>
+  }
+  if (n.type === 'song_complete') {
+    return (
+      <View style={[styles.coverSquare, { backgroundColor: `hsl(${n.songCoverHue ?? 250}, 30%, 22%)` }]}>
+        {n.songCoverImage ? <Image source={{ uri: n.songCoverImage }} style={styles.fill} contentFit="cover" /> : <Text style={styles.thumbIcon}>♪</Text>}
+        <View style={styles.squareRing} pointerEvents="none" />
+      </View>
+    )
+  }
+  if (n.actorAvatarUrl) {
+    return <View style={styles.avatarCircle}><Image source={{ uri: n.actorAvatarUrl }} style={styles.fill} contentFit="cover" /></View>
+  }
+  const letter = (n.actorName ?? '?').trim().charAt(0).toUpperCase() || '?'
+  return (
+    <View style={[styles.avatarCircle, { backgroundColor: `hsl(${n.actorAvatarHue ?? 250}, 40%, 32%)` }]}>
+      <Text style={styles.letter}>{letter}</Text>
+    </View>
+  )
+}
+
+// 알림 인박스 — GET /api/notifications. 카테고리 필터·모두 읽음·탭 시 읽음(웹 파리티).
 export default function NotificationsScreen() {
   const insets = useSafeAreaInsets()
   const [items, setItems] = useState<Notification[] | null>(null)
+  const [category, setCategory] = useState<Category>('all')
   const [error, setError] = useState<string | null>(null)
 
   const load = useCallback(async () => {
@@ -58,37 +109,61 @@ export default function NotificationsScreen() {
 
   useEffect(() => { load() }, [load])
 
+  const markRead = useCallback(async (n: Notification) => {
+    if (n.readAt) return
+    setItems((prev) => prev?.map((x) => x.id === n.id ? { ...x, readAt: new Date().toISOString() } : x) ?? prev)
+    await supabase.from('notifications').update({ read_at: new Date().toISOString() }).eq('id', n.id)
+  }, [])
+
+  const markAll = useCallback(async () => {
+    setItems((prev) => prev?.map((x) => x.readAt ? x : { ...x, readAt: new Date().toISOString() }) ?? prev)
+    await supabase.from('notifications').update({ read_at: new Date().toISOString() }).is('read_at', null)
+  }, [])
+
+  const hasUnread = (items ?? []).some((n) => !n.readAt)
+  const filtered = (items ?? []).filter((n) => category === 'all' || categoryOf(n) === category)
+
   return (
     <View style={[styles.container, { paddingTop: insets.top + 8 }]}>
       <View style={styles.header}>
         <Pressable onPress={() => router.back()} hitSlop={12}><Text style={styles.close}>✕</Text></Pressable>
         <Text style={styles.title}>알림</Text>
-        <View style={{ width: 24 }} />
+        {hasUnread ? (
+          <Pressable onPress={markAll} hitSlop={8}><Text style={styles.markAll}>모두 읽음</Text></Pressable>
+        ) : (
+          <View style={{ width: 60 }} />
+        )}
+      </View>
+
+      <View style={styles.tabs}>
+        {FILTERS.map((f) => {
+          const on = category === f.key
+          return (
+            <Pressable key={f.key} onPress={() => setCategory(f.key)} style={[styles.tab, on && styles.tabOn]}>
+              <Text style={[styles.tabText, on && styles.tabTextOn]}>{f.label}</Text>
+            </Pressable>
+          )
+        })}
       </View>
 
       {items === null && !error ? (
         <ActivityIndicator color={mono.color.accent} style={{ marginTop: 40 }} />
       ) : (
         <FlatList
-          data={items ?? []}
+          data={filtered}
           keyExtractor={(n) => n.id}
           contentContainerStyle={{ paddingBottom: insets.bottom + 24 }}
-          renderItem={({ item }) => {
-            const thumb = item.songCoverImage ?? item.actorAvatarUrl
-            return (
-              <View style={[styles.row, !item.readAt && styles.unread]}>
-                <View style={styles.thumb}>
-                  {thumb ? <Image source={{ uri: thumb }} style={styles.thumbImg} contentFit="cover" /> : <Text style={styles.thumbIcon}>♪</Text>}
-                </View>
-                <View style={styles.body}>
-                  <Text style={styles.msg} numberOfLines={2}>{message(item)}</Text>
-                  {item.songTitle ? <Text style={styles.sub} numberOfLines={1}>{item.songTitle}</Text> : null}
-                  <Text style={styles.time}>{timeAgo(item.createdAt)}</Text>
-                </View>
-                {!item.readAt ? <View style={styles.dot} /> : null}
+          renderItem={({ item }) => (
+            <Pressable onPress={() => markRead(item)} style={[styles.row, !item.readAt && styles.unread]}>
+              <Visual n={item} />
+              <View style={styles.body}>
+                <Text style={styles.msg} numberOfLines={2}>{message(item)}</Text>
+                {item.songTitle ? <Text style={styles.sub} numberOfLines={1}>{item.songTitle}</Text> : null}
+                <Text style={styles.time}>{timeAgo(item.createdAt)}</Text>
               </View>
-            )
-          }}
+              {!item.readAt ? <View style={styles.dot} /> : null}
+            </Pressable>
+          )}
           ListEmptyComponent={<Text style={styles.empty}>{error ? `불러오지 못했어요 (${error})` : '아직 알림이 없어요'}</Text>}
           showsVerticalScrollIndicator={false}
         />
@@ -98,19 +173,36 @@ export default function NotificationsScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: mono.color.bg, paddingHorizontal: 20 },
-  header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 },
-  close: { color: mono.color.text, fontSize: 22, width: 24 },
+  container: { flex: 1, backgroundColor: mono.color.bg },
+  fill: { width: '100%', height: '100%' },
+  header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12, paddingHorizontal: 20 },
+  close: { color: mono.color.text, fontSize: 22, width: 60 },
   title: { color: mono.color.text, fontSize: mono.font.h2, fontWeight: '700' },
+  markAll: { color: mono.color.accentLight, fontSize: mono.font.small, fontWeight: '700', width: 60, textAlign: 'right' },
+  // 카테고리 필터 알약 — 둘러보기와 동일 토큰
+  tabs: { flexDirection: 'row', gap: 8, paddingHorizontal: 20, marginBottom: 8 },
+  tab: { paddingVertical: 11, paddingHorizontal: 20, borderRadius: mono.radius.pill, backgroundColor: mono.color.fill },
+  tabOn: { backgroundColor: '#ffffff' },
+  tabText: { color: mono.color.textSecondary, fontSize: mono.font.body, fontWeight: '600' },
+  tabTextOn: { color: mono.color.bg, fontWeight: '700' },
   empty: { color: mono.color.textSecondary, fontSize: mono.font.body, textAlign: 'center', marginTop: 48 },
-  row: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 12, borderRadius: mono.radius.md, paddingHorizontal: 8 },
-  unread: { backgroundColor: mono.color.fill },
-  thumb: { width: 44, height: 44, borderRadius: 22, overflow: 'hidden', backgroundColor: mono.color.surface2, alignItems: 'center', justifyContent: 'center' },
-  thumbImg: { width: '100%', height: '100%' },
+  // 행 — 풀블리드, 하단 헤어라인 구분선. 미읽음=연한 바이올렛 틴트(박스 아님).
+  row: {
+    flexDirection: 'row', alignItems: 'flex-start', gap: 12, paddingVertical: 14, paddingHorizontal: 20,
+    borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: mono.color.borderSoft,
+  },
+  unread: { backgroundColor: 'rgba(124,58,237,0.08)' },
+  // 원형 아바타 / 아이콘
+  avatarCircle: { width: 44, height: 44, borderRadius: 22, overflow: 'hidden', backgroundColor: mono.color.surface2, alignItems: 'center', justifyContent: 'center' },
+  iconCircle: { width: 44, height: 44, borderRadius: 22, backgroundColor: 'rgba(124,58,237,0.2)', alignItems: 'center', justifyContent: 'center' },
+  letter: { color: mono.color.onMedia, fontSize: 18, fontWeight: '800' },
+  // 사각형 곡 커버
+  coverSquare: { width: 44, height: 44, borderRadius: mono.radius.sm, overflow: 'hidden', alignItems: 'center', justifyContent: 'center' },
+  squareRing: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, borderRadius: mono.radius.sm, borderWidth: StyleSheet.hairlineWidth, borderColor: 'rgba(255,255,255,0.08)' },
   thumbIcon: { color: mono.color.textTertiary, fontSize: 18 },
   body: { flex: 1, gap: 2 },
   msg: { color: mono.color.text, fontSize: mono.font.body, lineHeight: 20 },
   sub: { color: mono.color.textSecondary, fontSize: mono.font.small },
   time: { color: mono.color.textTertiary, fontSize: mono.font.tiny, marginTop: 2 },
-  dot: { width: 8, height: 8, borderRadius: 4, backgroundColor: mono.color.accent },
+  dot: { width: 8, height: 8, borderRadius: 4, backgroundColor: mono.color.accent, marginTop: 6 },
 })
