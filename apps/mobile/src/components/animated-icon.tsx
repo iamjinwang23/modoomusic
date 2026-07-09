@@ -133,8 +133,8 @@ const styles = StyleSheet.create({
   },
   // mono 워드마크(스플래시) — 720x163 비율
   wordmark: {
-    width: 200,
-    height: 200 * 163 / 720,
+    width: 140,
+    height: 140 * 163 / 720,
   },
   background: {
     borderRadius: 40,

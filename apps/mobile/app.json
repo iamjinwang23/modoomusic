@@ -32,7 +32,7 @@
         {
           "backgroundColor": "#000000",
           "image": "./assets/images/mono-wordmark.png",
-          "imageWidth": 200
+          "imageWidth": 140
         }
       ],
       "expo-secure-store",
