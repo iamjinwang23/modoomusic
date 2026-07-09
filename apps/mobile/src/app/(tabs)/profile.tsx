@@ -7,7 +7,7 @@ import type { PublicSong, UserProfile } from '@mono/shared'
 import { api } from '@/lib/api'
 import { supabase } from '@/lib/supabase'
 import { playSong } from '@/lib/player'
-import { ProfileGrid, formatCount } from '@/components/ui/profile-grid'
+import { ProfileGrid, CoverScrim, formatCount } from '@/components/ui/profile-grid'
 import { Icon } from '@/components/ui/icon'
 import { mono } from '@/theme/mono'
 
@@ -56,20 +56,19 @@ export default function ProfileTab() {
           ) : (
             <View style={[StyleSheet.absoluteFill, styles.coverFallback]} />
           )}
-          {/* 하단 스크림 — 오버레이 텍스트 가독성 */}
-          <View style={styles.scrim} pointerEvents="none" />
-          <View style={styles.scrimStrong} pointerEvents="none" />
+          {/* 하단 스크림 — 오버레이 텍스트 가독성(그라데이션) */}
+          <CoverScrim />
 
           {/* 우상단 액션 — 프로필 수정 · 알림 · 설정 */}
-          <View style={[styles.topActions, { top: insets.top + 8 }]}>
+          <View style={[styles.topActions, { top: insets.top + 12 }]}>
             <Pressable onPress={() => router.push('/profile-edit')} style={styles.editPill} hitSlop={8}>
               <Text style={styles.editText}>프로필 수정</Text>
             </Pressable>
             <Pressable onPress={() => router.push('/notifications')} style={styles.circle} hitSlop={8}>
-              <Icon name="bell" size={17} color={mono.color.onMedia} />
+              <Icon name="bell" size={18} color={mono.color.onMedia} />
             </Pressable>
             <Pressable onPress={() => router.push('/settings')} style={styles.circle} hitSlop={8}>
-              <Icon name="ellipsis" size={17} color={mono.color.onMedia} />
+              <Icon name="ellipsis" size={18} color={mono.color.onMedia} />
             </Pressable>
           </View>
 
@@ -114,15 +113,13 @@ const styles = StyleSheet.create({
   // 커버 = 16:9(웹 aspect-video)
   cover: { width: '100%', aspectRatio: 16 / 9, backgroundColor: mono.color.surface2, overflow: 'hidden' },
   coverFallback: { backgroundColor: mono.color.surface },
-  scrim: { position: 'absolute', left: 0, right: 0, bottom: 0, height: '55%', backgroundColor: 'rgba(0,0,0,0.28)' },
-  scrimStrong: { position: 'absolute', left: 0, right: 0, bottom: 0, height: '28%', backgroundColor: 'rgba(0,0,0,0.34)' },
-  topActions: { position: 'absolute', right: 12, flexDirection: 'row', alignItems: 'center', gap: 8 },
+  topActions: { position: 'absolute', right: 20, flexDirection: 'row', alignItems: 'center', gap: 8 },
   editPill: {
-    paddingHorizontal: 14, height: 34, borderRadius: 17, backgroundColor: mono.color.overlay,
+    paddingHorizontal: 16, height: 40, borderRadius: 20, backgroundColor: mono.color.overlay,
     alignItems: 'center', justifyContent: 'center',
   },
   editText: { color: mono.color.onMedia, fontSize: mono.font.small, fontWeight: '600' },
-  circle: { width: 34, height: 34, borderRadius: 17, backgroundColor: mono.color.overlay, alignItems: 'center', justifyContent: 'center' },
+  circle: { width: 40, height: 40, borderRadius: 20, backgroundColor: mono.color.overlay, alignItems: 'center', justifyContent: 'center' },
   identity: { position: 'absolute', left: 16, bottom: 14, right: 16, flexDirection: 'row', alignItems: 'center', gap: 12 },
   avatar: {
     width: 76, height: 76, borderRadius: 38, overflow: 'hidden', borderWidth: 2, borderColor: 'rgba(255,255,255,0.85)',

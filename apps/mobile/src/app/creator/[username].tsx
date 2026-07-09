@@ -6,7 +6,7 @@ import { Image } from 'expo-image'
 import type { PublicSong, UserProfile } from '@mono/shared'
 import { api } from '@/lib/api'
 import { playSong } from '@/lib/player'
-import { ProfileGrid, formatCount } from '@/components/ui/profile-grid'
+import { ProfileGrid, CoverScrim, formatCount } from '@/components/ui/profile-grid'
 import { Icon } from '@/components/ui/icon'
 import { mono } from '@/theme/mono'
 
@@ -81,11 +81,10 @@ export default function CreatorScreen() {
           ) : (
             <View style={[StyleSheet.absoluteFill, styles.coverFallback]} />
           )}
-          <View style={styles.scrim} pointerEvents="none" />
-          <View style={styles.scrimStrong} pointerEvents="none" />
+          <CoverScrim />
 
           {/* 뒤로가기 (좌상단) */}
-          <Pressable onPress={() => router.back()} style={[styles.back, { top: insets.top + 8 }]} hitSlop={10}>
+          <Pressable onPress={() => router.back()} style={[styles.back, { top: insets.top + 12 }]} hitSlop={10}>
             <Icon name="chevron.left" size={22} color={mono.color.onMedia} />
           </Pressable>
 
@@ -93,7 +92,7 @@ export default function CreatorScreen() {
           <Pressable
             onPress={toggleFollow}
             disabled={followBusy}
-            style={[styles.followPill, { top: insets.top + 8 }, following && styles.followingPill, followBusy && styles.dim]}
+            style={[styles.followPill, { top: insets.top + 12 }, following && styles.followingPill, followBusy && styles.dim]}
             hitSlop={8}
           >
             <Text style={styles.followText}>{following ? '팔로잉' : '팔로우'}</Text>
@@ -141,11 +140,9 @@ const styles = StyleSheet.create({
   link: { color: mono.color.accentLight, fontSize: mono.font.body, fontWeight: '700' },
   cover: { width: '100%', aspectRatio: 16 / 9, backgroundColor: mono.color.surface2, overflow: 'hidden' },
   coverFallback: { backgroundColor: mono.color.surface },
-  scrim: { position: 'absolute', left: 0, right: 0, bottom: 0, height: '55%', backgroundColor: 'rgba(0,0,0,0.28)' },
-  scrimStrong: { position: 'absolute', left: 0, right: 0, bottom: 0, height: '28%', backgroundColor: 'rgba(0,0,0,0.34)' },
-  back: { position: 'absolute', left: 12, width: 34, height: 34, borderRadius: 17, backgroundColor: mono.color.overlay, alignItems: 'center', justifyContent: 'center' },
+  back: { position: 'absolute', left: 20, width: 40, height: 40, borderRadius: 20, backgroundColor: mono.color.overlay, alignItems: 'center', justifyContent: 'center' },
   followPill: {
-    position: 'absolute', right: 12, paddingHorizontal: 16, height: 34, borderRadius: 17,
+    position: 'absolute', right: 20, paddingHorizontal: 18, height: 40, borderRadius: 20,
     backgroundColor: mono.color.overlay, alignItems: 'center', justifyContent: 'center',
   },
   followingPill: { backgroundColor: 'rgba(0,0,0,0.55)' },

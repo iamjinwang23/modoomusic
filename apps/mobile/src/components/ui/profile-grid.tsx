@@ -11,6 +11,22 @@ export function formatCount(n: number): string {
   return String(n)
 }
 
+// 커버 하단 스크림 — 웹 `bg-gradient-to-t from-black/60`. expo-linear-gradient(네이티브) 대신
+// 다중 밴드로 부드러운 그라데이션 근사(상단 투명 → 하단 진함).
+const SCRIM_BANDS = 28
+export function CoverScrim() {
+  return (
+    <View style={styles.scrim} pointerEvents="none">
+      {Array.from({ length: SCRIM_BANDS }).map((_, i) => (
+        <View
+          key={i}
+          style={{ flex: 1, backgroundColor: `rgba(0,0,0,${(0.6 * ((i + 1) / SCRIM_BANDS) ** 1.7).toFixed(3)})` }}
+        />
+      ))}
+    </View>
+  )
+}
+
 // 프로필 곡 그리드 — 웹 ProfilePanel 파리티: 음악/영상 탭 + 3열 세로(2:3) 썸네일 그리드.
 // 썸네일 좌하단에 좋아요·댓글·재생 통계 오버레이(웹과 동일 순서).
 export function ProfileGrid({ songs, onPlay, empty = '아직 공개된 곡이 없어요' }: {
@@ -90,6 +106,7 @@ function ProfileThumb({ song, width, height, onPress }: { song: PublicSong; widt
 const FILL = { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 } as const
 
 const styles = StyleSheet.create({
+  scrim: { position: 'absolute', left: 0, right: 0, bottom: 0, height: '68%' },
   tabs: { flexDirection: 'row', borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: mono.color.borderSoft },
   tab: { flex: 1, paddingVertical: 11, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6 },
   tabActive: { borderBottomWidth: 2, borderBottomColor: mono.color.text, marginBottom: -StyleSheet.hairlineWidth },
