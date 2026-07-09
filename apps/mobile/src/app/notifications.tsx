@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
-import { ActivityIndicator, FlatList, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native'
+import { ActivityIndicator, FlatList, Pressable, StyleSheet, Text, View } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { router } from 'expo-router'
 import { Image } from 'expo-image'
@@ -106,7 +106,7 @@ export default function NotificationsScreen() {
         )}
       </View>
 
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.tabs}>
+      <View style={styles.tabs}>
         {FILTERS.map((f) => {
           const on = category === f.key
           return (
@@ -115,7 +115,7 @@ export default function NotificationsScreen() {
             </Pressable>
           )
         })}
-      </ScrollView>
+      </View>
 
       {items === null && !error ? (
         <ActivityIndicator color={mono.color.accent} style={{ marginTop: 40 }} />
@@ -154,9 +154,9 @@ const styles = StyleSheet.create({
   close: { color: mono.color.text, fontSize: 22, width: 60 },
   title: { color: mono.color.text, fontSize: mono.font.h2, fontWeight: '700' },
   markAll: { color: mono.color.accentLight, fontSize: mono.font.small, fontWeight: '700', width: 60, textAlign: 'right' },
-  // 카테고리 필터 알약 — 앱 표준(활성=화이트)
-  tabs: { gap: 8, paddingRight: 8, paddingBottom: 4 },
-  tab: { paddingVertical: 9, paddingHorizontal: 16, borderRadius: mono.radius.pill, backgroundColor: mono.color.fill },
+  // 카테고리 필터 알약 — 앱 표준(활성=화이트). 한 줄 배치(늘어남 방지)
+  tabs: { flexDirection: 'row', gap: 8, marginBottom: 6 },
+  tab: { alignSelf: 'flex-start', paddingVertical: 8, paddingHorizontal: 14, borderRadius: mono.radius.pill, backgroundColor: mono.color.fill },
   tabOn: { backgroundColor: '#ffffff' },
   tabText: { color: mono.color.textSecondary, fontSize: mono.font.small, fontWeight: '600' },
   tabTextOn: { color: mono.color.bg, fontWeight: '700' },
