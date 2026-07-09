@@ -138,7 +138,7 @@ export default function CreateScreen() {
           model,
         })
       }
-      router.replace('/')
+      router.replace('/library')
     } catch (e) {
       const err = e as { error?: string; status?: number }
       setError(err.error ?? (err.status === 401 ? '로그인이 필요해요' : '생성에 실패했어요'))
