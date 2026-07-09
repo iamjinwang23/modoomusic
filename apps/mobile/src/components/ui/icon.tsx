@@ -53,7 +53,7 @@ const MAP = {
   sparkle: Sparkles,             // 크레딧·CTA(웹 Sparkles)
   'ai.lyrics': AiGenerateText,   // AI 가사(웹 Ai-Generate-Text)
   'music.file': FileMusic,       // 곡 제목(웹 File-Music)
-  compass: Publish,              // 게시됨(둘러보기 노출) — 웹 Publish/compass
+  compass: Publish,              // 공개(둘러보기 노출) — 웹 Publish/compass
 } as const
 
 export type IconName = keyof typeof MAP

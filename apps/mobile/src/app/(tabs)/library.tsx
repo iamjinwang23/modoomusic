@@ -16,7 +16,7 @@ type Filter = 'all' | 'liked' | 'published'
 const FILTERS: { key: Filter; label: string }[] = [
   { key: 'all', label: '전체' },
   { key: 'liked', label: '좋아요' },
-  { key: 'published', label: '게시' },
+  { key: 'published', label: '공개' },
 ]
 
 // 라이브러리 — 내 곡(GET /api/songs/mine, 인증 필요). MONO 디자인.
@@ -126,7 +126,7 @@ export default function LibraryScreen() {
             <Text style={styles.empty}>
               {error ? `불러오지 못했어요 (${error})`
                 : filter === 'liked' ? '좋아요한 곡이 없어요'
-                : filter === 'published' ? '게시한 곡이 없어요'
+                : filter === 'published' ? '공개한 곡이 없어요'
                 : '아직 만든 음악이 없어요'}
             </Text>
           }

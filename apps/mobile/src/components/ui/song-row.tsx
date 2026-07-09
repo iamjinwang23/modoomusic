@@ -13,7 +13,7 @@ function fmtDuration(sec?: number | null): string | null {
   return `${m}:${s.toString().padStart(2, '0')}`
 }
 
-// 곡 한 줄 — 커버(재생시간 오버레이)·제목(모델 배지)·상태·통계(게시됨). 탭→재생, ⋯→액션(onMore).
+// 곡 한 줄 — 커버(재생시간 오버레이)·제목(모델 배지)·상태·통계(공개 여부). 탭→재생, ⋯→액션(onMore).
 export function SongRow({ song, onPress, onMore }: { song: Song; onPress?: () => void; onMore?: () => void }) {
   const generating = song.status === 'generating'
   const hue = song.coverHue ?? 250
@@ -56,7 +56,7 @@ export function SongRow({ song, onPress, onMore }: { song: Song; onPress?: () =>
             <View style={styles.stat}><Icon name="heart" size={13} color={mono.color.textTertiary} /><Text style={styles.statText}>{song.likeCount ?? 0}</Text></View>
             <View style={styles.stat}><Icon name="bubble.left" size={13} color={mono.color.textTertiary} /><Text style={styles.statText}>{song.commentCount ?? 0}</Text></View>
             {song.published ? (
-              <View style={styles.stat}><Icon name="compass" size={13} color={mono.color.accentLight} /><Text style={styles.publishedText}>게시됨</Text></View>
+              <View style={styles.stat}><Icon name="compass" size={13} color={mono.color.accentLight} /><Text style={styles.publishedText}>공개</Text></View>
             ) : null}
           </View>
         ) : null}
@@ -90,7 +90,7 @@ const styles = StyleSheet.create({
   stats: { flexDirection: 'row', alignItems: 'center', gap: 12, marginTop: 4 },
   stat: { flexDirection: 'row', alignItems: 'center', gap: 3 },
   statText: { color: mono.color.textTertiary, fontSize: mono.font.small },
-  // 게시됨 — 통계 행에서 compass 아이콘+텍스트(댓글 통계와 동일 형태)
+  // 공개 — 통계 행에서 compass 아이콘+텍스트(둘러보기 노출 표시, 댓글 통계와 동일 형태)
   publishedText: { color: mono.color.accentLight, fontSize: mono.font.small, fontWeight: '600' },
   dot: { width: 8, height: 8, borderRadius: 4, backgroundColor: mono.color.accent },
   more: { width: 32, height: 32, alignItems: 'center', justifyContent: 'center' },
