@@ -1,5 +1,6 @@
 import { Pressable, StyleSheet, Text, useWindowDimensions, View } from 'react-native'
 import { Image } from 'expo-image'
+import Svg, { Defs, LinearGradient, Rect, Stop } from 'react-native-svg'
 import type { PublicSong } from '@mono/shared'
 import { useNowPlaying } from '@/lib/now-playing'
 import { Icon } from '@/components/ui/icon'
@@ -11,19 +12,19 @@ export function formatCount(n: number): string {
   return String(n)
 }
 
-// 커버 하단 스크림 — 웹 `bg-gradient-to-t from-black/60`. expo-linear-gradient(네이티브) 대신
-// 다중 밴드로 부드러운 그라데이션 근사(상단 투명 → 하단 진함).
-const SCRIM_BANDS = 28
+// 커버 하단 스크림 — 웹 `bg-gradient-to-t from-black/60`. react-native-svg(아이콘용으로 이미 링크됨)
+// LinearGradient로 GPU 렌더 — 밴딩 없이 완전히 매끄러움. 상단 투명 → 하단 진함.
 export function CoverScrim() {
   return (
-    <View style={styles.scrim} pointerEvents="none">
-      {Array.from({ length: SCRIM_BANDS }).map((_, i) => (
-        <View
-          key={i}
-          style={{ flex: 1, backgroundColor: `rgba(0,0,0,${(0.6 * ((i + 1) / SCRIM_BANDS) ** 1.7).toFixed(3)})` }}
-        />
-      ))}
-    </View>
+    <Svg style={StyleSheet.absoluteFill} pointerEvents="none">
+      <Defs>
+        <LinearGradient id="coverScrim" x1="0" y1="0" x2="0" y2="1">
+          <Stop offset="0.25" stopColor="#000000" stopOpacity={0} />
+          <Stop offset="1" stopColor="#000000" stopOpacity={0.62} />
+        </LinearGradient>
+      </Defs>
+      <Rect x="0" y="0" width="100%" height="100%" fill="url(#coverScrim)" />
+    </Svg>
   )
 }
 
@@ -106,7 +107,6 @@ function ProfileThumb({ song, width, height, onPress }: { song: PublicSong; widt
 const FILL = { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 } as const
 
 const styles = StyleSheet.create({
-  scrim: { position: 'absolute', left: 0, right: 0, bottom: 0, height: '68%' },
   tabs: { flexDirection: 'row', borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: mono.color.borderSoft },
   tab: { flex: 1, paddingVertical: 11, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6 },
   tabActive: { borderBottomWidth: 2, borderBottomColor: mono.color.text, marginBottom: -StyleSheet.hairlineWidth },
