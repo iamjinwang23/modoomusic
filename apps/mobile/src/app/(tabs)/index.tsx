@@ -96,9 +96,9 @@ const styles = StyleSheet.create({
   searchIcon: { fontSize: 16 },
   h1: { color: mono.color.text, fontSize: mono.font.h1, fontWeight: '800' },
   tabs: { flexDirection: 'row', gap: 8 },
-  tab: { paddingVertical: 8, paddingHorizontal: 18, borderRadius: mono.radius.pill, backgroundColor: mono.color.fill },
+  tab: { paddingVertical: 11, paddingHorizontal: 20, borderRadius: mono.radius.pill, backgroundColor: mono.color.fill },
   tabOn: { backgroundColor: mono.color.accent },
-  tabText: { color: mono.color.textSecondary, fontSize: mono.font.small, fontWeight: '600' },
+  tabText: { color: mono.color.textSecondary, fontSize: mono.font.body, fontWeight: '600' },
   tabTextOn: { color: mono.color.text, fontWeight: '700' },
   empty: { color: mono.color.textSecondary, fontSize: mono.font.body, textAlign: 'center', marginTop: 48 },
 })
