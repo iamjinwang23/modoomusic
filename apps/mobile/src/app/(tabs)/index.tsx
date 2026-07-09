@@ -1,92 +1,69 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
-import { ActionSheetIOS, ActivityIndicator, Alert, FlatList, Platform, Pressable, RefreshControl, StyleSheet, Text, View } from 'react-native'
+import { useCallback, useEffect, useState } from 'react'
+import { ActivityIndicator, FlatList, Pressable, RefreshControl, StyleSheet, Text, View } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
-import { router, useFocusEffect } from 'expo-router'
-import type { Song } from '@mono/shared'
+import { router } from 'expo-router'
+import type { PublicSong } from '@mono/shared'
 import { api } from '@/lib/api'
-import { subscribeSongUpdates } from '@/lib/generate'
-import { useSession } from '@/lib/use-session'
-import { SongRow } from '@/components/ui/song-row'
-import { Icon } from '@/components/ui/icon'
 import { playSong } from '@/lib/player'
-import { deleteSong, setSongPublished, shareSong } from '@/lib/song-actions'
+import { PublicSongRow } from '@/components/ui/public-song-row'
+import { Icon } from '@/components/ui/icon'
 import { mono } from '@/theme/mono'
 
-// 라이브러리 — 내 곡(GET /api/songs/mine, 인증 필요). MONO 디자인.
-// 생성 중 곡은 실시간(songs UPDATE 구독)으로 done/failed 전환 시 갱신.
-export default function LibraryScreen() {
+type Tab = 'recommended' | 'latest' | 'popular'
+const TABS: { key: Tab; label: string }[] = [
+  { key: 'recommended', label: '추천' },
+  { key: 'latest', label: '최신' },
+  { key: 'popular', label: '인기' },
+]
+
+// 탐색 — 공개곡 피드(GET /api/explore/feed). 탭 탭→재생.
+export default function DiscoverScreen() {
   const insets = useSafeAreaInsets()
-  const { session } = useSession()
-  const [songs, setSongs] = useState<Song[] | null>(null)
+  const [tab, setTab] = useState<Tab>('recommended')
+  const [songs, setSongs] = useState<PublicSong[] | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [refreshing, setRefreshing] = useState(false)
-  const loadedOnce = useRef(false)
 
-  const load = useCallback(async () => {
+  const load = useCallback(async (t: Tab) => {
     setError(null)
     try {
-      const j: { songs?: Song[] } = await api.get('/api/songs/mine')
+      const j = await api.get(`/api/explore/feed?tab=${t}`) as { songs?: PublicSong[] }
       setSongs(j.songs ?? [])
     } catch (e) {
-      const err = e as { error?: string; status?: number }
-      setError(err.status === 401 ? '로그인이 필요해요' : err.error ?? 'network_error')
+      setError((e as { error?: string })?.error ?? 'network_error')
       setSongs([])
     }
   }, [])
 
-  useEffect(() => { load(); loadedOnce.current = true }, [load])
-
-  // 화면 복귀 시 갱신(생성 화면에서 만들기 후 돌아왔을 때)
-  useFocusEffect(useCallback(() => { if (loadedOnce.current) load() }, [load]))
-
-  // 실시간: 내 곡 상태 전환 시 목록 재로딩(생성 완료 반영)
-  useEffect(() => {
-    const uid = session?.user?.id
-    if (!uid) return
-    return subscribeSongUpdates(uid, () => load())
-  }, [session?.user?.id, load])
+  useEffect(() => { setSongs(null); load(tab) }, [tab, load])
 
   const onRefresh = useCallback(async () => {
-    setRefreshing(true); await load(); setRefreshing(false)
-  }, [load])
-
-  // 곡 액션 시트 — 공유 / 공개토글 / 삭제. iOS 네이티브 시트, 그 외 Alert 폴백.
-  const confirmDelete = useCallback((song: Song) => {
-    Alert.alert('곡을 삭제할까요?', song.title?.trim() || '제목 없음', [
-      { text: '취소', style: 'cancel' },
-      { text: '삭제', style: 'destructive', onPress: async () => { await deleteSong(song.id); load() } },
-    ])
-  }, [load])
-
-  const openMenu = useCallback((song: Song) => {
-    const pub = song.published
-    const doPublish = async () => { await setSongPublished(song.id, !pub); load() }
-    if (Platform.OS === 'ios') {
-      ActionSheetIOS.showActionSheetWithOptions(
-        { options: ['공유', pub ? '비공개로 전환' : '공개하기', '삭제', '취소'], destructiveButtonIndex: 2, cancelButtonIndex: 3, title: song.title?.trim() || '제목 없음' },
-        (i) => { if (i === 0) shareSong(song.id, song.title); else if (i === 1) doPublish(); else if (i === 2) confirmDelete(song) },
-      )
-    } else {
-      Alert.alert(song.title?.trim() || '제목 없음', undefined, [
-        { text: '공유', onPress: () => shareSong(song.id, song.title) },
-        { text: pub ? '비공개로 전환' : '공개하기', onPress: doPublish },
-        { text: '삭제', style: 'destructive', onPress: () => confirmDelete(song) },
-        { text: '취소', style: 'cancel' },
-      ])
-    }
-  }, [load, confirmDelete])
-
-  const generating = (songs ?? []).some((s) => s.status === 'generating')
+    setRefreshing(true); await load(tab); setRefreshing(false)
+  }, [load, tab])
 
   return (
     <View style={[styles.container, { paddingTop: insets.top + 12 }]}>
       <View style={styles.headerRow}>
-        <Text style={styles.h1}>라이브러리</Text>
-        <Pressable onPress={() => router.push('/notifications')} hitSlop={10} style={styles.profileBtn}>
-          <Icon name="bell" size={19} color={mono.color.text} />
-        </Pressable>
+        <Text style={styles.h1}>둘러보기</Text>
+        <View style={styles.headerActions}>
+          <Pressable onPress={() => router.push('/search')} hitSlop={10} style={styles.searchBtn}>
+            <Icon name="magnifyingglass" size={18} color={mono.color.text} />
+          </Pressable>
+          <Pressable onPress={() => router.push('/notifications')} hitSlop={10} style={styles.searchBtn}>
+            <Icon name="bell" size={18} color={mono.color.text} />
+          </Pressable>
+        </View>
       </View>
-      {generating ? <Text style={styles.sub}>곡을 만들고 있어요…</Text> : null}
+      <View style={styles.tabs}>
+        {TABS.map((t) => {
+          const on = tab === t.key
+          return (
+            <Pressable key={t.key} onPress={() => setTab(t.key)} style={[styles.tab, on && styles.tabOn]}>
+              <Text style={[styles.tabText, on && styles.tabTextOn]}>{t.label}</Text>
+            </Pressable>
+          )
+        })}
+      </View>
 
       {songs === null && !error ? (
         <ActivityIndicator color={mono.color.accent} style={{ marginTop: 32 }} />
@@ -94,39 +71,34 @@ export default function LibraryScreen() {
         <FlatList
           data={songs ?? []}
           keyExtractor={(s) => s.id}
-          renderItem={({ item }) => <SongRow song={item} onPress={() => playSong(item)} onMore={() => openMenu(item)} />}
-          contentContainerStyle={{ paddingBottom: insets.bottom + 160, paddingTop: 8 }}
+          renderItem={({ item }) => (
+            <PublicSongRow
+              song={item}
+              onPress={() => playSong(item)}
+              onCreatorPress={() => router.push(`/creator/${item.username}`)}
+            />
+          )}
+          contentContainerStyle={{ paddingBottom: insets.bottom + 120, paddingTop: 12 }}
           refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={mono.color.textSecondary} />}
-          ListEmptyComponent={
-            <Text style={styles.empty}>{error ? `불러오지 못했어요 (${error})` : '아직 만든 음악이 없어요'}</Text>
-          }
+          ListEmptyComponent={<Text style={styles.empty}>{error ? `불러오지 못했어요 (${error})` : '공개된 곡이 없어요'}</Text>}
           showsVerticalScrollIndicator={false}
         />
       )}
-
     </View>
   )
 }
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: mono.color.bg, paddingHorizontal: 20 },
-  headerRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  headerBtns: { flexDirection: 'row', gap: 8 },
-  profileBtn: {
-    width: 40, height: 40, borderRadius: 20, backgroundColor: mono.color.fill,
-    alignItems: 'center', justifyContent: 'center',
-  },
-  profileIcon: { color: mono.color.text, fontSize: 18 },
+  headerRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 },
+  headerActions: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  searchBtn: { width: 40, height: 40, borderRadius: 20, backgroundColor: mono.color.fill, alignItems: 'center', justifyContent: 'center' },
+  searchIcon: { fontSize: 16 },
   h1: { color: mono.color.text, fontSize: mono.font.h1, fontWeight: '800' },
-  sub: { color: mono.color.textSecondary, fontSize: mono.font.small, marginTop: 2, marginBottom: 8 },
+  tabs: { flexDirection: 'row', gap: 8 },
+  tab: { paddingVertical: 11, paddingHorizontal: 20, borderRadius: mono.radius.pill, backgroundColor: mono.color.fill },
+  tabOn: { backgroundColor: mono.color.accent },
+  tabText: { color: mono.color.textSecondary, fontSize: mono.font.body, fontWeight: '600' },
+  tabTextOn: { color: mono.color.text, fontWeight: '700' },
   empty: { color: mono.color.textSecondary, fontSize: mono.font.body, textAlign: 'center', marginTop: 48 },
-  fab: {
-    position: 'absolute', alignSelf: 'center',
-    flexDirection: 'row', alignItems: 'center', gap: 7,
-    backgroundColor: mono.color.accent, borderRadius: mono.radius.pill,
-    paddingVertical: 14, paddingHorizontal: 26,
-    // RN 0.86 New Arch: shadow* deprecated → boxShadow. elevation은 구아키텍처 안드 폴백.
-    boxShadow: '0px 4px 12px rgba(0,0,0,0.35)', elevation: 6,
-  },
-  fabText: { color: mono.color.text, fontSize: mono.font.body, fontWeight: '700' },
 })

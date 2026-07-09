@@ -1,43 +1,47 @@
 import { useCallback, useEffect, useState } from 'react'
-import { ActivityIndicator, FlatList, Pressable, RefreshControl, StyleSheet, Text, View } from 'react-native'
+import { ActivityIndicator, Pressable, RefreshControl, ScrollView, StyleSheet, Text, useWindowDimensions, View } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
-import { router } from 'expo-router'
-import type { Community } from '@mono/shared'
+import { router, useFocusEffect } from 'expo-router'
+import type { Community, CommunityPost } from '@mono/shared'
 import { api } from '@/lib/api'
-import { CommunityCard } from '@/components/ui/community-card'
+import { CommunityStory, PopularPostCard, CommunityRankRow, CommunityCoverCard } from '@/components/ui/hub-cards'
 import { Icon } from '@/components/ui/icon'
 import { mono } from '@/theme/mono'
 
-type Tab = 'popular' | 'new'
-const TABS: { key: Tab; label: string }[] = [
-  { key: 'popular', label: '인기' },
-  { key: 'new', label: '최신' },
-]
+interface Hub { popular: Community[]; recent: Community[]; mine: Community[]; popularPosts: CommunityPost[] }
 
-// 커뮤니티 — 인기/최신 탭 + MONO 카드 목록. 공용 API(/api/communities/list) 재사용.
+// 커뮤니티 허브 — 웹 파리티: 내 커뮤니티(스토리줄) · 인기 글 · 인기 커뮤니티(순위) · 새 커뮤니티.
 export default function ExploreScreen() {
   const insets = useSafeAreaInsets()
-  const [tab, setTab] = useState<Tab>('popular')
-  const [items, setItems] = useState<Community[] | null>(null)
+  const { width } = useWindowDimensions()
+  const [hub, setHub] = useState<Hub | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [refreshing, setRefreshing] = useState(false)
 
-  const load = useCallback(async (t: Tab) => {
+  const load = useCallback(async () => {
     setError(null)
     try {
-      const j: { communities?: Community[] } = await api.get(`/api/communities/list?type=${t}`)
-      setItems(j.communities ?? [])
+      const j = await api.get('/api/communities') as Hub
+      setHub({ popular: j.popular ?? [], recent: j.recent ?? [], mine: j.mine ?? [], popularPosts: j.popularPosts ?? [] })
     } catch (e) {
       setError((e as { error?: string })?.error ?? 'network_error')
-      setItems([])
+      setHub({ popular: [], recent: [], mine: [], popularPosts: [] })
     }
   }, [])
 
-  useEffect(() => { setItems(null); load(tab) }, [tab, load])
+  useEffect(() => { load() }, [load])
+  useFocusEffect(useCallback(() => { load() }, [load]))
 
   const onRefresh = useCallback(async () => {
-    setRefreshing(true); await load(tab); setRefreshing(false)
-  }, [load, tab])
+    setRefreshing(true); await load(); setRefreshing(false)
+  }, [load])
+
+  const go = (id: string) => router.push(`/community/${id}`)
+  const goPost = (p: CommunityPost) => router.push(`/community/${p.communityId}?post=${p.id}`)
+  // 2열 그리드 카드 폭 (좌우 패딩 20*2, 카드 간격 12)
+  const cardW = (width - 40 - 12) / 2
+
+  const mine = hub ? [...hub.mine].sort((a, b) => (b.recentPostCount ?? 0) - (a.recentPostCount ?? 0)) : []
 
   return (
     <View style={[styles.container, { paddingTop: insets.top + 12 }]}>
@@ -48,48 +52,83 @@ export default function ExploreScreen() {
         </Pressable>
       </View>
 
-      <View style={styles.tabs}>
-        {TABS.map((t) => {
-          const on = tab === t.key
-          return (
-            <Pressable key={t.key} onPress={() => setTab(t.key)} style={[styles.tab, on && styles.tabOn]}>
-              <Text style={[styles.tabText, on && styles.tabTextOn]}>{t.label}</Text>
-            </Pressable>
-          )
-        })}
-      </View>
-
-      {items === null && !error ? (
+      {hub === null ? (
         <ActivityIndicator color={mono.color.accent} style={{ marginTop: 32 }} />
       ) : (
-        <FlatList
-          data={items ?? []}
-          keyExtractor={(x) => x.id}
-          renderItem={({ item }) => <CommunityCard community={item} onPress={() => router.push(`/community/${item.id}`)} />}
-          contentContainerStyle={{ paddingBottom: insets.bottom + 120, paddingTop: 12 }}
+        <ScrollView
+          contentContainerStyle={{ paddingBottom: insets.bottom + 120 }}
           refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={mono.color.textSecondary} />}
-          ListEmptyComponent={
-            <Text style={styles.empty}>{error ? `불러오지 못했어요 (${error})` : '아직 커뮤니티가 없어요'}</Text>
-          }
           showsVerticalScrollIndicator={false}
-        />
+        >
+          {/* 내 커뮤니티 — 스토리 가로 스크롤 */}
+          {mine.length > 0 && (
+            <Section title="내 커뮤니티">
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={styles.storyRow}
+              >
+                {mine.map((c) => <CommunityStory key={c.id} c={c} onPress={() => go(c.id)} />)}
+              </ScrollView>
+            </Section>
+          )}
+
+          {/* 인기 글 — 첫 글 풀폭 강조 + 나머지 2열 그리드(웹 파리티) */}
+          {hub.popularPosts.length > 0 && (
+            <Section title="인기 글">
+              <View style={{ gap: 12 }}>
+                <PopularPostCard post={hub.popularPosts[0]} width={width - 40} onPress={() => goPost(hub.popularPosts[0])} />
+                {hub.popularPosts.length > 1 && (
+                  <View style={styles.grid}>
+                    {hub.popularPosts.slice(1).map((p) => (
+                      <PopularPostCard key={p.id} post={p} width={cardW} onPress={() => goPost(p)} />
+                    ))}
+                  </View>
+                )}
+              </View>
+            </Section>
+          )}
+
+          {/* 인기 커뮤니티 — 순위 행 */}
+          <Section title="인기 커뮤니티">
+            {hub.popular.length === 0 ? (
+              <Text style={styles.empty}>{error ? `불러오지 못했어요 (${error})` : '아직 커뮤니티가 없어요'}</Text>
+            ) : (
+              hub.popular.map((c, i) => <CommunityRankRow key={c.id} c={c} rank={i + 1} onPress={() => go(c.id)} />)
+            )}
+          </Section>
+
+          {/* 새로 생긴 커뮤니티 — 2열 커버 카드 */}
+          {hub.recent.length > 0 && (
+            <Section title="새로 생긴 커뮤니티">
+              <View style={styles.grid}>
+                {hub.recent.map((c) => <CommunityCoverCard key={c.id} c={c} width={cardW} onPress={() => go(c.id)} />)}
+              </View>
+            </Section>
+          )}
+        </ScrollView>
       )}
+    </View>
+  )
+}
+
+function Section({ title, children }: { title: string; children: React.ReactNode }) {
+  return (
+    <View style={styles.section}>
+      <Text style={styles.sectionTitle}>{title}</Text>
+      {children}
     </View>
   )
 }
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: mono.color.bg, paddingHorizontal: 20 },
-  headerRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 },
+  headerRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 },
   iconBtn: { width: 40, height: 40, borderRadius: 20, backgroundColor: mono.color.fill, alignItems: 'center', justifyContent: 'center' },
   h1: { color: mono.color.text, fontSize: mono.font.h1, fontWeight: '800' },
-  tabs: { flexDirection: 'row', gap: 8 },
-  tab: {
-    paddingVertical: 8, paddingHorizontal: 18, borderRadius: mono.radius.pill,
-    backgroundColor: mono.color.fill,
-  },
-  tabOn: { backgroundColor: mono.color.accent },
-  tabText: { color: mono.color.textSecondary, fontSize: mono.font.small, fontWeight: '600' },
-  tabTextOn: { color: mono.color.text, fontWeight: '700' },
-  empty: { color: mono.color.textSecondary, fontSize: mono.font.body, textAlign: 'center', marginTop: 48 },
+  section: { marginTop: 24 },
+  sectionTitle: { color: mono.color.text, fontSize: mono.font.h2, fontWeight: '700', marginBottom: 12 },
+  storyRow: { gap: 14, paddingRight: 8 },
+  grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 12 },
+  empty: { color: mono.color.textSecondary, fontSize: mono.font.small, textAlign: 'center', paddingVertical: 28 },
 })
