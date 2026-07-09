@@ -1,5 +1,6 @@
 import { Image } from 'expo-image'
 import { Pressable, StyleSheet, Text, View } from 'react-native'
+import Svg, { Defs, LinearGradient, Rect, Stop } from 'react-native-svg'
 import type { Song } from '@mono/shared'
 import { Icon } from '@/components/ui/icon'
 import { mono } from '@/theme/mono'
@@ -28,7 +29,15 @@ export function SongRow({ song, onPress, onMore }: { song: Song; onPress?: () =>
         ) : null}
         {duration ? (
           <>
-            <View style={styles.coverScrim} pointerEvents="none" />
+            <Svg style={styles.coverScrim} pointerEvents="none">
+              <Defs>
+                <LinearGradient id="durScrim" x1="0" y1="0" x2="0" y2="1">
+                  <Stop offset="0" stopColor="#000000" stopOpacity={0} />
+                  <Stop offset="1" stopColor="#000000" stopOpacity={0.65} />
+                </LinearGradient>
+              </Defs>
+              <Rect x="0" y="0" width="100%" height="100%" fill="url(#durScrim)" />
+            </Svg>
             <Text style={styles.duration}>{duration}</Text>
           </>
         ) : null}
@@ -46,7 +55,9 @@ export function SongRow({ song, onPress, onMore }: { song: Song; onPress?: () =>
             <View style={styles.stat}><Icon name="play.fill" size={13} color={mono.color.textTertiary} /><Text style={styles.statText}>{song.playCount ?? 0}</Text></View>
             <View style={styles.stat}><Icon name="heart" size={13} color={mono.color.textTertiary} /><Text style={styles.statText}>{song.likeCount ?? 0}</Text></View>
             <View style={styles.stat}><Icon name="bubble.left" size={13} color={mono.color.textTertiary} /><Text style={styles.statText}>{song.commentCount ?? 0}</Text></View>
-            {song.published ? <Text style={styles.published}>게시됨</Text> : null}
+            {song.published ? (
+              <View style={styles.stat}><Icon name="compass" size={13} color={mono.color.accentLight} /><Text style={styles.publishedText}>게시됨</Text></View>
+            ) : null}
           </View>
         ) : null}
       </View>
@@ -65,7 +76,7 @@ const styles = StyleSheet.create({
   // 커버 = 세로(포트레이트) — 브랜드 정체성(웹 파리티)
   cover: { width: 54, aspectRatio: 3 / 4, borderRadius: mono.radius.sm, overflow: 'hidden' },
   coverImg: { width: '100%', height: '100%' },
-  coverScrim: { position: 'absolute', left: 0, right: 0, bottom: 0, height: '45%', backgroundColor: 'rgba(0,0,0,0.5)' },
+  coverScrim: { position: 'absolute', left: 0, right: 0, bottom: 0, height: '55%' },
   duration: { position: 'absolute', right: 4, bottom: 3, color: mono.color.onMedia, fontSize: 10, fontWeight: '600' },
   meta: { flex: 1, minWidth: 0 },
   titleRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
@@ -79,12 +90,8 @@ const styles = StyleSheet.create({
   stats: { flexDirection: 'row', alignItems: 'center', gap: 12, marginTop: 4 },
   stat: { flexDirection: 'row', alignItems: 'center', gap: 3 },
   statText: { color: mono.color.textTertiary, fontSize: mono.font.small },
-  // 게시됨 — 통계 행(댓글 옆)으로 이동, 흰 pill(웹 파리티)
-  published: {
-    color: mono.color.bg, fontSize: mono.font.tiny, fontWeight: '700',
-    backgroundColor: '#ffffff', paddingHorizontal: 9, paddingVertical: 3, borderRadius: mono.radius.pill, overflow: 'hidden',
-    marginLeft: 2,
-  },
+  // 게시됨 — 통계 행에서 compass 아이콘+텍스트(댓글 통계와 동일 형태)
+  publishedText: { color: mono.color.accentLight, fontSize: mono.font.small, fontWeight: '600' },
   dot: { width: 8, height: 8, borderRadius: 4, backgroundColor: mono.color.accent },
   more: { width: 32, height: 32, alignItems: 'center', justifyContent: 'center' },
 })
