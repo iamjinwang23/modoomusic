@@ -33,7 +33,7 @@ export function AnimatedSplashOverlay() {
     },
   });
 
-  const image = <Image style={styles.image} source={require('@/assets/images/expo-logo.png')} />;
+  const image = <Image style={styles.wordmark} source={require('@/assets/images/mono-wordmark.png')} contentFit="contain" />;
 
   return animate ? (
     <Animated.View
@@ -131,6 +131,11 @@ const styles = StyleSheet.create({
     width: 76,
     height: 71,
   },
+  // mono 워드마크(스플래시) — 720x163 비율
+  wordmark: {
+    width: 200,
+    height: 200 * 163 / 720,
+  },
   background: {
     borderRadius: 40,
     experimental_backgroundImage: `linear-gradient(180deg, #3C9FFE, #0274DF)`,
@@ -140,7 +145,7 @@ const styles = StyleSheet.create({
   },
   splashOverlay: {
     ...StyleSheet.absoluteFill,
-    backgroundColor: '#208AEF',
+    backgroundColor: '#000000',
     alignItems: 'center',
     justifyContent: 'center',
     zIndex: 1000,
