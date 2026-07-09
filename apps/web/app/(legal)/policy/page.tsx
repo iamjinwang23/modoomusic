@@ -232,7 +232,7 @@ export default function PolicyPage() {
                 <td className="p-2 border-b border-white/[0.06]">즉시 파기</td>
               </tr>
               <tr>
-                <td className="p-2 border-b border-white/[0.06]">공개 게시한 곡</td>
+                <td className="p-2 border-b border-white/[0.06]">공개한 곡</td>
                 <td className="p-2 border-b border-white/[0.06]">작성자 표시를 "(탈퇴한 회원)"으로 익명화 후 서비스 내 유지</td>
               </tr>
               <tr>

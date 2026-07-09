@@ -66,7 +66,7 @@ function summarizePayload(action: string, payload: Record<string, unknown>): str
         return u ? `${u} 강제 탈퇴` : '강제 탈퇴'
       }
       case 'unpublish_song':
-        return '게시 취소'
+        return '공개 취소'
       case 'delete_song':
         return '삭제'
       case 'send_announcement': {

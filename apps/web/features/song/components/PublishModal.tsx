@@ -75,7 +75,7 @@ export function PublishModal({ song, onClose }: Props) {
       has_cover: !!finalCover,
       comment_length: comment.trim().length,
     })
-    toast.success('곡이 게시되었어요')
+    toast.success('곡이 공개되었어요')
     onClose()
     if (user) {
       const username = profile?.username ?? user.user_metadata?.username ?? user.email?.split('@')[0] ?? user.id.slice(0, 8)
@@ -93,7 +93,7 @@ export function PublishModal({ song, onClose }: Props) {
 
         {/* 헤더 */}
         <div className="flex items-center justify-between mb-5">
-          <p className="text-xl font-semibold text-white">게시하기</p>
+          <p className="text-xl font-semibold text-white">공개하기</p>
           <button onClick={onClose} className="w-7 h-7 rounded-full hover:bg-white/[0.08] flex items-center justify-center transition-colors">
             <Image src="/Close-Fill.svg" alt="닫기" width={14} height={14} style={{ filter: 'invert(0.5)' }} />
           </button>
@@ -191,7 +191,7 @@ export function PublishModal({ song, onClose }: Props) {
             onClick={handlePublish}
             className="flex-1 py-2.5 rounded-xl bg-violet-600 hover:bg-violet-500 text-white text-sm font-semibold transition-colors"
           >
-            {song.published ? '재게시' : '게시하기'}
+            {song.published ? '다시 공개' : '공개하기'}
           </button>
         </div>
       </div>

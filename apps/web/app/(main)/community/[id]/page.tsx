@@ -197,7 +197,7 @@ export default function CommunityCafePage() {
     })
     const j = await res.json().catch(() => ({}))
     setPosting(false)
-    if (!res.ok) { toast.error(j.error === 'not_member' ? '멤버만 글을 쓸 수 있어요' : j.error === 'banned_word' ? '부적절한 표현이 포함되어 있어요' : j.error === 'song_not_public' ? '게시된 곡만 첨부할 수 있어요' : '작성에 실패했어요'); return }
+    if (!res.ok) { toast.error(j.error === 'not_member' ? '멤버만 글을 쓸 수 있어요' : j.error === 'banned_word' ? '부적절한 표현이 포함되어 있어요' : j.error === 'song_not_public' ? '공개된 곡만 첨부할 수 있어요' : '작성에 실패했어요'); return }
     setContent(''); setAttachedSong(null); setAttachedImages([]); setPollOptions(null); load()
     toast.success('글을 게시했어요')
   }
@@ -667,7 +667,7 @@ export default function CommunityCafePage() {
                       <div className="fixed inset-0 z-[54]" onClick={() => setPickerOpen(false)} />
                       <div className="absolute bottom-full left-0 mb-2 z-[55] w-72 max-h-72 overflow-y-auto bg-[#21252E] border border-white/[0.10] rounded-xl shadow-xl p-1.5">
                         {songService.getAll().filter((s) => s.status === 'done' && s.published).length === 0 ? (
-                          <p className="text-xs text-zinc-500 py-4 text-center">게시한 곡이 없어요</p>
+                          <p className="text-xs text-zinc-500 py-4 text-center">공개한 곡이 없어요</p>
                         ) : songService.getAll().filter((s) => s.status === 'done' && s.published).map((s) => (
                           <button key={s.id} onClick={() => { setAttachedSong(s); setPickerOpen(false) }} className="w-full flex items-center gap-2.5 p-2 rounded-lg hover:bg-white/[0.06] transition text-left">
                             <SongCover coverImage={s.coverImage} coverHue={s.coverHue} size={32} />

@@ -136,7 +136,7 @@ export function CommentsPanel({ songId, songOwnerId, songIsPublic }: Props) {
     return (
       <div className="flex flex-col items-center justify-center h-full min-h-[200px] text-zinc-500 text-sm gap-1 px-6 text-center">
         <p>비공개 곡엔 댓글이 표시되지 않아요</p>
-        <p className="text-xs text-zinc-600">곡을 게시하면 댓글을 받을 수 있어요</p>
+        <p className="text-xs text-zinc-600">곡을 공개하면 댓글을 받을 수 있어요</p>
       </div>
     )
   }
