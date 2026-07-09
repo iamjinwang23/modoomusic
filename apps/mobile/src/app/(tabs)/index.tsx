@@ -97,8 +97,8 @@ const styles = StyleSheet.create({
   h1: { color: mono.color.text, fontSize: mono.font.h1, fontWeight: '800' },
   tabs: { flexDirection: 'row', gap: 8 },
   tab: { paddingVertical: 11, paddingHorizontal: 20, borderRadius: mono.radius.pill, backgroundColor: mono.color.fill },
-  tabOn: { backgroundColor: mono.color.accent },
+  tabOn: { backgroundColor: '#ffffff' },
   tabText: { color: mono.color.textSecondary, fontSize: mono.font.body, fontWeight: '600' },
-  tabTextOn: { color: mono.color.text, fontWeight: '700' },
+  tabTextOn: { color: mono.color.bg, fontWeight: '700' },
   empty: { color: mono.color.textSecondary, fontSize: mono.font.body, textAlign: 'center', marginTop: 48 },
 })

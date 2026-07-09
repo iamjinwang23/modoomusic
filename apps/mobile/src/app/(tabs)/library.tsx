@@ -12,12 +12,20 @@ import { playSong } from '@/lib/player'
 import { deleteSong, setSongPublished, shareSong } from '@/lib/song-actions'
 import { mono } from '@/theme/mono'
 
+type Filter = 'all' | 'liked' | 'published'
+const FILTERS: { key: Filter; label: string }[] = [
+  { key: 'all', label: '전체' },
+  { key: 'liked', label: '좋아요' },
+  { key: 'published', label: '공개' },
+]
+
 // 라이브러리 — 내 곡(GET /api/songs/mine, 인증 필요). MONO 디자인.
 // 생성 중 곡은 실시간(songs UPDATE 구독)으로 done/failed 전환 시 갱신.
 export default function LibraryScreen() {
   const insets = useSafeAreaInsets()
   const { session } = useSession()
   const [songs, setSongs] = useState<Song[] | null>(null)
+  const [filter, setFilter] = useState<Filter>('all')
   const [error, setError] = useState<string | null>(null)
   const [refreshing, setRefreshing] = useState(false)
   const loadedOnce = useRef(false)
@@ -77,6 +85,11 @@ export default function LibraryScreen() {
   }, [load, confirmDelete])
 
   const generating = (songs ?? []).some((s) => s.status === 'generating')
+  const filtered = (songs ?? []).filter((s) => {
+    if (filter === 'liked') return !!s.liked
+    if (filter === 'published') return !!s.published
+    return true
+  })
 
   return (
     <View style={[styles.container, { paddingTop: insets.top + 12 }]}>
@@ -86,19 +99,36 @@ export default function LibraryScreen() {
           <Icon name="bell" size={19} color={mono.color.text} />
         </Pressable>
       </View>
+
+      <View style={styles.tabs}>
+        {FILTERS.map((f) => {
+          const on = filter === f.key
+          return (
+            <Pressable key={f.key} onPress={() => setFilter(f.key)} style={[styles.tab, on && styles.tabOn]}>
+              <Text style={[styles.tabText, on && styles.tabTextOn]}>{f.label}</Text>
+            </Pressable>
+          )
+        })}
+      </View>
+
       {generating ? <Text style={styles.sub}>곡을 만들고 있어요…</Text> : null}
 
       {songs === null && !error ? (
         <ActivityIndicator color={mono.color.accent} style={{ marginTop: 32 }} />
       ) : (
         <FlatList
-          data={songs ?? []}
+          data={filtered}
           keyExtractor={(s) => s.id}
           renderItem={({ item }) => <SongRow song={item} onPress={() => playSong(item)} onMore={() => openMenu(item)} />}
           contentContainerStyle={{ paddingBottom: insets.bottom + 160, paddingTop: 8 }}
           refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={mono.color.textSecondary} />}
           ListEmptyComponent={
-            <Text style={styles.empty}>{error ? `불러오지 못했어요 (${error})` : '아직 만든 음악이 없어요'}</Text>
+            <Text style={styles.empty}>
+              {error ? `불러오지 못했어요 (${error})`
+                : filter === 'liked' ? '좋아요한 곡이 없어요'
+                : filter === 'published' ? '공개한 곡이 없어요'
+                : '아직 만든 음악이 없어요'}
+            </Text>
           }
           showsVerticalScrollIndicator={false}
         />
@@ -118,7 +148,13 @@ const styles = StyleSheet.create({
   },
   profileIcon: { color: mono.color.text, fontSize: 18 },
   h1: { color: mono.color.text, fontSize: mono.font.h1, fontWeight: '800' },
-  sub: { color: mono.color.textSecondary, fontSize: mono.font.small, marginTop: 2, marginBottom: 8 },
+  // 필터칩 — 둘러보기와 동일 사이즈, 활성=화이트 채움(다크 텍스트)
+  tabs: { flexDirection: 'row', gap: 8, marginTop: 14 },
+  tab: { paddingVertical: 11, paddingHorizontal: 20, borderRadius: mono.radius.pill, backgroundColor: mono.color.fill },
+  tabOn: { backgroundColor: '#ffffff' },
+  tabText: { color: mono.color.textSecondary, fontSize: mono.font.body, fontWeight: '600' },
+  tabTextOn: { color: mono.color.bg, fontWeight: '700' },
+  sub: { color: mono.color.textSecondary, fontSize: mono.font.small, marginTop: 10, marginBottom: 8 },
   empty: { color: mono.color.textSecondary, fontSize: mono.font.body, textAlign: 'center', marginTop: 48 },
   fab: {
     position: 'absolute', alignSelf: 'center',

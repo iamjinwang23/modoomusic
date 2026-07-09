@@ -137,7 +137,7 @@ export default function PlayerScreen() {
           {isOwn ? (
             <Pressable onPress={togglePublish} disabled={pubBusy} style={styles.action} hitSlop={8}>
               <Icon name={published ? 'globe' : 'lock'} size={22} color={published ? mono.color.accentLight : mono.color.textSecondary} />
-              <Text style={styles.actionLabel}>{published ? '게시됨' : '게시'}</Text>
+              <Text style={styles.actionLabel}>{published ? '공개' : '비공개'}</Text>
             </Pressable>
           ) : null}
           <Pressable onPress={() => shareSong(song.id, song.title)} style={styles.action} hitSlop={8}>
