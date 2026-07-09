@@ -115,7 +115,7 @@ const styles = StyleSheet.create({
     backgroundColor: GRAY_AVATAR,
   },
   storyInitial: { color: GRAY_AVATAR_TEXT, fontSize: 24, fontWeight: '800' },
-  storyName: { width: 72, textAlign: 'center', color: mono.color.textSecondary, fontSize: mono.font.tiny },
+  storyName: { width: 72, textAlign: 'center', color: mono.color.textSecondary, fontSize: mono.font.small },
 
   // 인기 글 카드
   postThumb: { width: '100%', borderRadius: mono.radius.md, overflow: 'hidden', backgroundColor: '#363A47' },
@@ -123,22 +123,22 @@ const styles = StyleSheet.create({
     position: 'absolute', top: 0, left: 0, right: 0, bottom: 0,
     borderRadius: mono.radius.md, borderWidth: StyleSheet.hairlineWidth, borderColor: 'rgba(255,255,255,0.08)',
   },
-  postTitle: { color: mono.color.text, fontSize: mono.font.small, fontWeight: '700', marginTop: 8, lineHeight: 18 },
-  postCommunity: { color: mono.color.textTertiary, fontSize: mono.font.tiny, marginTop: 3 },
-  postStats: { flexDirection: 'row', gap: 12, marginTop: 6 },
-  stat: { flexDirection: 'row', alignItems: 'center', gap: 3 },
-  statText: { color: mono.color.textTertiary, fontSize: mono.font.tiny },
+  postTitle: { color: mono.color.text, fontSize: mono.font.body, fontWeight: '700', marginTop: 9, lineHeight: 21 },
+  postCommunity: { color: mono.color.textTertiary, fontSize: mono.font.small, marginTop: 4 },
+  postStats: { flexDirection: 'row', gap: 12, marginTop: 7 },
+  stat: { flexDirection: 'row', alignItems: 'center', gap: 4 },
+  statText: { color: mono.color.textTertiary, fontSize: mono.font.small },
 
   // 순위 행
   rankRow: { flexDirection: 'row', alignItems: 'center', gap: 14, paddingVertical: 10 },
-  rankNum: { width: 22, textAlign: 'center', color: mono.color.textTertiary, fontSize: mono.font.body, fontWeight: '800' },
+  rankNum: { width: 24, textAlign: 'center', color: mono.color.textTertiary, fontSize: mono.font.h2, fontWeight: '800' },
   rankTop: { color: mono.color.accentLight },
   rankAvatar: {
-    width: 48, height: 48, borderRadius: mono.radius.md, overflow: 'hidden', alignItems: 'center', justifyContent: 'center',
+    width: 52, height: 52, borderRadius: mono.radius.md, overflow: 'hidden', alignItems: 'center', justifyContent: 'center',
     backgroundColor: GRAY_AVATAR,
   },
-  rankInitial: { color: GRAY_AVATAR_TEXT, fontSize: 18, fontWeight: '800' },
+  rankInitial: { color: GRAY_AVATAR_TEXT, fontSize: 20, fontWeight: '800' },
   rankBody: { flex: 1, minWidth: 0 },
-  rankName: { color: mono.color.text, fontSize: mono.font.small, fontWeight: '700' },
-  rankMeta: { color: mono.color.textTertiary, fontSize: mono.font.tiny, marginTop: 2 },
+  rankName: { color: mono.color.text, fontSize: mono.font.body, fontWeight: '700' },
+  rankMeta: { color: mono.color.textTertiary, fontSize: mono.font.small, marginTop: 3 },
 })

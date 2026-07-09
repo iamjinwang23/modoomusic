@@ -74,13 +74,18 @@ export default function ExploreScreen() {
             </Section>
           )}
 
-          {/* 인기 글 — 2열 그리드 */}
+          {/* 인기 글 — 첫 글 풀폭 강조 + 나머지 2열 그리드(웹 파리티) */}
           {hub.popularPosts.length > 0 && (
             <Section title="인기 글">
-              <View style={styles.grid}>
-                {hub.popularPosts.map((p) => (
-                  <PopularPostCard key={p.id} post={p} width={cardW} onPress={() => goPost(p)} />
-                ))}
+              <View style={{ gap: 12 }}>
+                <PopularPostCard post={hub.popularPosts[0]} width={width - 40} onPress={() => goPost(hub.popularPosts[0])} />
+                {hub.popularPosts.length > 1 && (
+                  <View style={styles.grid}>
+                    {hub.popularPosts.slice(1).map((p) => (
+                      <PopularPostCard key={p.id} post={p} width={cardW} onPress={() => goPost(p)} />
+                    ))}
+                  </View>
+                )}
               </View>
             </Section>
           )}
