@@ -4,8 +4,12 @@ import { router } from 'expo-router'
 import TrackPlayer, { State, useActiveTrack, usePlaybackState, useProgress } from 'react-native-track-player'
 import { Image } from 'expo-image'
 import { BlurView } from 'expo-blur'
+import { requireOptionalNativeModule } from 'expo-modules-core'
 import { Icon } from '@/components/ui/icon'
 import { mono } from '@/theme/mono'
+
+// expo-blur 네이티브 모듈이 바이너리에 포함됐는지 감지(구 dev 빌드엔 없음 → 폴백).
+const BLUR_AVAILABLE = requireOptionalNativeModule('ExpoBlur') != null
 
 // 탭바 콘텐츠 높이(_layout.tsx의 tabBarStyle.height = 62 + insets.bottom와 동일)
 const TAB_BAR_HEIGHT = 62
@@ -28,9 +32,9 @@ export function MiniPlayer() {
       style={[styles.bar, { bottom: TAB_BAR_HEIGHT + insets.bottom }]}
       onPress={() => router.push('/player')}
     >
-      {/* 글래스모피즘 — 뒤 콘텐츠가 흐릿하게 비침 */}
-      <BlurView intensity={60} tint="dark" style={StyleSheet.absoluteFill} />
-      <View style={styles.tint} pointerEvents="none" />
+      {/* 글래스모피즘 — 뒤 콘텐츠가 흐릿하게 비침. 네이티브 블러 없는 구 빌드는 불투명 폴백. */}
+      {BLUR_AVAILABLE ? <BlurView intensity={60} tint="dark" style={StyleSheet.absoluteFill} /> : null}
+      <View style={[styles.tint, !BLUR_AVAILABLE && styles.tintSolid]} pointerEvents="none" />
       <View style={styles.row}>
         <View style={styles.cover}>
           {track.artwork ? <Image source={{ uri: String(track.artwork) }} style={styles.coverImg} contentFit="cover" /> : null}
@@ -56,6 +60,8 @@ const styles = StyleSheet.create({
   },
   // 블러 위 살짝 어두운 틴트 — 커버·제목·아이콘 가독성
   tint: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(20,22,28,0.35)' },
+  // 블러 미지원(구 빌드) 폴백 — 불투명 표면색으로 깔끔하게
+  tintSolid: { backgroundColor: mono.color.surface2 },
   row: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 8, paddingHorizontal: 14 },
   // 커버 = 세로(3:4) — 브랜드 정체성(웹 파리티)
   cover: { width: 36, aspectRatio: 3 / 4, borderRadius: 6, backgroundColor: mono.color.surface, overflow: 'hidden' },
