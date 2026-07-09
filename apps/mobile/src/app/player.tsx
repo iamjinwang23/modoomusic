@@ -79,13 +79,10 @@ export default function PlayerScreen() {
   return (
     <ScrollView
       style={styles.container}
-      contentContainerStyle={{ paddingTop: insets.top + 8, paddingBottom: insets.bottom + 32, paddingHorizontal: 24 }}
+      contentContainerStyle={{ paddingTop: 8, paddingBottom: insets.bottom + 32, paddingHorizontal: 24 }}
       showsVerticalScrollIndicator={false}
     >
-      <View style={styles.header}>
-        <Pressable onPress={() => router.back()} hitSlop={12}><Icon name="chevron.down" size={22} color={mono.color.textSecondary} /></Pressable>
-        <View style={{ width: 28 }} />
-      </View>
+      <View style={styles.handleRow}><View style={styles.handle} /></View>
 
       <View style={styles.artWrap}>
         {videoUrl ? (
@@ -171,10 +168,9 @@ const styles = StyleSheet.create({
   center: { alignItems: 'center', justifyContent: 'center', gap: 16, paddingHorizontal: 24, flex: 1 },
   empty: { color: mono.color.textSecondary, fontSize: mono.font.body },
   link: { color: mono.color.accentLight, fontSize: mono.font.body, fontWeight: '700' },
-  header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 },
-  chevron: { color: mono.color.text, fontSize: 30, lineHeight: 30, width: 28 },
-  headerLabel: { color: mono.color.textSecondary, fontSize: mono.font.small, fontWeight: '600' },
-  artWrap: { alignItems: 'center', marginTop: 16, marginBottom: 28 },
+  handleRow: { alignItems: 'center', paddingTop: 4, paddingBottom: 38 },
+  handle: { width: 40, height: 5, borderRadius: 3, backgroundColor: mono.color.fillStrong },
+  artWrap: { alignItems: 'center', marginTop: 0, marginBottom: 28 },
   // 커버 = 세로(포스터형) — 브랜드 정체성(웹 파리티)
   art: { width: '68%', aspectRatio: 3 / 4, borderRadius: mono.radius.xl, backgroundColor: mono.color.surface, overflow: 'hidden' },
   videoBadge: {
