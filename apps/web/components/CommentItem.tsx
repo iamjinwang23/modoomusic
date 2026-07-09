@@ -138,7 +138,7 @@ export function CommentItem({
             {comment.user.displayName ?? comment.user.username}
           </button>
           {isCreator && (
-            <span className="shrink-0 text-[10px] font-medium text-violet-300 bg-violet-500/15 px-1.5 py-0.5 rounded-full leading-none">게시자</span>
+            <span className="shrink-0 text-[10px] font-medium text-violet-300 bg-violet-500/15 px-1.5 py-0.5 rounded-full leading-none">작성자</span>
           )}
           <span className="shrink-0 text-xs text-zinc-500">· {formatRelativeKo(comment.createdAt)}</span>
           {comment.editedAt && <span className="shrink-0 text-xs text-zinc-600">(수정됨)</span>}

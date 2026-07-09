@@ -177,7 +177,7 @@ export function CommunityPostEditModal({ post, communityId, onClose, onSaved }: 
               {pickerOpen && (
                 <div className="w-full max-h-48 overflow-y-auto bg-[#21252E] border border-white/[0.10] rounded-xl shadow-xl p-1.5">
                   {songService.getAll().filter(s => s.status === 'done' && s.published).length === 0 ? (
-                    <p className="text-xs text-zinc-500 py-4 text-center">게시한 곡이 없어요</p>
+                    <p className="text-xs text-zinc-500 py-4 text-center">공개한 곡이 없어요</p>
                   ) : songService.getAll().filter(s => s.status === 'done' && s.published).map(s => (
                     <button key={s.id} onClick={() => { setSong({ id: s.id, title: s.title ?? null, coverImage: s.coverImage ?? null, coverHue: s.coverHue ?? null, audioUrl: s.audioUrl }); setPickerOpen(false) }} className="w-full flex items-center gap-2.5 p-2 rounded-lg hover:bg-white/[0.06] transition text-left">
                       <SongCover coverImage={s.coverImage} coverHue={s.coverHue} size={28} />

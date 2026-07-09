@@ -644,9 +644,9 @@ export function SongDetailPage({ onBack, profile }: Props) {
       {song && (
         <ConfirmModal
           open={confirmUnpublish}
-          title="이 게시물을 정말 게시 취소하시겠어요?"
-          description="게시를 취소하면 더 이상 탐색, 프로필, 검색 결과에 노출되지 않아요."
-          confirmLabel="게시 취소하기"
+          title="이 곡을 정말 공개 취소하시겠어요?"
+          description="공개를 취소하면 더 이상 탐색, 프로필, 검색 결과에 노출되지 않아요."
+          confirmLabel="공개 취소하기"
           cancelLabel="아니요"
           variant="danger"
           onConfirm={() => {
@@ -654,7 +654,7 @@ export function SongDetailPage({ onBack, profile }: Props) {
             patchSong?.({ published: false, publishedAt: undefined })
             setConfirmUnpublish(false)
             window.dispatchEvent(new CustomEvent('song-updated'))
-            toast.info('게시가 취소되었어요')
+            toast.info('공개가 취소되었어요')
           }}
           onClose={() => setConfirmUnpublish(false)}
         />
@@ -797,12 +797,12 @@ function SongMoreMenu({ isOwner, inCollection, onCollect, onPublish, onUnpublish
               <div className="my-1 h-px bg-white/[0.06]" />
               {onPublish && (
                 <button onClick={() => { setOpen(false); onPublish() }} className="w-full flex items-center gap-2.5 px-3 py-2.5 text-sm text-white hover:bg-white/[0.06] transition-colors">
-                  <Image src="/Publish.svg" alt="" width={14} height={14} style={{ filter: 'invert(0.55)' }} /> 게시하기
+                  <Image src="/Publish.svg" alt="" width={14} height={14} style={{ filter: 'invert(0.55)' }} /> 공개하기
                 </button>
               )}
               {onUnpublish && (
                 <button onClick={() => { setOpen(false); onUnpublish() }} className="w-full flex items-center gap-2.5 px-3 py-2.5 text-sm text-white hover:bg-white/[0.06] transition-colors">
-                  <Image src="/Publish.svg" alt="" width={14} height={14} style={{ filter: 'invert(0.55)' }} /> 게시 취소
+                  <Image src="/Publish.svg" alt="" width={14} height={14} style={{ filter: 'invert(0.55)' }} /> 공개 취소
                 </button>
               )}
               {onDownload && (

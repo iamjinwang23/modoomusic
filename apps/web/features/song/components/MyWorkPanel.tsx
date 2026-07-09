@@ -85,7 +85,7 @@ export function MyWorkPanel({ showCollections = false }: { showCollections?: boo
     }
   }, [user])
 
-  // 내 음악 필터(전체/좋아요/게시) + 검색(제목·가사·키워드)
+  // 내 음악 필터(전체/좋아요/공개) + 검색(제목·가사·키워드)
   const q = query.trim().toLowerCase()
   const filtered = songs.filter((s) => {
     if (filter === 'liked' && !s.liked) return false
@@ -121,7 +121,7 @@ export function MyWorkPanel({ showCollections = false }: { showCollections?: boo
     songService.update(unpublishing.id, { published: false, publishedAt: undefined })
     setUnpublishing(null)
     window.dispatchEvent(new CustomEvent('song-updated'))
-    toast.info('게시가 취소되었어요')
+    toast.info('공개가 취소되었어요')
   }
 
   function handleOpen(song: Song) {
@@ -173,7 +173,7 @@ export function MyWorkPanel({ showCollections = false }: { showCollections?: boo
               {([
                 ['all', '전체', null, 0],
                 ['liked', '좋아요', '/Thumb-Up.svg', 15],
-                ['published', '게시', '/Publish.svg', 17],
+                ['published', '공개', '/Publish.svg', 17],
               ] as const).map(([key, label, icon, iconSize]) => {
                 const active = filter === key
                 return (
@@ -292,9 +292,9 @@ export function MyWorkPanel({ showCollections = false }: { showCollections?: boo
       {unpublishing && (
         <ConfirmModal
           open={!!unpublishing}
-          title="이 게시물을 정말 게시 취소하시겠어요?"
-          description="게시를 취소하면 더 이상 탐색, 프로필, 검색 결과에 노출되지 않아요."
-          confirmLabel="게시 취소하기"
+          title="이 곡을 정말 공개 취소하시겠어요?"
+          description="공개를 취소하면 더 이상 탐색, 프로필, 검색 결과에 노출되지 않아요."
+          confirmLabel="공개 취소하기"
           cancelLabel="아니요"
           variant="danger"
           onConfirm={confirmUnpublish}
@@ -423,7 +423,7 @@ function MoreMenu({ onEdit, onDelete, onPublish, onDownload, onVideoCover, disab
                   className="w-full flex items-center gap-2.5 px-3 py-2.5 text-sm text-white hover:bg-white/[0.06] transition-colors"
                 >
                   <Image src="/Publish.svg" alt="" width={14} height={14} style={{ filter: ICON_FILTER }} />
-                  게시하기
+                  공개하기
                 </button>
                 <div className="my-1 h-px bg-white/[0.06]" />
               </>
@@ -642,7 +642,7 @@ function SongWorkItem({ song, onOpen, onEdit, onDelete, onCollect, onPublish, on
                 {isGenerating ? <GeneratingPhrase startedAt={song.createdAt} /> : isFailed ? '생성에 실패했어요' : song.prompt}
               </p>
             </button>
-            {/* generating일 땐 편집·컬렉션 메뉴 숨기고 삭제만 가능하게. 미게시 곡은 '게시하기'를 더보기 안으로 */}
+            {/* generating일 땐 편집·컬렉션 메뉴 숨기고 삭제만 가능하게. 미공개 곡은 '공개하기'를 더보기 안으로 */}
             <MoreMenu
               onEdit={onEdit}
               onDelete={onDelete}
@@ -668,7 +668,7 @@ function SongWorkItem({ song, onOpen, onEdit, onDelete, onCollect, onPublish, on
               <span>{formatCount(song.commentCount ?? 0)}</span>
             </div>
             <IconBtn src="/Share.svg" title="공유" filter={ICON_FILTER} onClick={handleShare} size="sm" />
-            {/* 게시됨 상태만 행에 노출. 호버 시 아이콘 360° 회전 + 텍스트(게시됨↔게시 삭제) 폭이 부드럽게 모핑 */}
+            {/* 공개 상태만 행에 노출. 호버 시 아이콘 360° 회전 + 텍스트(공개↔공개 취소) 폭이 부드럽게 모핑 */}
             {song.published && (
               <button
                 type="button"
@@ -686,10 +686,10 @@ function SongWorkItem({ song, onOpen, onEdit, onDelete, onCollect, onPublish, on
                 {/* grid 0fr↔1fr 트릭 — 두 텍스트가 동시에 접히고 펴지며 폭이 자연스럽게 변함 */}
                 <span className="flex">
                   <span className="grid grid-cols-[1fr] group-hover/pub:grid-cols-[0fr] transition-[grid-template-columns] duration-300 ease-out">
-                    <span className="overflow-hidden whitespace-nowrap">게시됨</span>
+                    <span className="overflow-hidden whitespace-nowrap">공개</span>
                   </span>
                   <span className="grid grid-cols-[0fr] group-hover/pub:grid-cols-[1fr] transition-[grid-template-columns] duration-300 ease-out">
-                    <span className="overflow-hidden whitespace-nowrap">게시 삭제</span>
+                    <span className="overflow-hidden whitespace-nowrap">공개 취소</span>
                   </span>
                 </span>
               </button>

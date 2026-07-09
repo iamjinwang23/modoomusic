@@ -15,7 +15,7 @@ const TOC = [
   { id: 'make-music',      label: '음악 만들기' },
   { id: 'lyrics',          label: '가사 작성' },
   { id: 'video-cover',     label: '영상' },
-  { id: 'share',           label: '공유·게시' },
+  { id: 'share',           label: '공유·공개' },
   { id: 'community',        label: '커뮤니티' },
   { id: 'credits',         label: '크레딧' },
   { id: 'referral',        label: '친구 초대' },
@@ -187,19 +187,19 @@ export default function HelpPage() {
               ]} />
             </Section>
 
-            <Section id="share" title="공유·게시">
+            <Section id="share" title="공유·공개">
               <p>만든 곡은 두 가지 방식으로 공유할 수 있어요.</p>
               <SubTitle>비공개 공유 (링크)</SubTitle>
               <List items={[
                 '곡 상세 페이지의 {share} 버튼으로 링크를 받아 친구에게 보낼 수 있어요.',
-                '게시하지 않아도 링크를 받은 사람은 들을 수 있어요.',
+                '공개하지 않아도 링크를 받은 사람은 들을 수 있어요.',
                 '둘러보기·검색·프로필에는 노출되지 않아요.',
               ]} />
-              <SubTitle>공개 게시</SubTitle>
+              <SubTitle>공개</SubTitle>
               <List items={[
                 '{more} 메뉴의 {publish}를 누르면 둘러보기·검색·내 프로필에 공개돼요.',
-                '게시 시 공개용 커버 이미지와 한 줄 코멘트를 따로 지정할 수 있어요.',
-                '언제든 **게시 취소**로 비공개로 되돌릴 수 있어요.',
+                '공개할 때 공개용 커버 이미지와 한 줄 코멘트를 따로 지정할 수 있어요.',
+                '언제든 **공개 취소**로 비공개로 되돌릴 수 있어요.',
               ]} />
             </Section>
 
@@ -212,7 +212,7 @@ export default function HelpPage() {
               ]} />
               <SubTitle>글쓰기</SubTitle>
               <List items={[
-                '텍스트에 **이미지·투표·내 곡** 중 하나를 첨부할 수 있어요. 곡은 게시(공개)된 곡만 첨부돼요.',
+                '텍스트에 **이미지·투표·내 곡** 중 하나를 첨부할 수 있어요. 곡은 공개된 곡만 첨부돼요.',
                 '본문에 유튜브·스포티파이 등 링크를 넣으면 자동으로 미리보기(임베드)가 붙어요.',
                 '댓글·대댓글·좋아요로 소통하고, 누군가 내 글·댓글에 반응하면 알림으로 받아요.',
               ]} />
@@ -333,7 +333,7 @@ function renderMd(s: string): string {
     .replace(/\{more\}/g,     `<span style="${BTN_GRAY};padding:5px 9px"><img src="/More.svg" alt="" style="${BTN_ICON}" /></span>`)
     .replace(/\{settings\}/g, `<span style="${BTN_GRAY};padding:5px 9px">${GEAR_SVG}</span>`)
     .replace(/\{share\}/g,    `<span style="${BTN_GRAY}"><img src="/Share.svg" alt="" style="${BTN_ICON}" />공유</span>`)
-    .replace(/\{publish\}/g,  `<span style="${BTN_GRAY}"><img src="/Publish.svg" alt="" style="${BTN_ICON}" />게시하기</span>`)
+    .replace(/\{publish\}/g,  `<span style="${BTN_GRAY}"><img src="/Publish.svg" alt="" style="${BTN_ICON}" />공개하기</span>`)
     .replace(/\{benefit\}/g,  `<span style="${BTN_GRAY}"><img src="/Gift-Card.svg" alt="" style="${BTN_ICON}" />혜택</span>`)
     .replace(/\{make\}/g,     `<span style="${BTN_GRAY}"><img src="/Ai-Generate-Music.svg" alt="" style="${BTN_ICON}" />음악 만들기</span>`)
     .replace(/\{contact\}/g,  `<span style="${BTN_GRAY}"><img src="/costumer.png" alt="" style="${BTN_ICON}" />문의하기</span>`)

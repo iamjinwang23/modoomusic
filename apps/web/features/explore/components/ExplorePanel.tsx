@@ -375,7 +375,7 @@ export function ExplorePanel() {
         <div className="space-y-8">
           <div className="flex flex-col items-center justify-center text-zinc-500 text-sm gap-2 px-6 py-16">
             <p className="text-base text-zinc-300">아직 공개된 곡이 없어요</p>
-            <p className="text-xs">첫 번째로 곡을 게시해보세요 ✨</p>
+            <p className="text-xs">첫 번째로 곡을 공개해보세요 ✨</p>
           </div>
           <RecommendedCreators />
           <GenreSection currentUserId={currentUserId} onMore={openGenreView} />
