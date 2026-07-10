@@ -8,6 +8,7 @@ import type { Community, CommunityMember, CommunityPost } from '@mono/shared'
 import { api } from '@/lib/api'
 import { setSelectedPost } from '@/lib/selected-post'
 import { CollapsingHeader, HEADER_ROW } from '@/components/ui/collapsing-header'
+import { CoverScrim } from '@/components/ui/profile-grid'
 import { PostCard } from '@/components/ui/post-card'
 import { Icon } from '@/components/ui/icon'
 import { mono } from '@/theme/mono'
@@ -104,7 +105,8 @@ export default function CommunityDetailScreen() {
         ListHeaderComponent={
           <View style={styles.header}>
             <View style={styles.bannerWrap}>
-              {banner ? <Image source={{ uri: banner }} style={styles.banner} contentFit="cover" /> : <View style={[styles.banner, styles.bannerFallback]} />}
+              {banner ? <Image source={{ uri: banner }} style={StyleSheet.absoluteFill} contentFit="cover" /> : <View style={[StyleSheet.absoluteFill, styles.bannerFallback]} />}
+              <CoverScrim />
               <Pressable onPress={() => router.back()} style={[styles.back, { top: insets.top + 8 }]} hitSlop={10}>
                 <Icon name="arrow.left" size={22} color={mono.color.onMedia} />
               </Pressable>
@@ -175,8 +177,8 @@ export default function CommunityDetailScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: mono.color.bg },
   header: { marginHorizontal: -16, marginBottom: 12 },
-  bannerWrap: { position: 'relative' },
-  banner: { width: '100%', height: 160, backgroundColor: mono.color.surface2 },
+  // 커버 — 와이드(9:4), 하단 그라데이션 디졸브(CoverScrim)
+  bannerWrap: { width: '100%', aspectRatio: 9 / 4, backgroundColor: mono.color.surface2, overflow: 'hidden' },
   bannerFallback: { backgroundColor: mono.color.surface },
   back: {
     position: 'absolute', left: 12, width: 36, height: 36, borderRadius: 18,
@@ -184,15 +186,19 @@ const styles = StyleSheet.create({
   },
   backText: { color: mono.color.onMedia, fontSize: 26, lineHeight: 28, marginTop: -2 },
   fill: { width: '100%', height: '100%' },
-  // 타이틀 행 — 사각 대표 이미지 + 이름 + 멤버
-  titleRow: { flexDirection: 'row', alignItems: 'center', gap: 12, marginTop: 14, paddingHorizontal: 16 },
+  // 타이틀 행 — 사각 대표 이미지 + 이름 + 멤버. 커버와 살짝 겹치게 위로 당김.
+  titleRow: { flexDirection: 'row', alignItems: 'center', gap: 12, marginTop: -30, paddingHorizontal: 16 },
   cAvatar: {
-    width: 56, height: 56, borderRadius: mono.radius.md, overflow: 'hidden',
+    width: 68, height: 68, borderRadius: mono.radius.lg, overflow: 'hidden',
     backgroundColor: mono.color.surface2, alignItems: 'center', justifyContent: 'center',
+    borderWidth: 2, borderColor: mono.color.bg,
   },
-  cAvatarText: { color: mono.color.accentLight, fontSize: 24, fontWeight: '800' },
+  cAvatarText: { color: mono.color.accentLight, fontSize: 26, fontWeight: '800' },
   titleCol: { flex: 1, minWidth: 0 },
-  name: { color: mono.color.text, fontSize: mono.font.h1, fontWeight: '800' },
+  name: {
+    color: mono.color.text, fontSize: mono.font.h1, fontWeight: '800',
+    textShadowColor: 'rgba(0,0,0,0.35)', textShadowOffset: { width: 0, height: 1 }, textShadowRadius: 4,
+  },
   memberRow: { flexDirection: 'row', alignItems: 'center', gap: 10, marginTop: 6 },
   meta: { color: mono.color.textTertiary, fontSize: mono.font.small },
   avatarStack: { flexDirection: 'row' },
