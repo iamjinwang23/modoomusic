@@ -4,7 +4,7 @@ import Animated, { useAnimatedScrollHandler, useSharedValue } from 'react-native
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { router, useFocusEffect, useLocalSearchParams } from 'expo-router'
 import { Image } from 'expo-image'
-import type { Community, CommunityPost } from '@mono/shared'
+import type { Community, CommunityMember, CommunityPost } from '@mono/shared'
 import { api } from '@/lib/api'
 import { setSelectedPost } from '@/lib/selected-post'
 import { CollapsingHeader, HEADER_ROW } from '@/components/ui/collapsing-header'
@@ -19,6 +19,7 @@ export default function CommunityDetailScreen() {
   const onScroll = useAnimatedScrollHandler((e) => { scrollY.value = e.contentOffset.y })
   const { id } = useLocalSearchParams<{ id: string }>()
   const [community, setCommunity] = useState<Community | null>(null)
+  const [members, setMembers] = useState<CommunityMember[]>([])
   const [posts, setPosts] = useState<CommunityPost[] | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [refreshing, setRefreshing] = useState(false)
@@ -29,10 +30,11 @@ export default function CommunityDetailScreen() {
     setError(null)
     try {
       const [detail, feed] = await Promise.all([
-        api.get(`/api/communities/${id}`) as Promise<{ community?: Community }>,
+        api.get(`/api/communities/${id}`) as Promise<{ community?: Community; members?: CommunityMember[] }>,
         api.get(`/api/communities/${id}/posts`) as Promise<{ posts?: CommunityPost[] }>,
       ])
       setCommunity(detail.community ?? null)
+      setMembers(detail.members ?? [])
       setPosts(feed.posts ?? [])
     } catch (e) {
       setError((e as { error?: string })?.error ?? 'network_error')
@@ -63,9 +65,10 @@ export default function CommunityDetailScreen() {
     }
   }, [id, community, joinBusy])
 
-  const banner = community?.coverImage ?? community?.avatarImage
-  // 배너(160) + 이름이 헤더 아래로 사라질 즈음 페이드인
-  const fadeEnd = Math.max(160 + 20 - (insets.top + HEADER_ROW), 40)
+  const banner = community?.coverImage
+  const initial = (community?.name ?? '?').trim().charAt(0).toUpperCase() || '?'
+  // 배너 + 이름이 헤더 아래로 사라질 즈음 페이드인
+  const fadeEnd = Math.max(170 - (insets.top + HEADER_ROW), 40)
   const fadeStart = Math.max(fadeEnd - 60, 0)
 
   return (
@@ -106,9 +109,31 @@ export default function CommunityDetailScreen() {
                 <Icon name="arrow.left" size={22} color={mono.color.onMedia} />
               </Pressable>
             </View>
-            <Text style={styles.name}>{community?.name ?? '커뮤니티'}</Text>
+
+            {/* 타이틀 행 — 사각 대표 이미지 + 이름 + 멤버(카운트·아바타) */}
+            <View style={styles.titleRow}>
+              <View style={styles.cAvatar}>
+                {community?.avatarImage ? <Image source={{ uri: community.avatarImage }} style={styles.fill} contentFit="cover" /> : <Text style={styles.cAvatarText}>{initial}</Text>}
+              </View>
+              <View style={styles.titleCol}>
+                <Text style={styles.name} numberOfLines={1}>{community?.name ?? '커뮤니티'}</Text>
+                <View style={styles.memberRow}>
+                  <Text style={styles.meta}>멤버 {community?.memberCount?.toLocaleString() ?? '-'}</Text>
+                  {members.length > 0 ? (
+                    <View style={styles.avatarStack}>
+                      {members.slice(0, 5).map((m, i) => (
+                        <View key={m.userId} style={[styles.mAvatar, { marginLeft: i === 0 ? 0 : -8, backgroundColor: `hsl(${m.avatarHue ?? 250}, 40%, 40%)` }]}>
+                          {m.avatarUrl ? <Image source={{ uri: m.avatarUrl }} style={styles.fill} contentFit="cover" /> : <Text style={styles.mAvatarText}>{(m.displayName ?? m.username ?? '?').charAt(0).toUpperCase()}</Text>}
+                        </View>
+                      ))}
+                    </View>
+                  ) : null}
+                </View>
+              </View>
+            </View>
+
             {community?.description ? <Text style={styles.desc}>{community.description}</Text> : null}
-            <Text style={styles.meta}>멤버 {community?.memberCount?.toLocaleString() ?? '-'}</Text>
+            {community?.topic ? <View style={styles.topicWrap}><Text style={styles.topic}>{community.topic}</Text></View> : null}
 
             {community ? (
               <View style={styles.actions}>
@@ -158,9 +183,30 @@ const styles = StyleSheet.create({
     backgroundColor: mono.color.overlay, alignItems: 'center', justifyContent: 'center',
   },
   backText: { color: mono.color.onMedia, fontSize: 26, lineHeight: 28, marginTop: -2 },
-  name: { color: mono.color.text, fontSize: mono.font.h1, fontWeight: '800', marginTop: 14, paddingHorizontal: 16 },
-  desc: { color: mono.color.textSecondary, fontSize: mono.font.body, marginTop: 6, paddingHorizontal: 16 },
-  meta: { color: mono.color.textTertiary, fontSize: mono.font.small, marginTop: 8, paddingHorizontal: 16 },
+  fill: { width: '100%', height: '100%' },
+  // 타이틀 행 — 사각 대표 이미지 + 이름 + 멤버
+  titleRow: { flexDirection: 'row', alignItems: 'center', gap: 12, marginTop: 14, paddingHorizontal: 16 },
+  cAvatar: {
+    width: 56, height: 56, borderRadius: mono.radius.md, overflow: 'hidden',
+    backgroundColor: mono.color.surface2, alignItems: 'center', justifyContent: 'center',
+  },
+  cAvatarText: { color: mono.color.accentLight, fontSize: 24, fontWeight: '800' },
+  titleCol: { flex: 1, minWidth: 0 },
+  name: { color: mono.color.text, fontSize: mono.font.h1, fontWeight: '800' },
+  memberRow: { flexDirection: 'row', alignItems: 'center', gap: 10, marginTop: 6 },
+  meta: { color: mono.color.textTertiary, fontSize: mono.font.small },
+  avatarStack: { flexDirection: 'row' },
+  mAvatar: {
+    width: 24, height: 24, borderRadius: 12, overflow: 'hidden',
+    borderWidth: 2, borderColor: mono.color.bg, alignItems: 'center', justifyContent: 'center',
+  },
+  mAvatarText: { color: mono.color.onMedia, fontSize: 10, fontWeight: '700' },
+  desc: { color: mono.color.textSecondary, fontSize: mono.font.body, marginTop: 12, paddingHorizontal: 16, lineHeight: 20 },
+  topicWrap: { marginTop: 10, paddingHorizontal: 16, flexDirection: 'row' },
+  topic: {
+    color: mono.color.accentLight, fontSize: mono.font.tiny, fontWeight: '600',
+    backgroundColor: 'rgba(124,58,237,0.15)', paddingHorizontal: 10, paddingVertical: 5, borderRadius: mono.radius.pill, overflow: 'hidden',
+  },
   actions: { flexDirection: 'row', gap: 10, marginTop: 14, paddingHorizontal: 16 },
   joinBtn: { paddingVertical: 10, paddingHorizontal: 20, borderRadius: mono.radius.pill },
   joinBtnOff: { backgroundColor: mono.color.accent },
