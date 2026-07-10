@@ -19,12 +19,15 @@ export default function ComposeScreen() {
   const { communityId } = useLocalSearchParams<{ communityId: string }>()
   const [content, setContent] = useState('')
   const [song, setSong] = useState<Song | null>(null)
+  const [pollOptions, setPollOptions] = useState<string[] | null>(null)
   const [picker, setPicker] = useState(false)
   const [mySongs, setMySongs] = useState<Song[] | null>(null)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
-  const canPost = (content.trim().length > 0 || song) && !busy
+  const pollFilled = pollOptions ? pollOptions.map((o) => o.trim()).filter(Boolean) : []
+  const pollReady = pollFilled.length >= 2
+  const canPost = (content.trim().length > 0 || !!song || pollReady) && !busy
 
   // 공개된 내 곡만 첨부 가능(서버가 song_not_public 거부)
   const loadSongs = useCallback(async () => {
@@ -44,6 +47,7 @@ export default function ComposeScreen() {
       await api.post(`/api/communities/${communityId}/posts`, {
         content: content.trim(),
         songId: song?.id ?? null,
+        pollOptions: pollReady ? pollFilled : [],
       })
       router.back()
     } catch (e) {
@@ -78,6 +82,21 @@ export default function ComposeScreen() {
           autoFocus
         />
 
+        {/* 첨부 툴바 — 곡 · 투표 */}
+        <View style={styles.toolbar}>
+          {!song ? (
+            <Pressable style={styles.attachBtn} onPress={() => setPicker((v) => !v)}>
+              <Icon name="music.note" size={14} color={mono.color.textSecondary} />
+              <Text style={styles.attachText}>내 곡</Text>
+            </Pressable>
+          ) : null}
+          {!pollOptions ? (
+            <Pressable style={styles.attachBtn} onPress={() => setPollOptions(['', ''])}>
+              <Text style={styles.attachText}>📊 투표</Text>
+            </Pressable>
+          ) : null}
+        </View>
+
         {song ? (
           <View style={styles.attached}>
             <View style={styles.attachedCover}>
@@ -86,12 +105,36 @@ export default function ComposeScreen() {
             <Text style={styles.attachedTitle} numberOfLines={1}>♪ {song.title ?? '내 곡'}</Text>
             <Pressable onPress={() => setSong(null)} hitSlop={8}><Text style={styles.removeAttach}>✕</Text></Pressable>
           </View>
-        ) : (
-          <Pressable style={styles.attachBtn} onPress={() => setPicker((v) => !v)}>
-            <Icon name="music.note" size={14} color={mono.color.textSecondary} />
-            <Text style={styles.attachText}>내 곡 첨부</Text>
-          </Pressable>
-        )}
+        ) : null}
+
+        {pollOptions ? (
+          <View style={styles.pollEditor}>
+            <View style={styles.pollHeader}>
+              <Text style={styles.pollLabel}>투표</Text>
+              <Pressable onPress={() => setPollOptions(null)} hitSlop={8}><Text style={styles.removeAttach}>✕</Text></Pressable>
+            </View>
+            {pollOptions.map((opt, i) => (
+              <View key={i} style={styles.pollRow}>
+                <TextInput
+                  style={styles.pollInput}
+                  value={opt}
+                  onChangeText={(t) => setPollOptions((prev) => prev?.map((o, j) => (j === i ? t : o)) ?? prev)}
+                  placeholder={`선택지 ${i + 1}`}
+                  placeholderTextColor={mono.color.textTertiary}
+                  maxLength={40}
+                />
+                {pollOptions.length > 2 ? (
+                  <Pressable onPress={() => setPollOptions((prev) => prev?.filter((_, j) => j !== i) ?? prev)} hitSlop={8}><Text style={styles.removeAttach}>✕</Text></Pressable>
+                ) : null}
+              </View>
+            ))}
+            {pollOptions.length < 4 ? (
+              <Pressable onPress={() => setPollOptions((prev) => (prev ? [...prev, ''] : prev))} style={styles.pollAdd}>
+                <Text style={styles.pollAddText}>+ 선택지 추가</Text>
+              </Pressable>
+            ) : null}
+          </View>
+        ) : null}
 
         {picker && !song ? (
           <View style={styles.pickerBox}>
@@ -138,12 +181,28 @@ const styles = StyleSheet.create({
     minHeight: 120, color: mono.color.text, fontSize: mono.font.body, lineHeight: 22,
     textAlignVertical: 'top', paddingTop: 4,
   },
+  toolbar: { flexDirection: 'row', gap: 8, marginTop: 8 },
   attachBtn: {
     flexDirection: 'row', alignItems: 'center', gap: 6,
     alignSelf: 'flex-start', backgroundColor: mono.color.fill, borderRadius: mono.radius.pill,
-    paddingVertical: 8, paddingHorizontal: 16, marginTop: 8,
+    paddingVertical: 8, paddingHorizontal: 16,
   },
   attachText: { color: mono.color.textSecondary, fontSize: mono.font.small, fontWeight: '600' },
+  // 투표 에디터
+  pollEditor: {
+    marginTop: 10, backgroundColor: mono.color.surface, borderRadius: mono.radius.md,
+    borderWidth: 1, borderColor: mono.color.borderSoft, padding: 12, gap: 8,
+  },
+  pollHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  pollLabel: { color: mono.color.text, fontSize: mono.font.small, fontWeight: '700' },
+  pollRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  pollInput: {
+    flex: 1, backgroundColor: mono.color.bg, borderRadius: mono.radius.sm, color: mono.color.text,
+    fontSize: mono.font.small, paddingHorizontal: 12, paddingVertical: 9,
+    borderWidth: 1, borderColor: mono.color.borderSoft,
+  },
+  pollAdd: { paddingVertical: 4 },
+  pollAddText: { color: mono.color.accentLight, fontSize: mono.font.small, fontWeight: '600' },
   attached: {
     flexDirection: 'row', alignItems: 'center', gap: 10, marginTop: 8,
     backgroundColor: mono.color.surface, borderRadius: mono.radius.md, padding: 10,
