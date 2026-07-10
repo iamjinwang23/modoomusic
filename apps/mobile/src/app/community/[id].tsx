@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
-import { ActivityIndicator, Pressable, RefreshControl, StyleSheet, Text, View } from 'react-native'
+import { ActivityIndicator, Pressable, RefreshControl, StyleSheet, Text, useWindowDimensions, View } from 'react-native'
 import Animated, { useAnimatedScrollHandler, useSharedValue } from 'react-native-reanimated'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { router, useFocusEffect, useLocalSearchParams } from 'expo-router'
@@ -7,6 +7,7 @@ import { Image } from 'expo-image'
 import type { Community, CommunityMember, CommunityPost } from '@mono/shared'
 import { api } from '@/lib/api'
 import { setSelectedPost } from '@/lib/selected-post'
+import { shareCommunity } from '@/lib/song-actions'
 import { CollapsingHeader, HEADER_ROW } from '@/components/ui/collapsing-header'
 import { CoverScrim } from '@/components/ui/profile-grid'
 import { PostCard } from '@/components/ui/post-card'
@@ -16,6 +17,7 @@ import { mono } from '@/theme/mono'
 // 커뮤니티 상세 — 배너/이름/멤버 + 게시글 피드(GET /api/communities/[id], /posts).
 export default function CommunityDetailScreen() {
   const insets = useSafeAreaInsets()
+  const { width } = useWindowDimensions()
   const scrollY = useSharedValue(0)
   const onScroll = useAnimatedScrollHandler((e) => { scrollY.value = e.contentOffset.y })
   const { id } = useLocalSearchParams<{ id: string }>()
@@ -25,6 +27,8 @@ export default function CommunityDetailScreen() {
   const [error, setError] = useState<string | null>(null)
   const [refreshing, setRefreshing] = useState(false)
   const [joinBusy, setJoinBusy] = useState(false)
+  const [descExpanded, setDescExpanded] = useState(false)
+  const [descLines, setDescLines] = useState(0)
 
   const load = useCallback(async () => {
     if (!id) return
@@ -68,9 +72,10 @@ export default function CommunityDetailScreen() {
 
   const banner = community?.coverImage
   const initial = (community?.name ?? '?').trim().charAt(0).toUpperCase() || '?'
-  // 배너 + 이름이 헤더 아래로 사라질 즈음 페이드인
-  const fadeEnd = Math.max(170 - (insets.top + HEADER_ROW), 40)
-  const fadeStart = Math.max(fadeEnd - 60, 0)
+  // 커버(16:9) + 이름이 헤더 아래로 사라질 즈음 페이드인
+  const coverH = width * 9 / 16
+  const fadeEnd = Math.max(coverH - (insets.top + HEADER_ROW), 60)
+  const fadeStart = Math.max(fadeEnd - 70, 0)
 
   return (
     <View style={styles.container}>
@@ -110,6 +115,15 @@ export default function CommunityDetailScreen() {
               <Pressable onPress={() => router.back()} style={[styles.back, { top: insets.top + 8 }]} hitSlop={10}>
                 <Icon name="arrow.left" size={22} color={mono.color.onMedia} />
               </Pressable>
+              {/* 우상단 — 알림 · 공유 */}
+              <View style={[styles.coverActions, { top: insets.top + 8 }]}>
+                <Pressable onPress={() => router.push('/notifications')} style={styles.circleBtn} hitSlop={8}>
+                  <Icon name="bell" size={18} color={mono.color.onMedia} />
+                </Pressable>
+                <Pressable onPress={() => id && shareCommunity(id, community?.name)} style={styles.circleBtn} hitSlop={8}>
+                  <Icon name="square.and.arrow.up" size={18} color={mono.color.onMedia} />
+                </Pressable>
+              </View>
             </View>
 
             {/* 타이틀 행 — 사각 대표 이미지 + 이름 + 멤버(카운트·아바타) */}
@@ -134,7 +148,18 @@ export default function CommunityDetailScreen() {
               </View>
             </View>
 
-            {community?.description ? <Text style={styles.desc}>{community.description}</Text> : null}
+            {community?.description ? (
+              <View style={styles.descWrap}>
+                <Text style={styles.desc} numberOfLines={descExpanded ? undefined : 2}>{community.description}</Text>
+                {/* 전체 라인 수 측정(숨김) */}
+                <Text style={[styles.desc, styles.descMeasure]} onTextLayout={(e) => setDescLines(e.nativeEvent.lines.length)}>{community.description}</Text>
+                {descLines > 2 ? (
+                  <Pressable onPress={() => setDescExpanded((v) => !v)} hitSlop={6}>
+                    <Text style={styles.moreBtn}>{descExpanded ? '접기' : '...더보기'}</Text>
+                  </Pressable>
+                ) : null}
+              </View>
+            ) : null}
             {community?.topic ? <View style={styles.topicWrap}><Text style={styles.topic}>{community.topic}</Text></View> : null}
 
             {community ? (
@@ -177,9 +202,11 @@ export default function CommunityDetailScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: mono.color.bg },
   header: { marginHorizontal: -16, marginBottom: 12 },
-  // 커버 — 와이드(9:4), 하단 그라데이션 디졸브(CoverScrim)
-  bannerWrap: { width: '100%', aspectRatio: 9 / 4, backgroundColor: mono.color.surface2, overflow: 'hidden' },
+  // 커버 — 16:9(프로필과 동일), 하단 그라데이션 디졸브(CoverScrim)
+  bannerWrap: { width: '100%', aspectRatio: 16 / 9, backgroundColor: mono.color.surface2, overflow: 'hidden' },
   bannerFallback: { backgroundColor: mono.color.surface },
+  coverActions: { position: 'absolute', right: 12, flexDirection: 'row', gap: 8 },
+  circleBtn: { width: 40, height: 40, borderRadius: 20, backgroundColor: mono.color.overlay, alignItems: 'center', justifyContent: 'center' },
   back: {
     position: 'absolute', left: 12, width: 36, height: 36, borderRadius: 18,
     backgroundColor: mono.color.overlay, alignItems: 'center', justifyContent: 'center',
@@ -207,7 +234,10 @@ const styles = StyleSheet.create({
     borderWidth: 2, borderColor: mono.color.bg, alignItems: 'center', justifyContent: 'center',
   },
   mAvatarText: { color: mono.color.onMedia, fontSize: 10, fontWeight: '700' },
-  desc: { color: mono.color.textSecondary, fontSize: mono.font.body, marginTop: 12, paddingHorizontal: 16, lineHeight: 20 },
+  descWrap: { marginTop: 12, paddingHorizontal: 16 },
+  desc: { color: mono.color.textSecondary, fontSize: mono.font.body, lineHeight: 20 },
+  descMeasure: { position: 'absolute', left: 0, right: 0, top: 0, opacity: 0 },
+  moreBtn: { color: mono.color.textTertiary, fontSize: mono.font.small, fontWeight: '600', marginTop: 4 },
   topicWrap: { marginTop: 10, paddingHorizontal: 16, flexDirection: 'row' },
   topic: {
     color: mono.color.accentLight, fontSize: mono.font.tiny, fontWeight: '600',
