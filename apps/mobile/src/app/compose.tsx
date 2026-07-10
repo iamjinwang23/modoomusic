@@ -9,6 +9,7 @@ import * as ImagePicker from 'expo-image-picker'
 import type { Song } from '@mono/shared'
 import { api } from '@/lib/api'
 import { supabase } from '@/lib/supabase'
+import { getSelectedPost } from '@/lib/selected-post'
 import { Icon } from '@/components/ui/icon'
 import { mono } from '@/theme/mono'
 
@@ -20,8 +21,9 @@ const API_BASE = process.env.EXPO_PUBLIC_API_BASE_URL ?? ''
 // 멤버만 진입(상세에서 게이팅). 이미지·투표는 후속.
 export default function ComposeScreen() {
   const insets = useSafeAreaInsets()
-  const { communityId } = useLocalSearchParams<{ communityId: string }>()
-  const [content, setContent] = useState('')
+  const { communityId, postId } = useLocalSearchParams<{ communityId: string; postId?: string }>()
+  const editing = !!postId
+  const [content, setContent] = useState(() => (postId ? (getSelectedPost()?.content ?? '') : ''))
   const [song, setSong] = useState<Song | null>(null)
   const [images, setImages] = useState<string[]>([])
   const [uploading, setUploading] = useState(false)
@@ -71,12 +73,17 @@ export default function ComposeScreen() {
     if (!canPost || !communityId) return
     setBusy(true); setError(null)
     try {
-      await api.post(`/api/communities/${communityId}/posts`, {
-        content: content.trim(),
-        songId: song?.id ?? null,
-        imageUrls: images,
-        pollOptions: pollReady ? pollFilled : [],
-      })
+      if (editing) {
+        // 수정 — 본문만(첨부는 서버 보존). PATCH /community-posts/[postId]
+        await api.patch(`/api/community-posts/${postId}`, { content: content.trim() })
+      } else {
+        await api.post(`/api/communities/${communityId}/posts`, {
+          content: content.trim(),
+          songId: song?.id ?? null,
+          imageUrls: images,
+          pollOptions: pollReady ? pollFilled : [],
+        })
+      }
       router.back()
     } catch (e) {
       const err = e as { error?: string; status?: number }
@@ -94,9 +101,9 @@ export default function ComposeScreen() {
       <View style={[styles.container, { paddingTop: insets.top + 8 }]}>
         <View style={styles.header}>
           <Pressable onPress={() => router.back()} hitSlop={12}><Text style={styles.close}>✕</Text></Pressable>
-          <Text style={styles.title}>글쓰기</Text>
+          <Text style={styles.title}>{editing ? '수정' : '글쓰기'}</Text>
           <Pressable onPress={submit} disabled={!canPost} hitSlop={12}>
-            <Text style={[styles.post, !canPost && styles.postOff]}>{busy ? '게시 중' : '게시'}</Text>
+            <Text style={[styles.post, !canPost && styles.postOff]}>{busy ? (editing ? '저장 중' : '게시 중') : (editing ? '저장' : '게시')}</Text>
           </Pressable>
         </View>
 
@@ -110,7 +117,9 @@ export default function ComposeScreen() {
           autoFocus
         />
 
-        {/* 첨부 툴바 — 이미지 · 곡 · 투표 */}
+        {/* 첨부 툴바 — 이미지 · 곡 · 투표 (수정 모드에선 본문만) */}
+        {!editing ? (
+        <>
         <View style={styles.toolbar}>
           <Pressable style={styles.attachBtn} onPress={pickImages} disabled={uploading || images.length >= MAX_IMAGES}>
             {uploading ? <ActivityIndicator size="small" color={mono.color.textSecondary} /> : <Text style={styles.attachText}>🖼 사진</Text>}
@@ -202,6 +211,8 @@ export default function ComposeScreen() {
               style={{ maxHeight: 220 }}
             />
           </View>
+        ) : null}
+        </>
         ) : null}
 
         <View style={styles.footer}>

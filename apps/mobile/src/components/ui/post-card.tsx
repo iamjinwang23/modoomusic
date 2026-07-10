@@ -1,11 +1,16 @@
 import { useEffect, useState } from 'react'
-import { Pressable, StyleSheet, Text, View } from 'react-native'
+import { ActionSheetIOS, Alert, Platform, Pressable, StyleSheet, Text, View } from 'react-native'
 import { Image } from 'expo-image'
+import { router } from 'expo-router'
 import * as WebBrowser from 'expo-web-browser'
 import type { CommunityPost, CommunityPoll } from '@mono/shared'
 import { api } from '@/lib/api'
+import { useSession } from '@/lib/use-session'
+import { setSelectedPost } from '@/lib/selected-post'
 import { Icon } from '@/components/ui/icon'
 import { mono } from '@/theme/mono'
+
+const REPORT_REASONS = ['욕설·비속어', '음란물', '혐오·차별 표현', '도배', '광고·홍보성 콘텐츠', '개인정보 노출', '저작권 침해', '기타']
 
 function initial(name: string | null): string {
   return (name?.trim().charAt(0) || '?').toUpperCase()
@@ -39,12 +44,17 @@ function youTubeThumb(url: string | null): string | null {
 }
 
 // 게시글 카드 — 작성자·시간·본문·다중이미지·곡/유튜브/링크 임베드·투표·좋아요·댓글. 박스 없이 라인 구분(웹 파리티).
-export function PostCard({ post, managerId, onPress, onAuthorPress }: {
+export function PostCard({ post, managerId, onPress, onAuthorPress, onChanged }: {
   post: CommunityPost
   managerId?: string | null
   onPress?: () => void
   onAuthorPress?: () => void
+  onChanged?: () => void
 }) {
+  const { session } = useSession()
+  const myId = session?.user?.id
+  const isAuthor = !!myId && post.authorId === myId
+  const isMgr = !!myId && !!managerId && managerId === myId
   const [liked, setLiked] = useState(!!post.liked)
   const [likeCount, setLikeCount] = useState(post.likeCount)
   const [busy, setBusy] = useState(false)
@@ -94,6 +104,39 @@ export function PostCard({ post, managerId, onPress, onAuthorPress }: {
   const pollEnded = poll ? new Date(poll.endsAt).getTime() <= Date.now() : false
   const showResults = poll ? (pollEnded || poll.myVote !== null) : false
 
+  // 더보기 — 수정(작성자)·고정(매니저)·삭제(작성자/매니저)·신고(타인)
+  const doDelete = () => Alert.alert('게시글을 삭제할까요?', undefined, [
+    { text: '취소', style: 'cancel' },
+    { text: '삭제', style: 'destructive', onPress: async () => { try { await api.del(`/api/community-posts/${post.id}`) } catch { /* 무시 */ } onChanged?.() } },
+  ])
+  const doPin = async () => { try { await api.post(`/api/community-posts/${post.id}/pin`) } catch { /* 무시 */ } onChanged?.() }
+  const doEdit = () => { setSelectedPost(post); router.push(`/compose?communityId=${post.communityId}&postId=${post.id}`) }
+  const doReport = () => {
+    const run = async (reason: string) => { try { await api.post(`/api/community-posts/${post.id}/report`, { reason }); Alert.alert('신고했어요') } catch { /* 무시 */ } }
+    if (Platform.OS === 'ios') {
+      ActionSheetIOS.showActionSheetWithOptions({ options: [...REPORT_REASONS, '취소'], cancelButtonIndex: REPORT_REASONS.length, title: '신고 사유' }, (i) => { if (i < REPORT_REASONS.length) run(REPORT_REASONS[i]) })
+    } else {
+      Alert.alert('신고 사유', undefined, [...REPORT_REASONS.map((r) => ({ text: r, onPress: () => run(r) })), { text: '취소', style: 'cancel' as const }])
+    }
+  }
+  const openMenu = () => {
+    const opts: string[] = []; const acts: Array<() => void> = []
+    if (isAuthor) { opts.push('수정'); acts.push(doEdit) }
+    if (isMgr) { opts.push(post.pinned ? '고정 해제' : '고정'); acts.push(doPin) }
+    if (isAuthor || isMgr) { opts.push('삭제'); acts.push(doDelete) }
+    if (!isAuthor) { opts.push('신고'); acts.push(doReport) }
+    if (opts.length === 0) return
+    const delIdx = opts.indexOf('삭제')
+    if (Platform.OS === 'ios') {
+      ActionSheetIOS.showActionSheetWithOptions(
+        { options: [...opts, '취소'], cancelButtonIndex: opts.length, destructiveButtonIndex: delIdx >= 0 ? delIdx : undefined },
+        (i) => { if (i < acts.length) acts[i]() },
+      )
+    } else {
+      Alert.alert('게시글', undefined, [...opts.map((o, i) => ({ text: o, style: (o === '삭제' ? 'destructive' : 'default') as 'destructive' | 'default', onPress: acts[i] })), { text: '취소', style: 'cancel' as const }])
+    }
+  }
+
   return (
     <Pressable onPress={onPress} style={({ pressed }) => [styles.row, pressed && onPress && styles.pressed]}>
       {post.pinned ? <Text style={styles.pin}>📌 고정됨</Text> : null}
@@ -115,6 +158,7 @@ export function PostCard({ post, managerId, onPress, onAuthorPress }: {
           </View>
           <Text style={styles.time}>{relativeTime(post.createdAt)}</Text>
         </View>
+        <Pressable onPress={openMenu} hitSlop={10} style={styles.more}><Icon name="ellipsis" size={18} color={mono.color.textTertiary} /></Pressable>
       </View>
 
       {post.content ? <Text style={styles.content}>{post.content}</Text> : null}
@@ -213,6 +257,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(124,58,237,0.15)', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 6, overflow: 'hidden',
   },
   time: { color: mono.color.textTertiary, fontSize: mono.font.tiny, marginTop: 2 },
+  more: { width: 30, height: 30, alignItems: 'center', justifyContent: 'center' },
   content: { color: mono.color.text, fontSize: mono.font.body, lineHeight: 21 },
   // 이미지 갤러리
   gallery: { flexDirection: 'row', flexWrap: 'wrap', gap: 4 },

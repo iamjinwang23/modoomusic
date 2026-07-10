@@ -39,14 +39,6 @@ export default function PostDetailScreen() {
 
   useEffect(() => { load() }, [load])
 
-  const deletePost = () => {
-    if (!id) return
-    Alert.alert('게시글을 삭제할까요?', undefined, [
-      { text: '취소', style: 'cancel' },
-      { text: '삭제', style: 'destructive', onPress: async () => { try { await api.del(`/api/community-posts/${id}`) } catch {} ; router.back() } },
-    ])
-  }
-
   const deleteComment = (commentId: string) => {
     Alert.alert('댓글을 삭제할까요?', undefined, [
       { text: '취소', style: 'cancel' },
@@ -75,9 +67,7 @@ export default function PostDetailScreen() {
         <View style={styles.header}>
           <Pressable onPress={() => router.back()} hitSlop={12}><Text style={styles.close}>‹</Text></Pressable>
           <Text style={styles.title}>게시글</Text>
-          {post && post.authorId === myId ? (
-            <Pressable onPress={deletePost} hitSlop={12}><Text style={styles.delete}>삭제</Text></Pressable>
-          ) : <View style={{ width: 24 }} />}
+          <View style={{ width: 24 }} />
         </View>
 
         <FlatList
@@ -89,6 +79,7 @@ export default function PostDetailScreen() {
               {post ? (
                 <PostCard
                   post={post}
+                  onChanged={() => router.back()}
                   onAuthorPress={post.authorUsername ? () => router.push(`/creator/${post.authorUsername}`) : undefined}
                 />
               ) : null}
