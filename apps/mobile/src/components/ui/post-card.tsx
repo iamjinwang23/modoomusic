@@ -44,9 +44,10 @@ function youTubeThumb(url: string | null): string | null {
 }
 
 // 게시글 카드 — 작성자·시간·본문·다중이미지·곡/유튜브/링크 임베드·투표·좋아요·댓글. 박스 없이 라인 구분(웹 파리티).
-export function PostCard({ post, managerId, onPress, onAuthorPress, onChanged }: {
+export function PostCard({ post, managerId, canInteract = true, onPress, onAuthorPress, onChanged }: {
   post: CommunityPost
   managerId?: string | null
+  canInteract?: boolean
   onPress?: () => void
   onAuthorPress?: () => void
   onChanged?: () => void
@@ -77,8 +78,11 @@ export function PostCard({ post, managerId, onPress, onAuthorPress, onChanged }:
     return () => { alive = false }
   }, [embedUrl])
 
+  const gate = () => { if (!canInteract) { Alert.alert('먼저 커뮤니티에 가입해주세요'); return false } return true }
+
   const toggleLike = async () => {
     if (busy) return
+    if (!gate()) return
     const next = !liked
     setLiked(next); setLikeCount((c) => c + (next ? 1 : -1)); setBusy(true)
     try {
@@ -94,6 +98,7 @@ export function PostCard({ post, managerId, onPress, onAuthorPress, onChanged }:
 
   const vote = async (i: number) => {
     if (!poll || pollBusy) return
+    if (!gate()) return
     setPollBusy(true)
     try {
       const r = await api.post(`/api/community-posts/${post.id}/poll/vote`, { optionIndex: i }) as { poll?: CommunityPoll }

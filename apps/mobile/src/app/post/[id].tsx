@@ -28,10 +28,11 @@ function relativeTime(iso: string): string {
 }
 
 // 댓글 1건 — 아바타·이름·시간·본문·좋아요·답글·삭제. isReply면 들여쓰기.
-function CommentItem({ comment, myId, isReply, onReply, onDelete }: {
+function CommentItem({ comment, myId, isReply, canInteract, onReply, onDelete }: {
   comment: CommunityPostComment
   myId?: string
   isReply?: boolean
+  canInteract?: boolean
   onReply?: (c: CommunityPostComment) => void
   onDelete: (id: string) => void
 }) {
@@ -41,6 +42,7 @@ function CommentItem({ comment, myId, isReply, onReply, onDelete }: {
   const name = comment.user.displayName ?? comment.user.username ?? '익명'
   const toggleLike = async () => {
     if (busy) return
+    if (!canInteract) { Alert.alert('먼저 커뮤니티에 가입해주세요'); return }
     const next = !liked
     setLiked(next); setLikeCount((c) => c + (next ? 1 : -1)); setBusy(true)
     try {
@@ -89,7 +91,17 @@ export default function PostDetailScreen() {
   const [comments, setComments] = useState<CommunityPostComment[] | null>(null)
   const [input, setInput] = useState('')
   const [replyTo, setReplyTo] = useState<{ id: string; name: string } | null>(null)
+  const [canInteract, setCanInteract] = useState(false)
   const [busy, setBusy] = useState(false)
+
+  // 커뮤니티 멤버십 조회 → 비회원은 댓글·좋아요 게이팅
+  useEffect(() => {
+    const cid = post?.communityId
+    if (!cid) return
+    api.get(`/api/communities/${cid}`)
+      .then((j) => { const c = (j as { community?: { isMember?: boolean; isManager?: boolean } }).community; setCanInteract(!!(c?.isMember || c?.isManager)) })
+      .catch(() => {})
+  }, [post?.communityId])
 
   const load = useCallback(async () => {
     if (!id) return
@@ -113,6 +125,7 @@ export default function PostDetailScreen() {
   const send = async () => {
     const body = input.trim()
     if (!body || busy || !id) return
+    if (!canInteract) { Alert.alert('먼저 커뮤니티에 가입해주세요'); return }
     setBusy(true)
     try {
       await api.post(`/api/community-posts/${id}/comments`, { body, parentId: replyTo?.id ?? null })
@@ -143,6 +156,7 @@ export default function PostDetailScreen() {
               {post ? (
                 <PostCard
                   post={post}
+                  canInteract={canInteract}
                   onChanged={() => router.back()}
                   onAuthorPress={post.authorUsername ? () => router.push(`/creator/${post.authorUsername}`) : undefined}
                 />
@@ -153,9 +167,9 @@ export default function PostDetailScreen() {
           }
           renderItem={({ item }) => (
             <View>
-              <CommentItem comment={item} myId={myId} onDelete={deleteComment} onReply={(c) => setReplyTo({ id: c.id, name: c.user.displayName ?? c.user.username ?? '익명' })} />
+              <CommentItem comment={item} myId={myId} canInteract={canInteract} onDelete={deleteComment} onReply={(c) => setReplyTo({ id: c.id, name: c.user.displayName ?? c.user.username ?? '익명' })} />
               {item.replies?.map((r) => (
-                <CommentItem key={r.id} comment={r} isReply myId={myId} onDelete={deleteComment} />
+                <CommentItem key={r.id} comment={r} isReply myId={myId} canInteract={canInteract} onDelete={deleteComment} />
               ))}
             </View>
           )}

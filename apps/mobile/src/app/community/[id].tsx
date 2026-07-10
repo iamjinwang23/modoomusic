@@ -103,6 +103,7 @@ export default function CommunityDetailScreen() {
           <PostCard
             post={item}
             managerId={community?.managerId}
+            canInteract={!!(community?.isMember || community?.isManager)}
             onChanged={load}
             onPress={() => { setSelectedPost(item); router.push(`/post/${item.id}`) }}
             onAuthorPress={item.authorUsername ? () => router.push(`/creator/${item.authorUsername}`) : undefined}
@@ -198,8 +199,8 @@ export default function CommunityDetailScreen() {
         showsVerticalScrollIndicator={false}
       />
 
-      {/* 글쓰기 — 우측 하단 플로팅(+) 버튼(멤버만) */}
-      {community?.isMember ? (
+      {/* 글쓰기 — 우측 하단 플로팅(+) 버튼(멤버·매니저) */}
+      {community?.isMember || community?.isManager ? (
         <Pressable onPress={() => router.push(`/compose?communityId=${id}`)} style={[styles.fab, { bottom: insets.bottom + 20 }]}>
           <Icon name="plus" size={26} color={mono.color.bg} />
         </Pressable>
