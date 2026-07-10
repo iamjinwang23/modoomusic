@@ -87,11 +87,12 @@ export default function CommunityDetailScreen() {
         left={
           <Pressable onPress={() => router.back()} hitSlop={8} style={styles.hBack}><Icon name="arrow.left" size={24} color={mono.color.text} /></Pressable>
         }
-        right={community ? (
-          <Pressable onPress={toggleJoin} disabled={joinBusy} style={[styles.hJoin, community.isMember && styles.hJoinOn, joinBusy && styles.dim]} hitSlop={8}>
-            <Text style={[styles.hJoinText, community.isMember && styles.hJoinTextOn]}>{community.isMember ? '가입됨' : '가입'}</Text>
-          </Pressable>
-        ) : undefined}
+        right={
+          <>
+            <Pressable onPress={() => router.push('/notifications')} hitSlop={8} style={styles.hIconBtn}><Icon name="bell" size={20} color={mono.color.text} /></Pressable>
+            <Pressable onPress={() => id && shareCommunity(id, community?.name)} hitSlop={8} style={styles.hIconBtn}><Icon name="square.and.arrow.up" size={20} color={mono.color.text} /></Pressable>
+          </>
+        }
       />
       <Animated.FlatList
         data={posts ?? []}
@@ -162,15 +163,16 @@ export default function CommunityDetailScreen() {
             ) : null}
             {community?.topic ? <View style={styles.topicWrap}><Text style={styles.topic}>{community.topic}</Text></View> : null}
 
-            {community ? (
+            {/* 매니저(내 커뮤니티)는 가입/탈퇴 없음. 멤버=탈퇴하기, 비멤버=가입하기(웹 파리티) */}
+            {community && !community.isManager ? (
               <View style={styles.actions}>
                 <Pressable
                   onPress={toggleJoin}
                   disabled={joinBusy}
-                  style={[styles.joinBtn, community.isMember ? styles.joinBtnOn : styles.joinBtnOff, joinBusy && styles.dim]}
+                  style={[styles.joinBtn, community.isMember ? styles.leaveBtn : styles.joinBtnOff, joinBusy && styles.dim]}
                 >
-                  <Text style={[styles.joinText, community.isMember && styles.joinTextOn]}>
-                    {community.isMember ? '가입됨' : '가입하기'}
+                  <Text style={[styles.joinText, community.isMember && styles.leaveText]}>
+                    {community.isMember ? '탈퇴하기' : '가입하기'}
                   </Text>
                 </Pressable>
               </View>
@@ -238,24 +240,21 @@ const styles = StyleSheet.create({
   desc: { color: mono.color.textSecondary, fontSize: mono.font.body, lineHeight: 20 },
   descMeasure: { position: 'absolute', left: 0, right: 0, top: 0, opacity: 0 },
   moreBtn: { color: mono.color.textTertiary, fontSize: mono.font.small, fontWeight: '600', marginTop: 4 },
-  topicWrap: { marginTop: 10, paddingHorizontal: 16, flexDirection: 'row' },
+  topicWrap: { marginTop: 12, paddingHorizontal: 16, flexDirection: 'row' },
   topic: {
-    color: mono.color.accentLight, fontSize: mono.font.tiny, fontWeight: '600',
-    backgroundColor: 'rgba(124,58,237,0.15)', paddingHorizontal: 10, paddingVertical: 5, borderRadius: mono.radius.pill, overflow: 'hidden',
+    color: mono.color.accentLight, fontSize: mono.font.small, fontWeight: '700',
+    backgroundColor: 'rgba(124,58,237,0.15)', paddingHorizontal: 20, paddingVertical: 10, borderRadius: mono.radius.pill, overflow: 'hidden',
   },
   actions: { flexDirection: 'row', gap: 10, marginTop: 14, paddingHorizontal: 16 },
   joinBtn: { paddingVertical: 10, paddingHorizontal: 20, borderRadius: mono.radius.pill },
   joinBtnOff: { backgroundColor: mono.color.accent },
-  joinBtnOn: { backgroundColor: mono.color.fillStrong },
+  leaveBtn: { backgroundColor: mono.color.fillStrong },
   dim: { opacity: 0.5 },
   joinText: { color: mono.color.text, fontSize: mono.font.small, fontWeight: '700' },
-  joinTextOn: { color: mono.color.accentLight },
-  // 스크롤 헤더 내 뒤로가기·가입
+  leaveText: { color: mono.color.textSecondary },
+  // 스크롤 헤더 내 뒤로가기·아이콘(공유·알림)
   hBack: { width: 36, height: 36, alignItems: 'center', justifyContent: 'center' },
-  hJoin: { paddingHorizontal: 14, height: 34, borderRadius: 17, alignItems: 'center', justifyContent: 'center', backgroundColor: mono.color.accent },
-  hJoinOn: { backgroundColor: mono.color.fillStrong },
-  hJoinText: { color: mono.color.text, fontSize: mono.font.small, fontWeight: '700' },
-  hJoinTextOn: { color: mono.color.accentLight },
+  hIconBtn: { width: 36, height: 36, alignItems: 'center', justifyContent: 'center' },
   // 글쓰기 플로팅 버튼(우측 하단)
   fab: {
     position: 'absolute', right: 20, width: 56, height: 56, borderRadius: 28,
