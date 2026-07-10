@@ -36,6 +36,12 @@
         }
       ],
       "expo-secure-store",
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "게시글에 첨부할 사진을 선택합니다."
+        }
+      ],
       "expo-web-browser",
       "expo-video",
       "expo-notifications"

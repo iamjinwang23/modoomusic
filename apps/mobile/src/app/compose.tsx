@@ -1,16 +1,20 @@
 import { useCallback, useEffect, useState } from 'react'
 import {
-  FlatList, KeyboardAvoidingView, Platform, Pressable, StyleSheet, Text, TextInput, View,
+  ActivityIndicator, FlatList, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View,
 } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { router, useLocalSearchParams } from 'expo-router'
 import { Image } from 'expo-image'
+import * as ImagePicker from 'expo-image-picker'
 import type { Song } from '@mono/shared'
 import { api } from '@/lib/api'
+import { supabase } from '@/lib/supabase'
 import { Icon } from '@/components/ui/icon'
 import { mono } from '@/theme/mono'
 
 const MAX = 2000
+const MAX_IMAGES = 10
+const API_BASE = process.env.EXPO_PUBLIC_API_BASE_URL ?? ''
 
 // 글쓰기 — 커뮤니티에 텍스트 + 공개 곡 첨부(POST /api/communities/[id]/posts).
 // 멤버만 진입(상세에서 게이팅). 이미지·투표는 후속.
@@ -19,6 +23,8 @@ export default function ComposeScreen() {
   const { communityId } = useLocalSearchParams<{ communityId: string }>()
   const [content, setContent] = useState('')
   const [song, setSong] = useState<Song | null>(null)
+  const [images, setImages] = useState<string[]>([])
+  const [uploading, setUploading] = useState(false)
   const [pollOptions, setPollOptions] = useState<string[] | null>(null)
   const [picker, setPicker] = useState(false)
   const [mySongs, setMySongs] = useState<Song[] | null>(null)
@@ -27,7 +33,28 @@ export default function ComposeScreen() {
 
   const pollFilled = pollOptions ? pollOptions.map((o) => o.trim()).filter(Boolean) : []
   const pollReady = pollFilled.length >= 2
-  const canPost = (content.trim().length > 0 || !!song || pollReady) && !busy
+  const canPost = (content.trim().length > 0 || !!song || images.length > 0 || pollReady) && !busy && !uploading
+
+  // 이미지 선택 + 업로드(multipart 'files' → { urls })
+  const pickImages = useCallback(async () => {
+    if (!communityId || images.length >= MAX_IMAGES) return
+    const res = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ['images'], allowsMultipleSelection: true, selectionLimit: MAX_IMAGES - images.length, quality: 0.9,
+    })
+    if (res.canceled || !res.assets?.length) return
+    setUploading(true); setError(null)
+    try {
+      const fd = new FormData()
+      res.assets.forEach((a, i) => fd.append('files', { uri: a.uri, name: a.fileName ?? `image${i}.jpg`, type: a.mimeType ?? 'image/jpeg' } as unknown as Blob))
+      const token = (await supabase.auth.getSession()).data.session?.access_token
+      const r = await fetch(`${API_BASE}/api/communities/${communityId}/post-images`, {
+        method: 'POST', headers: token ? { Authorization: `Bearer ${token}` } : {}, body: fd,
+      })
+      const j = await r.json().catch(() => ({})) as { urls?: string[] }
+      if (r.ok && Array.isArray(j.urls)) setImages((prev) => [...prev, ...j.urls!].slice(0, MAX_IMAGES))
+      else setError('이미지 업로드에 실패했어요')
+    } catch { setError('이미지 업로드에 실패했어요') } finally { setUploading(false) }
+  }, [communityId, images.length])
 
   // 공개된 내 곡만 첨부 가능(서버가 song_not_public 거부)
   const loadSongs = useCallback(async () => {
@@ -47,6 +74,7 @@ export default function ComposeScreen() {
       await api.post(`/api/communities/${communityId}/posts`, {
         content: content.trim(),
         songId: song?.id ?? null,
+        imageUrls: images,
         pollOptions: pollReady ? pollFilled : [],
       })
       router.back()
@@ -82,8 +110,11 @@ export default function ComposeScreen() {
           autoFocus
         />
 
-        {/* 첨부 툴바 — 곡 · 투표 */}
+        {/* 첨부 툴바 — 이미지 · 곡 · 투표 */}
         <View style={styles.toolbar}>
+          <Pressable style={styles.attachBtn} onPress={pickImages} disabled={uploading || images.length >= MAX_IMAGES}>
+            {uploading ? <ActivityIndicator size="small" color={mono.color.textSecondary} /> : <Text style={styles.attachText}>🖼 사진</Text>}
+          </Pressable>
           {!song ? (
             <Pressable style={styles.attachBtn} onPress={() => setPicker((v) => !v)}>
               <Icon name="music.note" size={14} color={mono.color.textSecondary} />
@@ -96,6 +127,19 @@ export default function ComposeScreen() {
             </Pressable>
           ) : null}
         </View>
+
+        {images.length > 0 ? (
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.thumbRow}>
+            {images.map((uri) => (
+              <View key={uri} style={styles.thumb}>
+                <Image source={{ uri }} style={styles.thumbImg} contentFit="cover" />
+                <Pressable onPress={() => setImages((prev) => prev.filter((u) => u !== uri))} style={styles.thumbRemove} hitSlop={6}>
+                  <Text style={styles.thumbRemoveText}>✕</Text>
+                </Pressable>
+              </View>
+            ))}
+          </ScrollView>
+        ) : null}
 
         {song ? (
           <View style={styles.attached}>
@@ -188,6 +232,12 @@ const styles = StyleSheet.create({
     paddingVertical: 8, paddingHorizontal: 16,
   },
   attachText: { color: mono.color.textSecondary, fontSize: mono.font.small, fontWeight: '600' },
+  // 첨부 이미지 썸네일
+  thumbRow: { gap: 8, paddingVertical: 10 },
+  thumb: { width: 72, height: 72, borderRadius: mono.radius.sm, overflow: 'hidden', backgroundColor: mono.color.surface2 },
+  thumbImg: { width: '100%', height: '100%' },
+  thumbRemove: { position: 'absolute', top: 4, right: 4, width: 20, height: 20, borderRadius: 10, backgroundColor: 'rgba(0,0,0,0.6)', alignItems: 'center', justifyContent: 'center' },
+  thumbRemoveText: { color: mono.color.onMedia, fontSize: 11, fontWeight: '700' },
   // 투표 에디터
   pollEditor: {
     marginTop: 10, backgroundColor: mono.color.surface, borderRadius: mono.radius.md,
