@@ -140,7 +140,7 @@ export default function CommunityDetailScreen() {
       {/* 글쓰기 — 우측 하단 플로팅(+) 버튼(멤버만) */}
       {community?.isMember ? (
         <Pressable onPress={() => router.push(`/compose?communityId=${id}`)} style={[styles.fab, { bottom: insets.bottom + 20 }]}>
-          <Icon name="plus" size={26} color={mono.color.onMedia} />
+          <Icon name="plus" size={26} color={mono.color.bg} />
         </Pressable>
       ) : null}
     </View>
@@ -177,8 +177,8 @@ const styles = StyleSheet.create({
   // 글쓰기 플로팅 버튼(우측 하단)
   fab: {
     position: 'absolute', right: 20, width: 56, height: 56, borderRadius: 28,
-    backgroundColor: mono.color.accent, alignItems: 'center', justifyContent: 'center',
-    boxShadow: '0px 4px 14px rgba(0,0,0,0.4)', elevation: 6,
+    backgroundColor: '#ffffff', alignItems: 'center', justifyContent: 'center',
+    boxShadow: '0px 2px 8px rgba(0,0,0,0.2)', elevation: 3,
   },
   feedLabel: { color: mono.color.text, fontSize: mono.font.h2, fontWeight: '700', marginTop: 20, paddingHorizontal: 16 },
   empty: { color: mono.color.textSecondary, fontSize: mono.font.body, textAlign: 'center', marginTop: 32 },
