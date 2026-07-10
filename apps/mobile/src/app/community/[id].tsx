@@ -119,11 +119,15 @@ export default function CommunityDetailScreen() {
               <Pressable onPress={() => router.back()} style={[styles.back, { top: insets.top + 8 }]} hitSlop={10}>
                 <Icon name="arrow.left" size={22} color={mono.color.onMedia} />
               </Pressable>
-              {/* 우상단 — (매니저)수정 · 알림 · 공유 */}
+              {/* 우상단 — (매니저)수정 / (비매니저)가입·탈퇴 · 알림 · 공유 */}
               <View style={[styles.coverActions, { top: insets.top + 8 }]}>
                 {community?.isManager ? (
                   <Pressable onPress={() => router.push(`/community-edit/${id}`)} style={styles.editPill} hitSlop={8}>
                     <Text style={styles.editText}>수정</Text>
+                  </Pressable>
+                ) : community ? (
+                  <Pressable onPress={toggleJoin} disabled={joinBusy} style={[styles.joinPill, community.isMember ? styles.joinPillOn : styles.joinPillOff, joinBusy && styles.dim]} hitSlop={8}>
+                    <Text style={[styles.joinPillText, community.isMember && styles.joinPillTextOn]}>{community.isMember ? '탈퇴하기' : '가입하기'}</Text>
                   </Pressable>
                 ) : null}
                 <Pressable onPress={() => router.push('/notifications')} style={styles.circleBtn} hitSlop={8}>
@@ -171,21 +175,6 @@ export default function CommunityDetailScreen() {
             ) : null}
             {community?.topic ? <View style={styles.topicWrap}><Text style={styles.topic}>{community.topic}</Text></View> : null}
 
-            {/* 매니저(내 커뮤니티)는 가입/탈퇴 없음. 멤버=탈퇴하기, 비멤버=가입하기(웹 파리티) */}
-            {community && !community.isManager ? (
-              <View style={styles.actions}>
-                <Pressable
-                  onPress={toggleJoin}
-                  disabled={joinBusy}
-                  style={[styles.joinBtn, community.isMember ? styles.leaveBtn : styles.joinBtnOff, joinBusy && styles.dim]}
-                >
-                  <Text style={[styles.joinText, community.isMember && styles.leaveText]}>
-                    {community.isMember ? '탈퇴하기' : '가입하기'}
-                  </Text>
-                </Pressable>
-              </View>
-            ) : null}
-
             <Text style={styles.feedLabel}>게시글</Text>
           </View>
         }
@@ -219,6 +208,12 @@ const styles = StyleSheet.create({
   circleBtn: { width: 40, height: 40, borderRadius: 20, backgroundColor: mono.color.overlay, alignItems: 'center', justifyContent: 'center' },
   editPill: { paddingHorizontal: 16, height: 40, borderRadius: 20, backgroundColor: mono.color.overlay, alignItems: 'center', justifyContent: 'center' },
   editText: { color: mono.color.onMedia, fontSize: mono.font.small, fontWeight: '600' },
+  // 커버 우상단 가입/탈퇴 pill
+  joinPill: { paddingHorizontal: 16, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center' },
+  joinPillOff: { backgroundColor: mono.color.accent },
+  joinPillOn: { backgroundColor: mono.color.overlay },
+  joinPillText: { color: mono.color.onMedia, fontSize: mono.font.small, fontWeight: '700' },
+  joinPillTextOn: { color: mono.color.onMedia, fontWeight: '600' },
   back: {
     position: 'absolute', left: 12, width: 36, height: 36, borderRadius: 18,
     backgroundColor: mono.color.overlay, alignItems: 'center', justifyContent: 'center',

@@ -248,7 +248,7 @@ const styles = StyleSheet.create({
   flex: { flex: 1, minWidth: 0 },
   fill: { width: '100%', height: '100%' },
   // 박스 없이 라인 구분(웹 파리티)
-  row: { paddingVertical: 16, gap: 10, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: mono.color.borderSoft },
+  row: { paddingVertical: 16, gap: 10, borderBottomWidth: 1, borderBottomColor: mono.color.border },
   pressed: { opacity: 0.7 },
   pin: { color: mono.color.accentLight, fontSize: mono.font.tiny, fontWeight: '700' },
   head: { flexDirection: 'row', alignItems: 'center', gap: 10 },
