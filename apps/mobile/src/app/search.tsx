@@ -194,12 +194,12 @@ const styles = StyleSheet.create({
   userName: { color: mono.color.text, fontSize: mono.font.body, fontWeight: '600' },
   userMeta: { color: mono.color.textTertiary, fontSize: mono.font.small, marginTop: 2 },
   // 태그 칩
-  tagWrap: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 2 },
+  tagWrap: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginTop: 2 },
   tagChip: {
-    flexDirection: 'row', alignItems: 'center', gap: 6,
-    paddingHorizontal: 14, paddingVertical: 9, borderRadius: mono.radius.pill,
+    flexDirection: 'row', alignItems: 'center', gap: 8,
+    paddingHorizontal: 18, paddingVertical: 12, borderRadius: mono.radius.pill,
     backgroundColor: mono.color.fill, borderWidth: 1, borderColor: mono.color.borderSoft,
   },
-  tagLabel: { color: mono.color.text, fontSize: mono.font.small, fontWeight: '600' },
-  tagCount: { color: mono.color.textTertiary, fontSize: mono.font.tiny },
+  tagLabel: { color: mono.color.text, fontSize: mono.font.body, fontWeight: '600' },
+  tagCount: { color: mono.color.textTertiary, fontSize: mono.font.small },
 })
