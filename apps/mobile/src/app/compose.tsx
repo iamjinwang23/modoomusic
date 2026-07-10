@@ -37,6 +37,16 @@ export default function ComposeScreen() {
   const pollReady = pollFilled.length >= 2
   const canPost = (content.trim().length > 0 || !!song || images.length > 0 || pollReady) && !busy && !uploading
 
+  // 첨부 상호 배타 — 이미지/곡/투표 중 하나만. 진행 중 종류를 활성으로.
+  const activeType: 'image' | 'song' | 'poll' | null =
+    images.length > 0 ? 'image' : (song || picker) ? 'song' : pollOptions ? 'poll' : null
+  const imgActive = activeType === 'image'
+  const songActive = activeType === 'song'
+  const pollActive = activeType === 'poll'
+  const imgDisabled = activeType !== null && !imgActive
+  const songDisabled = activeType !== null && !songActive
+  const pollDisabled = activeType !== null && !pollActive
+
   // 이미지 선택 + 업로드(multipart 'files' → { urls })
   const pickImages = useCallback(async () => {
     if (!communityId || images.length >= MAX_IMAGES) return
@@ -52,10 +62,10 @@ export default function ComposeScreen() {
       const r = await fetch(`${API_BASE}/api/communities/${communityId}/post-images`, {
         method: 'POST', headers: token ? { Authorization: `Bearer ${token}` } : {}, body: fd,
       })
-      const j = await r.json().catch(() => ({})) as { urls?: string[] }
-      if (r.ok && Array.isArray(j.urls)) setImages((prev) => [...prev, ...j.urls!].slice(0, MAX_IMAGES))
-      else setError('이미지 업로드에 실패했어요')
-    } catch { setError('이미지 업로드에 실패했어요') } finally { setUploading(false) }
+      const j = await r.json().catch(() => ({})) as { urls?: string[]; error?: string }
+      if (r.ok && Array.isArray(j.urls) && j.urls.length > 0) setImages((prev) => [...prev, ...j.urls!].slice(0, MAX_IMAGES))
+      else { console.warn('[post-images] fail', r.status, j); setError(`이미지 업로드 실패 (${j.error ?? r.status})`) }
+    } catch (e) { console.warn('[post-images] network', e); setError('이미지 업로드 실패 (네트워크)') } finally { setUploading(false) }
   }, [communityId, images.length])
 
   // 공개된 내 곡만 첨부 가능(서버가 song_not_public 거부)
@@ -121,26 +131,35 @@ export default function ComposeScreen() {
         {!editing ? (
         <>
         <View style={styles.toolbar}>
-          <Pressable style={styles.attachBtn} onPress={pickImages} disabled={uploading || images.length >= MAX_IMAGES}>
+          {/* 첨부는 한 종류만 — 이미지/곡/투표 상호 배타. 활성=화이트, 나머지는 비활성. */}
+          <Pressable
+            style={[styles.attachBtn, imgActive && styles.attachBtnOn, imgDisabled && styles.attachBtnOff]}
+            onPress={pickImages}
+            disabled={imgDisabled || uploading || images.length >= MAX_IMAGES}
+          >
             {uploading ? <ActivityIndicator size="small" color={mono.color.textSecondary} /> : (
               <>
-                <Icon name="photo.album" size={14} color={mono.color.textSecondary} />
-                <Text style={styles.attachText}>사진</Text>
+                <Icon name="photo.album" size={14} color={imgActive ? mono.color.bg : mono.color.textSecondary} />
+                <Text style={[styles.attachText, imgActive && styles.attachTextOn]}>사진</Text>
               </>
             )}
           </Pressable>
-          {!song ? (
-            <Pressable style={styles.attachBtn} onPress={() => setPicker((v) => !v)}>
-              <Icon name="music.note" size={14} color={mono.color.textSecondary} />
-              <Text style={styles.attachText}>내 곡</Text>
-            </Pressable>
-          ) : null}
-          {!pollOptions ? (
-            <Pressable style={styles.attachBtn} onPress={() => setPollOptions(['', ''])}>
-              <Icon name="poll" size={14} color={mono.color.textSecondary} />
-              <Text style={styles.attachText}>투표</Text>
-            </Pressable>
-          ) : null}
+          <Pressable
+            style={[styles.attachBtn, songActive && styles.attachBtnOn, songDisabled && styles.attachBtnOff]}
+            onPress={() => { if (song) { setSong(null); setPicker(false) } else setPicker((v) => !v) }}
+            disabled={songDisabled}
+          >
+            <Icon name="music.note" size={14} color={songActive ? mono.color.bg : mono.color.textSecondary} />
+            <Text style={[styles.attachText, songActive && styles.attachTextOn]}>내 곡</Text>
+          </Pressable>
+          <Pressable
+            style={[styles.attachBtn, pollActive && styles.attachBtnOn, pollDisabled && styles.attachBtnOff]}
+            onPress={() => setPollOptions((v) => (v ? null : ['', '']))}
+            disabled={pollDisabled}
+          >
+            <Icon name="poll" size={14} color={pollActive ? mono.color.bg : mono.color.textSecondary} />
+            <Text style={[styles.attachText, pollActive && styles.attachTextOn]}>투표</Text>
+          </Pressable>
         </View>
 
         {images.length > 0 ? (
@@ -248,7 +267,10 @@ const styles = StyleSheet.create({
     alignSelf: 'flex-start', backgroundColor: mono.color.fill, borderRadius: mono.radius.pill,
     paddingVertical: 8, paddingHorizontal: 16,
   },
+  attachBtnOn: { backgroundColor: '#ffffff' },
+  attachBtnOff: { opacity: 0.4 },
   attachText: { color: mono.color.textSecondary, fontSize: mono.font.small, fontWeight: '600' },
+  attachTextOn: { color: mono.color.bg, fontWeight: '700' },
   // 첨부 이미지 썸네일
   thumbRow: { gap: 8, paddingVertical: 10 },
   thumb: { width: 72, height: 72, borderRadius: mono.radius.sm, overflow: 'hidden', backgroundColor: mono.color.surface2 },
