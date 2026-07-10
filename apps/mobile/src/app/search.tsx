@@ -108,6 +108,7 @@ export default function SearchScreen() {
             data={recents}
             keyExtractor={(r) => r}
             keyboardShouldPersistTaps="handled"
+            keyboardDismissMode="on-drag"
             contentContainerStyle={{ paddingBottom: insets.bottom + 24 }}
             ListHeaderComponent={
               <View style={styles.recentHead}>
@@ -137,6 +138,7 @@ export default function SearchScreen() {
           keyExtractor={(it, i) => (it.kind === 'song' ? `s${it.song.id}` : it.kind === 'user' ? `u${it.user.id}` : it.kind === 'tags' ? 'tags' : `h${it.label}${i}`)}
           contentContainerStyle={{ paddingBottom: insets.bottom + 24 }}
           keyboardShouldPersistTaps="handled"
+          keyboardDismissMode="on-drag"
           renderItem={({ item }) => {
             if (item.kind === 'header') return <Text style={styles.section}>{item.label}</Text>
             // 곡 탭 → 재생 + 검색 닫기(미니플레이어로 백그라운드 재생)
