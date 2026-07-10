@@ -33,7 +33,7 @@ export default function TagScreen() {
     <View style={[styles.container, { paddingTop: insets.top + 8 }]}>
       <View style={styles.header}>
         <Pressable onPress={() => router.back()} hitSlop={12} style={styles.back}>
-          <Icon name="chevron.left" size={24} color={mono.color.text} />
+          <Icon name="arrow.left" size={24} color={mono.color.text} />
         </Pressable>
         <Text style={styles.title} numberOfLines={1}>{label}</Text>
         <View style={{ width: 32 }} />

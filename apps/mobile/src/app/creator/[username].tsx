@@ -85,7 +85,7 @@ export default function CreatorScreen() {
 
           {/* 뒤로가기 (좌상단) */}
           <Pressable onPress={() => router.back()} style={[styles.back, { top: insets.top + 12 }]} hitSlop={10}>
-            <Icon name="chevron.left" size={22} color={mono.color.onMedia} />
+            <Icon name="arrow.left" size={22} color={mono.color.onMedia} />
           </Pressable>
 
           {/* 팔로우 (우상단) */}
@@ -95,6 +95,7 @@ export default function CreatorScreen() {
             style={[styles.followPill, { top: insets.top + 12 }, following && styles.followingPill, followBusy && styles.dim]}
             hitSlop={8}
           >
+            <Icon name={following ? 'following' : 'follow'} size={15} color={mono.color.onMedia} />
             <Text style={styles.followText}>{following ? '팔로잉' : '팔로우'}</Text>
           </Pressable>
 
@@ -142,8 +143,9 @@ const styles = StyleSheet.create({
   coverFallback: { backgroundColor: mono.color.surface },
   back: { position: 'absolute', left: 20, width: 40, height: 40, borderRadius: 20, backgroundColor: mono.color.overlay, alignItems: 'center', justifyContent: 'center' },
   followPill: {
-    position: 'absolute', right: 20, paddingHorizontal: 18, height: 40, borderRadius: 20,
-    backgroundColor: mono.color.overlay, alignItems: 'center', justifyContent: 'center',
+    position: 'absolute', right: 20, paddingHorizontal: 16, height: 40, borderRadius: 20,
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6,
+    backgroundColor: mono.color.overlay,
   },
   followingPill: { backgroundColor: 'rgba(0,0,0,0.55)' },
   dim: { opacity: 0.5 },

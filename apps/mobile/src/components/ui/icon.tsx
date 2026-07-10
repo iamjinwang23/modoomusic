@@ -25,6 +25,9 @@ import Sparkles from '@/assets/mingcute/Sparkles.svg'
 import AiGenerateText from '@/assets/mingcute/Ai-Generate-Text.svg'
 import FileMusic from '@/assets/mingcute/File-Music.svg'
 import Publish from '@/assets/mingcute/Publish.svg'
+import LeftLine from '@/assets/mingcute/Left-Line.svg'
+import Follow from '@/assets/mingcute/Follow.svg'
+import Following from '@/assets/mingcute/Following.svg'
 
 // 앱 아이콘 이름 → MingCute 컴포넌트. (좋아요=Thumb-Up 썸즈업, 웹과 동일)
 const MAP = {
@@ -54,6 +57,9 @@ const MAP = {
   'ai.lyrics': AiGenerateText,   // AI 가사(웹 Ai-Generate-Text)
   'music.file': FileMusic,       // 곡 제목(웹 File-Music)
   compass: Publish,              // 공개(둘러보기 노출) — 웹 Publish/compass
+  'arrow.left': LeftLine,        // 뒤로가기 화살표(웹 left-Line) — Left-Small(삼각형) 아님
+  follow: Follow,                // 팔로우(웹 Follow=User-Add)
+  following: Following,          // 팔로잉(웹 Following=User-Follow)
 } as const
 
 export type IconName = keyof typeof MAP
