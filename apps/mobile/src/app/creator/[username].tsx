@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
-import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native'
+import { ActivityIndicator, Pressable, StyleSheet, Text, useWindowDimensions, View } from 'react-native'
+import Animated, { useAnimatedScrollHandler, useSharedValue } from 'react-native-reanimated'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { router, useLocalSearchParams } from 'expo-router'
 import { Image } from 'expo-image'
@@ -7,12 +8,16 @@ import type { PublicSong, UserProfile } from '@mono/shared'
 import { api } from '@/lib/api'
 import { playSong } from '@/lib/player'
 import { ProfileGrid, CoverScrim, formatCount } from '@/components/ui/profile-grid'
+import { CollapsingHeader, HEADER_ROW } from '@/components/ui/collapsing-header'
 import { Icon } from '@/components/ui/icon'
 import { mono } from '@/theme/mono'
 
 // 크리에이터 프로필 — 웹 파리티: 커버(아바타·이름 오버레이) + 팔로우 + 스탯 + 세로 그리드.
 export default function CreatorScreen() {
   const insets = useSafeAreaInsets()
+  const { width } = useWindowDimensions()
+  const scrollY = useSharedValue(0)
+  const onScroll = useAnimatedScrollHandler((e) => { scrollY.value = e.contentOffset.y })
   const { username } = useLocalSearchParams<{ username: string }>()
   const [profile, setProfile] = useState<UserProfile | null>(null)
   const [songs, setSongs] = useState<PublicSong[]>([])
@@ -71,9 +76,28 @@ export default function CreatorScreen() {
   const name = profile.displayName || profile.username
   const initial = (name.trim().charAt(0) || '?').toUpperCase()
 
+  const coverH = width * 9 / 16
+  const fadeEnd = Math.max(coverH - (insets.top + HEADER_ROW), 60)
+  const fadeStart = Math.max(fadeEnd - 70, 0)
+
   return (
     <View style={styles.container}>
-      <ScrollView contentContainerStyle={{ paddingBottom: insets.bottom + 40 }} showsVerticalScrollIndicator={false}>
+      <CollapsingHeader
+        scrollY={scrollY}
+        fadeStart={fadeStart}
+        fadeEnd={fadeEnd}
+        title={name}
+        left={
+          <Pressable onPress={() => router.back()} hitSlop={8} style={styles.hBack}><Icon name="arrow.left" size={24} color={mono.color.text} /></Pressable>
+        }
+        right={
+          <Pressable onPress={toggleFollow} disabled={followBusy} style={[styles.hFollow, following && styles.hFollowOn, followBusy && styles.dim]} hitSlop={8}>
+            <Icon name={following ? 'following' : 'follow'} size={14} color={following ? mono.color.text : mono.color.onMedia} />
+            <Text style={[styles.hFollowText, following && styles.hFollowTextOn]}>{following ? '팔로잉' : '팔로우'}</Text>
+          </Pressable>
+        }
+      />
+      <Animated.ScrollView onScroll={onScroll} scrollEventThrottle={16} contentContainerStyle={{ paddingBottom: insets.bottom + 40 }} showsVerticalScrollIndicator={false}>
         {/* ── 커버 + 아바타·이름 오버레이 ── */}
         <View style={styles.cover}>
           {profile.coverImage ? (
@@ -129,7 +153,7 @@ export default function CreatorScreen() {
         <View style={styles.gridWrap}>
           <ProfileGrid songs={songs} onPlay={(s) => playSong(s)} empty="공개된 곡이 없어요" />
         </View>
-      </ScrollView>
+      </Animated.ScrollView>
     </View>
   )
 }
@@ -150,6 +174,15 @@ const styles = StyleSheet.create({
   followingPill: { backgroundColor: 'rgba(0,0,0,0.55)' },
   dim: { opacity: 0.5 },
   followText: { color: mono.color.onMedia, fontSize: mono.font.small, fontWeight: '700' },
+  // 스크롤 헤더 내 뒤로가기·팔로우
+  hBack: { width: 36, height: 36, alignItems: 'center', justifyContent: 'center' },
+  hFollow: {
+    flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: 14, height: 34, borderRadius: 17,
+    backgroundColor: mono.color.accent,
+  },
+  hFollowOn: { backgroundColor: mono.color.fillStrong },
+  hFollowText: { color: mono.color.onMedia, fontSize: mono.font.small, fontWeight: '700' },
+  hFollowTextOn: { color: mono.color.text },
   identity: { position: 'absolute', left: 16, bottom: 14, right: 16, flexDirection: 'row', alignItems: 'center', gap: 12 },
   avatar: {
     width: 80, height: 80, borderRadius: 40, overflow: 'hidden',
