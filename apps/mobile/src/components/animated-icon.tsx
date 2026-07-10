@@ -7,7 +7,7 @@ import { scheduleOnRN } from 'react-native-worklets';
 
 const INITIAL_SCALE_FACTOR = Dimensions.get('screen').height / 90;
 const DURATION = 600;
-const SPLASH_DURATION = 1600;  // 스플래시 오버레이 유지+페이드(약 1.6초)
+const SPLASH_DURATION = 1800;  // 스플래시 오버레이 유지+페이드(약 1.8초)
 
 export function AnimatedSplashOverlay() {
   const [animate, setAnimate] = useState(false);
