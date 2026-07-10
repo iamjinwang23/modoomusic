@@ -28,6 +28,7 @@ import Publish from '@/assets/mingcute/Publish.svg'
 import LeftLine from '@/assets/mingcute/Left-Line.svg'
 import Follow from '@/assets/mingcute/Follow.svg'
 import Following from '@/assets/mingcute/Following.svg'
+import PinSvg from '@/assets/mingcute/Pin.svg'
 
 // 앱 아이콘 이름 → MingCute 컴포넌트. (좋아요=Thumb-Up 썸즈업, 웹과 동일)
 const MAP = {
@@ -60,6 +61,7 @@ const MAP = {
   'arrow.left': LeftLine,        // 뒤로가기 화살표(웹 left-Line) — Left-Small(삼각형) 아님
   follow: Follow,                // 팔로우(웹 Follow=User-Add)
   following: Following,          // 팔로잉(웹 Following=User-Follow)
+  pin: PinSvg,                   // 상단 고정(웹 Pin)
 } as const
 
 export type IconName = keyof typeof MAP

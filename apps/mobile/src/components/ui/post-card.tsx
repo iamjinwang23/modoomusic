@@ -144,7 +144,12 @@ export function PostCard({ post, managerId, canInteract = true, onPress, onAutho
 
   return (
     <Pressable onPress={onPress} style={({ pressed }) => [styles.row, pressed && onPress && styles.pressed]}>
-      {post.pinned ? <Text style={styles.pin}>📌 고정됨</Text> : null}
+      {post.pinned ? (
+        <View style={styles.pinRow}>
+          <Icon name="pin" size={14} color={mono.color.text} />
+          <Text style={styles.pinText}>매니저가 상단 고정함</Text>
+        </View>
+      ) : null}
 
       <View style={styles.head}>
         <Pressable onPress={post.authorUsername ? onAuthorPress : undefined} style={styles.avatar} hitSlop={4}>
@@ -250,7 +255,8 @@ const styles = StyleSheet.create({
   // 박스 없이 라인 구분(웹 파리티)
   row: { paddingVertical: 16, gap: 10, borderBottomWidth: 1, borderBottomColor: mono.color.border },
   pressed: { opacity: 0.7 },
-  pin: { color: mono.color.accentLight, fontSize: mono.font.tiny, fontWeight: '700' },
+  pinRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 12, paddingBottom: 10, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: mono.color.borderSoft },
+  pinText: { color: mono.color.text, fontSize: mono.font.small, fontWeight: '600' },
   head: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   avatar: { width: 38, height: 38, borderRadius: 19, overflow: 'hidden', backgroundColor: mono.color.surface2 },
   avatarFallback: { alignItems: 'center', justifyContent: 'center' },
