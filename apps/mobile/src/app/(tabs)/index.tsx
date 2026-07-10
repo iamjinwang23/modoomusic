@@ -1,10 +1,12 @@
 import { useCallback, useEffect, useState } from 'react'
-import { ActivityIndicator, FlatList, Pressable, RefreshControl, StyleSheet, Text, View } from 'react-native'
+import { ActivityIndicator, Pressable, RefreshControl, StyleSheet, Text, View } from 'react-native'
+import Animated from 'react-native-reanimated'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { router } from 'expo-router'
 import type { PublicSong } from '@mono/shared'
 import { api } from '@/lib/api'
 import { playSong } from '@/lib/player'
+import { useAutoHideHeader } from '@/lib/use-auto-hide-header'
 import { PublicSongRow } from '@/components/ui/public-song-row'
 import { Icon } from '@/components/ui/icon'
 import { mono } from '@/theme/mono'
@@ -19,6 +21,7 @@ const TABS: { key: Tab; label: string }[] = [
 // 탐색 — 공개곡 피드(GET /api/explore/feed). 탭 탭→재생.
 export default function DiscoverScreen() {
   const insets = useSafeAreaInsets()
+  const { scrollHandler, headerStyle, onHeaderLayout, headerHeight } = useAutoHideHeader()
   const [tab, setTab] = useState<Tab>('recommended')
   const [songs, setSongs] = useState<PublicSong[] | null>(null)
   const [error, setError] = useState<string | null>(null)
@@ -41,55 +44,66 @@ export default function DiscoverScreen() {
     setRefreshing(true); await load(tab); setRefreshing(false)
   }, [load, tab])
 
-  return (
-    <View style={[styles.container, { paddingTop: insets.top + 12 }]}>
-      <View style={styles.headerRow}>
-        <Text style={styles.h1}>둘러보기</Text>
-        <View style={styles.headerActions}>
-          <Pressable onPress={() => router.push('/search')} hitSlop={10} style={styles.searchBtn}>
-            <Icon name="magnifyingglass" size={18} color={mono.color.text} />
-          </Pressable>
-          <Pressable onPress={() => router.push('/notifications')} hitSlop={10} style={styles.searchBtn}>
-            <Icon name="bell" size={18} color={mono.color.text} />
-          </Pressable>
-        </View>
-      </View>
-      <View style={styles.tabs}>
-        {TABS.map((t) => {
-          const on = tab === t.key
-          return (
-            <Pressable key={t.key} onPress={() => setTab(t.key)} style={[styles.tab, on && styles.tabOn]}>
-              <Text style={[styles.tabText, on && styles.tabTextOn]}>{t.label}</Text>
-            </Pressable>
-          )
-        })}
-      </View>
+  const loading = songs === null && !error
 
-      {songs === null && !error ? (
-        <ActivityIndicator color={mono.color.accent} style={{ marginTop: 32 }} />
-      ) : (
-        <FlatList
-          data={songs ?? []}
-          keyExtractor={(s) => s.id}
-          renderItem={({ item }) => (
-            <PublicSongRow
-              song={item}
-              onPress={() => playSong(item)}
-              onCreatorPress={() => router.push(`/creator/${item.username}`)}
-            />
-          )}
-          contentContainerStyle={{ paddingBottom: insets.bottom + 120, paddingTop: 12 }}
-          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={mono.color.textSecondary} />}
-          ListEmptyComponent={<Text style={styles.empty}>{error ? `불러오지 못했어요 (${error})` : '공개된 곡이 없어요'}</Text>}
-          showsVerticalScrollIndicator={false}
-        />
-      )}
+  return (
+    <View style={styles.container}>
+      <Animated.FlatList
+        data={songs ?? []}
+        keyExtractor={(s) => s.id}
+        renderItem={({ item }) => (
+          <PublicSongRow
+            song={item}
+            onPress={() => playSong(item)}
+            onCreatorPress={() => router.push(`/creator/${item.username}`)}
+          />
+        )}
+        onScroll={scrollHandler}
+        scrollEventThrottle={16}
+        contentContainerStyle={{ paddingTop: headerHeight + 8, paddingBottom: insets.bottom + 120, paddingHorizontal: 20 }}
+        refreshControl={<RefreshControl progressViewOffset={headerHeight} refreshing={refreshing} onRefresh={onRefresh} tintColor={mono.color.textSecondary} />}
+        ListEmptyComponent={
+          loading ? <ActivityIndicator color={mono.color.accent} style={{ marginTop: 32 }} />
+            : <Text style={styles.empty}>{error ? `불러오지 못했어요 (${error})` : '공개된 곡이 없어요'}</Text>
+        }
+        showsVerticalScrollIndicator={false}
+      />
+
+      {/* 자동 숨김 헤더 — 타이틀 + 필터칩 */}
+      <Animated.View style={[styles.header, { paddingTop: insets.top + 12 }, headerStyle]} onLayout={onHeaderLayout}>
+        <View style={styles.headerRow}>
+          <Text style={styles.h1}>둘러보기</Text>
+          <View style={styles.headerActions}>
+            <Pressable onPress={() => router.push('/search')} hitSlop={10} style={styles.searchBtn}>
+              <Icon name="magnifyingglass" size={18} color={mono.color.text} />
+            </Pressable>
+            <Pressable onPress={() => router.push('/notifications')} hitSlop={10} style={styles.searchBtn}>
+              <Icon name="bell" size={18} color={mono.color.text} />
+            </Pressable>
+          </View>
+        </View>
+        <View style={styles.tabs}>
+          {TABS.map((t) => {
+            const on = tab === t.key
+            return (
+              <Pressable key={t.key} onPress={() => setTab(t.key)} style={[styles.tab, on && styles.tabOn]}>
+                <Text style={[styles.tabText, on && styles.tabTextOn]}>{t.label}</Text>
+              </Pressable>
+            )
+          })}
+        </View>
+      </Animated.View>
     </View>
   )
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: mono.color.bg, paddingHorizontal: 20 },
+  container: { flex: 1, backgroundColor: mono.color.bg },
+  // 자동 숨김 헤더 — 절대배치, 리스트 위 오버레이
+  header: {
+    position: 'absolute', top: 0, left: 0, right: 0, zIndex: 10,
+    backgroundColor: mono.color.bg, paddingHorizontal: 20, paddingBottom: 10,
+  },
   headerRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 },
   headerActions: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   searchBtn: { width: 40, height: 40, borderRadius: 20, backgroundColor: mono.color.fill, alignItems: 'center', justifyContent: 'center' },
