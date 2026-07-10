@@ -183,8 +183,8 @@ const styles = StyleSheet.create({
   empty: { color: mono.color.textSecondary, fontSize: mono.font.body, textAlign: 'center', marginTop: 48 },
   hint: { color: mono.color.textTertiary, fontSize: mono.font.small, textAlign: 'center', marginTop: 48 },
   // 최근 검색
-  recentHead: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 4, marginBottom: 4 },
-  recentTitle: { color: mono.color.textSecondary, fontSize: mono.font.small, fontWeight: '700' },
+  recentHead: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 8, marginBottom: 8 },
+  recentTitle: { color: mono.color.text, fontSize: mono.font.h2, fontWeight: '700' },
   clearAll: { color: mono.color.textTertiary, fontSize: mono.font.small },
   recentRow: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 11 },
   recentText: { flex: 1, color: mono.color.text, fontSize: mono.font.body },
