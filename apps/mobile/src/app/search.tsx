@@ -82,16 +82,23 @@ export default function SearchScreen() {
   return (
     <View style={[styles.container, { paddingTop: insets.top + 8 }]}>
       <View style={styles.searchRow}>
-        <TextInput
-          style={styles.input}
-          placeholder="곡·아티스트·태그 검색"
-          placeholderTextColor={mono.color.textTertiary}
-          value={q}
-          onChangeText={setQ}
-          autoFocus
-          returnKeyType="search"
-          onSubmitEditing={commitRecent}
-        />
+        <View style={styles.inputWrap}>
+          <TextInput
+            style={styles.input}
+            placeholder="곡·아티스트·태그 검색"
+            placeholderTextColor={mono.color.textTertiary}
+            value={q}
+            onChangeText={setQ}
+            autoFocus
+            returnKeyType="search"
+            onSubmitEditing={commitRecent}
+          />
+          {q.length > 0 ? (
+            <Pressable onPress={() => setQ('')} hitSlop={8} style={styles.clearBtn}>
+              <Icon name="close" size={16} color={mono.color.textTertiary} />
+            </Pressable>
+          ) : null}
+        </View>
         <Pressable onPress={() => router.back()} hitSlop={10}><Text style={styles.cancel}>취소</Text></Pressable>
       </View>
 
@@ -173,10 +180,15 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: mono.color.bg, paddingHorizontal: 20 },
   flex: { flex: 1 },
   searchRow: { flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 12 },
+  inputWrap: { flex: 1, justifyContent: 'center' },
   input: {
-    flex: 1, backgroundColor: mono.color.surface, borderRadius: mono.radius.pill, color: mono.color.text,
-    fontSize: mono.font.body, paddingHorizontal: 18, paddingVertical: 14,
+    backgroundColor: mono.color.surface, borderRadius: mono.radius.pill, color: mono.color.text,
+    fontSize: mono.font.body, paddingLeft: 18, paddingRight: 42, paddingVertical: 14,
     borderWidth: 1, borderColor: mono.color.borderSoft,
+  },
+  clearBtn: {
+    position: 'absolute', right: 6, top: 0, bottom: 0, width: 34,
+    alignItems: 'center', justifyContent: 'center',
   },
   cancel: { color: mono.color.accentLight, fontSize: mono.font.body, fontWeight: '600' },
   section: { color: mono.color.text, fontSize: mono.font.h2, fontWeight: '700', marginTop: 20, marginBottom: 8 },
