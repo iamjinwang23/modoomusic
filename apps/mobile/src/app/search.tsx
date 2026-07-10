@@ -176,7 +176,7 @@ const styles = StyleSheet.create({
     borderWidth: 1, borderColor: mono.color.borderSoft,
   },
   cancel: { color: mono.color.accentLight, fontSize: mono.font.body, fontWeight: '600' },
-  section: { color: mono.color.textSecondary, fontSize: mono.font.small, fontWeight: '700', marginTop: 16, marginBottom: 6 },
+  section: { color: mono.color.text, fontSize: mono.font.h2, fontWeight: '700', marginTop: 20, marginBottom: 8 },
   empty: { color: mono.color.textSecondary, fontSize: mono.font.body, textAlign: 'center', marginTop: 48 },
   hint: { color: mono.color.textTertiary, fontSize: mono.font.small, textAlign: 'center', marginTop: 48 },
   // 최근 검색
