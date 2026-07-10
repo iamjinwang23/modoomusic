@@ -132,12 +132,14 @@ export default function SearchScreen() {
           keyboardShouldPersistTaps="handled"
           renderItem={({ item }) => {
             if (item.kind === 'header') return <Text style={styles.section}>{item.label}</Text>
-            if (item.kind === 'song') return <PublicSongRow song={item.song} onPress={() => playSong(item.song)} onCreatorPress={() => router.push(`/creator/${item.song.username}`)} />
+            // 곡 탭 → 재생 + 검색 닫기(미니플레이어로 백그라운드 재생)
+            if (item.kind === 'song') return <PublicSongRow song={item.song} onPress={() => { playSong(item.song); router.back() }} onCreatorPress={() => { router.back(); router.push(`/creator/${item.song.username}`) }} />
+            // 태그 탭 → 검색 닫고 장르 곡 목록으로 전환
             if (item.kind === 'tags') {
               return (
                 <View style={styles.tagWrap}>
                   {item.tags.map((t) => (
-                    <Pressable key={`${t.type}-${t.label}`} style={styles.tagChip} onPress={() => setQ(t.label)}>
+                    <Pressable key={`${t.type}-${t.label}`} style={styles.tagChip} onPress={() => { router.back(); router.push(`/tag/${encodeURIComponent(t.label)}`) }}>
                       <Text style={styles.tagLabel}>{t.label}</Text>
                       <Text style={styles.tagCount}>{t.count}곡</Text>
                     </Pressable>
@@ -145,9 +147,10 @@ export default function SearchScreen() {
                 </View>
               )
             }
+            // 사용자 탭 → 검색 닫고 프로필로 전환
             const u = item.user
             return (
-              <Pressable style={styles.userRow} onPress={() => router.push(`/creator/${u.username}`)}>
+              <Pressable style={styles.userRow} onPress={() => { router.back(); router.push(`/creator/${u.username}`) }}>
                 <View style={styles.avatar}>
                   {u.avatarUrl ? <Image source={{ uri: u.avatarUrl }} style={styles.avatarImg} contentFit="cover" /> : <Text style={styles.avatarText}>{(u.displayName || u.username).charAt(0).toUpperCase()}</Text>}
                 </View>

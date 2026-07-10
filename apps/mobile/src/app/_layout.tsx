@@ -64,6 +64,7 @@ export default function RootLayout() {
         <Stack.Screen name="community/[id]" />
         <Stack.Screen name="post/[id]" />
         <Stack.Screen name="creator/[username]" />
+        <Stack.Screen name="tag/[label]" />
         <Stack.Screen name="create" options={{ presentation: 'modal' }} />
         <Stack.Screen name="player" options={{ presentation: 'modal' }} />
         <Stack.Screen name="compose" options={{ presentation: 'modal' }} />
