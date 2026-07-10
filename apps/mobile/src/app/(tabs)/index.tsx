@@ -21,7 +21,8 @@ const TABS: { key: Tab; label: string }[] = [
 // 탐색 — 공개곡 피드(GET /api/explore/feed). 탭 탭→재생.
 export default function DiscoverScreen() {
   const insets = useSafeAreaInsets()
-  const { scrollHandler, headerStyle, onHeaderLayout, headerHeight } = useAutoHideHeader()
+  const { scrollHandler, headerStyle, onHeaderLayout, headerHeight: chipsH } = useAutoHideHeader(58)
+  const [titleH, setTitleH] = useState(insets.top + 56)
   const [tab, setTab] = useState<Tab>('recommended')
   const [songs, setSongs] = useState<PublicSong[] | null>(null)
   const [error, setError] = useState<string | null>(null)
@@ -60,8 +61,8 @@ export default function DiscoverScreen() {
         )}
         onScroll={scrollHandler}
         scrollEventThrottle={16}
-        contentContainerStyle={{ paddingTop: headerHeight + 8, paddingBottom: insets.bottom + 120, paddingHorizontal: 20 }}
-        refreshControl={<RefreshControl progressViewOffset={headerHeight} refreshing={refreshing} onRefresh={onRefresh} tintColor={mono.color.textSecondary} />}
+        contentContainerStyle={{ paddingTop: titleH + chipsH + 4, paddingBottom: insets.bottom + 120, paddingHorizontal: 20 }}
+        refreshControl={<RefreshControl progressViewOffset={titleH + chipsH} refreshing={refreshing} onRefresh={onRefresh} tintColor={mono.color.textSecondary} />}
         ListEmptyComponent={
           loading ? <ActivityIndicator color={mono.color.accent} style={{ marginTop: 32 }} />
             : <Text style={styles.empty}>{error ? `불러오지 못했어요 (${error})` : '공개된 곡이 없어요'}</Text>
@@ -69,19 +70,8 @@ export default function DiscoverScreen() {
         showsVerticalScrollIndicator={false}
       />
 
-      {/* 자동 숨김 헤더 — 타이틀 + 필터칩 */}
-      <Animated.View style={[styles.header, { paddingTop: insets.top + 12 }, headerStyle]} onLayout={onHeaderLayout}>
-        <View style={styles.headerRow}>
-          <Text style={styles.h1}>둘러보기</Text>
-          <View style={styles.headerActions}>
-            <Pressable onPress={() => router.push('/search')} hitSlop={10} style={styles.searchBtn}>
-              <Icon name="magnifyingglass" size={18} color={mono.color.text} />
-            </Pressable>
-            <Pressable onPress={() => router.push('/notifications')} hitSlop={10} style={styles.searchBtn}>
-              <Icon name="bell" size={18} color={mono.color.text} />
-            </Pressable>
-          </View>
-        </View>
+      {/* 필터칩 — auto-hide(타이틀 아래) */}
+      <Animated.View style={[styles.chipsBar, { top: titleH }, headerStyle]} onLayout={onHeaderLayout}>
         <View style={styles.tabs}>
           {TABS.map((t) => {
             const on = tab === t.key
@@ -93,18 +83,37 @@ export default function DiscoverScreen() {
           })}
         </View>
       </Animated.View>
+
+      {/* 타이틀 — 고정 */}
+      <View style={[styles.titleBar, { paddingTop: insets.top + 12 }]} onLayout={(e) => setTitleH(e.nativeEvent.layout.height)}>
+        <View style={styles.headerRow}>
+          <Text style={styles.h1}>둘러보기</Text>
+          <View style={styles.headerActions}>
+            <Pressable onPress={() => router.push('/search')} hitSlop={10} style={styles.searchBtn}>
+              <Icon name="magnifyingglass" size={18} color={mono.color.text} />
+            </Pressable>
+            <Pressable onPress={() => router.push('/notifications')} hitSlop={10} style={styles.searchBtn}>
+              <Icon name="bell" size={18} color={mono.color.text} />
+            </Pressable>
+          </View>
+        </View>
+      </View>
     </View>
   )
 }
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: mono.color.bg },
-  // 자동 숨김 헤더 — 절대배치, 리스트 위 오버레이
-  header: {
-    position: 'absolute', top: 0, left: 0, right: 0, zIndex: 10,
+  // 고정 타이틀바(위) + auto-hide 칩바(아래, 타이틀 뒤로 슬라이드)
+  titleBar: {
+    position: 'absolute', top: 0, left: 0, right: 0, zIndex: 20,
+    backgroundColor: mono.color.bg, paddingHorizontal: 20, paddingBottom: 8,
+  },
+  chipsBar: {
+    position: 'absolute', left: 0, right: 0, zIndex: 10,
     backgroundColor: mono.color.bg, paddingHorizontal: 20, paddingBottom: 10,
   },
-  headerRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 },
+  headerRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   headerActions: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   searchBtn: { width: 40, height: 40, borderRadius: 20, backgroundColor: mono.color.fill, alignItems: 'center', justifyContent: 'center' },
   searchIcon: { fontSize: 16 },

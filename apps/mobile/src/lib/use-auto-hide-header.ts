@@ -4,9 +4,9 @@ import { useAnimatedScrollHandler, useAnimatedStyle, useSharedValue } from 'reac
 
 // 스크롤 방향 연동 자동 숨김 헤더 — 올리면 헤더가 딸려 올라가 숨고, 내리면 다시 내려와 나타남.
 // 둘러보기·라이브러리처럼 상단 타이틀+필터칩을 접는 화면에 공용.
-export function useAutoHideHeader() {
-  const [headerHeight, setHeaderHeight] = useState(0)
-  const headerH = useSharedValue(0)
+export function useAutoHideHeader(initialHeight = 0) {
+  const [headerHeight, setHeaderHeight] = useState(initialHeight)
+  const headerH = useSharedValue(initialHeight)
   const translateY = useSharedValue(0) // 0=보임, -H=숨김
   const lastY = useSharedValue(0)
 

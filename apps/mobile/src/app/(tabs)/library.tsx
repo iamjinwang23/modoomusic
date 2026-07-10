@@ -25,7 +25,8 @@ const FILTERS: { key: Filter; label: string }[] = [
 // 생성 중 곡은 실시간(songs UPDATE 구독)으로 done/failed 전환 시 갱신.
 export default function LibraryScreen() {
   const insets = useSafeAreaInsets()
-  const { scrollHandler, headerStyle, onHeaderLayout, headerHeight } = useAutoHideHeader()
+  const { scrollHandler, headerStyle, onHeaderLayout, headerHeight: chipsH } = useAutoHideHeader(58)
+  const [titleH, setTitleH] = useState(insets.top + 56)
   const { session } = useSession()
   const [songs, setSongs] = useState<Song[] | null>(null)
   const [filter, setFilter] = useState<Filter>('all')
@@ -104,8 +105,8 @@ export default function LibraryScreen() {
         renderItem={({ item }) => <SongRow song={item} onPress={() => playSong(item)} onMore={() => openMenu(item)} />}
         onScroll={scrollHandler}
         scrollEventThrottle={16}
-        contentContainerStyle={{ paddingTop: headerHeight + 4, paddingBottom: insets.bottom + 160, paddingHorizontal: 20 }}
-        refreshControl={<RefreshControl progressViewOffset={headerHeight} refreshing={refreshing} onRefresh={onRefresh} tintColor={mono.color.textSecondary} />}
+        contentContainerStyle={{ paddingTop: titleH + chipsH + 4, paddingBottom: insets.bottom + 160, paddingHorizontal: 20 }}
+        refreshControl={<RefreshControl progressViewOffset={titleH + chipsH} refreshing={refreshing} onRefresh={onRefresh} tintColor={mono.color.textSecondary} />}
         ListEmptyComponent={
           loading ? <ActivityIndicator color={mono.color.accent} style={{ marginTop: 32 }} />
             : <Text style={styles.empty}>
@@ -118,14 +119,8 @@ export default function LibraryScreen() {
         showsVerticalScrollIndicator={false}
       />
 
-      {/* 자동 숨김 헤더 — 타이틀 + 필터칩 (+생성 중 안내) */}
-      <Animated.View style={[styles.header, { paddingTop: insets.top + 12 }, headerStyle]} onLayout={onHeaderLayout}>
-        <View style={styles.headerRow}>
-          <Text style={styles.h1}>라이브러리</Text>
-          <Pressable onPress={() => router.push('/notifications')} hitSlop={10} style={styles.profileBtn}>
-            <Icon name="bell" size={19} color={mono.color.text} />
-          </Pressable>
-        </View>
+      {/* 필터칩(+생성 중 안내) — auto-hide(타이틀 아래) */}
+      <Animated.View style={[styles.chipsBar, { top: titleH }, headerStyle]} onLayout={onHeaderLayout}>
         <View style={styles.tabs}>
           {FILTERS.map((f) => {
             const on = filter === f.key
@@ -138,15 +133,29 @@ export default function LibraryScreen() {
         </View>
         {generating ? <Text style={styles.sub}>곡을 만들고 있어요…</Text> : null}
       </Animated.View>
+
+      {/* 타이틀 — 고정 */}
+      <View style={[styles.titleBar, { paddingTop: insets.top + 12 }]} onLayout={(e) => setTitleH(e.nativeEvent.layout.height)}>
+        <View style={styles.headerRow}>
+          <Text style={styles.h1}>라이브러리</Text>
+          <Pressable onPress={() => router.push('/notifications')} hitSlop={10} style={styles.profileBtn}>
+            <Icon name="bell" size={19} color={mono.color.text} />
+          </Pressable>
+        </View>
+      </View>
     </View>
   )
 }
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: mono.color.bg },
-  // 자동 숨김 헤더 — 절대배치, 리스트 위 오버레이
-  header: {
-    position: 'absolute', top: 0, left: 0, right: 0, zIndex: 10,
+  // 고정 타이틀바(위) + auto-hide 칩바(아래)
+  titleBar: {
+    position: 'absolute', top: 0, left: 0, right: 0, zIndex: 20,
+    backgroundColor: mono.color.bg, paddingHorizontal: 20, paddingBottom: 8,
+  },
+  chipsBar: {
+    position: 'absolute', left: 0, right: 0, zIndex: 10,
     backgroundColor: mono.color.bg, paddingHorizontal: 20, paddingBottom: 10,
   },
   headerRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
@@ -158,7 +167,7 @@ const styles = StyleSheet.create({
   profileIcon: { color: mono.color.text, fontSize: 18 },
   h1: { color: mono.color.text, fontSize: mono.font.h1, fontWeight: '800' },
   // 필터칩 — 둘러보기와 동일 사이즈, 활성=화이트 채움(다크 텍스트)
-  tabs: { flexDirection: 'row', gap: 8, marginTop: 14 },
+  tabs: { flexDirection: 'row', gap: 8 },
   tab: { paddingVertical: 11, paddingHorizontal: 20, borderRadius: mono.radius.pill, backgroundColor: mono.color.fill },
   tabOn: { backgroundColor: '#ffffff' },
   tabText: { color: mono.color.textSecondary, fontSize: mono.font.body, fontWeight: '600' },
