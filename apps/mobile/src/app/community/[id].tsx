@@ -121,11 +121,6 @@ export default function CommunityDetailScreen() {
                     {community.isMember ? '가입됨' : '가입하기'}
                   </Text>
                 </Pressable>
-                {community.isMember ? (
-                  <Pressable onPress={() => router.push(`/compose?communityId=${id}`)} style={styles.writeBtn}>
-                    <Text style={styles.writeText}>글쓰기</Text>
-                  </Pressable>
-                ) : null}
               </View>
             ) : null}
 
@@ -141,6 +136,13 @@ export default function CommunityDetailScreen() {
         }
         showsVerticalScrollIndicator={false}
       />
+
+      {/* 글쓰기 — 우측 하단 플로팅(+) 버튼(멤버만) */}
+      {community?.isMember ? (
+        <Pressable onPress={() => router.push(`/compose?communityId=${id}`)} style={[styles.fab, { bottom: insets.bottom + 20 }]}>
+          <Icon name="plus" size={26} color={mono.color.onMedia} />
+        </Pressable>
+      ) : null}
     </View>
   )
 }
@@ -172,11 +174,12 @@ const styles = StyleSheet.create({
   hJoinOn: { backgroundColor: mono.color.fillStrong },
   hJoinText: { color: mono.color.text, fontSize: mono.font.small, fontWeight: '700' },
   hJoinTextOn: { color: mono.color.accentLight },
-  writeBtn: {
-    paddingVertical: 10, paddingHorizontal: 20, borderRadius: mono.radius.pill,
-    backgroundColor: mono.color.fill, borderWidth: 1, borderColor: mono.color.border,
+  // 글쓰기 플로팅 버튼(우측 하단)
+  fab: {
+    position: 'absolute', right: 20, width: 56, height: 56, borderRadius: 28,
+    backgroundColor: mono.color.accent, alignItems: 'center', justifyContent: 'center',
+    boxShadow: '0px 4px 14px rgba(0,0,0,0.4)', elevation: 6,
   },
-  writeText: { color: mono.color.text, fontSize: mono.font.small, fontWeight: '700' },
   feedLabel: { color: mono.color.text, fontSize: mono.font.h2, fontWeight: '700', marginTop: 20, paddingHorizontal: 16 },
   empty: { color: mono.color.textSecondary, fontSize: mono.font.body, textAlign: 'center', marginTop: 32 },
 })
