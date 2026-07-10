@@ -9,6 +9,7 @@ import type { CommunityPost, CommunityPostComment } from '@mono/shared'
 import { api } from '@/lib/api'
 import { getSelectedPost } from '@/lib/selected-post'
 import { useSession } from '@/lib/use-session'
+import { PostCard } from '@/components/ui/post-card'
 import { mono } from '@/theme/mono'
 
 function initial(name: string | null): string {
@@ -86,23 +87,12 @@ export default function PostDetailScreen() {
           ListHeaderComponent={
             <View>
               {post ? (
-                <View style={styles.post}>
-                  <View style={styles.postHead}>
-                    <View style={styles.avatar}>
-                      {post.authorAvatarUrl ? (
-                        <Image source={{ uri: post.authorAvatarUrl }} style={styles.avatarImg} contentFit="cover" />
-                      ) : (
-                        <Text style={styles.avatarText}>{initial(post.authorName ?? post.authorUsername)}</Text>
-                      )}
-                    </View>
-                    <Text style={styles.author}>{post.authorName ?? post.authorUsername ?? '익명'}</Text>
-                  </View>
-                  {post.content ? <Text style={styles.postContent}>{post.content}</Text> : null}
-                  {post.imageUrls?.[0] ? <Image source={{ uri: post.imageUrls[0] }} style={styles.media} contentFit="cover" /> : null}
-                  <Text style={styles.postMeta}>♥ {post.likeCount}  ·  댓글 {post.commentCount}</Text>
-                </View>
+                <PostCard
+                  post={post}
+                  onAuthorPress={post.authorUsername ? () => router.push(`/creator/${post.authorUsername}`) : undefined}
+                />
               ) : null}
-              <Text style={styles.commentsLabel}>댓글</Text>
+              <Text style={styles.commentsLabel}>댓글 {post?.commentCount ?? ''}</Text>
               {comments === null ? <ActivityIndicator color={mono.color.accent} style={{ marginTop: 20 }} /> : null}
             </View>
           }
