@@ -102,6 +102,7 @@ export default function CommunityDetailScreen() {
         renderItem={({ item }) => (
           <PostCard
             post={item}
+            managerId={community?.managerId}
             onPress={() => { setSelectedPost(item); router.push(`/post/${item.id}`) }}
             onAuthorPress={item.authorUsername ? () => router.push(`/creator/${item.authorUsername}`) : undefined}
           />
