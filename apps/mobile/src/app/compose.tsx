@@ -122,7 +122,12 @@ export default function ComposeScreen() {
         <>
         <View style={styles.toolbar}>
           <Pressable style={styles.attachBtn} onPress={pickImages} disabled={uploading || images.length >= MAX_IMAGES}>
-            {uploading ? <ActivityIndicator size="small" color={mono.color.textSecondary} /> : <Text style={styles.attachText}>🖼 사진</Text>}
+            {uploading ? <ActivityIndicator size="small" color={mono.color.textSecondary} /> : (
+              <>
+                <Icon name="photo.album" size={14} color={mono.color.textSecondary} />
+                <Text style={styles.attachText}>사진</Text>
+              </>
+            )}
           </Pressable>
           {!song ? (
             <Pressable style={styles.attachBtn} onPress={() => setPicker((v) => !v)}>
@@ -132,7 +137,8 @@ export default function ComposeScreen() {
           ) : null}
           {!pollOptions ? (
             <Pressable style={styles.attachBtn} onPress={() => setPollOptions(['', ''])}>
-              <Text style={styles.attachText}>📊 투표</Text>
+              <Icon name="poll" size={14} color={mono.color.textSecondary} />
+              <Text style={styles.attachText}>투표</Text>
             </Pressable>
           ) : null}
         </View>
