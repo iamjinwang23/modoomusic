@@ -116,8 +116,13 @@ export default function CommunityDetailScreen() {
               <Pressable onPress={() => router.back()} style={[styles.back, { top: insets.top + 8 }]} hitSlop={10}>
                 <Icon name="arrow.left" size={22} color={mono.color.onMedia} />
               </Pressable>
-              {/* 우상단 — 알림 · 공유 */}
+              {/* 우상단 — (매니저)수정 · 알림 · 공유 */}
               <View style={[styles.coverActions, { top: insets.top + 8 }]}>
+                {community?.isManager ? (
+                  <Pressable onPress={() => router.push(`/community-edit/${id}`)} style={styles.editPill} hitSlop={8}>
+                    <Text style={styles.editText}>수정</Text>
+                  </Pressable>
+                ) : null}
                 <Pressable onPress={() => router.push('/notifications')} style={styles.circleBtn} hitSlop={8}>
                   <Icon name="bell" size={18} color={mono.color.onMedia} />
                 </Pressable>
@@ -207,8 +212,10 @@ const styles = StyleSheet.create({
   // 커버 — 16:9(프로필과 동일), 하단 그라데이션 디졸브(CoverScrim)
   bannerWrap: { width: '100%', aspectRatio: 16 / 9, backgroundColor: mono.color.surface2, overflow: 'hidden' },
   bannerFallback: { backgroundColor: mono.color.surface },
-  coverActions: { position: 'absolute', right: 12, flexDirection: 'row', gap: 8 },
+  coverActions: { position: 'absolute', right: 12, flexDirection: 'row', alignItems: 'center', gap: 8 },
   circleBtn: { width: 40, height: 40, borderRadius: 20, backgroundColor: mono.color.overlay, alignItems: 'center', justifyContent: 'center' },
+  editPill: { paddingHorizontal: 16, height: 40, borderRadius: 20, backgroundColor: mono.color.overlay, alignItems: 'center', justifyContent: 'center' },
+  editText: { color: mono.color.onMedia, fontSize: mono.font.small, fontWeight: '600' },
   back: {
     position: 'absolute', left: 12, width: 36, height: 36, borderRadius: 18,
     backgroundColor: mono.color.overlay, alignItems: 'center', justifyContent: 'center',
