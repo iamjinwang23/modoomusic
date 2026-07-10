@@ -6,6 +6,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { router, useLocalSearchParams } from 'expo-router'
 import { Image } from 'expo-image'
 import * as ImagePicker from 'expo-image-picker'
+import { uploadAsync, FileSystemUploadType } from 'expo-file-system/legacy'
 import type { Song } from '@mono/shared'
 import { api } from '@/lib/api'
 import { supabase } from '@/lib/supabase'
@@ -56,15 +57,24 @@ export default function ComposeScreen() {
     if (res.canceled || !res.assets?.length) return
     setUploading(true); setError(null)
     try {
-      const fd = new FormData()
-      res.assets.forEach((a, i) => fd.append('files', { uri: a.uri, name: a.fileName ?? `image${i}.jpg`, type: a.mimeType ?? 'image/jpeg' } as unknown as Blob))
+      // RN 0.86의 JS FormData는 파일 파트를 지원하지 않아('Unsupported FormDataPart'),
+      // expo-file-system의 네이티브 멀티파트 업로드를 파일당 1회씩 사용.
       const token = (await supabase.auth.getSession()).data.session?.access_token
-      const r = await fetch(`${API_BASE}/api/communities/${communityId}/post-images`, {
-        method: 'POST', headers: token ? { Authorization: `Bearer ${token}` } : {}, body: fd,
-      })
-      const j = await r.json().catch(() => ({})) as { urls?: string[]; error?: string }
-      if (r.ok && Array.isArray(j.urls) && j.urls.length > 0) setImages((prev) => [...prev, ...j.urls!].slice(0, MAX_IMAGES))
-      else { console.warn('[post-images] fail', r.status, j); setError(`이미지 업로드 실패 (${j.error ?? r.status})`) }
+      const endpoint = `${API_BASE}/api/communities/${communityId}/post-images`
+      const collected: string[] = []
+      for (const a of res.assets) {
+        const up = await uploadAsync(endpoint, a.uri, {
+          httpMethod: 'POST',
+          uploadType: FileSystemUploadType.MULTIPART,
+          fieldName: 'files',
+          mimeType: a.mimeType ?? 'image/jpeg',
+          headers: token ? { Authorization: `Bearer ${token}` } : {},
+        })
+        const j = JSON.parse(up.body || '{}') as { urls?: string[]; error?: string }
+        if (up.status >= 200 && up.status < 300 && Array.isArray(j.urls)) collected.push(...j.urls)
+        else { console.warn('[post-images] fail', up.status, j); setError(`이미지 업로드 실패 (${j.error ?? up.status})`); break }
+      }
+      if (collected.length) setImages((prev) => [...prev, ...collected].slice(0, MAX_IMAGES))
     } catch (e) { console.warn('[post-images] network', e); setError('이미지 업로드 실패 (네트워크)') } finally { setUploading(false) }
   }, [communityId, images.length])
 
