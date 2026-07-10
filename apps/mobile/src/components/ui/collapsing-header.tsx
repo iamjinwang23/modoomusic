@@ -50,5 +50,5 @@ const styles = StyleSheet.create({
   },
   side: { width: 92, flexDirection: 'row', alignItems: 'center', gap: 6 },
   rightAlign: { justifyContent: 'flex-end' },
-  title: { flex: 1, textAlign: 'center', color: mono.color.text, fontSize: mono.font.body, fontWeight: '700' },
+  title: { flex: 1, textAlign: 'center', color: mono.color.text, fontSize: mono.font.h2, fontWeight: '700' },
 })
