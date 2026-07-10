@@ -56,7 +56,8 @@ const styles = StyleSheet.create({
   coverImg: { width: '100%', height: '100%' },
   body: { flex: 1, gap: 4 },
   title: { color: mono.color.text, fontSize: mono.font.body, fontWeight: '600' },
-  creator: { color: mono.color.textSecondary, fontSize: mono.font.small },
+  // alignSelf flex-start — 이름 글자 폭만 탭 영역(빈 공간은 행 재생으로 떨어짐)
+  creator: { color: mono.color.textSecondary, fontSize: mono.font.small, alignSelf: 'flex-start', maxWidth: '100%' },
   stats: { flexDirection: 'row', alignItems: 'center', gap: 12, marginTop: 1 },
   stat: { flexDirection: 'row', alignItems: 'center', gap: 3 },
   statText: { color: mono.color.textTertiary, fontSize: mono.font.small },
