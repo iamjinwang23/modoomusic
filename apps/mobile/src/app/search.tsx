@@ -174,8 +174,8 @@ const styles = StyleSheet.create({
   flex: { flex: 1 },
   searchRow: { flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 12 },
   input: {
-    flex: 1, backgroundColor: mono.color.surface, borderRadius: mono.radius.md, color: mono.color.text,
-    fontSize: mono.font.body, paddingHorizontal: 14, paddingVertical: 11,
+    flex: 1, backgroundColor: mono.color.surface, borderRadius: mono.radius.pill, color: mono.color.text,
+    fontSize: mono.font.body, paddingHorizontal: 18, paddingVertical: 14,
     borderWidth: 1, borderColor: mono.color.borderSoft,
   },
   cancel: { color: mono.color.accentLight, fontSize: mono.font.body, fontWeight: '600' },
