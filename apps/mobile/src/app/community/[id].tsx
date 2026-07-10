@@ -1,17 +1,22 @@
 import { useCallback, useEffect, useState } from 'react'
-import { ActivityIndicator, FlatList, Pressable, RefreshControl, StyleSheet, Text, View } from 'react-native'
+import { ActivityIndicator, Pressable, RefreshControl, StyleSheet, Text, View } from 'react-native'
+import Animated, { useAnimatedScrollHandler, useSharedValue } from 'react-native-reanimated'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { router, useFocusEffect, useLocalSearchParams } from 'expo-router'
 import { Image } from 'expo-image'
 import type { Community, CommunityPost } from '@mono/shared'
 import { api } from '@/lib/api'
 import { setSelectedPost } from '@/lib/selected-post'
+import { CollapsingHeader, HEADER_ROW } from '@/components/ui/collapsing-header'
 import { PostCard } from '@/components/ui/post-card'
+import { Icon } from '@/components/ui/icon'
 import { mono } from '@/theme/mono'
 
 // 커뮤니티 상세 — 배너/이름/멤버 + 게시글 피드(GET /api/communities/[id], /posts).
 export default function CommunityDetailScreen() {
   const insets = useSafeAreaInsets()
+  const scrollY = useSharedValue(0)
+  const onScroll = useAnimatedScrollHandler((e) => { scrollY.value = e.contentOffset.y })
   const { id } = useLocalSearchParams<{ id: string }>()
   const [community, setCommunity] = useState<Community | null>(null)
   const [posts, setPosts] = useState<CommunityPost[] | null>(null)
@@ -59,12 +64,31 @@ export default function CommunityDetailScreen() {
   }, [id, community, joinBusy])
 
   const banner = community?.coverImage ?? community?.avatarImage
+  // 배너(160) + 이름이 헤더 아래로 사라질 즈음 페이드인
+  const fadeEnd = Math.max(160 + 20 - (insets.top + HEADER_ROW), 40)
+  const fadeStart = Math.max(fadeEnd - 60, 0)
 
   return (
     <View style={styles.container}>
-      <FlatList
+      <CollapsingHeader
+        scrollY={scrollY}
+        fadeStart={fadeStart}
+        fadeEnd={fadeEnd}
+        title={community?.name ?? '커뮤니티'}
+        left={
+          <Pressable onPress={() => router.back()} hitSlop={8} style={styles.hBack}><Icon name="arrow.left" size={24} color={mono.color.text} /></Pressable>
+        }
+        right={community ? (
+          <Pressable onPress={toggleJoin} disabled={joinBusy} style={[styles.hJoin, community.isMember && styles.hJoinOn, joinBusy && styles.dim]} hitSlop={8}>
+            <Text style={[styles.hJoinText, community.isMember && styles.hJoinTextOn]}>{community.isMember ? '가입됨' : '가입'}</Text>
+          </Pressable>
+        ) : undefined}
+      />
+      <Animated.FlatList
         data={posts ?? []}
         keyExtractor={(p) => p.id}
+        onScroll={onScroll}
+        scrollEventThrottle={16}
         renderItem={({ item }) => (
           <PostCard
             post={item}
@@ -79,7 +103,7 @@ export default function CommunityDetailScreen() {
             <View style={styles.bannerWrap}>
               {banner ? <Image source={{ uri: banner }} style={styles.banner} contentFit="cover" /> : <View style={[styles.banner, styles.bannerFallback]} />}
               <Pressable onPress={() => router.back()} style={[styles.back, { top: insets.top + 8 }]} hitSlop={10}>
-                <Text style={styles.backText}>‹</Text>
+                <Icon name="arrow.left" size={22} color={mono.color.onMedia} />
               </Pressable>
             </View>
             <Text style={styles.name}>{community?.name ?? '커뮤니티'}</Text>
@@ -142,6 +166,12 @@ const styles = StyleSheet.create({
   dim: { opacity: 0.5 },
   joinText: { color: mono.color.text, fontSize: mono.font.small, fontWeight: '700' },
   joinTextOn: { color: mono.color.accentLight },
+  // 스크롤 헤더 내 뒤로가기·가입
+  hBack: { width: 36, height: 36, alignItems: 'center', justifyContent: 'center' },
+  hJoin: { paddingHorizontal: 14, height: 34, borderRadius: 17, alignItems: 'center', justifyContent: 'center', backgroundColor: mono.color.accent },
+  hJoinOn: { backgroundColor: mono.color.fillStrong },
+  hJoinText: { color: mono.color.text, fontSize: mono.font.small, fontWeight: '700' },
+  hJoinTextOn: { color: mono.color.accentLight },
   writeBtn: {
     paddingVertical: 10, paddingHorizontal: 20, borderRadius: mono.radius.pill,
     backgroundColor: mono.color.fill, borderWidth: 1, borderColor: mono.color.border,
