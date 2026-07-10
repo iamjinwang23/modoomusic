@@ -175,7 +175,7 @@ export default function CommunityDetailScreen() {
             ) : null}
             {community?.topic ? <View style={styles.topicWrap}><Text style={styles.topic}>{community.topic}</Text></View> : null}
 
-            <Text style={styles.feedLabel}>게시글</Text>
+            <View style={styles.feedDivider} />
           </View>
         }
         ListEmptyComponent={
@@ -266,6 +266,6 @@ const styles = StyleSheet.create({
     backgroundColor: '#ffffff', alignItems: 'center', justifyContent: 'center',
     boxShadow: '0px 2px 8px rgba(0,0,0,0.2)', elevation: 3,
   },
-  feedLabel: { color: mono.color.text, fontSize: mono.font.h2, fontWeight: '700', marginTop: 20, paddingHorizontal: 16 },
+  feedDivider: { marginTop: 20, height: StyleSheet.hairlineWidth, backgroundColor: mono.color.border },
   empty: { color: mono.color.textSecondary, fontSize: mono.font.body, textAlign: 'center', marginTop: 32 },
 })
