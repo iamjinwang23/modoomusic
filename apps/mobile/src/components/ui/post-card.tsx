@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Pressable, StyleSheet, Text, View } from 'react-native'
 import { Image } from 'expo-image'
+import * as WebBrowser from 'expo-web-browser'
 import type { CommunityPost, CommunityPoll } from '@mono/shared'
 import { api } from '@/lib/api'
 import { Icon } from '@/components/ui/icon'
@@ -146,17 +147,17 @@ export function PostCard({ post, managerId, onPress, onAuthorPress }: {
         </View>
       ) : null}
 
-      {/* 유튜브 / 링크 임베드 */}
-      {ytThumb ? (
-        <View style={styles.embed}>
+      {/* 유튜브 / 링크 임베드 — 탭 시 인앱 브라우저(유튜브 재생) */}
+      {ytThumb && embedUrl ? (
+        <Pressable style={styles.embed} onPress={() => WebBrowser.openBrowserAsync(embedUrl)}>
           <Image source={{ uri: ytThumb }} style={styles.embedThumb} contentFit="cover" />
-          <View style={styles.embedPlay}><Icon name="play.fill" size={20} color={mono.color.onMedia} /></View>
-        </View>
-      ) : og?.image ? (
-        <View style={styles.embed}>
+          <View style={styles.embedPlay}><View style={styles.ytBadge}><Icon name="play.fill" size={22} color={mono.color.onMedia} /></View></View>
+        </Pressable>
+      ) : og?.image && embedUrl ? (
+        <Pressable style={styles.embed} onPress={() => WebBrowser.openBrowserAsync(embedUrl)}>
           <Image source={{ uri: og.image }} style={styles.embedThumb} contentFit="cover" />
           {og.title ? <Text style={styles.embedTitle} numberOfLines={2}>{og.title}</Text> : null}
-        </View>
+        </Pressable>
       ) : null}
 
       {/* 투표 */}
@@ -182,7 +183,7 @@ export function PostCard({ post, managerId, onPress, onAuthorPress }: {
 
       <View style={styles.meta}>
         <Pressable onPress={toggleLike} hitSlop={8} style={styles.metaBtn}>
-          <Icon name={liked ? 'heart.fill' : 'heart'} size={16} color={liked ? mono.color.danger : mono.color.textTertiary} />
+          <Icon name={liked ? 'heart.fill' : 'heart'} size={16} color={liked ? mono.color.accentLight : mono.color.textTertiary} />
           <Text style={[styles.metaText, liked && styles.liked]}>{likeCount}</Text>
         </Pressable>
         <View style={styles.metaBtn}>
@@ -234,6 +235,7 @@ const styles = StyleSheet.create({
   embedPlay: {
     position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, alignItems: 'center', justifyContent: 'center',
   },
+  ytBadge: { width: 52, height: 52, borderRadius: 26, backgroundColor: 'rgba(0,0,0,0.55)', alignItems: 'center', justifyContent: 'center' },
   embedTitle: { color: mono.color.text, fontSize: mono.font.small, fontWeight: '600', padding: 10 },
   // 투표
   poll: { gap: 6 },
@@ -251,5 +253,5 @@ const styles = StyleSheet.create({
   meta: { flexDirection: 'row', gap: 18, alignItems: 'center', marginTop: 2 },
   metaBtn: { flexDirection: 'row', alignItems: 'center', gap: 5, paddingVertical: 2 },
   metaText: { color: mono.color.textTertiary, fontSize: mono.font.small },
-  liked: { color: mono.color.danger },
+  liked: { color: mono.color.accentLight },
 })
