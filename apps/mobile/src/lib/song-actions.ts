@@ -9,6 +9,12 @@ export async function shareSong(songId: string, title?: string | null) {
   await Share.share({ message: title ? `${title}\n${url}` : url, url }).catch(() => {})
 }
 
+// 커뮤니티 공유 — /community/{id} 링크.
+export async function shareCommunity(id: string, name?: string | null) {
+  const url = `${API_BASE}/community/${id}`
+  await Share.share({ message: name ? `${name}\n${url}` : url, url }).catch(() => {})
+}
+
 // 공개/비공개 토글 — songs.is_public 직접 업데이트(RLS: 소유자만). 웹 song.service 패리티.
 export async function setSongPublished(songId: string, published: boolean): Promise<boolean> {
   const { error } = await supabase

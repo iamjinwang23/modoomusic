@@ -6,6 +6,7 @@ import type { Community, CommunityPost } from '@mono/shared'
 import { api } from '@/lib/api'
 import { CommunityStory, PopularPostCard, CommunityRankRow, CommunityCoverCard } from '@/components/ui/hub-cards'
 import { Icon } from '@/components/ui/icon'
+import { NotificationBell } from '@/components/ui/notification-bell'
 import { mono } from '@/theme/mono'
 
 interface Hub { popular: Community[]; recent: Community[]; mine: Community[]; popularPosts: CommunityPost[] }
@@ -48,7 +49,7 @@ export default function ExploreScreen() {
       <View style={styles.headerRow}>
         <Text style={styles.h1}>커뮤니티</Text>
         <Pressable onPress={() => router.push('/notifications')} hitSlop={10} style={styles.iconBtn}>
-          <Icon name="bell" size={18} color={mono.color.text} />
+          <NotificationBell size={18} color={mono.color.text} />
         </Pressable>
       </View>
 
@@ -66,6 +67,7 @@ export default function ExploreScreen() {
               <ScrollView
                 horizontal
                 showsHorizontalScrollIndicator={false}
+                style={styles.storyScroll}
                 contentContainerStyle={styles.storyRow}
               >
                 {mine.map((c) => <CommunityStory key={c.id} c={c} onPress={() => go(c.id)} />)}
@@ -128,7 +130,9 @@ const styles = StyleSheet.create({
   h1: { color: mono.color.text, fontSize: mono.font.h1, fontWeight: '800' },
   section: { marginTop: 24 },
   sectionTitle: { color: mono.color.text, fontSize: mono.font.h2, fontWeight: '700', marginBottom: 12 },
-  storyRow: { gap: 14, paddingRight: 8 },
+  // 캐러셀 풀블리드 — 컨테이너 좌우 패딩(20) 밖으로 나가고, 콘텐츠는 패딩만큼 인셋
+  storyScroll: { marginHorizontal: -20 },
+  storyRow: { gap: 14, paddingHorizontal: 20 },
   grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 12 },
   empty: { color: mono.color.textSecondary, fontSize: mono.font.small, textAlign: 'center', paddingVertical: 28 },
 })

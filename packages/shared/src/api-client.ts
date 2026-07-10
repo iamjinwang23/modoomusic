@@ -24,6 +24,7 @@ export function createApiClient(opts: ApiClientOpts) {
   return {
     get: (p: string) => req('GET', p),
     post: (p: string, body?: unknown) => req('POST', p, body),
+    patch: (p: string, body?: unknown) => req('PATCH', p, body),
     del: (p: string) => req('DELETE', p),
   }
 }

@@ -132,17 +132,17 @@ const styles = StyleSheet.create({
   pressed: { opacity: 0.7 },
 
   // 스토리
-  story: { width: 72, alignItems: 'center', gap: 6 },
-  storyRing: { width: 72, height: 72, borderRadius: 36, padding: 2.5 },
+  story: { width: 88, alignItems: 'center', gap: 6 },
+  storyRing: { width: 88, height: 88, borderRadius: 44, padding: 2.5 },
   ringOn: { backgroundColor: mono.color.accent },
   ringOff: { backgroundColor: mono.color.fillStrong },
-  storyGap: { flex: 1, borderRadius: 34, padding: 2.5, backgroundColor: mono.color.bg },
+  storyGap: { flex: 1, borderRadius: 42, padding: 2.5, backgroundColor: mono.color.bg },
   storyAvatar: {
-    flex: 1, borderRadius: 30, overflow: 'hidden', alignItems: 'center', justifyContent: 'center',
+    flex: 1, borderRadius: 38, overflow: 'hidden', alignItems: 'center', justifyContent: 'center',
     backgroundColor: GRAY_AVATAR,
   },
-  storyInitial: { color: GRAY_AVATAR_TEXT, fontSize: 24, fontWeight: '800' },
-  storyName: { width: 72, textAlign: 'center', color: mono.color.textSecondary, fontSize: mono.font.small },
+  storyInitial: { color: GRAY_AVATAR_TEXT, fontSize: 28, fontWeight: '800' },
+  storyName: { width: 88, textAlign: 'center', color: mono.color.textSecondary, fontSize: mono.font.small },
 
   // 인기 글 카드
   postThumb: { width: '100%', borderRadius: mono.radius.md, overflow: 'hidden', backgroundColor: '#363A47' },

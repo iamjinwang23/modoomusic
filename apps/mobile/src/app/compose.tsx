@@ -1,30 +1,82 @@
 import { useCallback, useEffect, useState } from 'react'
 import {
-  FlatList, KeyboardAvoidingView, Platform, Pressable, StyleSheet, Text, TextInput, View,
+  ActivityIndicator, FlatList, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View,
 } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { router, useLocalSearchParams } from 'expo-router'
 import { Image } from 'expo-image'
+import * as ImagePicker from 'expo-image-picker'
+import { uploadAsync, FileSystemUploadType } from 'expo-file-system/legacy'
 import type { Song } from '@mono/shared'
 import { api } from '@/lib/api'
+import { supabase } from '@/lib/supabase'
+import { getSelectedPost } from '@/lib/selected-post'
 import { Icon } from '@/components/ui/icon'
 import { mono } from '@/theme/mono'
 
 const MAX = 2000
+const MAX_IMAGES = 10
+const API_BASE = process.env.EXPO_PUBLIC_API_BASE_URL ?? ''
 
 // 글쓰기 — 커뮤니티에 텍스트 + 공개 곡 첨부(POST /api/communities/[id]/posts).
 // 멤버만 진입(상세에서 게이팅). 이미지·투표는 후속.
 export default function ComposeScreen() {
   const insets = useSafeAreaInsets()
-  const { communityId } = useLocalSearchParams<{ communityId: string }>()
-  const [content, setContent] = useState('')
+  const { communityId, postId } = useLocalSearchParams<{ communityId: string; postId?: string }>()
+  const editing = !!postId
+  const [content, setContent] = useState(() => (postId ? (getSelectedPost()?.content ?? '') : ''))
   const [song, setSong] = useState<Song | null>(null)
+  const [images, setImages] = useState<string[]>([])
+  const [uploading, setUploading] = useState(false)
+  const [pollOptions, setPollOptions] = useState<string[] | null>(null)
   const [picker, setPicker] = useState(false)
   const [mySongs, setMySongs] = useState<Song[] | null>(null)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
-  const canPost = (content.trim().length > 0 || song) && !busy
+  const pollFilled = pollOptions ? pollOptions.map((o) => o.trim()).filter(Boolean) : []
+  const pollReady = pollFilled.length >= 2
+  const canPost = (content.trim().length > 0 || !!song || images.length > 0 || pollReady) && !busy && !uploading
+
+  // 첨부 상호 배타 — 이미지/곡/투표 중 하나만. 진행 중 종류를 활성으로.
+  const activeType: 'image' | 'song' | 'poll' | null =
+    images.length > 0 ? 'image' : (song || picker) ? 'song' : pollOptions ? 'poll' : null
+  const imgActive = activeType === 'image'
+  const songActive = activeType === 'song'
+  const pollActive = activeType === 'poll'
+  const imgDisabled = activeType !== null && !imgActive
+  const songDisabled = activeType !== null && !songActive
+  const pollDisabled = activeType !== null && !pollActive
+
+  // 이미지 선택 + 업로드(multipart 'files' → { urls })
+  const pickImages = useCallback(async () => {
+    if (!communityId || images.length >= MAX_IMAGES) return
+    const res = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ['images'], allowsMultipleSelection: true, selectionLimit: MAX_IMAGES - images.length, quality: 0.9,
+    })
+    if (res.canceled || !res.assets?.length) return
+    setUploading(true); setError(null)
+    try {
+      // RN 0.86의 JS FormData는 파일 파트를 지원하지 않아('Unsupported FormDataPart'),
+      // expo-file-system의 네이티브 멀티파트 업로드를 파일당 1회씩 사용.
+      const token = (await supabase.auth.getSession()).data.session?.access_token
+      const endpoint = `${API_BASE}/api/communities/${communityId}/post-images`
+      const collected: string[] = []
+      for (const a of res.assets) {
+        const up = await uploadAsync(endpoint, a.uri, {
+          httpMethod: 'POST',
+          uploadType: FileSystemUploadType.MULTIPART,
+          fieldName: 'files',
+          mimeType: a.mimeType ?? 'image/jpeg',
+          headers: token ? { Authorization: `Bearer ${token}` } : {},
+        })
+        const j = JSON.parse(up.body || '{}') as { urls?: string[]; error?: string }
+        if (up.status >= 200 && up.status < 300 && Array.isArray(j.urls)) collected.push(...j.urls)
+        else { console.warn('[post-images] fail', up.status, j); setError(`이미지 업로드 실패 (${j.error ?? up.status})`); break }
+      }
+      if (collected.length) setImages((prev) => [...prev, ...collected].slice(0, MAX_IMAGES))
+    } catch (e) { console.warn('[post-images] network', e); setError('이미지 업로드 실패 (네트워크)') } finally { setUploading(false) }
+  }, [communityId, images.length])
 
   // 공개된 내 곡만 첨부 가능(서버가 song_not_public 거부)
   const loadSongs = useCallback(async () => {
@@ -41,10 +93,17 @@ export default function ComposeScreen() {
     if (!canPost || !communityId) return
     setBusy(true); setError(null)
     try {
-      await api.post(`/api/communities/${communityId}/posts`, {
-        content: content.trim(),
-        songId: song?.id ?? null,
-      })
+      if (editing) {
+        // 수정 — 본문만(첨부는 서버 보존). PATCH /community-posts/[postId]
+        await api.patch(`/api/community-posts/${postId}`, { content: content.trim() })
+      } else {
+        await api.post(`/api/communities/${communityId}/posts`, {
+          content: content.trim(),
+          songId: song?.id ?? null,
+          imageUrls: images,
+          pollOptions: pollReady ? pollFilled : [],
+        })
+      }
       router.back()
     } catch (e) {
       const err = e as { error?: string; status?: number }
@@ -62,9 +121,9 @@ export default function ComposeScreen() {
       <View style={[styles.container, { paddingTop: insets.top + 8 }]}>
         <View style={styles.header}>
           <Pressable onPress={() => router.back()} hitSlop={12}><Text style={styles.close}>✕</Text></Pressable>
-          <Text style={styles.title}>글쓰기</Text>
+          <Text style={styles.title}>{editing ? '수정' : '글쓰기'}</Text>
           <Pressable onPress={submit} disabled={!canPost} hitSlop={12}>
-            <Text style={[styles.post, !canPost && styles.postOff]}>{busy ? '게시 중' : '게시'}</Text>
+            <Text style={[styles.post, !canPost && styles.postOff]}>{busy ? (editing ? '저장 중' : '게시 중') : (editing ? '저장' : '게시')}</Text>
           </Pressable>
         </View>
 
@@ -78,6 +137,54 @@ export default function ComposeScreen() {
           autoFocus
         />
 
+        {/* 첨부 툴바 — 이미지 · 곡 · 투표 (수정 모드에선 본문만) */}
+        {!editing ? (
+        <>
+        <View style={styles.toolbar}>
+          {/* 첨부는 한 종류만 — 이미지/곡/투표 상호 배타. 활성=화이트, 나머지는 비활성. */}
+          <Pressable
+            style={[styles.attachBtn, imgActive && styles.attachBtnOn, imgDisabled && styles.attachBtnOff]}
+            onPress={pickImages}
+            disabled={imgDisabled || uploading || images.length >= MAX_IMAGES}
+          >
+            {uploading ? <ActivityIndicator size="small" color={mono.color.textSecondary} /> : (
+              <>
+                <Icon name="photo.album" size={14} color={imgActive ? mono.color.bg : mono.color.textSecondary} />
+                <Text style={[styles.attachText, imgActive && styles.attachTextOn]}>사진</Text>
+              </>
+            )}
+          </Pressable>
+          <Pressable
+            style={[styles.attachBtn, songActive && styles.attachBtnOn, songDisabled && styles.attachBtnOff]}
+            onPress={() => { if (song) { setSong(null); setPicker(false) } else setPicker((v) => !v) }}
+            disabled={songDisabled}
+          >
+            <Icon name="music.note" size={14} color={songActive ? mono.color.bg : mono.color.textSecondary} />
+            <Text style={[styles.attachText, songActive && styles.attachTextOn]}>내 곡</Text>
+          </Pressable>
+          <Pressable
+            style={[styles.attachBtn, pollActive && styles.attachBtnOn, pollDisabled && styles.attachBtnOff]}
+            onPress={() => setPollOptions((v) => (v ? null : ['', '']))}
+            disabled={pollDisabled}
+          >
+            <Icon name="poll" size={14} color={pollActive ? mono.color.bg : mono.color.textSecondary} />
+            <Text style={[styles.attachText, pollActive && styles.attachTextOn]}>투표</Text>
+          </Pressable>
+        </View>
+
+        {images.length > 0 ? (
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.thumbRow}>
+            {images.map((uri) => (
+              <View key={uri} style={styles.thumb}>
+                <Image source={{ uri }} style={styles.thumbImg} contentFit="cover" />
+                <Pressable onPress={() => setImages((prev) => prev.filter((u) => u !== uri))} style={styles.thumbRemove} hitSlop={6}>
+                  <Text style={styles.thumbRemoveText}>✕</Text>
+                </Pressable>
+              </View>
+            ))}
+          </ScrollView>
+        ) : null}
+
         {song ? (
           <View style={styles.attached}>
             <View style={styles.attachedCover}>
@@ -86,12 +193,36 @@ export default function ComposeScreen() {
             <Text style={styles.attachedTitle} numberOfLines={1}>♪ {song.title ?? '내 곡'}</Text>
             <Pressable onPress={() => setSong(null)} hitSlop={8}><Text style={styles.removeAttach}>✕</Text></Pressable>
           </View>
-        ) : (
-          <Pressable style={styles.attachBtn} onPress={() => setPicker((v) => !v)}>
-            <Icon name="music.note" size={14} color={mono.color.textSecondary} />
-            <Text style={styles.attachText}>내 곡 첨부</Text>
-          </Pressable>
-        )}
+        ) : null}
+
+        {pollOptions ? (
+          <View style={styles.pollEditor}>
+            <View style={styles.pollHeader}>
+              <Text style={styles.pollLabel}>투표</Text>
+              <Pressable onPress={() => setPollOptions(null)} hitSlop={8}><Text style={styles.removeAttach}>✕</Text></Pressable>
+            </View>
+            {pollOptions.map((opt, i) => (
+              <View key={i} style={styles.pollRow}>
+                <TextInput
+                  style={styles.pollInput}
+                  value={opt}
+                  onChangeText={(t) => setPollOptions((prev) => prev?.map((o, j) => (j === i ? t : o)) ?? prev)}
+                  placeholder={`선택지 ${i + 1}`}
+                  placeholderTextColor={mono.color.textTertiary}
+                  maxLength={40}
+                />
+                {pollOptions.length > 2 ? (
+                  <Pressable onPress={() => setPollOptions((prev) => prev?.filter((_, j) => j !== i) ?? prev)} hitSlop={8}><Text style={styles.removeAttach}>✕</Text></Pressable>
+                ) : null}
+              </View>
+            ))}
+            {pollOptions.length < 4 ? (
+              <Pressable onPress={() => setPollOptions((prev) => (prev ? [...prev, ''] : prev))} style={styles.pollAdd}>
+                <Text style={styles.pollAddText}>+ 선택지 추가</Text>
+              </Pressable>
+            ) : null}
+          </View>
+        ) : null}
 
         {picker && !song ? (
           <View style={styles.pickerBox}>
@@ -116,6 +247,8 @@ export default function ComposeScreen() {
             />
           </View>
         ) : null}
+        </>
+        ) : null}
 
         <View style={styles.footer}>
           {error ? <Text style={styles.error}>{error}</Text> : <View />}
@@ -138,12 +271,37 @@ const styles = StyleSheet.create({
     minHeight: 120, color: mono.color.text, fontSize: mono.font.body, lineHeight: 22,
     textAlignVertical: 'top', paddingTop: 4,
   },
+  toolbar: { flexDirection: 'row', gap: 8, marginTop: 8 },
   attachBtn: {
     flexDirection: 'row', alignItems: 'center', gap: 6,
     alignSelf: 'flex-start', backgroundColor: mono.color.fill, borderRadius: mono.radius.pill,
-    paddingVertical: 8, paddingHorizontal: 16, marginTop: 8,
+    paddingVertical: 8, paddingHorizontal: 16,
   },
+  attachBtnOn: { backgroundColor: '#ffffff' },
+  attachBtnOff: { opacity: 0.4 },
   attachText: { color: mono.color.textSecondary, fontSize: mono.font.small, fontWeight: '600' },
+  attachTextOn: { color: mono.color.bg, fontWeight: '700' },
+  // 첨부 이미지 썸네일
+  thumbRow: { gap: 8, paddingVertical: 10 },
+  thumb: { width: 72, height: 72, borderRadius: mono.radius.sm, overflow: 'hidden', backgroundColor: mono.color.surface2 },
+  thumbImg: { width: '100%', height: '100%' },
+  thumbRemove: { position: 'absolute', top: 4, right: 4, width: 20, height: 20, borderRadius: 10, backgroundColor: 'rgba(0,0,0,0.6)', alignItems: 'center', justifyContent: 'center' },
+  thumbRemoveText: { color: mono.color.onMedia, fontSize: 11, fontWeight: '700' },
+  // 투표 에디터
+  pollEditor: {
+    marginTop: 10, backgroundColor: mono.color.surface, borderRadius: mono.radius.md,
+    borderWidth: 1, borderColor: mono.color.borderSoft, padding: 12, gap: 8,
+  },
+  pollHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  pollLabel: { color: mono.color.text, fontSize: mono.font.small, fontWeight: '700' },
+  pollRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  pollInput: {
+    flex: 1, backgroundColor: mono.color.bg, borderRadius: mono.radius.sm, color: mono.color.text,
+    fontSize: mono.font.small, paddingHorizontal: 12, paddingVertical: 9,
+    borderWidth: 1, borderColor: mono.color.borderSoft,
+  },
+  pollAdd: { paddingVertical: 4 },
+  pollAddText: { color: mono.color.accentLight, fontSize: mono.font.small, fontWeight: '600' },
   attached: {
     flexDirection: 'row', alignItems: 'center', gap: 10, marginTop: 8,
     backgroundColor: mono.color.surface, borderRadius: mono.radius.md, padding: 10,

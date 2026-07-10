@@ -1,13 +1,16 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { ActionSheetIOS, ActivityIndicator, Alert, FlatList, Platform, Pressable, RefreshControl, StyleSheet, Text, View } from 'react-native'
+import { ActionSheetIOS, ActivityIndicator, Alert, Platform, Pressable, RefreshControl, StyleSheet, Text, View } from 'react-native'
+import Animated from 'react-native-reanimated'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { router, useFocusEffect } from 'expo-router'
 import type { Song } from '@mono/shared'
 import { api } from '@/lib/api'
 import { subscribeSongUpdates } from '@/lib/generate'
 import { useSession } from '@/lib/use-session'
+import { useAutoHideHeader } from '@/lib/use-auto-hide-header'
 import { SongRow } from '@/components/ui/song-row'
 import { Icon } from '@/components/ui/icon'
+import { NotificationBell } from '@/components/ui/notification-bell'
 import { playSong } from '@/lib/player'
 import { deleteSong, setSongPublished, shareSong } from '@/lib/song-actions'
 import { mono } from '@/theme/mono'
@@ -23,6 +26,8 @@ const FILTERS: { key: Filter; label: string }[] = [
 // 생성 중 곡은 실시간(songs UPDATE 구독)으로 done/failed 전환 시 갱신.
 export default function LibraryScreen() {
   const insets = useSafeAreaInsets()
+  const { scrollHandler, headerStyle, onHeaderLayout, headerHeight: chipsH } = useAutoHideHeader(58)
+  const [titleH, setTitleH] = useState(insets.top + 56)
   const { session } = useSession()
   const [songs, setSongs] = useState<Song[] | null>(null)
   const [filter, setFilter] = useState<Filter>('all')
@@ -91,55 +96,69 @@ export default function LibraryScreen() {
     return true
   })
 
+  const loading = songs === null && !error
+
   return (
-    <View style={[styles.container, { paddingTop: insets.top + 12 }]}>
-      <View style={styles.headerRow}>
-        <Text style={styles.h1}>라이브러리</Text>
-        <Pressable onPress={() => router.push('/notifications')} hitSlop={10} style={styles.profileBtn}>
-          <Icon name="bell" size={19} color={mono.color.text} />
-        </Pressable>
+    <View style={styles.container}>
+      <Animated.FlatList
+        data={filtered}
+        keyExtractor={(s) => s.id}
+        renderItem={({ item }) => <SongRow song={item} onPress={() => playSong(item)} onMore={() => openMenu(item)} />}
+        onScroll={scrollHandler}
+        scrollEventThrottle={16}
+        contentContainerStyle={{ paddingTop: titleH + chipsH + 4, paddingBottom: insets.bottom + 160, paddingHorizontal: 20 }}
+        refreshControl={<RefreshControl progressViewOffset={titleH + chipsH} refreshing={refreshing} onRefresh={onRefresh} tintColor={mono.color.textSecondary} />}
+        ListEmptyComponent={
+          loading ? <ActivityIndicator color={mono.color.accent} style={{ marginTop: 32 }} />
+            : <Text style={styles.empty}>
+                {error ? `불러오지 못했어요 (${error})`
+                  : filter === 'liked' ? '좋아요한 곡이 없어요'
+                  : filter === 'published' ? '공개한 곡이 없어요'
+                  : '아직 만든 음악이 없어요'}
+              </Text>
+        }
+        showsVerticalScrollIndicator={false}
+      />
+
+      {/* 필터칩(+생성 중 안내) — auto-hide(타이틀 아래) */}
+      <Animated.View style={[styles.chipsBar, { top: titleH }, headerStyle]} onLayout={onHeaderLayout}>
+        <View style={styles.tabs}>
+          {FILTERS.map((f) => {
+            const on = filter === f.key
+            return (
+              <Pressable key={f.key} onPress={() => setFilter(f.key)} style={[styles.tab, on && styles.tabOn]}>
+                <Text style={[styles.tabText, on && styles.tabTextOn]}>{f.label}</Text>
+              </Pressable>
+            )
+          })}
+        </View>
+        {generating ? <Text style={styles.sub}>곡을 만들고 있어요…</Text> : null}
+      </Animated.View>
+
+      {/* 타이틀 — 고정 */}
+      <View style={[styles.titleBar, { paddingTop: insets.top + 12 }]} onLayout={(e) => setTitleH(e.nativeEvent.layout.height)}>
+        <View style={styles.headerRow}>
+          <Text style={styles.h1}>라이브러리</Text>
+          <Pressable onPress={() => router.push('/notifications')} hitSlop={10} style={styles.profileBtn}>
+            <NotificationBell size={19} color={mono.color.text} />
+          </Pressable>
+        </View>
       </View>
-
-      <View style={styles.tabs}>
-        {FILTERS.map((f) => {
-          const on = filter === f.key
-          return (
-            <Pressable key={f.key} onPress={() => setFilter(f.key)} style={[styles.tab, on && styles.tabOn]}>
-              <Text style={[styles.tabText, on && styles.tabTextOn]}>{f.label}</Text>
-            </Pressable>
-          )
-        })}
-      </View>
-
-      {generating ? <Text style={styles.sub}>곡을 만들고 있어요…</Text> : null}
-
-      {songs === null && !error ? (
-        <ActivityIndicator color={mono.color.accent} style={{ marginTop: 32 }} />
-      ) : (
-        <FlatList
-          data={filtered}
-          keyExtractor={(s) => s.id}
-          renderItem={({ item }) => <SongRow song={item} onPress={() => playSong(item)} onMore={() => openMenu(item)} />}
-          contentContainerStyle={{ paddingBottom: insets.bottom + 160, paddingTop: 8 }}
-          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={mono.color.textSecondary} />}
-          ListEmptyComponent={
-            <Text style={styles.empty}>
-              {error ? `불러오지 못했어요 (${error})`
-                : filter === 'liked' ? '좋아요한 곡이 없어요'
-                : filter === 'published' ? '공개한 곡이 없어요'
-                : '아직 만든 음악이 없어요'}
-            </Text>
-          }
-          showsVerticalScrollIndicator={false}
-        />
-      )}
-
     </View>
   )
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: mono.color.bg, paddingHorizontal: 20 },
+  container: { flex: 1, backgroundColor: mono.color.bg },
+  // 고정 타이틀바(위) + auto-hide 칩바(아래)
+  titleBar: {
+    position: 'absolute', top: 0, left: 0, right: 0, zIndex: 20,
+    backgroundColor: mono.color.bg, paddingHorizontal: 20, paddingBottom: 8,
+  },
+  chipsBar: {
+    position: 'absolute', left: 0, right: 0, zIndex: 10,
+    backgroundColor: mono.color.bg, paddingHorizontal: 20, paddingBottom: 10,
+  },
   headerRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   headerBtns: { flexDirection: 'row', gap: 8 },
   profileBtn: {
@@ -149,7 +168,7 @@ const styles = StyleSheet.create({
   profileIcon: { color: mono.color.text, fontSize: 18 },
   h1: { color: mono.color.text, fontSize: mono.font.h1, fontWeight: '800' },
   // 필터칩 — 둘러보기와 동일 사이즈, 활성=화이트 채움(다크 텍스트)
-  tabs: { flexDirection: 'row', gap: 8, marginTop: 14 },
+  tabs: { flexDirection: 'row', gap: 8 },
   tab: { paddingVertical: 11, paddingHorizontal: 20, borderRadius: mono.radius.pill, backgroundColor: mono.color.fill },
   tabOn: { backgroundColor: '#ffffff' },
   tabText: { color: mono.color.textSecondary, fontSize: mono.font.body, fontWeight: '600' },

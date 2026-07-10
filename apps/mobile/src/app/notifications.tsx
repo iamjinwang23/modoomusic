@@ -7,6 +7,7 @@ import type { Notification } from '@mono/shared'
 import { api } from '@/lib/api'
 import { supabase } from '@/lib/supabase'
 import { Icon } from '@/components/ui/icon'
+import { refreshUnreadNotifications } from '@/lib/use-unread-notifications'
 import { mono } from '@/theme/mono'
 
 type Category = 'all' | 'music' | 'community' | 'news'
@@ -113,11 +114,13 @@ export default function NotificationsScreen() {
     if (n.readAt) return
     setItems((prev) => prev?.map((x) => x.id === n.id ? { ...x, readAt: new Date().toISOString() } : x) ?? prev)
     await supabase.from('notifications').update({ read_at: new Date().toISOString() }).eq('id', n.id)
+    refreshUnreadNotifications()
   }, [])
 
   const markAll = useCallback(async () => {
     setItems((prev) => prev?.map((x) => x.readAt ? x : { ...x, readAt: new Date().toISOString() }) ?? prev)
     await supabase.from('notifications').update({ read_at: new Date().toISOString() }).is('read_at', null)
+    refreshUnreadNotifications()
   }, [])
 
   const hasUnread = (items ?? []).some((n) => !n.readAt)
@@ -161,7 +164,6 @@ export default function NotificationsScreen() {
                 {item.songTitle ? <Text style={styles.sub} numberOfLines={1}>{item.songTitle}</Text> : null}
                 <Text style={styles.time}>{timeAgo(item.createdAt)}</Text>
               </View>
-              {!item.readAt ? <View style={styles.dot} /> : null}
             </Pressable>
           )}
           ListEmptyComponent={<Text style={styles.empty}>{error ? `불러오지 못했어요 (${error})` : '아직 알림이 없어요'}</Text>}
@@ -204,5 +206,4 @@ const styles = StyleSheet.create({
   msg: { color: mono.color.text, fontSize: mono.font.body, lineHeight: 20 },
   sub: { color: mono.color.textSecondary, fontSize: mono.font.small },
   time: { color: mono.color.textTertiary, fontSize: mono.font.tiny, marginTop: 2 },
-  dot: { width: 8, height: 8, borderRadius: 4, backgroundColor: mono.color.accent, marginTop: 6 },
 })
