@@ -9,6 +9,7 @@ import { playSong } from '@/lib/player'
 import { useAutoHideHeader } from '@/lib/use-auto-hide-header'
 import { PublicSongRow } from '@/components/ui/public-song-row'
 import { Icon } from '@/components/ui/icon'
+import { NotificationBell } from '@/components/ui/notification-bell'
 import { mono } from '@/theme/mono'
 
 type Tab = 'recommended' | 'latest' | 'popular'
@@ -93,7 +94,7 @@ export default function DiscoverScreen() {
               <Icon name="magnifyingglass" size={18} color={mono.color.text} />
             </Pressable>
             <Pressable onPress={() => router.push('/notifications')} hitSlop={10} style={styles.searchBtn}>
-              <Icon name="bell" size={18} color={mono.color.text} />
+              <NotificationBell size={18} color={mono.color.text} />
             </Pressable>
           </View>
         </View>

@@ -11,6 +11,7 @@ import { playSong } from '@/lib/player'
 import { ProfileGrid, CoverScrim, formatCount } from '@/components/ui/profile-grid'
 import { CollapsingHeader, HEADER_ROW } from '@/components/ui/collapsing-header'
 import { Icon } from '@/components/ui/icon'
+import { NotificationBell } from '@/components/ui/notification-bell'
 import { mono } from '@/theme/mono'
 
 // 프로필 탭 — 웹 파리티: 커버(아바타·이름 오버레이) + 인라인 스탯 + 음악/영상 탭 + 세로 그리드.
@@ -65,7 +66,7 @@ export default function ProfileTab() {
         title={name}
         right={
           <>
-            <Pressable onPress={() => router.push('/notifications')} hitSlop={8} style={styles.hCircle}><Icon name="bell" size={20} color={mono.color.text} /></Pressable>
+            <Pressable onPress={() => router.push('/notifications')} hitSlop={8} style={styles.hCircle}><NotificationBell size={20} color={mono.color.text} /></Pressable>
             <Pressable onPress={() => router.push('/settings')} hitSlop={8} style={styles.hCircle}><Icon name="ellipsis" size={20} color={mono.color.text} /></Pressable>
           </>
         }
@@ -87,7 +88,7 @@ export default function ProfileTab() {
               <Text style={styles.editText}>프로필 수정</Text>
             </Pressable>
             <Pressable onPress={() => router.push('/notifications')} style={styles.circle} hitSlop={8}>
-              <Icon name="bell" size={18} color={mono.color.onMedia} />
+              <NotificationBell size={18} color={mono.color.onMedia} />
             </Pressable>
             <Pressable onPress={() => router.push('/settings')} style={styles.circle} hitSlop={8}>
               <Icon name="ellipsis" size={18} color={mono.color.onMedia} />

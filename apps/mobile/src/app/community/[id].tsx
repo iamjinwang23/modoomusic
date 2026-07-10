@@ -12,6 +12,7 @@ import { CollapsingHeader, HEADER_ROW } from '@/components/ui/collapsing-header'
 import { CoverScrim } from '@/components/ui/profile-grid'
 import { PostCard } from '@/components/ui/post-card'
 import { Icon } from '@/components/ui/icon'
+import { NotificationBell } from '@/components/ui/notification-bell'
 import { mono } from '@/theme/mono'
 
 // 커뮤니티 상세 — 배너/이름/멤버 + 게시글 피드(GET /api/communities/[id], /posts).
@@ -89,7 +90,7 @@ export default function CommunityDetailScreen() {
         }
         right={
           <>
-            <Pressable onPress={() => router.push('/notifications')} hitSlop={8} style={styles.hIconBtn}><Icon name="bell" size={20} color={mono.color.text} /></Pressable>
+            <Pressable onPress={() => router.push('/notifications')} hitSlop={8} style={styles.hIconBtn}><NotificationBell size={20} color={mono.color.text} /></Pressable>
             <Pressable onPress={() => id && shareCommunity(id, community?.name)} hitSlop={8} style={styles.hIconBtn}><Icon name="square.and.arrow.up" size={20} color={mono.color.text} /></Pressable>
           </>
         }
@@ -131,7 +132,7 @@ export default function CommunityDetailScreen() {
                   </Pressable>
                 ) : null}
                 <Pressable onPress={() => router.push('/notifications')} style={styles.circleBtn} hitSlop={8}>
-                  <Icon name="bell" size={18} color={mono.color.onMedia} />
+                  <NotificationBell size={18} color={mono.color.onMedia} />
                 </Pressable>
                 <Pressable onPress={() => id && shareCommunity(id, community?.name)} style={styles.circleBtn} hitSlop={8}>
                   <Icon name="square.and.arrow.up" size={18} color={mono.color.onMedia} />

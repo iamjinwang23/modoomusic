@@ -10,6 +10,7 @@ import { useSession } from '@/lib/use-session'
 import { useAutoHideHeader } from '@/lib/use-auto-hide-header'
 import { SongRow } from '@/components/ui/song-row'
 import { Icon } from '@/components/ui/icon'
+import { NotificationBell } from '@/components/ui/notification-bell'
 import { playSong } from '@/lib/player'
 import { deleteSong, setSongPublished, shareSong } from '@/lib/song-actions'
 import { mono } from '@/theme/mono'
@@ -139,7 +140,7 @@ export default function LibraryScreen() {
         <View style={styles.headerRow}>
           <Text style={styles.h1}>라이브러리</Text>
           <Pressable onPress={() => router.push('/notifications')} hitSlop={10} style={styles.profileBtn}>
-            <Icon name="bell" size={19} color={mono.color.text} />
+            <NotificationBell size={19} color={mono.color.text} />
           </Pressable>
         </View>
       </View>

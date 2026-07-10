@@ -6,6 +6,7 @@ import type { Community, CommunityPost } from '@mono/shared'
 import { api } from '@/lib/api'
 import { CommunityStory, PopularPostCard, CommunityRankRow, CommunityCoverCard } from '@/components/ui/hub-cards'
 import { Icon } from '@/components/ui/icon'
+import { NotificationBell } from '@/components/ui/notification-bell'
 import { mono } from '@/theme/mono'
 
 interface Hub { popular: Community[]; recent: Community[]; mine: Community[]; popularPosts: CommunityPost[] }
@@ -48,7 +49,7 @@ export default function ExploreScreen() {
       <View style={styles.headerRow}>
         <Text style={styles.h1}>커뮤니티</Text>
         <Pressable onPress={() => router.push('/notifications')} hitSlop={10} style={styles.iconBtn}>
-          <Icon name="bell" size={18} color={mono.color.text} />
+          <NotificationBell size={18} color={mono.color.text} />
         </Pressable>
       </View>
 
