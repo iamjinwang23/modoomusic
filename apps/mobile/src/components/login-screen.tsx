@@ -72,7 +72,7 @@ function SocialButton({ label, bg, fg, border, icon, recent, loading, delay, onP
     <Animated.View entering={FadeInDown.delay(delay).duration(500)}>
       <Pressable style={[styles.social, { backgroundColor: bg }, border && styles.socialBorder]} onPress={loading ? undefined : onPress}>
         {recent ? (
-          <View style={styles.badge}><Text style={styles.badgeText}>최근 로그인</Text></View>
+          <View style={styles.badgeWrap}><View style={styles.badge}><Text style={styles.badgeText}>최근 로그인</Text></View></View>
         ) : null}
         <View style={styles.socialIcon}>{icon}</View>
         {loading ? <ActivityIndicator color={fg} /> : <Text style={[styles.socialText, { color: fg }]}>{label}</Text>}
@@ -125,7 +125,8 @@ const styles = StyleSheet.create({
   socialBorder: { borderWidth: 1, borderColor: 'rgba(255,255,255,0.12)' },
   socialIcon: { position: 'absolute', left: 16, top: 0, bottom: 0, justifyContent: 'center' },
   socialText: { fontSize: mono.font.body, fontWeight: '700' },
-  badge: { position: 'absolute', top: -10, right: 12, backgroundColor: mono.color.accent, borderRadius: 6, paddingHorizontal: 7, paddingVertical: 3, zIndex: 2 },
+  badgeWrap: { position: 'absolute', top: 0, bottom: 0, right: 12, justifyContent: 'center', zIndex: 2 },
+  badge: { backgroundColor: mono.color.accent, borderRadius: 6, paddingHorizontal: 7, paddingVertical: 3 },
   badgeText: { color: '#fff', fontSize: 10, fontWeight: '700' },
   error: { color: mono.color.danger, fontSize: mono.font.small, textAlign: 'center', marginTop: 2 },
   terms: { color: mono.color.textTertiary, fontSize: mono.font.tiny, textAlign: 'center', lineHeight: 18, marginTop: mono.space(8) },
