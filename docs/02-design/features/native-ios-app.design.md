@@ -13,7 +13,7 @@
 | 영역 | 상태 | 비고 |
 |---|---|---|
 | 모노레포·shared·BFF(쿠키+Bearer) | ✅ | **npm workspaces**(pnpm 아님 — 라이브 레포 리스크로 변경) |
-| 인증(소셜 Google/Kakao/Apple·이메일·게스트) | ✅ | 소셜 OAuth 검증(Google). 세션 secure-store |
+| 인증(소셜 Google/Kakao/Apple/**네이버**·게스트) | ✅ | 소셜 전용(이메일 제거·2026-07-13). 네이버=서버 세션교환+setSession(§3.2). 세션 secure-store |
 | 음악 생성·실시간 완성·라이브러리 | ✅ | POST /api/generate, songs UPDATE 구독 |
 | 재생(미니/전체 플레이어·가사·좋아요·공개·공유) | ✅ | **react-native-track-player** |
 | 영상 커버(생성·재생) | ✅ | **expo-video**, generate-video BFF |
@@ -102,6 +102,18 @@ mono/
 - 전 API 라우트가 이 헬퍼를 쓰므로 **한 곳 수정으로 앱 지원**.
 
 ⚠️ **리스크:** 인증 헬퍼는 전 라우트의 공통 진입점 → 회귀 위험. 쿠키 경로 동작 보존 회귀 테스트 필수.
+
+### 3.1 로그인 화면 (2026-07-13, 배포 완료)
+- **소셜 전용** — Google·Apple·**네이버**·카카오. **이메일 로그인은 앱에서 제거**(당분간 계획 없음). 웹 `LoginModal` 톤앤매너 이식(로고·브랜드 아이콘 버튼·최근 로그인 배지·약관 푸터).
+- 딥링크 콜백은 `openAuthSessionAsync(url, 'mono://auth/callback')`로 인터셉트 — app.json `scheme`은 `mobile`이지만 ASWebAuthenticationSession의 callbackURLScheme이라 `mono://`도 동작(Info.plist 등록 불필요).
+
+### 3.2 네이버 앱 로그인 (Supabase 미지원 → 웹 커스텀 플로우 재사용)
+네이버는 OIDC 미지원이라 서버 커스텀 라우트 사용. **모바일 supabase 클라이언트는 `flowType:'pkce'`라, 서버 생성 magiclink `token_hash`를 앱에서 직접 `verifyOtp` 하면 `"email link is invalid or has expired"`로 실패**(웹은 `@supabase/ssr` 서버=비-PKCE라 성공). 그래서 앱 경로는 서버가 세션까지 만들어 전달:
+1. 앱: `GET /api/auth/naver?platform=app` 을 in-app 브라우저로 진입 → 서버가 `naver_oauth_platform=app` 쿠키 기록
+2. 네이버 인증 후 콜백(`/api/auth/naver/callback`): 앱이면 **서버(비-PKCE 익명 클라이언트)에서 `verifyOtp`로 세션 교환** → `mono://auth/callback?access_token=…&refresh_token=…` 딥링크로 반환
+3. 앱: 딥링크의 토큰으로 **`supabase.auth.setSession`만** 수행 (verifyOtp 안 함)
+- 웹 경로는 기존 `token_hash` → `/auth/callback` 그대로. **네이버 콘솔·Supabase allowlist 변경 불필요**(동일 웹 콜백 재사용). 실기기 로그인 성공 확인.
+- 배경: 네이버 가입 실사용자가 앱에서 로그인 못 하던 문제. 관련 함정 `feedback-code-pitfalls`.
 
 ---
 
