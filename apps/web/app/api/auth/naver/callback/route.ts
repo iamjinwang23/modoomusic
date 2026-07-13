@@ -1,15 +1,30 @@
 import { NextResponse, type NextRequest } from 'next/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 
+// 앱(모바일) 진입 시 돌려보낼 딥링크 — openAuthSessionAsync가 이 스킴을 가로챈다.
+const APP_CALLBACK = 'mono://auth/callback'
+
 export async function GET(request: NextRequest) {
   const { searchParams, origin } = new URL(request.url)
   const code = searchParams.get('code')
   const state = searchParams.get('state')
   const storedState = request.cookies.get('naver_oauth_state')?.value
+  const isApp = request.cookies.get('naver_oauth_platform')?.value === 'app'
+
+  // 성공/실패 목적지 — 앱이면 딥링크, 웹이면 기존 경로. 쿠키 정리 포함.
+  const bounce = (target: string) => {
+    const res = isApp
+      ? new NextResponse(null, { status: 302, headers: { Location: target } })
+      : NextResponse.redirect(target)
+    res.cookies.delete('naver_oauth_state')
+    res.cookies.delete('naver_oauth_platform')
+    return res
+  }
+  const fail = (reason: string) => bounce(isApp ? `${APP_CALLBACK}?error=${reason}` : origin)
 
   if (!code || !state || state !== storedState) {
     console.error('[naver/callback] state 불일치 또는 code 없음')
-    return NextResponse.redirect(origin)
+    return fail('state_mismatch')
   }
 
   // 1. 액세스 토큰 교환
@@ -25,7 +40,7 @@ export async function GET(request: NextRequest) {
 
   if (!tokenData.access_token) {
     console.error('[naver/callback] 토큰 교환 실패:', tokenData)
-    return NextResponse.redirect(origin)
+    return fail('token_exchange')
   }
 
   // 2. 네이버 프로필 조회
@@ -43,7 +58,7 @@ export async function GET(request: NextRequest) {
 
   if (!profile?.email) {
     console.error('[naver/callback] 이메일 없음:', profileData)
-    return NextResponse.redirect(origin)
+    return fail('no_email')
   }
 
   // 3. Supabase 매직링크 생성 — 신규 유저 자동 생성 + 기존 유저 세션 발급
@@ -64,12 +79,14 @@ export async function GET(request: NextRequest) {
 
   if (linkError || !linkData?.properties?.hashed_token) {
     console.error('[naver/callback] 매직링크 생성 실패:', linkError)
-    return NextResponse.redirect(origin)
+    return fail('link_failed')
   }
 
-  const res = NextResponse.redirect(
-    `${origin}/auth/callback?token_hash=${linkData.properties.hashed_token}&type=magiclink`
+  const tokenHash = linkData.properties.hashed_token
+  // 앱: 딥링크로 token_hash 전달 → 앱이 verifyOtp로 세션 교환. 웹: 기존 콜백 페이지가 처리.
+  return bounce(
+    isApp
+      ? `${APP_CALLBACK}?token_hash=${tokenHash}&type=magiclink`
+      : `${origin}/auth/callback?token_hash=${tokenHash}&type=magiclink`,
   )
-  res.cookies.delete('naver_oauth_state')
-  return res
 }
