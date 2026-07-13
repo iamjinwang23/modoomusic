@@ -8,7 +8,7 @@ import { AdminPanel } from '@/components/admin/AdminPanel'
 import { AdminConfirm } from '@/components/admin/AdminConfirm'
 
 interface Report {
-  type: 'song' | 'comment' | 'community_post'
+  type: 'song' | 'comment' | 'community_post' | 'community_comment'
   id: string
   targetId: string
   targetTitle: string
@@ -23,6 +23,8 @@ interface Report {
   // community_post 전용
   targetCommunityId?: string | null
   targetHidden?: boolean
+  // community_comment 전용
+  targetPostId?: string | null
   reporterUsername: string
   reason: string
   createdAt: string
@@ -33,11 +35,11 @@ interface Report {
 
 type ResolveAction = { report: Report; resolution: 'upheld' | 'dismissed' }
 
-function typeLabel(t: Report['type']) { return t === 'song' ? '곡' : t === 'comment' ? '댓글' : '게시글' }
+function typeLabel(t: Report['type']) { return t === 'song' ? '곡' : t === 'comment' ? '댓글' : t === 'community_comment' ? '커뮤니티 댓글' : '게시글' }
 function typeBadgeClass(t: Report['type']) {
-  return t === 'song' ? 'bg-[#f3ebfb] text-[#4c2889]' : t === 'comment' ? 'bg-blue-100 text-blue-700' : 'bg-emerald-100 text-emerald-700'
+  return t === 'song' ? 'bg-[#f3ebfb] text-[#4c2889]' : t === 'comment' ? 'bg-blue-100 text-blue-700' : t === 'community_comment' ? 'bg-amber-100 text-amber-700' : 'bg-emerald-100 text-emerald-700'
 }
-function upheldActionLabel(t: Report['type']) { return t === 'song' ? '곡 강제 비공개' : t === 'comment' ? '댓글 삭제' : '게시글 블라인드' }
+function upheldActionLabel(t: Report['type']) { return t === 'song' ? '곡 강제 비공개' : (t === 'comment' || t === 'community_comment') ? '댓글 삭제' : '게시글 블라인드' }
 
 export default function AdminReportsPage() {
   const [tab, setTab] = useState<'pending' | 'resolved'>('pending')
@@ -298,6 +300,12 @@ function ReportDetailModal({ report, onClose, onAction }: {
                     댓글이 달린 곡 페이지 ↗
                   </a>
                 )}
+              </div>
+            } />
+          ) : report.type === 'community_comment' ? (
+            <Field label="신고된 커뮤니티 댓글" value={
+              <div className="border border-[#ebebeb] rounded-lg overflow-hidden bg-zinc-50 p-3">
+                <p className="text-sm text-zinc-900 whitespace-pre-wrap break-all leading-relaxed">{report.targetPreview || '(삭제됨)'}</p>
               </div>
             } />
           ) : (
