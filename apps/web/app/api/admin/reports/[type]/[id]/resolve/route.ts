@@ -15,7 +15,7 @@ export async function POST(req: NextRequest, { params }: RouteParams) {
   if (!auth.ok) return NextResponse.json({ error: auth.error }, { status: auth.status })
 
   const { type, id } = await params
-  if (type !== 'song' && type !== 'comment' && type !== 'community_post') {
+  if (type !== 'song' && type !== 'comment' && type !== 'community_post' && type !== 'community_comment') {
     return NextResponse.json({ error: 'invalid_input' }, { status: 400 })
   }
 
@@ -31,8 +31,8 @@ export async function POST(req: NextRequest, { params }: RouteParams) {
   if (memo.length < 5) return NextResponse.json({ error: 'reason_too_short' }, { status: 400 })
 
   const supabase = createAdminClient()
-  const reportTable = type === 'song' ? 'song_reports' : type === 'comment' ? 'comment_reports' : 'community_post_reports'
-  const targetField = type === 'song' ? 'song_id' : type === 'comment' ? 'comment_id' : 'post_id'
+  const reportTable = type === 'song' ? 'song_reports' : type === 'comment' ? 'comment_reports' : type === 'community_comment' ? 'community_comment_reports' : 'community_post_reports'
+  const targetField = type === 'community_post' ? 'post_id' : type === 'song' ? 'song_id' : 'comment_id'
 
   // 신고 row 조회
   const { data: report, error: reportErr } = await supabase
@@ -86,6 +86,12 @@ export async function POST(req: NextRequest, { params }: RouteParams) {
               .delete()
               .eq('id', targetId)
             if (error) throw new Error(`comment delete: ${error.message}`)
+          } else if (type === 'community_comment') {
+            const { error } = await supabase
+              .from('community_post_comments')
+              .delete()
+              .eq('id', targetId)
+            if (error) throw new Error(`community comment delete: ${error.message}`)
           } else {
             // community_post — 블라인드(status=hidden)
             const { error } = await supabase
