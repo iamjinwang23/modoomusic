@@ -1,5 +1,6 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { ActionSheetIOS, Alert, KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, StyleSheet, Text, useWindowDimensions, View } from 'react-native'
+import { Gesture, GestureDetector, GestureHandlerRootView } from 'react-native-gesture-handler'
 import Animated, { Extrapolation, interpolate, useAnimatedScrollHandler, useAnimatedStyle, useSharedValue, type SharedValue } from 'react-native-reanimated'
 import { BlurView } from 'expo-blur'
 import { requireOptionalNativeModule } from 'expo-modules-core'
@@ -18,6 +19,7 @@ import { Icon } from '@/components/ui/icon'
 import { SongCommentComposer, SongCommentList, useSongComments } from '@/components/ui/song-comments'
 import { Marquee } from '@/components/ui/marquee'
 import { GlassIconButton } from '@/components/ui/glass-button'
+import { SeekBar } from '@/components/ui/seek-bar'
 import { CoverScrim, formatCount } from '@/components/ui/profile-grid'
 import { mono } from '@/theme/mono'
 
@@ -28,8 +30,8 @@ function fmt(sec: number): string {
   return `${m}:${s.toString().padStart(2, '0')}`
 }
 
-// 곡 리스트 행(song-row)과 동일 스펙 — 커버 54×72(3:4) + 상하 10
-const HEADER_ROW = 92
+// 슬림 네비바 — 좌 내리기 버튼 슬롯 + 작은 커버 + 제목/아티스트
+const HEADER_ROW = 56
 
 // 하단 블러 페이드 — BlurView 한 장을 세로 그라데이션 알파로 마스킹(위 투명→아래 불투명).
 // 스트립 겹치기는 각 장 윗변이 하드 엣지라 경계가 남음 → 마스크로 완전 디졸브.
@@ -197,11 +199,21 @@ export default function PlayerScreen() {
   const coverDarkenStyle = useAnimatedStyle(() => ({
     opacity: interpolate(scrollY.value, [0, coverH * 0.55], [0, 0.92], Extrapolation.CLAMP),
   }))
+  // 좌우 스와이프 = 이전/다음 곡(즉시 전환). activeOffsetX·failOffsetY로 세로 스크롤과 공존.
+  const swipe = useRef(
+    Gesture.Pan()
+      .activeOffsetX([-18, 18])
+      .failOffsetY([-14, 14])
+      .runOnJS(true)
+      .onEnd((e) => {
+        if (e.translationX <= -55) TrackPlayer.skipToNext().catch(() => {})
+        else if (e.translationX >= 55) TrackPlayer.skipToPrevious().catch(() => {})
+      }),
+  ).current
   // 틱톡식 첫 화면 — 뷰포트 높이를 재서 히어로(제목~토글)를 하단 앵커, 빈 공간 없이 꽉 채움
   const [viewportH, setViewportH] = useState(0)
 
   const playing = playback.state === State.Playing || playback.state === State.Buffering
-  const pct = duration > 0 ? Math.min(1, position / duration) : 0
 
   // 영상 커버 — 완료된 videoCoverUrl 있으면 정지 이미지 대신 무음 루프 재생(오디오는 track-player).
   const videoUrl = song?.videoCoverStatus === 'done' ? song.videoCoverUrl ?? null : null
@@ -291,7 +303,7 @@ export default function PlayerScreen() {
   const fadeStart = Math.max(fadeEnd - 60, 0)
 
   return (
-    <View style={styles.root}>
+    <GestureHandlerRootView style={styles.root}>
       {/* 커버 색감을 흐릿하게 까는 배경(웹 파리티: scale 1.25 · blur · 70%) + 가독성 스크림 */}
       {coverThumb ? (
         <Image
@@ -299,18 +311,18 @@ export default function PlayerScreen() {
           style={styles.bgBlur}
           contentFit="cover"
           blurRadius={50}
-          transition={300}
+          cachePolicy="memory-disk"
           pointerEvents="none"
         />
       ) : null}
       <View style={styles.bgScrim} pointerEvents="none" />
 
-    {/* 고정 커버(이미지·영상 동일) — 화면 전체 꽉 채움. 콘텐츠가 위로 스크롤되면 어두워짐 */}
+    {/* 고정 커버(이미지·영상 동일) — 화면 전체. 콘텐츠 스크롤 시 어두워짐 */}
     <View style={styles.coverFixed} pointerEvents="none">
       {videoUrl ? (
         <VideoView player={videoPlayer} style={StyleSheet.absoluteFill} contentFit="cover" nativeControls={false} />
       ) : coverThumb ? (
-        <Image source={{ uri: coverThumb }} style={StyleSheet.absoluteFill} contentFit="cover" transition={200} />
+        <Image source={{ uri: coverThumb }} style={StyleSheet.absoluteFill} contentFit="cover" cachePolicy="memory-disk" />
       ) : (
         <View style={[StyleSheet.absoluteFill, styles.artPlaceholder]}><Text style={styles.artInitial}>♪</Text></View>
       )}
@@ -331,8 +343,12 @@ export default function PlayerScreen() {
       keyboardShouldPersistTaps="handled"
       onLayout={(e) => setViewportH(e.nativeEvent.layout.height)}
     >
-      {/* 첫 화면 = 뷰포트 높이(틱톡식) — 히어로 블록(제목~토글)을 하단 앵커, 커버가 풀로 보임 */}
+      {/* 첫 화면 = 뷰포트 높이(틱톡식) — 커버 영역(빈 공간) + 히어로 콘텐츠(하단 앵커) */}
       <View style={viewportH ? { height: viewportH, justifyContent: 'flex-end', paddingBottom: 8 } : null}>
+      {/* 커버 스와이프 영역 = 첫 화면 전체(콘텐츠 뒤). 좌우=이전/다음 곡, 세로=스크롤 통과. 버튼은 위에 있어 그대로 탭 */}
+      <GestureDetector gesture={swipe}>
+        <View style={StyleSheet.absoluteFill} />
+      </GestureDetector>
       {song?.videoCoverStatus === 'generating' ? (
         <View style={styles.videoBadge}><Text style={styles.videoBadgeText}>영상 생성 중…</Text></View>
       ) : null}
@@ -391,7 +407,7 @@ export default function PlayerScreen() {
       </View>
 
       <View style={styles.progress}>
-        <View style={styles.track}><View style={[styles.fill, { width: `${pct * 100}%` }]} /></View>
+        <SeekBar position={position} duration={duration} height={4} hitVertical={9} color="#ffffff" trackColor="rgba(255,255,255,0.24)" />
         <View style={styles.times}>
           <Text style={styles.time}>{fmt(position)}</Text>
           <Text style={styles.time}>{fmt(duration)}</Text>
@@ -433,8 +449,8 @@ export default function PlayerScreen() {
       topInset={topInset}
     />
 
-    {/* 내리기 버튼 — 좌상단 고정(핸들 대체). 탭=닫기, 스와이프 다운=모달 기본 제스처 */}
-    <GlassIconButton name="chevron.down" iconSize={22} onPress={() => router.back()} style={[styles.downBtn, { top: insets.top + 6 }]} />
+    {/* 내리기 버튼 — 좌상단, 슬림 헤더의 왼쪽 요소와 정렬(항상 보임) */}
+    <GlassIconButton name="chevron.down" iconSize={22} onPress={() => router.back()} style={[styles.downBtn, { top: topInset + 10 }]} />
 
     {/* 댓글 — 아래서 올라오는 바텀시트 모달 */}
     <Modal visible={commentsOpen} animationType="slide" transparent onRequestClose={() => setCommentsOpen(false)}>
@@ -455,7 +471,7 @@ export default function PlayerScreen() {
         </KeyboardAvoidingView>
       </View>
     </Modal>
-    </View>
+    </GestureHandlerRootView>
   )
 }
 
@@ -469,15 +485,16 @@ const styles = StyleSheet.create({
   // 스크롤 컴팩트 헤더 — 리스트형 곡 행 (좌 커버 · 우 제목/아티스트)
   compactHeader: {
     position: 'absolute', top: 0, left: 0, right: 0, zIndex: 50,
-    flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 20,
+    // paddingLeft = 내리기 버튼(왼쪽16·너비36) 슬롯 확보 → 커버가 버튼 오른쪽에서 시작
+    flexDirection: 'row', alignItems: 'center', gap: 12, paddingLeft: 60, paddingRight: 20,
     borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: mono.color.borderSoft,
     overflow: 'hidden',
   },
   compactTint: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(20,22,28,0.35)' },
   compactTintSolid: { backgroundColor: mono.color.bg },
-  // 썸네일·폰트 = 실제 리스트 행(song-row) 스펙
-  compactThumb: { width: 54, aspectRatio: 3 / 4, borderRadius: mono.radius.sm, backgroundColor: mono.color.surface, overflow: 'hidden' },
-  compactThumbInitial: { color: mono.color.textTertiary, fontSize: 22 },
+  // 슬림 네비바용 작은 커버
+  compactThumb: { width: 32, aspectRatio: 3 / 4, borderRadius: mono.radius.sm, backgroundColor: mono.color.surface, overflow: 'hidden' },
+  compactThumbInitial: { color: mono.color.textTertiary, fontSize: 16 },
   compactMeta: { flex: 1, minWidth: 0 },
   compactTitle: { color: mono.color.text, fontSize: mono.font.body, fontWeight: '600' },
   compactArtist: { color: mono.color.textSecondary, fontSize: mono.font.small, marginTop: 2 },
@@ -525,12 +542,10 @@ const styles = StyleSheet.create({
   },
   followText: { color: mono.color.text, fontSize: mono.font.small, fontWeight: '600' },
   dim: { opacity: 0.5 },
-  progress: { marginBottom: 32 },
-  track: { height: 4, borderRadius: 2, backgroundColor: mono.color.fillStrong, overflow: 'hidden' },
-  fill: { height: '100%', backgroundColor: mono.color.accent },
-  times: { flexDirection: 'row', justifyContent: 'space-between', marginTop: 8 },
+  progress: { marginBottom: 16 },
+  times: { flexDirection: 'row', justifyContent: 'space-between', marginTop: -2 },
   time: { color: mono.color.text, fontSize: mono.font.tiny },
-  controls: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 36 },
+  controls: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 36, marginBottom: 40 },
   ctrlSecondary: { color: mono.color.textSecondary, fontSize: mono.font.body, fontWeight: '700' },
   playBtn: {
     width: 72, height: 72, borderRadius: 36, backgroundColor: mono.color.accent,
