@@ -4,6 +4,7 @@ import Animated, { ZoomIn, ZoomOut } from 'react-native-reanimated'
 import { Image } from 'expo-image'
 import type { Comment } from '@mono/shared'
 import { api } from '@/lib/api'
+import { supabase } from '@/lib/supabase'
 import { useSession } from '@/lib/use-session'
 import { Icon } from '@/components/ui/icon'
 import { mono } from '@/theme/mono'
@@ -86,6 +87,17 @@ export function useSongComments(songId: string | null, active: boolean) {
   const [input, setInput] = useState('')
   const [replyTo, setReplyTo] = useState<{ id: string; name: string } | null>(null)
   const [busy, setBusy] = useState(false)
+  // 입력창 좌측 내 아바타
+  const [me, setMe] = useState<{ avatarUrl: string | null; avatarHue: number | null; name: string | null } | null>(null)
+
+  useEffect(() => {
+    if (!myId) { setMe(null); return }
+    supabase.from('profiles').select('avatar_url, avatar_hue, display_name, username').eq('id', myId).maybeSingle()
+      .then(({ data }) => {
+        const p = data as { avatar_url?: string | null; avatar_hue?: number | null; display_name?: string | null; username?: string | null } | null
+        setMe({ avatarUrl: p?.avatar_url ?? null, avatarHue: p?.avatar_hue ?? null, name: p?.display_name ?? p?.username ?? null })
+      })
+  }, [myId])
 
   const requireLogin = useCallback(() => {
     if (myId) return true
@@ -130,7 +142,7 @@ export function useSongComments(songId: string | null, active: boolean) {
     }
   }
 
-  return { myId, comments, input, setInput, replyTo, setReplyTo, busy, send, deleteComment, requireLogin }
+  return { myId, me, comments, input, setInput, replyTo, setReplyTo, busy, send, deleteComment, requireLogin }
 }
 
 export type SongCommentsState = ReturnType<typeof useSongComments>
@@ -160,7 +172,7 @@ export function SongCommentList({ state }: { state: SongCommentsState }) {
 
 // 댓글 입력창 — 플레이어 하단 고정 바에 렌더 (웹 파리티: rounded 20 글래스 + 원형 ↑ 페이드인)
 export function SongCommentComposer({ state }: { state: SongCommentsState }) {
-  const { input, setInput, replyTo, setReplyTo, busy, send } = state
+  const { me, input, setInput, replyTo, setReplyTo, busy, send } = state
   return (
     <View>
       {replyTo ? (
@@ -169,23 +181,33 @@ export function SongCommentComposer({ state }: { state: SongCommentsState }) {
           <Pressable onPress={() => setReplyTo(null)} hitSlop={8}><Text style={styles.replyCancel}>취소</Text></Pressable>
         </View>
       ) : null}
-      <View style={styles.composer}>
-        <TextInput
-          style={styles.cInput}
-          placeholder={replyTo ? '답글 달기…' : '댓글을 남겨주세요'}
-          placeholderTextColor={mono.color.textTertiary}
-          value={input}
-          onChangeText={setInput}
-          maxLength={500}
-          multiline
-        />
-        {input.trim() ? (
-          <Animated.View entering={ZoomIn.duration(150)} exiting={ZoomOut.duration(150)} style={styles.sendWrap}>
-            <Pressable onPress={send} disabled={busy} style={styles.sendBtn} hitSlop={6}>
-              {busy ? <ActivityIndicator size="small" color="#fff" /> : <Text style={styles.sendArrow}>↑</Text>}
-            </Pressable>
-          </Animated.View>
-        ) : null}
+      <View style={styles.composerRow}>
+        {/* 내 아바타 — 댓글 아바타와 동일 룩 */}
+        <View style={styles.cAvatar}>
+          {me?.avatarUrl ? (
+            <Image source={{ uri: me.avatarUrl }} style={styles.avatarImg} contentFit="cover" />
+          ) : (
+            <View style={[styles.avatarImg, styles.avFallback, { backgroundColor: `hsl(${me?.avatarHue ?? 250}, 40%, 40%)` }]}><Text style={styles.cAvatarText}>{initial(me?.name ?? null)}</Text></View>
+          )}
+        </View>
+        <View style={styles.composer}>
+          <TextInput
+            style={styles.cInput}
+            placeholder={replyTo ? '답글 달기…' : '댓글을 남겨주세요'}
+            placeholderTextColor={mono.color.textTertiary}
+            value={input}
+            onChangeText={setInput}
+            maxLength={500}
+            multiline
+          />
+          {input.trim() ? (
+            <Animated.View entering={ZoomIn.duration(150)} exiting={ZoomOut.duration(150)} style={styles.sendWrap}>
+              <Pressable onPress={send} disabled={busy} style={styles.sendBtn} hitSlop={6}>
+                {busy ? <ActivityIndicator size="small" color="#fff" /> : <Text style={styles.sendArrow}>↑</Text>}
+              </Pressable>
+            </Animated.View>
+          ) : null}
+        </View>
       </View>
     </View>
   )
@@ -216,12 +238,13 @@ const styles = StyleSheet.create({
   },
   replyText: { color: mono.color.textSecondary, fontSize: mono.font.small, flexShrink: 1 },
   replyCancel: { color: mono.color.textTertiary, fontSize: mono.font.small, fontWeight: '600' },
-  composer: { position: 'relative' },
-  // 웹: bg-white/6 · border-white/8 · rounded-[20px] · pr(버튼 자리)
+  composerRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  composer: { position: 'relative', flex: 1 },
+  // 웹 룩 + 필(최대 라운드) — bg-white/6 · border-white/8 · pr(버튼 자리)
   cInput: {
     maxHeight: 120, color: mono.color.text, fontSize: mono.font.body, lineHeight: 20,
     backgroundColor: 'rgba(255,255,255,0.06)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)',
-    borderRadius: 20, paddingLeft: 16, paddingRight: 48, paddingTop: 11, paddingBottom: 11,
+    borderRadius: mono.radius.pill, paddingLeft: 18, paddingRight: 48, paddingTop: 11, paddingBottom: 11,
   },
   // 웹: 원형 바이올렛 ↑ — absolute bottom-right, 입력 시 스케일 페이드인
   sendWrap: { position: 'absolute', right: 4, bottom: 4 },

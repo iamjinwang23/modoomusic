@@ -103,7 +103,7 @@ export default function LibraryScreen() {
       <Animated.FlatList
         data={filtered}
         keyExtractor={(s) => s.id}
-        renderItem={({ item }) => <SongRow song={item} onPress={() => playSong(item)} onMore={() => openMenu(item)} />}
+        renderItem={({ item }) => <SongRow song={item} onPress={() => playSong(item, filtered)} onMore={() => openMenu(item)} />}
         onScroll={scrollHandler}
         scrollEventThrottle={16}
         contentContainerStyle={{ paddingTop: titleH + chipsH + 4, paddingBottom: insets.bottom + 160, paddingHorizontal: 20 }}

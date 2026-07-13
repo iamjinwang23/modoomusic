@@ -1,18 +1,24 @@
-import { useState } from 'react'
-import { Pressable, StyleSheet, Text, View } from 'react-native'
-import Animated, { Extrapolation, interpolate, useAnimatedKeyboard, useAnimatedScrollHandler, useAnimatedStyle, useSharedValue, type SharedValue } from 'react-native-reanimated'
+import { useEffect, useState } from 'react'
+import { ActionSheetIOS, Alert, KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, StyleSheet, Text, useWindowDimensions, View } from 'react-native'
+import Animated, { Extrapolation, interpolate, useAnimatedScrollHandler, useAnimatedStyle, useSharedValue, type SharedValue } from 'react-native-reanimated'
 import { BlurView } from 'expo-blur'
 import { requireOptionalNativeModule } from 'expo-modules-core'
+import Svg, { Circle, Defs, G, Path, Mask, LinearGradient as SvgGradient, Stop, Rect } from 'react-native-svg'
+import MaskedView from '@react-native-masked-view/masked-view'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { router } from 'expo-router'
 import { Image } from 'expo-image'
 import { useVideoPlayer, VideoView } from 'expo-video'
 import TrackPlayer, { State, useActiveTrack, usePlaybackState, useProgress } from 'react-native-track-player'
+import type { Song, UserProfile } from '@mono/shared'
 import { api } from '@/lib/api'
 import { useNowPlaying } from '@/lib/now-playing'
 import { setSongPublished, shareSong } from '@/lib/song-actions'
 import { Icon } from '@/components/ui/icon'
 import { SongCommentComposer, SongCommentList, useSongComments } from '@/components/ui/song-comments'
+import { Marquee } from '@/components/ui/marquee'
+import { GlassIconButton } from '@/components/ui/glass-button'
+import { CoverScrim, formatCount } from '@/components/ui/profile-grid'
 import { mono } from '@/theme/mono'
 
 function fmt(sec: number): string {
@@ -24,6 +30,30 @@ function fmt(sec: number): string {
 
 // 곡 리스트 행(song-row)과 동일 스펙 — 커버 54×72(3:4) + 상하 10
 const HEADER_ROW = 92
+
+// 하단 블러 페이드 — BlurView 한 장을 세로 그라데이션 알파로 마스킹(위 투명→아래 불투명).
+// 스트립 겹치기는 각 장 윗변이 하드 엣지라 경계가 남음 → 마스크로 완전 디졸브.
+function BottomBlurFade({ height }: { height: number }) {
+  return (
+    <MaskedView
+      style={[styles.bottomBlur, { height }]}
+      maskElement={
+        <Svg style={StyleSheet.absoluteFill}>
+          <Defs>
+            <SvgGradient id="bBlurFade" x1="0" y1="0" x2="0" y2="1">
+              <Stop offset="0" stopColor="#fff" stopOpacity="0" />
+              <Stop offset="0.7" stopColor="#fff" stopOpacity="0.55" />
+              <Stop offset="1" stopColor="#fff" stopOpacity="1" />
+            </SvgGradient>
+          </Defs>
+          <Rect x="0" y="0" width="100%" height="100%" fill="url(#bBlurFade)" />
+        </Svg>
+      }
+    >
+      <BlurView intensity={44} tint="dark" style={styles.blurFull} />
+    </MaskedView>
+  )
+}
 
 // expo-blur 네이티브 모듈 감지(구 dev 빌드 폴백) — 미니플레이어와 동일 가드
 const BLUR_AVAILABLE = requireOptionalNativeModule('ExpoBlur') != null
@@ -60,9 +90,35 @@ function NowPlayingHeader({ scrollY, fadeStart, fadeEnd, cover, title, artist, t
   )
 }
 
+// MingCute Play/Pause 채움 path(16×16) — 앱 아이콘과 동일 모양
+const PLAY_FILL = 'M3.7793333333333328 3.173333333333333a0.9793333333333334 0.9793333333333334 0 0 1 1.3599999999999999 -0.7846666666666666c0.708 0.30266666666666664 2.2946666666666666 1.0219999999999998 4.308 2.1839999999999997 2.014 1.1626666666666665 3.4306666666666663 2.178 4.045999999999999 2.6386666666666665 0.5253333333333333 0.39399999999999996 0.5266666666666666 1.1753333333333331 0.0006666666666666666 1.5706666666666664 -0.6093333333333333 0.458 -2.0086666666666666 1.46 -4.046666666666667 2.6373333333333333 -2.04 1.1773333333333333 -3.6079999999999997 1.888 -4.309333333333333 2.1866666666666665 -0.604 0.258 -1.2799999999999998 -0.13333333333333333 -1.3586666666666665 -0.7846666666666666 -0.092 -0.7613333333333332 -0.264 -2.4899999999999998 -0.264 -4.824666666666666 0 -2.333333333333333 0.17133333333333334 -4.061333333333333 0.264 -4.823333333333333Z'
+const PAUSE_FILL = 'M6 2a0.6666666666666666 0.6666666666666666 0 0 1 0.6666666666666666 0.6666666666666666v10.666666666666666a0.6666666666666666 0.6666666666666666 0 0 1 -0.6666666666666666 0.6666666666666666H4.666666666666666a0.6666666666666666 0.6666666666666666 0 0 1 -0.6666666666666666 -0.6666666666666666V2.6666666666666665a0.6666666666666666 0.6666666666666666 0 0 1 0.6666666666666666 -0.6666666666666666Zm5.333333333333333 0a0.6666666666666666 0.6666666666666666 0 0 1 0.6666666666666666 0.6666666666666666v10.666666666666666a0.6666666666666666 0.6666666666666666 0 0 1 -0.6666666666666666 0.6666666666666666h-1.3333333333333333a0.6666666666666666 0.6666666666666666 0 0 1 -0.6666666666666666 -0.6666666666666666V2.6666666666666665a0.6666666666666666 0.6666666666666666 0 0 1 0.6666666666666666 -0.6666666666666666Z'
+
+// 재생/일시정지 — 화이트 원형에 MingCute 아이콘을 마스크로 뚫어(knockout) 뒤 배경이 비침.
+// viewBox 16 기준: 원(cx8 cy8 r8) + 아이콘을 0.5배 축소·중앙(translate 4)해 컷아웃.
+function PlayButton({ playing, onPress, size = 72 }: { playing: boolean; onPress: () => void; size?: number }) {
+  return (
+    <Pressable onPress={onPress} hitSlop={8}>
+      <Svg width={size} height={size} viewBox="0 0 16 16">
+        <Defs>
+          <Mask id="playKnockout">
+            {/* white=보임, black=뚫림 */}
+            <Circle cx="8" cy="8" r="8" fill="#fff" />
+            <G transform="translate(4 4) scale(0.5)">
+              <Path d={playing ? PAUSE_FILL : PLAY_FILL} fill="#000" />
+            </G>
+          </Mask>
+        </Defs>
+        <Circle cx="8" cy="8" r="8" fill="#fff" mask="url(#playKnockout)" />
+      </Svg>
+    </Pressable>
+  )
+}
+
 // 전체 플레이어(now-playing) — 미니플레이어에서 확장. 커버/제목/진행바/재생 컨트롤.
 export default function PlayerScreen() {
   const insets = useSafeAreaInsets()
+  const { width: screenW } = useWindowDimensions()
   const track = useActiveTrack()
   const song = useNowPlaying()
   const playback = usePlaybackState()
@@ -72,23 +128,77 @@ export default function PlayerScreen() {
   const [likeBusy, setLikeBusy] = useState(false)
   const [published, setPublished] = useState<boolean>(!!song?.published)
   const [pubBusy, setPubBusy] = useState(false)
-  // 가사·댓글 토글(웹 SongDetailPage 파리티) — 댓글은 공개 곡만
-  const [tab, setTab] = useState<'lyrics' | 'comments'>('lyrics')
+  // 곡 통계(재생·좋아요·댓글 수) + 스타일 — 웹 파리티. 플레이어 진입 시 상세 조회.
+  const [meta, setMeta] = useState<{ playCount: number; likeCount: number; commentCount: number } | null>(null)
+  const [songStyle, setSongStyle] = useState<string | null>(null)
+
+  useEffect(() => {
+    if (!song?.id) { setMeta(null); setSongStyle(null); return }
+    let active = true
+    api.get(`/api/songs/${song.id}`).then((j) => {
+      if (!active) return
+      const s = (j as { song?: Song }).song
+      if (!s) return
+      setMeta({ playCount: s.playCount ?? 0, likeCount: s.likeCount ?? 0, commentCount: s.commentCount ?? 0 })
+      setSongStyle(s.prompt?.trim() || [s.genre, s.mood].filter(Boolean).join(', ') || null)
+      // liked/published는 여기서 덮어쓰지 않음 — 사용자가 그 사이 토글하면 되돌려지는 race 방지.
+    }).catch(() => {})
+    return () => { active = false }
+  }, [song?.id])
+
+  // 곡이 바뀌면(이전/다음) liked·published를 now-playing 값으로 즉시 동기화(비동기 fetch race 회피)
+  useEffect(() => {
+    setLiked(!!song?.liked)
+    setPublished(!!song?.published)
+  }, [song?.id, song?.liked, song?.published])
+  // 곡 주인(공개곡) 프로필 — 아바타·팔로우 (내 곡=username 없음이라 미노출)
+  const [owner, setOwner] = useState<{ userId: string; avatarImage?: string; avatarHue: number; displayName: string } | null>(null)
+  const [following, setFollowing] = useState(false)
+  const [followBusy, setFollowBusy] = useState(false)
+
+  useEffect(() => {
+    const uname = song?.username
+    if (!uname) { setOwner(null); setFollowing(false); return }
+    let active = true
+    api.get(`/api/explore/profile/${uname}`).then((j) => {
+      if (!active) return
+      const p = (j as { profile?: UserProfile }).profile
+      if (!p) return
+      setOwner({ userId: p.userId, avatarImage: p.avatarImage, avatarHue: p.avatarHue, displayName: p.displayName })
+      setFollowing(!!p.isFollowing)
+    }).catch(() => {})
+    return () => { active = false }
+  }, [song?.username])
+
+  const toggleFollow = async () => {
+    if (!owner || followBusy) return
+    const next = !following
+    setFollowing(next); setFollowBusy(true)
+    try {
+      const r = await api.post(`/api/profiles/${owner.userId}/follow`) as { following?: boolean }
+      if (typeof r.following === 'boolean') setFollowing(r.following)
+    } catch {
+      setFollowing(!next)
+    } finally {
+      setFollowBusy(false)
+    }
+  }
   // 웹 파리티: 댓글은 공개 곡만 (내 곡=published, 둘러보기 곡=username 존재)
   const canComment = !!song && (song.published || !!song.username)
-  // 댓글 상태 — 목록(스크롤 내부)·입력창(하단 고정)이 나뉘어 렌더돼서 훅으로 공유
-  const commentsState = useSongComments(song?.id ?? null, canComment && tab === 'comments')
+  // 댓글은 우측 레일 → 바텀시트 모달
+  const [commentsOpen, setCommentsOpen] = useState(false)
+  const commentsState = useSongComments(song?.id ?? null, canComment && commentsOpen)
   // 컴팩트 헤더 페이드 기준 — 제목(info) 블록의 콘텐츠 내 y를 onLayout으로 측정
   const [infoY, setInfoY] = useState(420)
   const scrollY = useSharedValue(0)
   const onScroll = useAnimatedScrollHandler((e) => { scrollY.value = e.contentOffset.y })
-  // 하단 고정 입력 바 — absolute라 KAV padding이 안 먹혀서 키보드 높이를 직접 추적해 밀어올림.
-  // 바 자체 paddingBottom(insets.bottom)만큼 겹침을 허용해 키보드 위 10px 간격 유지.
-  const keyboard = useAnimatedKeyboard()
-  const safeBottom = insets.bottom
-  const composerBarStyle = useAnimatedStyle(() => ({
-    transform: [{ translateY: -Math.max(0, keyboard.height.value - safeBottom) }],
+  // 고정 커버(이미지·영상 동일) — 콘텐츠가 위로 스크롤될수록 어두워짐. 마스크 불필요 → 영상도 동일 UI.
+  const coverH = Math.round(screenW * (4 / 3))
+  const coverDarkenStyle = useAnimatedStyle(() => ({
+    opacity: interpolate(scrollY.value, [0, coverH * 0.55], [0, 0.92], Extrapolation.CLAMP),
   }))
+  // 틱톡식 첫 화면 — 뷰포트 높이를 재서 히어로(제목~토글)를 하단 앵커, 빈 공간 없이 꽉 채움
+  const [viewportH, setViewportH] = useState(0)
 
   const playing = playback.state === State.Playing || playback.state === State.Buffering
   const pct = duration > 0 ? Math.min(1, position / duration) : 0
@@ -102,12 +212,15 @@ export default function PlayerScreen() {
   const toggleLike = async () => {
     if (!song || likeBusy) return
     const next = !liked
-    setLiked(next); setLikeBusy(true)
+    setLiked(next)
+    setMeta((m) => m ? { ...m, likeCount: Math.max(0, m.likeCount + (next ? 1 : -1)) } : m)
+    setLikeBusy(true)
     try {
       const r = await api.post(`/api/songs/${song.id}/like`) as { liked?: boolean }
       if (typeof r.liked === 'boolean') setLiked(r.liked)
     } catch {
       setLiked(!next)
+      setMeta((m) => m ? { ...m, likeCount: Math.max(0, m.likeCount + (next ? -1 : 1)) } : m)
     } finally {
       setLikeBusy(false)
     }
@@ -122,6 +235,37 @@ export default function PlayerScreen() {
     setPubBusy(false)
   }
 
+  // 더보기(⋮) — 웹 SongMoreMenu 파리티. 본인: 공개토글·영상 만들기 / 타인: 신고
+  const openMore = () => {
+    if (!song) return
+    const opts: string[] = []; const acts: Array<() => void> = []
+    if (isOwn) {
+      opts.push(published ? '비공개로 전환' : '공개하기'); acts.push(togglePublish)
+      opts.push('영상 만들기'); acts.push(() => router.push(`/video-create?songId=${song.id}`))
+    } else {
+      opts.push('신고'); acts.push(() => reportSong())
+    }
+    if (Platform.OS === 'ios') {
+      ActionSheetIOS.showActionSheetWithOptions(
+        { options: [...opts, '취소'], cancelButtonIndex: opts.length },
+        (i) => { if (i < acts.length) acts[i]() },
+      )
+    } else {
+      Alert.alert('곡', undefined, [...opts.map((o, i) => ({ text: o, onPress: acts[i] })), { text: '취소', style: 'cancel' as const }])
+    }
+  }
+
+  const REPORT_REASONS = ['음란·선정적', '폭력·혐오', '저작권 침해', '스팸·광고', '기타']
+  const reportSong = () => {
+    if (!song) return
+    const run = async (reason: string) => { try { await api.post(`/api/songs/${song.id}/report`, { reason }); Alert.alert('신고했어요') } catch {} }
+    if (Platform.OS === 'ios') {
+      ActionSheetIOS.showActionSheetWithOptions({ options: [...REPORT_REASONS, '취소'], cancelButtonIndex: REPORT_REASONS.length, title: '신고 사유' }, (i) => { if (i < REPORT_REASONS.length) run(REPORT_REASONS[i]) })
+    } else {
+      Alert.alert('신고 사유', undefined, [...REPORT_REASONS.map((r) => ({ text: r, onPress: () => run(r) })), { text: '취소', style: 'cancel' as const }])
+    }
+  }
+
   if (!track) {
     return (
       <View style={[styles.root, styles.center, { paddingTop: insets.top }]}>
@@ -131,7 +275,9 @@ export default function PlayerScreen() {
     )
   }
 
-  const seek = (dir: -1 | 1) => TrackPlayer.seekTo(Math.max(0, Math.min(duration || 0, position + dir * 10)))
+  // 전 곡 / 다음 곡 (웹 파리티) — 큐 경계면 무시
+  const skipPrev = async () => { try { await TrackPlayer.skipToPrevious() } catch {} }
+  const skipNext = async () => { try { await TrackPlayer.skipToNext() } catch {} }
 
   const lyrics = song?.lyrics?.trim()
 
@@ -158,37 +304,90 @@ export default function PlayerScreen() {
         />
       ) : null}
       <View style={styles.bgScrim} pointerEvents="none" />
+
+    {/* 고정 커버(이미지·영상 동일) — 화면 전체 꽉 채움. 콘텐츠가 위로 스크롤되면 어두워짐 */}
+    <View style={styles.coverFixed} pointerEvents="none">
+      {videoUrl ? (
+        <VideoView player={videoPlayer} style={StyleSheet.absoluteFill} contentFit="cover" nativeControls={false} />
+      ) : coverThumb ? (
+        <Image source={{ uri: coverThumb }} style={StyleSheet.absoluteFill} contentFit="cover" transition={200} />
+      ) : (
+        <View style={[StyleSheet.absoluteFill, styles.artPlaceholder]}><Text style={styles.artInitial}>♪</Text></View>
+      )}
+      {/* 하단 블러 — 마스크로 위쪽이 완전히 사라져 경계 없음 */}
+      {BLUR_AVAILABLE ? <BottomBlurFade height={320} /> : null}
+      {/* 상시 하단 그라데이션 — 정지 상태에서도 하단 컨트롤 가독성 */}
+      <CoverScrim />
+      {/* 스크롤 연동 딤 — 배경 톤으로 어두워져 가사·댓글 가독성 확보 */}
+      <Animated.View style={[StyleSheet.absoluteFill, styles.coverDarken, coverDarkenStyle]} />
+    </View>
+
     <Animated.ScrollView
       style={styles.container}
-      contentContainerStyle={{ paddingTop: 50, paddingBottom: insets.bottom + (tab === 'comments' && canComment ? 130 : 32), paddingHorizontal: 24 }}
+      contentContainerStyle={{ paddingTop: 0, paddingBottom: insets.bottom + 40, paddingHorizontal: 24 }}
       showsVerticalScrollIndicator={false}
       onScroll={onScroll}
       scrollEventThrottle={16}
       keyboardShouldPersistTaps="handled"
+      onLayout={(e) => setViewportH(e.nativeEvent.layout.height)}
     >
-      <View style={styles.artWrap}>
-        {videoUrl ? (
-          <VideoView player={videoPlayer} style={styles.art} contentFit="cover" nativeControls={false} />
-        ) : track.artwork ? (
-          <Image source={{ uri: String(track.artwork) }} style={styles.art} contentFit="cover" />
-        ) : (
-          <View style={[styles.art, styles.artPlaceholder]}><Text style={styles.artInitial}>♪</Text></View>
-        )}
-        {song?.videoCoverStatus === 'generating' ? (
-          <View style={styles.videoBadge}><Text style={styles.videoBadgeText}>영상 생성 중…</Text></View>
-        ) : null}
-      </View>
+      {/* 첫 화면 = 뷰포트 높이(틱톡식) — 히어로 블록(제목~토글)을 하단 앵커, 커버가 풀로 보임 */}
+      <View style={viewportH ? { height: viewportH, justifyContent: 'flex-end', paddingBottom: 8 } : null}>
+      {song?.videoCoverStatus === 'generating' ? (
+        <View style={styles.videoBadge}><Text style={styles.videoBadgeText}>영상 생성 중…</Text></View>
+      ) : null}
 
-      <View style={styles.info} onLayout={(e) => setInfoY(e.nativeEvent.layout.y)}>
-        <Text style={styles.title} numberOfLines={1}>{title}</Text>
-        <Text
-          style={[styles.artist, song?.username && styles.artistLink]}
-          numberOfLines={1}
-          onPress={song?.username ? () => { router.back(); router.push(`/creator/${song.username}`) } : undefined}
-          suppressHighlighting
-        >
-          {artist}
-        </Text>
+      {/* 캡션(좌) + 세로 액션 레일(우) — 틱톡/쇼츠식 */}
+      <View style={styles.heroRow} onLayout={(e) => setInfoY(e.nativeEvent.layout.y)}>
+        <View style={styles.info}>
+          <Marquee text={title} style={styles.title} />
+          {song?.username ? (
+            <View style={styles.ownerRow}>
+              <Pressable style={styles.ownerLeft} onPress={() => { router.back(); router.push(`/creator/${song.username}`) }} hitSlop={6}>
+                <View style={styles.ownerAvatar}>
+                  {owner?.avatarImage ? (
+                    <Image source={{ uri: owner.avatarImage }} style={styles.ownerAvatarImg} contentFit="cover" />
+                  ) : (
+                    <View style={[styles.ownerAvatarImg, styles.ownerAvatarFallback, { backgroundColor: `hsl(${owner?.avatarHue ?? 250}, 40%, 40%)` }]}>
+                      <Text style={styles.ownerAvatarInitial}>{(artist.trim().charAt(0) || '?').toUpperCase()}</Text>
+                    </View>
+                  )}
+                </View>
+                <Text style={styles.ownerName} numberOfLines={1}>{artist}</Text>
+              </Pressable>
+              {owner ? (
+                <Pressable onPress={toggleFollow} disabled={followBusy} style={[styles.followBtn, followBusy && styles.dim]} hitSlop={6}>
+                  <Icon name={following ? 'following' : 'follow'} size={14} color={mono.color.text} />
+                  <Text style={styles.followText}>{following ? '팔로잉' : '팔로우'}</Text>
+                </Pressable>
+              ) : null}
+            </View>
+          ) : (
+            <Text style={styles.artist} numberOfLines={1}>{artist}</Text>
+          )}
+        </View>
+
+        {song ? (
+          <View style={styles.rail}>
+            <View style={styles.railItem}>
+              <GlassIconButton name="play.fill" size={48} iconSize={22} />
+              <Text style={styles.railCount}>{formatCount(meta?.playCount ?? 0)}</Text>
+            </View>
+            <View style={styles.railItem}>
+              <GlassIconButton name={liked ? 'heart.fill' : 'heart'} size={48} iconSize={24} color={liked ? mono.color.danger : mono.color.text} onPress={toggleLike} disabled={likeBusy} />
+              <Text style={styles.railCount}>{formatCount(meta?.likeCount ?? 0)}</Text>
+            </View>
+            <View style={styles.railItem}>
+              <GlassIconButton name="bubble.left" size={48} iconSize={23} onPress={() => canComment ? setCommentsOpen(true) : Alert.alert('비공개 곡엔 댓글을 남길 수 없어요')} />
+              <Text style={styles.railCount}>{formatCount(meta?.commentCount ?? 0)}</Text>
+            </View>
+            <View style={styles.railItem}>
+              <GlassIconButton name="square.and.arrow.up" size={48} iconSize={21} onPress={() => shareSong(song.id, song.title)} />
+              <Text style={styles.railCount}>공유</Text>
+            </View>
+            <GlassIconButton name="ellipsis" size={48} iconSize={21} onPress={openMore} />
+          </View>
+        ) : null}
       </View>
 
       <View style={styles.progress}>
@@ -200,60 +399,27 @@ export default function PlayerScreen() {
       </View>
 
       <View style={styles.controls}>
-        <Pressable onPress={() => seek(-1)} hitSlop={12}><Icon name="gobackward.10" size={26} color={mono.color.textSecondary} /></Pressable>
-        <Pressable
-          onPress={() => (playing ? TrackPlayer.pause() : TrackPlayer.play())}
-          style={styles.playBtn}
-        >
-          <Icon name={playing ? 'pause.fill' : 'play.fill'} size={26} color={mono.color.text} />
-        </Pressable>
-        <Pressable onPress={() => seek(1)} hitSlop={12}><Icon name="goforward.10" size={26} color={mono.color.textSecondary} /></Pressable>
+        <Pressable onPress={skipPrev} hitSlop={12}><Icon name="gobackward.10" size={30} color={mono.color.text} /></Pressable>
+        <PlayButton playing={playing} onPress={() => (playing ? TrackPlayer.pause() : TrackPlayer.play())} />
+        <Pressable onPress={skipNext} hitSlop={12}><Icon name="goforward.10" size={30} color={mono.color.text} /></Pressable>
       </View>
 
-      {song ? (
-        <View style={styles.actionsRow}>
-          <Pressable onPress={toggleLike} disabled={likeBusy} style={styles.action} hitSlop={8}>
-            <Icon name={liked ? 'heart.fill' : 'heart'} size={22} color={liked ? mono.color.danger : mono.color.textSecondary} />
-            <Text style={styles.actionLabel}>좋아요</Text>
-          </Pressable>
-          {isOwn ? (
-            <Pressable onPress={togglePublish} disabled={pubBusy} style={styles.action} hitSlop={8}>
-              <Icon name={published ? 'globe' : 'lock'} size={22} color={published ? mono.color.accentLight : mono.color.textSecondary} />
-              <Text style={styles.actionLabel}>{published ? '공개' : '비공개'}</Text>
-            </Pressable>
-          ) : null}
-          <Pressable onPress={() => shareSong(song.id, song.title)} style={styles.action} hitSlop={8}>
-            <Icon name="square.and.arrow.up" size={22} color={mono.color.textSecondary} />
-            <Text style={styles.actionLabel}>공유</Text>
-          </Pressable>
-          {isOwn ? (
-            <Pressable onPress={() => router.push(`/video-create?songId=${song.id}`)} style={styles.action} hitSlop={8}>
-              <Icon name="film" size={22} color={mono.color.textSecondary} />
-              <Text style={styles.actionLabel}>영상</Text>
-            </Pressable>
-          ) : null}
+      </View>
+
+      {/* 스타일 */}
+      {songStyle ? (
+        <View style={styles.section}>
+          <Text style={styles.sectionLabel}>스타일</Text>
+          <Text style={styles.sectionBody}>{songStyle}</Text>
         </View>
       ) : null}
 
-      {canComment ? (
-        <View style={styles.tabRow}>
-          {(['lyrics', 'comments'] as const).map((t) => (
-            <Pressable key={t} onPress={() => setTab(t)} style={[styles.tabPill, tab === t && styles.tabPillOn]}>
-              <Text style={[styles.tabText, tab === t && styles.tabTextOn]}>{t === 'lyrics' ? '가사' : '댓글'}</Text>
-            </Pressable>
-          ))}
-        </View>
-      ) : null}
-
-      {canComment && tab === 'comments' ? (
-        <SongCommentList state={commentsState} />
-      ) : lyrics ? (
-        <View style={canComment ? styles.tabBody : styles.lyricsWrap}>
-          {!canComment ? <Text style={styles.lyricsLabel}>가사</Text> : null}
+      {/* 가사 */}
+      {lyrics ? (
+        <View style={styles.section}>
+          <Text style={styles.sectionLabel}>가사</Text>
           <Text style={styles.lyrics}>{lyrics}</Text>
         </View>
-      ) : canComment ? (
-        <Text style={styles.lyricsEmpty}>가사가 없는 곡이에요</Text>
       ) : null}
     </Animated.ScrollView>
 
@@ -267,17 +433,28 @@ export default function PlayerScreen() {
       topInset={topInset}
     />
 
-    {/* 모달 핸들 — 스크롤과 무관하게 최상단 고정(헤더 위) */}
-    <View style={styles.handleFixed} pointerEvents="none"><View style={styles.handle} /></View>
+    {/* 내리기 버튼 — 좌상단 고정(핸들 대체). 탭=닫기, 스와이프 다운=모달 기본 제스처 */}
+    <GlassIconButton name="chevron.down" iconSize={22} onPress={() => router.back()} style={[styles.downBtn, { top: insets.top + 6 }]} />
 
-    {/* 댓글 입력창 — 하단 고정 바(글래스), 댓글 탭에서만. 키보드 높이만큼 translateY로 따라 올라감 */}
-    {canComment && tab === 'comments' ? (
-      <Animated.View style={[styles.composerBar, { paddingBottom: insets.bottom + 10 }, composerBarStyle]}>
-        {BLUR_AVAILABLE ? <BlurView intensity={60} tint="dark" style={StyleSheet.absoluteFill} /> : null}
-        <View style={[styles.compactTint, !BLUR_AVAILABLE && styles.compactTintSolid]} pointerEvents="none" />
-        <SongCommentComposer state={commentsState} />
-      </Animated.View>
-    ) : null}
+    {/* 댓글 — 아래서 올라오는 바텀시트 모달 */}
+    <Modal visible={commentsOpen} animationType="slide" transparent onRequestClose={() => setCommentsOpen(false)}>
+      <View style={styles.sheetBackdrop}>
+        <Pressable style={StyleSheet.absoluteFill} onPress={() => setCommentsOpen(false)} />
+        <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={styles.sheetKav}>
+          <View style={[styles.sheet, { paddingBottom: insets.bottom + 8 }]}>
+            <View style={styles.sheetHandle} />
+            <View style={styles.sheetHead}>
+              <Text style={styles.sheetTitle}>댓글 {formatCount(meta?.commentCount ?? 0)}</Text>
+              <Pressable onPress={() => setCommentsOpen(false)} hitSlop={8}><Icon name="close" size={22} color={mono.color.textSecondary} /></Pressable>
+            </View>
+            <ScrollView style={styles.sheetList} contentContainerStyle={{ paddingBottom: 12 }} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
+              <SongCommentList state={commentsState} />
+            </ScrollView>
+            <SongCommentComposer state={commentsState} />
+          </View>
+        </KeyboardAvoidingView>
+      </View>
+    </Modal>
     </View>
   )
 }
@@ -307,33 +484,52 @@ const styles = StyleSheet.create({
   center: { alignItems: 'center', justifyContent: 'center', gap: 16, paddingHorizontal: 24, flex: 1 },
   empty: { color: mono.color.textSecondary, fontSize: mono.font.body },
   link: { color: mono.color.accentLight, fontSize: mono.font.body, fontWeight: '700' },
-  handleFixed: { position: 'absolute', top: 8, left: 0, right: 0, alignItems: 'center', zIndex: 60 },
-  // 하단 고정 댓글 입력 바 — 헤더와 같은 글래스 처리
-  composerBar: {
-    position: 'absolute', bottom: 0, left: 0, right: 0, zIndex: 55,
-    paddingHorizontal: 20, paddingTop: 10, overflow: 'hidden',
-    borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: mono.color.borderSoft,
-  },
-  handle: { width: 40, height: 5, borderRadius: 3, backgroundColor: mono.color.fillStrong },
-  artWrap: { alignItems: 'center', marginTop: 0, marginBottom: 28 },
-  // 커버 = 세로(포스터형) — 브랜드 정체성(웹 파리티)
-  art: { width: '68%', aspectRatio: 3 / 4, borderRadius: mono.radius.xl, backgroundColor: mono.color.surface, overflow: 'hidden' },
+  // 내리기 버튼 — 좌상단 원형(핸들 대체). 크기·모양은 GlassIconButton 기본
+  downBtn: { position: 'absolute', left: 16, zIndex: 60 },
+  // 고정 커버 — 화면 전체(풀스크린), ScrollView 뒤에 절대배치
+  coverFixed: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: mono.color.surface, overflow: 'hidden' },
+  // 스크롤 딤 — 배경 스크림과 동일 계열 톤
+  coverDarken: { backgroundColor: '#111318' },
+  // 하단 블러(마스크 페이드)
+  bottomBlur: { position: 'absolute', left: 0, right: 0, bottom: 0 },
+  blurFull: { width: '100%', height: '100%' },
   videoBadge: {
-    position: 'absolute', bottom: 12, left: '18%',
+    alignSelf: 'flex-start', marginBottom: 12,
     backgroundColor: mono.color.overlayStrong, borderRadius: mono.radius.pill, paddingVertical: 6, paddingHorizontal: 12,
   },
   videoBadgeText: { color: mono.color.onMedia, fontSize: mono.font.tiny, fontWeight: '700' },
   artPlaceholder: { alignItems: 'center', justifyContent: 'center' },
   artInitial: { color: mono.color.textTertiary, fontSize: 64 },
-  info: { alignItems: 'center', gap: 6, marginBottom: 28 },
-  title: { color: mono.color.text, fontSize: mono.font.h2, fontWeight: '800', textAlign: 'center' },
+  // 캡션(좌) + 세로 레일(우) — 레일 바닥을 캡션 바닥에 맞춤
+  heroRow: { flexDirection: 'row', alignItems: 'flex-end', marginBottom: 24 },
+  // 제목·아티스트 좌측 정렬 (레일 폭만큼 우측 여백)
+  info: { flex: 1, alignItems: 'flex-start', gap: 12, paddingRight: 12 },
+  // 세로 액션 레일 (재생·좋아요·댓글·공유·더보기) — 글래스 딤 원형 + 카운트
+  rail: { alignItems: 'center', gap: 16, paddingLeft: 4 },
+  railItem: { alignItems: 'center', gap: 5 },
+  railCount: { color: mono.color.text, fontSize: mono.font.tiny, fontWeight: '700' },
+  title: { color: mono.color.text, fontSize: 28, fontWeight: '700', lineHeight: 34 },
   artist: { color: mono.color.textSecondary, fontSize: mono.font.body },
-  artistLink: { color: mono.color.textSecondary, fontWeight: '600' },
+  // 곡 주인 행 — 아바타 + 이름 + 팔로우(이름 바로 옆)
+  ownerRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  ownerLeft: { flexDirection: 'row', alignItems: 'center', gap: 10, flexShrink: 1, minWidth: 0 },
+  ownerAvatar: { width: 36, height: 36, borderRadius: 18, overflow: 'hidden', backgroundColor: mono.color.surface2 },
+  ownerAvatarImg: { width: '100%', height: '100%' },
+  ownerAvatarFallback: { alignItems: 'center', justifyContent: 'center' },
+  ownerAvatarInitial: { color: mono.color.onMedia, fontSize: 14, fontWeight: '800' },
+  ownerName: { color: mono.color.text, fontSize: mono.font.body, fontWeight: '600', flexShrink: 1 },
+  // 웹: bg-white/8 · rounded-full · px4 py2
+  followBtn: {
+    flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 18, paddingVertical: 11,
+    borderRadius: mono.radius.pill, backgroundColor: 'rgba(255,255,255,0.08)',
+  },
+  followText: { color: mono.color.text, fontSize: mono.font.small, fontWeight: '600' },
+  dim: { opacity: 0.5 },
   progress: { marginBottom: 32 },
   track: { height: 4, borderRadius: 2, backgroundColor: mono.color.fillStrong, overflow: 'hidden' },
   fill: { height: '100%', backgroundColor: mono.color.accent },
   times: { flexDirection: 'row', justifyContent: 'space-between', marginTop: 8 },
-  time: { color: mono.color.textTertiary, fontSize: mono.font.tiny },
+  time: { color: mono.color.text, fontSize: mono.font.tiny },
   controls: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 36 },
   ctrlSecondary: { color: mono.color.textSecondary, fontSize: mono.font.body, fontWeight: '700' },
   playBtn: {
@@ -341,24 +537,33 @@ const styles = StyleSheet.create({
     alignItems: 'center', justifyContent: 'center',
   },
   playIcon: { color: mono.color.text, fontSize: 26, fontWeight: '700' },
-  actionsRow: { flexDirection: 'row', justifyContent: 'space-around', marginTop: 28, paddingHorizontal: 12 },
-  action: { alignItems: 'center', gap: 4, minWidth: 64 },
-  actionText: { color: mono.color.textSecondary, fontSize: 22, fontWeight: '700' },
-  actionLabel: { color: mono.color.textTertiary, fontSize: mono.font.tiny, fontWeight: '600' },
-  likeOn: { color: mono.color.danger },
-  pubOn: { color: mono.color.accentLight },
-  lyricsWrap: { marginTop: 36 },
-  tabBody: { marginTop: 0 },
-  lyricsLabel: { color: mono.color.text, fontSize: mono.font.body, fontWeight: '700', marginBottom: 10 },
-  lyrics: { color: mono.color.textSecondary, fontSize: mono.font.body, lineHeight: 26 },
-  lyricsEmpty: { color: mono.color.textTertiary, fontSize: mono.font.small, textAlign: 'center', marginTop: 8 },
-  // 가사·댓글 토글 — 리스트 필터칩 사이즈 + 세그먼트 박스(공중에 뜨지 않게 묶음)
-  tabRow: {
-    flexDirection: 'row', alignSelf: 'center', marginTop: 36, marginBottom: 16,
-    backgroundColor: mono.color.fill, borderRadius: mono.radius.pill, padding: 4, gap: 4,
+  // 웹 파리티 액션 행 — 알약 통계(재생·좋아요·댓글) + 원형(공유·더보기)
+  actionsRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 24, flexWrap: 'wrap' },
+  statPill: {
+    flexDirection: 'row', alignItems: 'center', gap: 6, height: 40, paddingHorizontal: 14,
+    borderRadius: mono.radius.pill, backgroundColor: 'rgba(255,255,255,0.08)',
   },
-  tabPill: { paddingHorizontal: 24, paddingVertical: 10, borderRadius: mono.radius.pill },
-  tabPillOn: { backgroundColor: '#ffffff' },
-  tabText: { color: mono.color.textSecondary, fontSize: mono.font.body, fontWeight: '600' },
-  tabTextOn: { color: mono.color.bg, fontWeight: '700' },
+  statPillOn: { backgroundColor: '#ffffff' },
+  statPillText: { color: mono.color.textSecondary, fontSize: mono.font.small, fontWeight: '600' },
+  statPillTextOn: { color: mono.color.bg, fontWeight: '700' },
+  circleAct: {
+    width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center',
+    backgroundColor: 'rgba(255,255,255,0.08)',
+  },
+  // 스타일·가사 섹션
+  section: { marginTop: 32 },
+  sectionLabel: { color: mono.color.text, fontSize: mono.font.body, fontWeight: '700', marginBottom: 10 },
+  sectionBody: { color: mono.color.textSecondary, fontSize: mono.font.body, lineHeight: 24 },
+  lyrics: { color: mono.color.textSecondary, fontSize: mono.font.body, lineHeight: 26 },
+  // 댓글 바텀시트 모달
+  sheetBackdrop: { flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(0,0,0,0.5)' },
+  sheetKav: { justifyContent: 'flex-end' },
+  sheet: {
+    height: '78%', backgroundColor: mono.color.surface,
+    borderTopLeftRadius: 20, borderTopRightRadius: 20, paddingHorizontal: 20, paddingTop: 8,
+  },
+  sheetHandle: { alignSelf: 'center', width: 40, height: 5, borderRadius: 3, backgroundColor: mono.color.fillStrong, marginBottom: 10 },
+  sheetHead: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingBottom: 8 },
+  sheetTitle: { color: mono.color.text, fontSize: mono.font.body, fontWeight: '700' },
+  sheetList: { flex: 1 },
 })

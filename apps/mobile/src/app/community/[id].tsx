@@ -12,6 +12,7 @@ import { CollapsingHeader, HEADER_ROW } from '@/components/ui/collapsing-header'
 import { CoverScrim } from '@/components/ui/profile-grid'
 import { PostCard } from '@/components/ui/post-card'
 import { Icon } from '@/components/ui/icon'
+import { GlassIconButton } from '@/components/ui/glass-button'
 import { NotificationBell } from '@/components/ui/notification-bell'
 import { mono } from '@/theme/mono'
 
@@ -117,9 +118,7 @@ export default function CommunityDetailScreen() {
             <View style={styles.bannerWrap}>
               {banner ? <Image source={{ uri: banner }} style={StyleSheet.absoluteFill} contentFit="cover" /> : <View style={[StyleSheet.absoluteFill, styles.bannerFallback]} />}
               <CoverScrim />
-              <Pressable onPress={() => router.back()} style={[styles.back, { top: insets.top + 8 }]} hitSlop={10}>
-                <Icon name="arrow.left" size={22} color={mono.color.onMedia} />
-              </Pressable>
+              <GlassIconButton name="arrow.left" size={40} iconSize={22} onPress={() => router.back()} style={[styles.back, { top: insets.top + 8 }]} hitSlop={10} />
               {/* 우상단 — (매니저)수정 / (비매니저)가입·탈퇴 · 알림 · 공유 */}
               <View style={[styles.coverActions, { top: insets.top + 8 }]}>
                 {community?.isManager ? (
@@ -131,12 +130,10 @@ export default function CommunityDetailScreen() {
                     <Text style={[styles.joinPillText, community.isMember && styles.joinPillTextOn]}>{community.isMember ? '탈퇴하기' : '가입하기'}</Text>
                   </Pressable>
                 ) : null}
-                <Pressable onPress={() => router.push('/notifications')} style={styles.circleBtn} hitSlop={8}>
+                <GlassIconButton size={40} onPress={() => router.push('/notifications')} hitSlop={8}>
                   <NotificationBell size={18} color={mono.color.onMedia} />
-                </Pressable>
-                <Pressable onPress={() => id && shareCommunity(id, community?.name)} style={styles.circleBtn} hitSlop={8}>
-                  <Icon name="square.and.arrow.up" size={18} color={mono.color.onMedia} />
-                </Pressable>
+                </GlassIconButton>
+                <GlassIconButton name="square.and.arrow.up" size={40} iconSize={18} color={mono.color.onMedia} onPress={() => id && shareCommunity(id, community?.name)} hitSlop={8} />
               </View>
             </View>
 
@@ -215,10 +212,7 @@ const styles = StyleSheet.create({
   joinPillOn: { backgroundColor: mono.color.overlay },
   joinPillText: { color: mono.color.onMedia, fontSize: mono.font.small, fontWeight: '700' },
   joinPillTextOn: { color: mono.color.onMedia, fontWeight: '600' },
-  back: {
-    position: 'absolute', left: 12, width: 36, height: 36, borderRadius: 18,
-    backgroundColor: mono.color.overlay, alignItems: 'center', justifyContent: 'center',
-  },
+  back: { position: 'absolute', left: 12 },
   backText: { color: mono.color.onMedia, fontSize: 26, lineHeight: 28, marginTop: -2 },
   fill: { width: '100%', height: '100%' },
   // 타이틀 행 — 사각 대표 이미지 + 이름 + 멤버. 커버와 살짝 겹치게 위로 당김.

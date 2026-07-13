@@ -10,6 +10,7 @@ import { playSong } from '@/lib/player'
 import { ProfileGrid, CoverScrim, formatCount } from '@/components/ui/profile-grid'
 import { CollapsingHeader, HEADER_ROW } from '@/components/ui/collapsing-header'
 import { Icon } from '@/components/ui/icon'
+import { GlassIconButton } from '@/components/ui/glass-button'
 import { mono } from '@/theme/mono'
 
 // 크리에이터 프로필 — 웹 파리티: 커버(아바타·이름 오버레이) + 팔로우 + 스탯 + 세로 그리드.
@@ -107,10 +108,8 @@ export default function CreatorScreen() {
           )}
           <CoverScrim />
 
-          {/* 뒤로가기 (좌상단) */}
-          <Pressable onPress={() => router.back()} style={[styles.back, { top: insets.top + 12 }]} hitSlop={10}>
-            <Icon name="arrow.left" size={22} color={mono.color.onMedia} />
-          </Pressable>
+          {/* 뒤로가기 (좌상단) — 글래스 딤 */}
+          <GlassIconButton name="arrow.left" size={40} iconSize={22} onPress={() => router.back()} style={[styles.back, { top: insets.top + 12 }]} hitSlop={10} />
 
           {/* 팔로우 (우상단) */}
           <Pressable
@@ -151,7 +150,7 @@ export default function CreatorScreen() {
 
         {/* ── 음악/영상 탭 + 그리드 ── */}
         <View style={styles.gridWrap}>
-          <ProfileGrid songs={songs} onPlay={(s) => playSong(s)} empty="공개된 곡이 없어요" />
+          <ProfileGrid songs={songs} onPlay={(s) => playSong(s, songs)} empty="공개된 곡이 없어요" />
         </View>
       </Animated.ScrollView>
     </View>
@@ -165,7 +164,7 @@ const styles = StyleSheet.create({
   link: { color: mono.color.accentLight, fontSize: mono.font.body, fontWeight: '700' },
   cover: { width: '100%', aspectRatio: 16 / 9, backgroundColor: mono.color.surface2, overflow: 'hidden' },
   coverFallback: { backgroundColor: mono.color.surface },
-  back: { position: 'absolute', left: 20, width: 40, height: 40, borderRadius: 20, backgroundColor: mono.color.overlay, alignItems: 'center', justifyContent: 'center' },
+  back: { position: 'absolute', left: 20 },
   followPill: {
     position: 'absolute', right: 20, paddingHorizontal: 16, height: 40, borderRadius: 20,
     flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6,
