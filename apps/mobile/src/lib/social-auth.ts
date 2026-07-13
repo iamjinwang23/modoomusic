@@ -23,6 +23,16 @@ export async function signInWithNaver(): Promise<{ error?: string }> {
   const url = new URL(res.url)
   const err = url.searchParams.get('error')
   if (err) return { error: err }
+
+  // 서버가 세션을 교환해 access/refresh 토큰을 넘겨줌 → setSession만.
+  const access_token = url.searchParams.get('access_token')
+  const refresh_token = url.searchParams.get('refresh_token')
+  if (access_token && refresh_token) {
+    const { error } = await supabase.auth.setSession({ access_token, refresh_token })
+    return error ? { error: error.message } : {}
+  }
+
+  // (하위호환) 구 배포가 token_hash로 넘겨줄 때 — PKCE에선 실패할 수 있음.
   const tokenHash = url.searchParams.get('token_hash')
   if (tokenHash && url.searchParams.get('type') === 'magiclink') {
     const { error } = await supabase.auth.verifyOtp({ token_hash: tokenHash, type: 'magiclink' })

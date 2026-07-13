@@ -1,4 +1,5 @@
 import { NextResponse, type NextRequest } from 'next/server'
+import { createClient } from '@supabase/supabase-js'
 import { createAdminClient } from '@/lib/supabase/admin'
 
 // 앱(모바일) 진입 시 돌려보낼 딥링크 — openAuthSessionAsync가 이 스킴을 가로챈다.
@@ -83,10 +84,24 @@ export async function GET(request: NextRequest) {
   }
 
   const tokenHash = linkData.properties.hashed_token
-  // 앱: 딥링크로 token_hash 전달 → 앱이 verifyOtp로 세션 교환. 웹: 기존 콜백 페이지가 처리.
-  return bounce(
-    isApp
-      ? `${APP_CALLBACK}?token_hash=${tokenHash}&type=magiclink`
-      : `${origin}/auth/callback?token_hash=${tokenHash}&type=magiclink`,
+
+  // 웹: 기존 콜백 페이지가 token_hash를 verifyOtp로 처리.
+  if (!isApp) {
+    return bounce(`${origin}/auth/callback?token_hash=${tokenHash}&type=magiclink`)
+  }
+
+  // 앱: 서버에서 OTP를 세션으로 교환해 토큰을 딥링크로 전달(앱은 setSession만).
+  // 모바일 supabase 클라이언트는 flowType:'pkce'라 서버 생성 magiclink token_hash를 앱에서 직접 verifyOtp하면 실패 → 서버(비-PKCE)에서 교환.
+  const anon = createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    { auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false } },
   )
+  const { data: verified, error: verifyError } = await anon.auth.verifyOtp({ token_hash: tokenHash, type: 'magiclink' })
+  if (verifyError || !verified?.session) {
+    console.error('[naver/callback] 앱 세션 교환 실패:', verifyError?.message)
+    return fail('verify_failed')
+  }
+  const { access_token, refresh_token } = verified.session
+  return bounce(`${APP_CALLBACK}?access_token=${access_token}&refresh_token=${refresh_token}`)
 }
