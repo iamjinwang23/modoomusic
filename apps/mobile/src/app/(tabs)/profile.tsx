@@ -11,7 +11,7 @@ import { playSong } from '@/lib/player'
 import { ProfileGrid, CoverScrim, formatCount } from '@/components/ui/profile-grid'
 import { CollapsingHeader, HEADER_ROW } from '@/components/ui/collapsing-header'
 import { Icon } from '@/components/ui/icon'
-import { GlassIconButton } from '@/components/ui/glass-button'
+import { GlassIconButton, GlassPill } from '@/components/ui/glass-button'
 import { NotificationBell } from '@/components/ui/notification-bell'
 import { mono } from '@/theme/mono'
 
@@ -85,9 +85,9 @@ export default function ProfileTab() {
 
           {/* 우상단 액션 — 프로필 수정 · 알림 · 설정 */}
           <View style={[styles.topActions, { top: insets.top + 12 }]}>
-            <Pressable onPress={() => router.push('/profile-edit')} style={styles.editPill} hitSlop={8}>
+            <GlassPill onPress={() => router.push('/profile-edit')}>
               <Text style={styles.editText}>프로필 수정</Text>
-            </Pressable>
+            </GlassPill>
             <GlassIconButton size={40} onPress={() => router.push('/notifications')} hitSlop={8}>
               <NotificationBell size={18} color={mono.color.onMedia} />
             </GlassIconButton>

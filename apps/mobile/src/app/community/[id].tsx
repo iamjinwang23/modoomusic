@@ -6,13 +6,14 @@ import { router, useFocusEffect, useLocalSearchParams } from 'expo-router'
 import { Image } from 'expo-image'
 import type { Community, CommunityMember, CommunityPost } from '@mono/shared'
 import { api } from '@/lib/api'
+import { hapticLight } from '@/lib/haptics'
 import { setSelectedPost } from '@/lib/selected-post'
 import { shareCommunity } from '@/lib/song-actions'
 import { CollapsingHeader, HEADER_ROW } from '@/components/ui/collapsing-header'
 import { CoverScrim } from '@/components/ui/profile-grid'
 import { PostCard } from '@/components/ui/post-card'
 import { Icon } from '@/components/ui/icon'
-import { GlassIconButton } from '@/components/ui/glass-button'
+import { GlassIconButton, GlassPill } from '@/components/ui/glass-button'
 import { NotificationBell } from '@/components/ui/notification-bell'
 import { mono } from '@/theme/mono'
 
@@ -54,6 +55,7 @@ export default function CommunityDetailScreen() {
   useFocusEffect(useCallback(() => { if (community) load() }, [community, load]))
 
   const onRefresh = useCallback(async () => {
+    hapticLight()
     setRefreshing(true); await load(); setRefreshing(false)
   }, [load])
 
@@ -122,13 +124,19 @@ export default function CommunityDetailScreen() {
               {/* 우상단 — (매니저)수정 / (비매니저)가입·탈퇴 · 알림 · 공유 */}
               <View style={[styles.coverActions, { top: insets.top + 8 }]}>
                 {community?.isManager ? (
-                  <Pressable onPress={() => router.push(`/community-edit/${id}`)} style={styles.editPill} hitSlop={8}>
+                  <GlassPill onPress={() => router.push(`/community-edit/${id}`)} style={joinBusy && styles.dim}>
                     <Text style={styles.editText}>수정</Text>
-                  </Pressable>
+                  </GlassPill>
                 ) : community ? (
-                  <Pressable onPress={toggleJoin} disabled={joinBusy} style={[styles.joinPill, community.isMember ? styles.joinPillOn : styles.joinPillOff, joinBusy && styles.dim]} hitSlop={8}>
-                    <Text style={[styles.joinPillText, community.isMember && styles.joinPillTextOn]}>{community.isMember ? '탈퇴하기' : '가입하기'}</Text>
-                  </Pressable>
+                  community.isMember ? (
+                    <GlassPill onPress={toggleJoin} disabled={joinBusy} style={joinBusy && styles.dim}>
+                      <Text style={styles.joinPillTextOn}>탈퇴하기</Text>
+                    </GlassPill>
+                  ) : (
+                    <Pressable onPress={toggleJoin} disabled={joinBusy} style={[styles.joinPill, styles.joinPillOff, joinBusy && styles.dim]} hitSlop={8}>
+                      <Text style={styles.joinPillText}>가입하기</Text>
+                    </Pressable>
+                  )
                 ) : null}
                 <GlassIconButton size={40} onPress={() => router.push('/notifications')} hitSlop={8}>
                   <NotificationBell size={18} color={mono.color.onMedia} />
@@ -237,7 +245,7 @@ const styles = StyleSheet.create({
   },
   mAvatarText: { color: mono.color.onMedia, fontSize: 10, fontWeight: '700' },
   descWrap: { marginTop: 12, paddingHorizontal: 16 },
-  desc: { color: mono.color.textSecondary, fontSize: mono.font.body, lineHeight: 20 },
+  desc: { color: mono.color.textSecondary, fontSize: 16, lineHeight: 23 },
   descMeasure: { position: 'absolute', left: 0, right: 0, top: 0, opacity: 0 },
   moreBtn: { color: mono.color.textTertiary, fontSize: mono.font.small, fontWeight: '600', marginTop: 4 },
   topicWrap: { marginTop: 12, paddingHorizontal: 16, flexDirection: 'row' },

@@ -30,8 +30,25 @@ export function GlassIconButton({ name, size = 36, iconSize = 20, color = mono.c
   )
 }
 
+// 이미지 위 딤 텍스트 필 버튼(글래스) — 탈퇴/수정 등 커버 오버레이 텍스트 버튼.
+export function GlassPill({ onPress, disabled, style, children }: {
+  onPress?: () => void
+  disabled?: boolean
+  style?: StyleProp<ViewStyle>
+  children: ReactNode
+}) {
+  return (
+    <Pressable onPress={onPress} disabled={disabled} hitSlop={8} style={[styles.pill, style]}>
+      {BLUR_AVAILABLE ? <BlurView intensity={24} tint="dark" style={StyleSheet.absoluteFill} /> : null}
+      <View style={[styles.tint, !BLUR_AVAILABLE && styles.tintSolid]} pointerEvents="none" />
+      {children}
+    </Pressable>
+  )
+}
+
 const styles = StyleSheet.create({
   btn: { alignItems: 'center', justifyContent: 'center', overflow: 'hidden' },
+  pill: { height: 40, paddingHorizontal: 16, borderRadius: 20, overflow: 'hidden', flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6 },
   tint: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.28)' },
   tintSolid: { backgroundColor: 'rgba(0,0,0,0.45)' },
 })

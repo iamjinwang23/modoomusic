@@ -1,4 +1,6 @@
 import { Share } from 'react-native'
+import * as FileSystem from 'expo-file-system/legacy'
+import * as Sharing from 'expo-sharing'
 import { supabase } from './supabase'
 
 const API_BASE = process.env.EXPO_PUBLIC_API_BASE_URL ?? ''
@@ -28,4 +30,29 @@ export async function setSongPublished(songId: string, published: boolean): Prom
 export async function deleteSong(songId: string): Promise<boolean> {
   const { error } = await supabase.from('songs').delete().eq('id', songId)
   return !error
+}
+
+// 곡 정보 수정 — 제목·가사·공개코멘트(RLS: 소유자만). 웹 SongEditModal 패리티.
+export async function updateSong(songId: string, patch: { title?: string | null; lyrics?: string | null; publishComment?: string | null }): Promise<boolean> {
+  const row: Record<string, unknown> = {}
+  if ('title' in patch) row.title = patch.title
+  if ('lyrics' in patch) row.lyrics = patch.lyrics
+  if ('publishComment' in patch) row.publish_comment = patch.publishComment
+  const { error } = await supabase.from('songs').update(row).eq('id', songId)
+  return !error
+}
+
+// 오디오 다운로드 — 원격 mp3를 캐시에 받아 네이티브 공유 시트(파일 저장·다른 앱 전송). 웹 DownloadModal 패리티.
+export async function downloadSong(audioUrl: string, title?: string | null): Promise<boolean> {
+  try {
+    const safe = (title?.trim() || 'MONO').replace(/[^\w가-힣ㄱ-ㅎㅏ-ㅣ\- ]/g, '').slice(0, 60) || 'MONO'
+    const dest = `${FileSystem.cacheDirectory}${safe}.mp3`
+    const { uri } = await FileSystem.downloadAsync(audioUrl, dest)
+    if (await Sharing.isAvailableAsync()) {
+      await Sharing.shareAsync(uri, { mimeType: 'audio/mpeg', dialogTitle: title ?? '노래 저장' })
+    }
+    return true
+  } catch {
+    return false
+  }
 }

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
-import { ActivityIndicator, Alert, Pressable, StyleSheet, Text, TextInput, View } from 'react-native'
+import { ActionSheetIOS, ActivityIndicator, Alert, Platform, Pressable, StyleSheet, Text, TextInput, View } from 'react-native'
 import Animated, { ZoomIn, ZoomOut } from 'react-native-reanimated'
 import { Image } from 'expo-image'
 import type { Comment } from '@mono/shared'
@@ -7,7 +7,10 @@ import { api } from '@/lib/api'
 import { supabase } from '@/lib/supabase'
 import { useSession } from '@/lib/use-session'
 import { Icon } from '@/components/ui/icon'
+import { CommentMoreSheet } from '@/components/ui/comment-more-sheet'
 import { mono } from '@/theme/mono'
+
+type MenuHandlers = { isOwner: boolean; onEdit: () => void; onDelete: () => void; onReport: () => void }
 
 function initial(name: string | null): string {
   return (name?.trim().charAt(0) || '?').toUpperCase()
@@ -23,18 +26,27 @@ function relativeTime(iso: string): string {
   return d < 7 ? `${d}일 전` : `${Math.floor(d / 7)}주 전`
 }
 
-// 곡 댓글 1건 — 아바타·이름·시간·본문·좋아요·답글·삭제. 커뮤니티 post/[id] 패턴, API만 곡용.
-function CommentItem({ comment, myId, isReply, onReply, onDelete, requireLogin }: {
+// 서버 허용 목록과 일치해야 함(comment_reports CHECK) — 불일치 시 400 거부됨
+const REPORT_REASONS = ['욕설·비속어', '음란물', '혐오·차별 표현', '도배', '광고·홍보성 콘텐츠', '개인정보 노출', '저작권 침해', '기타']
+
+// 곡 댓글 1건 — 아바타·이름·시간·본문·좋아요·답글 + ⋯ 더보기(수정/삭제/신고). 인라인 수정.
+function CommentItem({ comment, myId, isReply, onReply, onDelete, onEdited, requireLogin, onOpenMenu }: {
   comment: Comment
   myId?: string
   isReply?: boolean
   onReply?: (c: Comment) => void
   onDelete: (id: string) => void
+  onEdited: (id: string, body: string) => void
   requireLogin: () => boolean
+  onOpenMenu: (h: { isOwner: boolean; onEdit: () => void; onDelete: () => void; onReport: () => void }) => void
 }) {
   const [liked, setLiked] = useState(!!comment.liked)
   const [likeCount, setLikeCount] = useState(comment.likeCount)
   const [busy, setBusy] = useState(false)
+  const [editing, setEditing] = useState(false)
+  const [editText, setEditText] = useState(comment.body)
+  const [editBusy, setEditBusy] = useState(false)
+  const isOwner = comment.userId === myId
   const name = comment.user.displayName ?? comment.user.username ?? '익명'
   const toggleLike = async () => {
     if (busy || !requireLogin()) return
@@ -48,6 +60,22 @@ function CommentItem({ comment, myId, isReply, onReply, onDelete, requireLogin }
       setLiked(!next); setLikeCount((c) => c + (next ? -1 : 1))
     } finally { setBusy(false) }
   }
+  const saveEdit = async () => {
+    const t = editText.trim()
+    if (!t || editBusy) return
+    setEditBusy(true)
+    try { await api.patch(`/api/comments/${comment.id}`, { body: t }); onEdited(comment.id, t); setEditing(false) } catch {} finally { setEditBusy(false) }
+  }
+  const report = () => {
+    if (!requireLogin()) return
+    const run = async (reason: string) => { try { await api.post(`/api/comments/${comment.id}/report`, { reason }); Alert.alert('신고했어요') } catch {} }
+    if (Platform.OS === 'ios') {
+      ActionSheetIOS.showActionSheetWithOptions({ options: [...REPORT_REASONS, '취소'], cancelButtonIndex: REPORT_REASONS.length, title: '신고 사유' }, (i) => { if (i < REPORT_REASONS.length) run(REPORT_REASONS[i]) })
+    } else {
+      Alert.alert('신고 사유', undefined, [...REPORT_REASONS.map((r) => ({ text: r, onPress: () => run(r) })), { text: '취소', style: 'cancel' as const }])
+    }
+  }
+  const openMenu = () => onOpenMenu({ isOwner, onEdit: () => { setEditText(comment.body); setEditing(true) }, onDelete: () => onDelete(comment.id), onReport: report })
   return (
     <View style={[styles.comment, isReply && styles.reply]}>
       <View style={isReply ? styles.rAvatar : styles.cAvatar}>
@@ -60,16 +88,26 @@ function CommentItem({ comment, myId, isReply, onReply, onDelete, requireLogin }
       <View style={styles.flex}>
         <View style={styles.cAuthorRow}>
           <Text style={styles.cAuthor} numberOfLines={1}>{name}</Text>
-          <Text style={styles.cTime}>{relativeTime(comment.createdAt)}</Text>
+          <Text style={styles.cTime}>{relativeTime(comment.createdAt)}{comment.editedAt ? ' (수정됨)' : ''}</Text>
+          <Pressable onPress={openMenu} hitSlop={8} style={styles.cMore}><Icon name="ellipsis" size={16} color={mono.color.textTertiary} /></Pressable>
         </View>
-        <Text style={styles.cBody}>{comment.body}</Text>
+        {editing ? (
+          <View style={styles.editWrap}>
+            <TextInput style={styles.editInput} value={editText} onChangeText={setEditText} multiline autoFocus maxLength={500} />
+            <View style={styles.editBtns}>
+              <Pressable onPress={() => setEditing(false)} hitSlop={6}><Text style={styles.editCancel}>취소</Text></Pressable>
+              <Pressable onPress={saveEdit} disabled={!editText.trim() || editBusy} hitSlop={6}><Text style={[styles.editSave, (!editText.trim() || editBusy) && styles.dim]}>{editBusy ? '저장 중…' : '저장'}</Text></Pressable>
+            </View>
+          </View>
+        ) : (
+          <Text style={styles.cBody}>{comment.body}</Text>
+        )}
         <View style={styles.cActions}>
           <Pressable onPress={toggleLike} hitSlop={6} style={styles.cActBtn}>
             <Icon name={liked ? 'heart.fill' : 'heart'} size={16} color={liked ? mono.color.accentLight : mono.color.textTertiary} />
             {likeCount > 0 ? <Text style={[styles.cActText, liked && styles.cActTextOn]}>{likeCount}</Text> : null}
           </Pressable>
           {!isReply && onReply ? <Pressable onPress={() => onReply(comment)} hitSlop={6}><Text style={styles.cActText}>답글</Text></Pressable> : null}
-          {comment.userId === myId ? <Pressable onPress={() => onDelete(comment.id)} hitSlop={6}><Text style={styles.cDelete}>삭제</Text></Pressable> : null}
         </View>
       </View>
     </View>
@@ -125,6 +163,8 @@ export function useSongComments(songId: string | null, active: boolean) {
       { text: '삭제', style: 'destructive', onPress: async () => { try { await api.del(`/api/comments/${commentId}`) } catch {} ; load() } },
     ])
   }
+  // 수정 로컬 반영(재조회 없이)
+  const patchLocal = (id: string, body: string) => setComments((cs) => cs ? cs.map((c) => c.id === id ? { ...c, body, editedAt: new Date().toISOString() } : c) : cs)
 
   const send = async () => {
     const body = input.trim()
@@ -142,17 +182,19 @@ export function useSongComments(songId: string | null, active: boolean) {
     }
   }
 
-  return { myId, me, comments, input, setInput, replyTo, setReplyTo, busy, send, deleteComment, requireLogin }
+  return { myId, me, comments, input, setInput, replyTo, setReplyTo, busy, send, deleteComment, patchLocal, requireLogin }
 }
 
 export type SongCommentsState = ReturnType<typeof useSongComments>
 
 // 댓글 목록 — 플레이어 스크롤 콘텐츠 안에 렌더
 export function SongCommentList({ state }: { state: SongCommentsState }) {
-  const { comments, myId, requireLogin, deleteComment, setReplyTo } = state
+  const { comments, myId, requireLogin, deleteComment, patchLocal, setReplyTo } = state
+  const [menu, setMenu] = useState<MenuHandlers | null>(null)
   // 서버는 top+답글을 평평하게 반환(created asc) — parentId로 그룹화
   const tops = (comments ?? []).filter((c) => !c.parentId)
   const repliesOf = (id: string) => (comments ?? []).filter((c) => c.parentId === id)
+  const itemProps = { myId, requireLogin, onDelete: deleteComment, onEdited: patchLocal, onOpenMenu: setMenu }
 
   return (
     <View>
@@ -160,12 +202,22 @@ export function SongCommentList({ state }: { state: SongCommentsState }) {
       {comments && tops.length === 0 ? <Text style={styles.empty}>첫 댓글을 남겨보세요</Text> : null}
       {tops.map((c) => (
         <View key={c.id}>
-          <CommentItem comment={c} myId={myId} requireLogin={requireLogin} onDelete={deleteComment} onReply={(t) => setReplyTo({ id: t.id, name: t.user.displayName ?? t.user.username ?? '익명' })} />
+          <CommentItem comment={c} {...itemProps} onReply={(t) => setReplyTo({ id: t.id, name: t.user.displayName ?? t.user.username ?? '익명' })} />
           {repliesOf(c.id).map((r) => (
-            <CommentItem key={r.id} comment={r} isReply myId={myId} requireLogin={requireLogin} onDelete={deleteComment} />
+            <CommentItem key={r.id} comment={r} isReply {...itemProps} />
           ))}
         </View>
       ))}
+      <CommentMoreSheet
+        open={!!menu}
+        onClose={() => setMenu(null)}
+        isOwner={!!menu?.isOwner}
+        canDelete={!!menu?.isOwner}
+        canReport={!menu?.isOwner}
+        onEdit={() => menu?.onEdit()}
+        onDelete={() => menu?.onDelete()}
+        onReport={() => menu?.onReport()}
+      />
     </View>
   )
 }
@@ -225,7 +277,15 @@ const styles = StyleSheet.create({
   cAvatarText: { color: mono.color.onMedia, fontSize: 13, fontWeight: '800' },
   cAuthorRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   cAuthor: { color: mono.color.text, fontSize: mono.font.body, fontWeight: '700', flexShrink: 1 },
-  cTime: { color: mono.color.textTertiary, fontSize: mono.font.small },
+  cTime: { color: mono.color.textTertiary, fontSize: mono.font.small, flexShrink: 1 },
+  cMore: { marginLeft: 'auto', padding: 2 },
+  // 인라인 수정
+  editWrap: { marginTop: 4 },
+  editInput: { color: mono.color.text, fontSize: 16, lineHeight: 22, backgroundColor: mono.color.surface2, borderRadius: mono.radius.md, paddingHorizontal: 12, paddingVertical: 8, minHeight: 44 },
+  editBtns: { flexDirection: 'row', justifyContent: 'flex-end', gap: 16, marginTop: 6 },
+  editCancel: { color: mono.color.textTertiary, fontSize: mono.font.small, fontWeight: '600' },
+  editSave: { color: mono.color.accentLight, fontSize: mono.font.small, fontWeight: '700' },
+  dim: { opacity: 0.5 },
   cBody: { color: mono.color.textSecondary, fontSize: 16, lineHeight: 23, marginTop: 3 },
   cActions: { flexDirection: 'row', alignItems: 'center', gap: 16, marginTop: 8 },
   cActBtn: { flexDirection: 'row', alignItems: 'center', gap: 5 },

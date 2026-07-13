@@ -1,16 +1,18 @@
 import TrackPlayer, { AppKilledPlaybackBehavior, Capability, Event } from 'react-native-track-player'
 import { setNowPlaying, type NowPlaying } from './now-playing'
+import { myDisplayName } from './me'
 
 let ready = false
 // 현재 큐의 곡별 도메인 데이터(가사·좋아요 등) — 활성 트랙 변경 시 now-playing 복원용
 const queueMap = new Map<string, NowPlaying>()
 
-function toTrack(s: NowPlaying) {
+function toTrack(s: NowPlaying, myName: string | null) {
   return {
     id: s.id,
     url: s.audioUrl,
     title: s.title?.trim() || '제목 없음',
-    artist: s.displayName?.trim() || '내 음악',
+    // 공개곡=크리에이터 표시명 / 내 곡=내 표시명(폴백 '내 음악')
+    artist: s.displayName?.trim() || myName || '내 음악',
     artwork: s.coverImage,
     duration: s.duration ?? undefined,
   }
@@ -44,10 +46,11 @@ export async function playSong(song: NowPlaying, queue?: NowPlaying[]) {
   const startIdx = Math.max(0, list.findIndex((s) => s.id === song.id))
   setNowPlaying(song)
   await setupPlayer()
+  const myName = await myDisplayName()
   queueMap.clear()
   list.forEach((s) => queueMap.set(s.id, s))
   await TrackPlayer.reset()
-  await TrackPlayer.add(list.map(toTrack))
+  await TrackPlayer.add(list.map((s) => toTrack(s, myName)))
   if (startIdx > 0) await TrackPlayer.skip(startIdx)
   await TrackPlayer.play()
 }

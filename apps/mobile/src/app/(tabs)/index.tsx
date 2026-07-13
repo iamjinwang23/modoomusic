@@ -5,6 +5,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { router } from 'expo-router'
 import type { PublicSong } from '@mono/shared'
 import { api } from '@/lib/api'
+import { hapticLight } from '@/lib/haptics'
 import { playSong } from '@/lib/player'
 import { useAutoHideHeader } from '@/lib/use-auto-hide-header'
 import { PublicSongRow } from '@/components/ui/public-song-row'
@@ -43,6 +44,7 @@ export default function DiscoverScreen() {
   useEffect(() => { setSongs(null); load(tab) }, [tab, load])
 
   const onRefresh = useCallback(async () => {
+    hapticLight()
     setRefreshing(true); await load(tab); setRefreshing(false)
   }, [load, tab])
 

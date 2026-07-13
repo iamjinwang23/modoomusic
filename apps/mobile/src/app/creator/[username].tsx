@@ -10,7 +10,7 @@ import { playSong } from '@/lib/player'
 import { ProfileGrid, CoverScrim, formatCount } from '@/components/ui/profile-grid'
 import { CollapsingHeader, HEADER_ROW } from '@/components/ui/collapsing-header'
 import { Icon } from '@/components/ui/icon'
-import { GlassIconButton } from '@/components/ui/glass-button'
+import { GlassIconButton, GlassPill } from '@/components/ui/glass-button'
 import { mono } from '@/theme/mono'
 
 // 크리에이터 프로필 — 웹 파리티: 커버(아바타·이름 오버레이) + 팔로우 + 스탯 + 세로 그리드.
@@ -111,16 +111,11 @@ export default function CreatorScreen() {
           {/* 뒤로가기 (좌상단) — 글래스 딤 */}
           <GlassIconButton name="arrow.left" size={40} iconSize={22} onPress={() => router.back()} style={[styles.back, { top: insets.top + 12 }]} hitSlop={10} />
 
-          {/* 팔로우 (우상단) */}
-          <Pressable
-            onPress={toggleFollow}
-            disabled={followBusy}
-            style={[styles.followPill, { top: insets.top + 12 }, following && styles.followingPill, followBusy && styles.dim]}
-            hitSlop={8}
-          >
+          {/* 팔로우 (우상단) — 글래스 */}
+          <GlassPill onPress={toggleFollow} disabled={followBusy} style={[styles.followPill, { top: insets.top + 12 }, followBusy && styles.dim]}>
             <Icon name={following ? 'following' : 'follow'} size={15} color={mono.color.onMedia} />
             <Text style={styles.followText}>{following ? '팔로잉' : '팔로우'}</Text>
-          </Pressable>
+          </GlassPill>
 
           {/* 좌하단 아바타 + 이름 */}
           <View style={styles.identity}>
@@ -165,12 +160,7 @@ const styles = StyleSheet.create({
   cover: { width: '100%', aspectRatio: 16 / 9, backgroundColor: mono.color.surface2, overflow: 'hidden' },
   coverFallback: { backgroundColor: mono.color.surface },
   back: { position: 'absolute', left: 20 },
-  followPill: {
-    position: 'absolute', right: 20, paddingHorizontal: 16, height: 40, borderRadius: 20,
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6,
-    backgroundColor: mono.color.overlay,
-  },
-  followingPill: { backgroundColor: 'rgba(0,0,0,0.55)' },
+  followPill: { position: 'absolute', right: 20 },
   dim: { opacity: 0.5 },
   followText: { color: mono.color.onMedia, fontSize: mono.font.small, fontWeight: '700' },
   // 스크롤 헤더 내 뒤로가기·팔로우

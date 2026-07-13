@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { ActionSheetIOS, Alert, KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, StyleSheet, Text, useWindowDimensions, View } from 'react-native'
 import { Gesture, GestureDetector, GestureHandlerRootView } from 'react-native-gesture-handler'
-import Animated, { Extrapolation, interpolate, useAnimatedScrollHandler, useAnimatedStyle, useSharedValue, type SharedValue } from 'react-native-reanimated'
+import Animated, { Extrapolation, interpolate, runOnJS, useAnimatedScrollHandler, useAnimatedStyle, useSharedValue, withTiming, type SharedValue } from 'react-native-reanimated'
 import { BlurView } from 'expo-blur'
 import { requireOptionalNativeModule } from 'expo-modules-core'
 import Svg, { Circle, Defs, G, Path, Mask, LinearGradient as SvgGradient, Stop, Rect } from 'react-native-svg'
@@ -13,8 +13,13 @@ import { useVideoPlayer, VideoView } from 'expo-video'
 import TrackPlayer, { State, useActiveTrack, usePlaybackState, useProgress } from 'react-native-track-player'
 import type { Song, UserProfile } from '@mono/shared'
 import { api } from '@/lib/api'
-import { useNowPlaying } from '@/lib/now-playing'
-import { setSongPublished, shareSong } from '@/lib/song-actions'
+import { getNowPlaying, setNowPlaying, useNowPlaying } from '@/lib/now-playing'
+import { supabase } from '@/lib/supabase'
+import { primeMyDisplayName } from '@/lib/me'
+import { deleteSong, downloadSong, setSongPublished, shareSong } from '@/lib/song-actions'
+import { isCollected, toggleCollected } from '@/lib/collection'
+import { SongMoreSheet } from '@/components/ui/song-more-sheet'
+import { SongEditModal } from '@/components/ui/song-edit-modal'
 import { Icon } from '@/components/ui/icon'
 import { SongCommentComposer, SongCommentList, useSongComments } from '@/components/ui/song-comments'
 import { Marquee } from '@/components/ui/marquee'
@@ -120,7 +125,7 @@ function PlayButton({ playing, onPress, size = 72 }: { playing: boolean; onPress
 // 전체 플레이어(now-playing) — 미니플레이어에서 확장. 커버/제목/진행바/재생 컨트롤.
 export default function PlayerScreen() {
   const insets = useSafeAreaInsets()
-  const { width: screenW } = useWindowDimensions()
+  const { width: screenW, height: screenH } = useWindowDimensions()
   const track = useActiveTrack()
   const song = useNowPlaying()
   const playback = usePlaybackState()
@@ -133,9 +138,11 @@ export default function PlayerScreen() {
   // 곡 통계(재생·좋아요·댓글 수) + 스타일 — 웹 파리티. 플레이어 진입 시 상세 조회.
   const [meta, setMeta] = useState<{ playCount: number; likeCount: number; commentCount: number } | null>(null)
   const [songStyle, setSongStyle] = useState<string | null>(null)
+  // 수정 모달 원본(제목·가사·공개코멘트) — 상세 fetch로 채움
+  const [editData, setEditData] = useState<{ id: string; title: string | null; lyrics: string | null; publishComment: string | null } | null>(null)
 
   useEffect(() => {
-    if (!song?.id) { setMeta(null); setSongStyle(null); return }
+    if (!song?.id) { setMeta(null); setSongStyle(null); setEditData(null); return }
     let active = true
     api.get(`/api/songs/${song.id}`).then((j) => {
       if (!active) return
@@ -143,6 +150,7 @@ export default function PlayerScreen() {
       if (!s) return
       setMeta({ playCount: s.playCount ?? 0, likeCount: s.likeCount ?? 0, commentCount: s.commentCount ?? 0 })
       setSongStyle(s.prompt?.trim() || [s.genre, s.mood].filter(Boolean).join(', ') || null)
+      setEditData({ id: s.id, title: s.title ?? null, lyrics: s.lyrics ?? null, publishComment: s.publishComment ?? null })
       // liked/published는 여기서 덮어쓰지 않음 — 사용자가 그 사이 토글하면 되돌려지는 race 방지.
     }).catch(() => {})
     return () => { active = false }
@@ -172,6 +180,24 @@ export default function PlayerScreen() {
     return () => { active = false }
   }, [song?.username])
 
+  // 내 곡(본인)일 때 내 프로필 — "내 음악" 대신 아바타+이름 노출
+  const [myProfile, setMyProfile] = useState<{ username: string; displayName: string; avatarImage: string | null; avatarHue: number } | null>(null)
+  useEffect(() => {
+    let active = true
+    ;(async () => {
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!active || !user) { setMyProfile(null); return }
+      const { data } = await supabase.from('profiles').select('username, display_name, avatar_url, avatar_hue').eq('id', user.id).maybeSingle()
+      const p = data as { username?: string; display_name?: string | null; avatar_url?: string | null; avatar_hue?: number | null } | null
+      if (active && p?.username) {
+        const dn = p.display_name || p.username
+        setMyProfile({ username: p.username, displayName: dn, avatarImage: p.avatar_url ?? null, avatarHue: p.avatar_hue ?? 250 })
+        primeMyDisplayName(dn)
+      }
+    })()
+    return () => { active = false }
+  }, [])
+
   const toggleFollow = async () => {
     if (!owner || followBusy) return
     const next = !following
@@ -187,8 +213,20 @@ export default function PlayerScreen() {
   }
   // 웹 파리티: 댓글은 공개 곡만 (내 곡=published, 둘러보기 곡=username 존재)
   const canComment = !!song && (song.published || !!song.username)
-  // 댓글은 우측 레일 → 바텀시트 모달
+  // 댓글은 우측 레일 → 바텀시트 모달. 딤 페이드 + 시트 슬라이드업(분리, AI가사 모달 패턴)
   const [commentsOpen, setCommentsOpen] = useState(false)
+  const [commentsMounted, setCommentsMounted] = useState(false)
+  const sheetAnim = useSharedValue(0)
+  useEffect(() => {
+    if (commentsOpen) {
+      setCommentsMounted(true)
+      sheetAnim.value = withTiming(1, { duration: 240 })
+    } else if (commentsMounted) {
+      sheetAnim.value = withTiming(0, { duration: 200 }, (f) => { if (f) runOnJS(setCommentsMounted)(false) })
+    }
+  }, [commentsOpen]) // eslint-disable-line react-hooks/exhaustive-deps
+  const sheetDimStyle = useAnimatedStyle(() => ({ opacity: sheetAnim.value }))
+  const sheetSlideStyle = useAnimatedStyle(() => ({ transform: [{ translateY: interpolate(sheetAnim.value, [0, 1], [screenH * 0.82, 0]) }] }))
   const commentsState = useSongComments(song?.id ?? null, canComment && commentsOpen)
   // 컴팩트 헤더 페이드 기준 — 제목(info) 블록의 콘텐츠 내 y를 onLayout으로 측정
   const [infoY, setInfoY] = useState(420)
@@ -219,7 +257,9 @@ export default function PlayerScreen() {
   const videoUrl = song?.videoCoverStatus === 'done' ? song.videoCoverUrl ?? null : null
   const videoPlayer = useVideoPlayer(videoUrl, (p) => { p.loop = true; p.muted = true; if (videoUrl) p.play() })
   // 라이브러리(내) 곡만 영상 만들기 노출(공개곡은 username 있음)
-  const isOwn = song ? !song.username : false
+  // 내 곡 = username 없음(라이브러리) 또는 공개곡인데 내 username과 일치
+  const isMine = !!song && (!song.username || song.username === myProfile?.username)
+  const isOwn = isMine
 
   const toggleLike = async () => {
     if (!song || likeBusy) return
@@ -247,28 +287,27 @@ export default function PlayerScreen() {
     setPubBusy(false)
   }
 
-  // 더보기(⋮) — 웹 SongMoreMenu 파리티. 본인: 공개토글·영상 만들기 / 타인: 신고
-  const openMore = () => {
-    if (!song) return
-    const opts: string[] = []; const acts: Array<() => void> = []
-    if (isOwn) {
-      opts.push(published ? '비공개로 전환' : '공개하기'); acts.push(togglePublish)
-      opts.push('영상 만들기'); acts.push(() => router.push(`/video-create?songId=${song.id}`))
-    } else {
-      opts.push('신고'); acts.push(() => reportSong())
-    }
-    if (Platform.OS === 'ios') {
-      ActionSheetIOS.showActionSheetWithOptions(
-        { options: [...opts, '취소'], cancelButtonIndex: opts.length },
-        (i) => { if (i < acts.length) acts[i]() },
-      )
-    } else {
-      Alert.alert('곡', undefined, [...opts.map((o, i) => ({ text: o, onPress: acts[i] })), { text: '취소', style: 'cancel' as const }])
-    }
-  }
+  // 더보기(⋮) 바텀시트 + 수정 모달 + 컬렉션 상태
+  const [moreOpen, setMoreOpen] = useState(false)
+  const [editOpen, setEditOpen] = useState(false)
+  const [collected, setCollected] = useState(false)
+  useEffect(() => { if (song?.id) isCollected(song.id).then(setCollected); else setCollected(false) }, [song?.id])
 
-  const REPORT_REASONS = ['음란·선정적', '폭력·혐오', '저작권 침해', '스팸·광고', '기타']
-  const reportSong = () => {
+  const onCollect = async () => { if (song) setCollected(await toggleCollected(song.id)) }
+  const onDownload = async () => {
+    if (!song?.audioUrl) return
+    const ok = await downloadSong(song.audioUrl, song.title)
+    if (!ok) Alert.alert('다운로드에 실패했어요')
+  }
+  const onDelete = () => {
+    if (!song) return
+    Alert.alert('곡을 삭제할까요?', song.title?.trim() || '제목 없음', [
+      { text: '취소', style: 'cancel' },
+      { text: '삭제', style: 'destructive', onPress: async () => { const ok = await deleteSong(song.id); if (ok) router.back() } },
+    ])
+  }
+  const REPORT_REASONS = ['욕설·비속어', '음란물', '혐오·차별 표현', '도배', '광고·홍보성 콘텐츠', '개인정보 노출', '저작권 침해', '기타']
+  const onReport = () => {
     if (!song) return
     const run = async (reason: string) => { try { await api.post(`/api/songs/${song.id}/report`, { reason }); Alert.alert('신고했어요') } catch {} }
     if (Platform.OS === 'ios') {
@@ -371,13 +410,26 @@ export default function PlayerScreen() {
                 </View>
                 <Text style={styles.ownerName} numberOfLines={1}>{artist}</Text>
               </Pressable>
-              {owner ? (
+              {owner && !isMine ? (
                 <Pressable onPress={toggleFollow} disabled={followBusy} style={[styles.followBtn, followBusy && styles.dim]} hitSlop={6}>
                   <Icon name={following ? 'following' : 'follow'} size={14} color={mono.color.text} />
                   <Text style={styles.followText}>{following ? '팔로잉' : '팔로우'}</Text>
                 </Pressable>
               ) : null}
             </View>
+          ) : isOwn && myProfile ? (
+            <Pressable style={styles.ownerLeft} onPress={() => { router.back(); router.push(`/creator/${myProfile.username}`) }} hitSlop={6}>
+              <View style={styles.ownerAvatar}>
+                {myProfile.avatarImage ? (
+                  <Image source={{ uri: myProfile.avatarImage }} style={styles.ownerAvatarImg} contentFit="cover" />
+                ) : (
+                  <View style={[styles.ownerAvatarImg, styles.ownerAvatarFallback, { backgroundColor: `hsl(${myProfile.avatarHue}, 40%, 40%)` }]}>
+                    <Text style={styles.ownerAvatarInitial}>{(myProfile.displayName.trim().charAt(0) || '?').toUpperCase()}</Text>
+                  </View>
+                )}
+              </View>
+              <Text style={styles.ownerName} numberOfLines={1}>{myProfile.displayName}</Text>
+            </Pressable>
           ) : (
             <Text style={styles.artist} numberOfLines={1}>{artist}</Text>
           )}
@@ -401,7 +453,7 @@ export default function PlayerScreen() {
               <GlassIconButton name="square.and.arrow.up" size={48} iconSize={21} onPress={() => shareSong(song.id, song.title)} />
               <Text style={styles.railCount}>공유</Text>
             </View>
-            <GlassIconButton name="ellipsis" size={48} iconSize={21} onPress={openMore} />
+            <GlassIconButton name="ellipsis" size={48} iconSize={21} onPress={() => setMoreOpen(true)} />
           </View>
         ) : null}
       </View>
@@ -452,12 +504,14 @@ export default function PlayerScreen() {
     {/* 내리기 버튼 — 좌상단, 슬림 헤더의 왼쪽 요소와 정렬(항상 보임) */}
     <GlassIconButton name="chevron.down" iconSize={22} onPress={() => router.back()} style={[styles.downBtn, { top: topInset + 10 }]} />
 
-    {/* 댓글 — 아래서 올라오는 바텀시트 모달 */}
-    <Modal visible={commentsOpen} animationType="slide" transparent onRequestClose={() => setCommentsOpen(false)}>
-      <View style={styles.sheetBackdrop}>
-        <Pressable style={StyleSheet.absoluteFill} onPress={() => setCommentsOpen(false)} />
+    {/* 댓글 — 딤 페이드 + 시트 슬라이드업(분리, AI가사 모달 패턴) */}
+    <Modal visible={commentsMounted} transparent animationType="none" onRequestClose={() => setCommentsOpen(false)}>
+      <View style={styles.sheetRoot}>
+        <Animated.View style={[StyleSheet.absoluteFill, styles.sheetDim, sheetDimStyle]}>
+          <Pressable style={StyleSheet.absoluteFill} onPress={() => setCommentsOpen(false)} />
+        </Animated.View>
         <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={styles.sheetKav}>
-          <View style={[styles.sheet, { paddingBottom: insets.bottom + 8 }]}>
+          <Animated.View style={[styles.sheet, sheetSlideStyle, { paddingBottom: insets.bottom + 8 }]}>
             <View style={styles.sheetHandle} />
             <View style={styles.sheetHead}>
               <Text style={styles.sheetTitle}>댓글 {formatCount(meta?.commentCount ?? 0)}</Text>
@@ -467,10 +521,38 @@ export default function PlayerScreen() {
               <SongCommentList state={commentsState} />
             </ScrollView>
             <SongCommentComposer state={commentsState} />
-          </View>
+          </Animated.View>
         </KeyboardAvoidingView>
       </View>
     </Modal>
+
+    {/* 더보기(⋮) 바텀시트 — 웹 SongMoreMenu 파리티 */}
+    <SongMoreSheet
+      open={moreOpen}
+      onClose={() => setMoreOpen(false)}
+      isOwner={isOwn}
+      published={published}
+      collected={collected}
+      onCollect={onCollect}
+      onPublishToggle={togglePublish}
+      onDownload={onDownload}
+      onVideoCover={() => song && router.push(`/video-create?songId=${song.id}`)}
+      onEdit={() => setEditOpen(true)}
+      onDelete={onDelete}
+      onReport={onReport}
+    />
+
+    {/* 곡 수정 모달 */}
+    <SongEditModal
+      open={editOpen}
+      onClose={() => setEditOpen(false)}
+      song={editData}
+      onSaved={(p) => {
+        setEditData((d) => d ? { ...d, ...p } : d)
+        const cur = getNowPlaying()
+        if (cur && cur.id === editData?.id) setNowPlaying({ ...cur, title: p.title, lyrics: p.lyrics })
+      }}
+    />
     </GestureHandlerRootView>
   )
 }
@@ -571,7 +653,8 @@ const styles = StyleSheet.create({
   sectionBody: { color: mono.color.textSecondary, fontSize: mono.font.body, lineHeight: 24 },
   lyrics: { color: mono.color.textSecondary, fontSize: mono.font.body, lineHeight: 26 },
   // 댓글 바텀시트 모달
-  sheetBackdrop: { flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(0,0,0,0.5)' },
+  sheetRoot: { flex: 1, justifyContent: 'flex-end' },
+  sheetDim: { backgroundColor: 'rgba(0,0,0,0.5)' },
   sheetKav: { justifyContent: 'flex-end' },
   sheet: {
     height: '78%', backgroundColor: mono.color.surface,

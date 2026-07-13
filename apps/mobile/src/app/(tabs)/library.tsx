@@ -1,10 +1,11 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { ActionSheetIOS, ActivityIndicator, Alert, Platform, Pressable, RefreshControl, StyleSheet, Text, View } from 'react-native'
+import { ActivityIndicator, Alert, Pressable, RefreshControl, StyleSheet, Text, View } from 'react-native'
 import Animated from 'react-native-reanimated'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { router, useFocusEffect } from 'expo-router'
 import type { Song } from '@mono/shared'
 import { api } from '@/lib/api'
+import { hapticLight } from '@/lib/haptics'
 import { subscribeSongUpdates } from '@/lib/generate'
 import { useSession } from '@/lib/use-session'
 import { useAutoHideHeader } from '@/lib/use-auto-hide-header'
@@ -12,7 +13,10 @@ import { SongRow } from '@/components/ui/song-row'
 import { Icon } from '@/components/ui/icon'
 import { NotificationBell } from '@/components/ui/notification-bell'
 import { playSong } from '@/lib/player'
-import { deleteSong, setSongPublished, shareSong } from '@/lib/song-actions'
+import { deleteSong, downloadSong, setSongPublished } from '@/lib/song-actions'
+import { isCollected, toggleCollected } from '@/lib/collection'
+import { SongMoreSheet } from '@/components/ui/song-more-sheet'
+import { SongEditModal } from '@/components/ui/song-edit-modal'
 import { mono } from '@/theme/mono'
 
 type Filter = 'all' | 'liked' | 'published'
@@ -60,34 +64,24 @@ export default function LibraryScreen() {
   }, [session?.user?.id, load])
 
   const onRefresh = useCallback(async () => {
+    hapticLight()
     setRefreshing(true); await load(); setRefreshing(false)
   }, [load])
 
-  // 곡 액션 시트 — 공유 / 공개토글 / 삭제. iOS 네이티브 시트, 그 외 Alert 폴백.
+  // 곡 더보기 — 바텀시트 모달(플레이어와 동일). 시트 닫힘(300ms) 후 액션이 실행돼 ref로 곡 유지.
+  const [moreSong, setMoreSong] = useState<Song | null>(null)
+  const [editSong, setEditSong] = useState<Song | null>(null)
+  const [moreCollected, setMoreCollected] = useState(false)
+  const moreRef = useRef<Song | null>(null)
+  useEffect(() => { if (moreSong) isCollected(moreSong.id).then(setMoreCollected) }, [moreSong])
+
+  const openMenu = useCallback((song: Song) => { moreRef.current = song; setMoreSong(song) }, [])
   const confirmDelete = useCallback((song: Song) => {
     Alert.alert('곡을 삭제할까요?', song.title?.trim() || '제목 없음', [
       { text: '취소', style: 'cancel' },
       { text: '삭제', style: 'destructive', onPress: async () => { await deleteSong(song.id); load() } },
     ])
   }, [load])
-
-  const openMenu = useCallback((song: Song) => {
-    const pub = song.published
-    const doPublish = async () => { await setSongPublished(song.id, !pub); load() }
-    if (Platform.OS === 'ios') {
-      ActionSheetIOS.showActionSheetWithOptions(
-        { options: ['공유', pub ? '비공개로 전환' : '공개하기', '삭제', '취소'], destructiveButtonIndex: 2, cancelButtonIndex: 3, title: song.title?.trim() || '제목 없음' },
-        (i) => { if (i === 0) shareSong(song.id, song.title); else if (i === 1) doPublish(); else if (i === 2) confirmDelete(song) },
-      )
-    } else {
-      Alert.alert(song.title?.trim() || '제목 없음', undefined, [
-        { text: '공유', onPress: () => shareSong(song.id, song.title) },
-        { text: pub ? '비공개로 전환' : '공개하기', onPress: doPublish },
-        { text: '삭제', style: 'destructive', onPress: () => confirmDelete(song) },
-        { text: '취소', style: 'cancel' },
-      ])
-    }
-  }, [load, confirmDelete])
 
   const generating = (songs ?? []).some((s) => s.status === 'generating')
   const filtered = (songs ?? []).filter((s) => {
@@ -144,6 +138,28 @@ export default function LibraryScreen() {
           </Pressable>
         </View>
       </View>
+
+      {/* 곡 더보기 바텀시트 (내 곡 = 소유자 메뉴) */}
+      <SongMoreSheet
+        open={!!moreSong}
+        onClose={() => setMoreSong(null)}
+        isOwner
+        published={!!moreSong?.published}
+        collected={moreCollected}
+        onCollect={async () => { const s = moreRef.current; if (s) setMoreCollected(await toggleCollected(s.id)) }}
+        onPublishToggle={async () => { const s = moreRef.current; if (s) { await setSongPublished(s.id, !s.published); load() } }}
+        onDownload={async () => { const s = moreRef.current; if (s?.audioUrl && !(await downloadSong(s.audioUrl, s.title))) Alert.alert('다운로드에 실패했어요') }}
+        onVideoCover={() => { const s = moreRef.current; if (s) router.push(`/video-create?songId=${s.id}`) }}
+        onEdit={() => setEditSong(moreRef.current)}
+        onDelete={() => { const s = moreRef.current; if (s) confirmDelete(s) }}
+        onReport={() => {}}
+      />
+      <SongEditModal
+        open={!!editSong}
+        onClose={() => setEditSong(null)}
+        song={editSong ? { id: editSong.id, title: editSong.title, lyrics: editSong.lyrics ?? null, publishComment: editSong.publishComment ?? null } : null}
+        onSaved={() => load()}
+      />
     </View>
   )
 }
