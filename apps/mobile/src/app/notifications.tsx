@@ -42,15 +42,21 @@ function timeAgo(iso: string): string {
   return d < 7 ? `${d}일 전` : `${Math.floor(d / 7)}주 전`
 }
 
+// 웹 NotificationItem 파리티 — 곡 제목을 문장에 녹여 한 줄로(별도 서브라인 없이 정렬 균일화).
 function message(n: Notification): string {
   const who = n.actorName ?? '누군가'
+  const title = n.songTitle ?? '곡'
+  const kind = (n.payload as { kind?: string })?.kind
   switch (n.type) {
-    case 'like': return `${who}님이 회원님의 곡을 좋아해요`
-    case 'comment': return `${who}님이 곡에 댓글을 남겼어요`
+    case 'like': return `${who}님이 '${title}'을 좋아해요`
+    case 'comment': return kind === 'reply' ? `${who}님이 내 댓글에 답글을 남겼어요` : `${who}님이 '${title}'에 댓글을 남겼어요`
     case 'follow': return `${who}님이 회원님을 팔로우해요`
-    case 'song_complete': return '곡이 완성됐어요'
-    case 'community_like': return `${who}님이 게시글을 좋아해요`
-    case 'community_comment': return `${who}님이 게시글에 댓글을 남겼어요`
+    case 'song_complete':
+      if (kind === 'video_cover') return `'${title}'의 영상이 완성됐어요`
+      if (kind === 'video_cover_failed') return `'${title}'의 영상 생성에 실패했어요 (크레딧 환불)`
+      return `'${title}' 생성이 완성됐어요`
+    case 'community_like': return `${who}님이 회원님의 글을 좋아해요`
+    case 'community_comment': return kind === 'reply' ? `${who}님이 회원님의 댓글에 답글을 남겼어요` : `${who}님이 회원님의 글에 댓글을 남겼어요`
     case 'community_closing': return '가입한 커뮤니티가 곧 닫혀요'
     case 'community_join_request':
     case 'community_join_approved':
@@ -161,9 +167,9 @@ export default function NotificationsScreen() {
               <Visual n={item} />
               <View style={styles.body}>
                 <Text style={styles.msg} numberOfLines={2}>{message(item)}</Text>
-                {item.songTitle ? <Text style={styles.sub} numberOfLines={1}>{item.songTitle}</Text> : null}
                 <Text style={styles.time}>{timeAgo(item.createdAt)}</Text>
               </View>
+              {!item.readAt && <View style={styles.dot} />}
             </Pressable>
           )}
           ListEmptyComponent={<Text style={styles.empty}>{error ? `불러오지 못했어요 (${error})` : '아직 알림이 없어요'}</Text>}
@@ -189,11 +195,13 @@ const styles = StyleSheet.create({
   tabTextOn: { color: mono.color.bg, fontWeight: '700' },
   empty: { color: mono.color.textSecondary, fontSize: mono.font.body, textAlign: 'center', marginTop: 48 },
   // 행 — 풀블리드, 하단 헤어라인 구분선. 미읽음=연한 바이올렛 틴트(박스 아님).
+  // 비주얼·본문을 세로 중앙 정렬해 1~2줄 어느 쪽이든 균일하게 보이게(정렬 균일화).
   row: {
-    flexDirection: 'row', alignItems: 'flex-start', gap: 12, paddingVertical: 14, paddingHorizontal: 20,
+    flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 14, paddingHorizontal: 20,
     borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: mono.color.borderSoft,
   },
   unread: { backgroundColor: 'rgba(124,58,237,0.08)' },
+  dot: { width: 7, height: 7, borderRadius: 3.5, backgroundColor: '#ef4444', marginLeft: 4 },
   // 원형 아바타 / 아이콘
   avatarCircle: { width: 44, height: 44, borderRadius: 22, overflow: 'hidden', backgroundColor: mono.color.surface2, alignItems: 'center', justifyContent: 'center' },
   iconCircle: { width: 44, height: 44, borderRadius: 22, backgroundColor: 'rgba(124,58,237,0.2)', alignItems: 'center', justifyContent: 'center' },
@@ -202,8 +210,7 @@ const styles = StyleSheet.create({
   coverSquare: { width: 44, height: 44, borderRadius: mono.radius.sm, overflow: 'hidden', alignItems: 'center', justifyContent: 'center' },
   squareRing: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, borderRadius: mono.radius.sm, borderWidth: StyleSheet.hairlineWidth, borderColor: 'rgba(255,255,255,0.08)' },
   thumbIcon: { color: mono.color.textTertiary, fontSize: 18 },
-  body: { flex: 1, gap: 2 },
+  body: { flex: 1, gap: 3 },
   msg: { color: mono.color.text, fontSize: mono.font.body, lineHeight: 20 },
-  sub: { color: mono.color.textSecondary, fontSize: mono.font.small },
-  time: { color: mono.color.textTertiary, fontSize: mono.font.tiny, marginTop: 2 },
+  time: { color: mono.color.textTertiary, fontSize: mono.font.tiny },
 })

@@ -52,7 +52,7 @@ export default function ProfileEditScreen() {
           </Pressable>
         </View>
 
-        <Text style={styles.label}>표시명</Text>
+        <Text style={styles.label}>닉네임</Text>
         <TextInput
           style={styles.input}
           placeholder="이름"

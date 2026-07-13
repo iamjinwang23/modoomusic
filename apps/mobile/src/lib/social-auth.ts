@@ -11,6 +11,26 @@ export const oauthRedirectTo = AuthSession.makeRedirectUri({ scheme: 'mono', pat
 
 export type SocialProvider = 'google' | 'kakao' | 'apple'
 
+const WEB_BASE = process.env.EXPO_PUBLIC_API_BASE_URL ?? 'https://www.modoonorae.com'
+
+// 네이버 — Supabase 미지원이라 서버 커스텀 플로우(/api/auth/naver) 사용.
+// 앱이면 서버 콜백이 mono://auth/callback?token_hash=... 로 돌려주고, 그 token_hash를 verifyOtp로 세션 교환.
+export async function signInWithNaver(): Promise<{ error?: string }> {
+  const res = await WebBrowser.openAuthSessionAsync(`${WEB_BASE}/api/auth/naver?platform=app`, oauthRedirectTo)
+  if (res.type !== 'success' || !res.url) {
+    return { error: res.type === 'cancel' || res.type === 'dismiss' ? 'cancelled' : 'failed' }
+  }
+  const url = new URL(res.url)
+  const err = url.searchParams.get('error')
+  if (err) return { error: err }
+  const tokenHash = url.searchParams.get('token_hash')
+  if (tokenHash && url.searchParams.get('type') === 'magiclink') {
+    const { error } = await supabase.auth.verifyOtp({ token_hash: tokenHash, type: 'magiclink' })
+    return error ? { error: error.message } : {}
+  }
+  return { error: 'no_token' }
+}
+
 // Supabase OAuth(PKCE) — 인증 URL을 인앱 브라우저로 열고, 복귀 URL의 code를 세션으로 교환.
 export async function signInWithProvider(provider: SocialProvider): Promise<{ error?: string }> {
   const { data, error } = await supabase.auth.signInWithOAuth({

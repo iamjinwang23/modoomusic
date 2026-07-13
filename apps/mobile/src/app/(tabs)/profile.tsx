@@ -86,7 +86,7 @@ export default function ProfileTab() {
           {/* 우상단 액션 — 프로필 수정 · 알림 · 설정 */}
           <View style={[styles.topActions, { top: insets.top + 12 }]}>
             <GlassPill onPress={() => router.push('/profile-edit')}>
-              <Text style={styles.editText}>프로필 수정</Text>
+              <Text style={styles.editText}>프로필 편집</Text>
             </GlassPill>
             <GlassIconButton size={40} onPress={() => router.push('/notifications')} hitSlop={8}>
               <NotificationBell size={18} color={mono.color.onMedia} />

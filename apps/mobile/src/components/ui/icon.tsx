@@ -35,6 +35,9 @@ import EditSvg from '@/assets/mingcute/Edit.svg'
 import Delete2 from '@/assets/mingcute/Delete-2.svg'
 import Collection from '@/assets/mingcute/Collection.svg'
 import Flag from '@/assets/mingcute/Flag.svg'
+import Document from '@/assets/mingcute/Document.svg'
+import Question from '@/assets/mingcute/Question.svg'
+import ExternalLink from '@/assets/mingcute/External-Link.svg'
 
 // 앱 아이콘 이름 → MingCute 컴포넌트. (좋아요=Thumb-Up 썸즈업, 웹과 동일)
 const MAP = {
@@ -74,6 +77,9 @@ const MAP = {
   trash: Delete2,                // 삭제(웹 Delete-2)
   collection: Collection,        // 컬렉션(웹 Collection=Bookmark)
   flag: Flag,                    // 신고(웹 Flag)
+  document: Document,            // 약관·정책 문서(웹 terms.svg=Document)
+  question: Question,            // 도움말·FAQ(웹 Question)
+  'external.link': ExternalLink, // 외부(웹 브라우저) 링크 표시
 } as const
 
 export type IconName = keyof typeof MAP
