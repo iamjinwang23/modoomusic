@@ -48,7 +48,7 @@ export function SongRow({ song, onPress, onMore }: { song: Song; onPress?: () =>
           {song.model === 'music-2.6' ? <Text style={styles.modelBadge}>v2.6</Text> : null}
         </View>
         <Text style={styles.sub} numberOfLines={1}>
-          {generating ? '생성 중…' : [song.genre, song.mood].filter(Boolean).join(' · ') || '내 음악'}
+          {generating ? '생성 중…' : [song.genre, song.mood].filter(Boolean).join(' · ') || song.prompt?.trim() || '스타일 미지정'}
         </Text>
         {!generating ? (
           <View style={styles.stats}>

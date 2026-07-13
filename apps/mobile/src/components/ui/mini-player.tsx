@@ -39,12 +39,15 @@ export function MiniPlayer() {
         <View style={styles.cover}>
           {track.artwork ? <Image source={{ uri: String(track.artwork) }} style={styles.coverImg} contentFit="cover" /> : null}
         </View>
-        <Text style={styles.title} numberOfLines={1}>{track.title ?? '재생 중'}</Text>
+        <View style={styles.meta}>
+          <Text style={styles.title} numberOfLines={1}>{track.title ?? '재생 중'}</Text>
+          {track.artist ? <Text style={styles.artist} numberOfLines={1}>{String(track.artist)}</Text> : null}
+        </View>
         <Pressable onPress={toggle} style={styles.btn} hitSlop={10}>
           <Icon name={playing ? 'pause.fill' : 'play.fill'} size={20} color={mono.color.text} />
         </Pressable>
       </View>
-      {/* 진행바 — 하단 네비와 미니바 사이(바 하단 가장자리) */}
+      {/* 진행바 — 표시용(미니바는 시크 생략) */}
       <View style={styles.progressTrack}>
         <View style={[styles.progressFill, { width: `${pct * 100}%` }]} />
       </View>
@@ -66,7 +69,9 @@ const styles = StyleSheet.create({
   // 커버 = 세로(3:4) — 브랜드 정체성(웹 파리티)
   cover: { width: 36, aspectRatio: 3 / 4, borderRadius: 6, backgroundColor: mono.color.surface, overflow: 'hidden' },
   coverImg: { width: '100%', height: '100%' },
-  title: { flex: 1, color: mono.color.text, fontSize: mono.font.body, fontWeight: '600' },
+  meta: { flex: 1, minWidth: 0 },
+  title: { color: mono.color.text, fontSize: mono.font.body, fontWeight: '600' },
+  artist: { color: mono.color.textSecondary, fontSize: mono.font.tiny, marginTop: 3 },
   btn: { width: 40, height: 40, alignItems: 'center', justifyContent: 'center' },
   progressTrack: { height: 2.5, backgroundColor: mono.color.fillStrong },
   progressFill: { height: '100%', backgroundColor: mono.color.accent },

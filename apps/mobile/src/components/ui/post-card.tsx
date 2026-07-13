@@ -3,10 +3,12 @@ import { ActionSheetIOS, Alert, Platform, Pressable, StyleSheet, Text, View } fr
 import { Image } from 'expo-image'
 import { router } from 'expo-router'
 import * as WebBrowser from 'expo-web-browser'
+import TrackPlayer, { State, useActiveTrack, usePlaybackState } from 'react-native-track-player'
 import type { CommunityPost, CommunityPoll } from '@mono/shared'
 import { api } from '@/lib/api'
 import { useSession } from '@/lib/use-session'
 import { setSelectedPost } from '@/lib/selected-post'
+import { playSong } from '@/lib/player'
 import { Icon } from '@/components/ui/icon'
 import { mono } from '@/theme/mono'
 
@@ -62,6 +64,11 @@ export function PostCard({ post, managerId, canInteract = true, onPress, onAutho
   const [poll, setPoll] = useState<CommunityPoll | null>(post.poll ?? null)
   const [pollBusy, setPollBusy] = useState(false)
   const [og, setOg] = useState<{ image?: string; title?: string } | null>(null)
+  // 임베드 곡 재생 상태 — 현재 이 곡이 재생 중이면 pause 아이콘
+  const activeTrack = useActiveTrack()
+  const playback = usePlaybackState()
+  const songIsActive = !!post.song && activeTrack?.id === post.song.id
+  const songPlaying = songIsActive && (playback.state === State.Playing || playback.state === State.Buffering)
 
   const isManager = !!managerId && post.authorId === managerId
   const images = post.imageUrls?.length ? post.imageUrls : (post.imageUrl ? [post.imageUrl] : [])
@@ -187,18 +194,32 @@ export function PostCard({ post, managerId, canInteract = true, onPress, onAutho
         </View>
       ) : null}
 
-      {/* 곡 임베드 */}
+      {/* 곡 임베드 — 커버 블러 배경(존재감) + 세로 커버 + 화이트 원형 재생 */}
       {post.song ? (
-        <View style={styles.song}>
-          <View style={styles.songCover}>
-            {post.song.coverImage ? <Image source={{ uri: post.song.coverImage }} style={styles.fill} contentFit="cover" /> : <Text style={styles.songNote}>♪</Text>}
+        <Pressable
+          style={styles.song}
+          onPress={() => {
+            const s = post.song!
+            if (!s.audioUrl) return
+            if (songIsActive) { songPlaying ? TrackPlayer.pause() : TrackPlayer.play() }
+            else playSong({ id: s.id, title: s.title, audioUrl: s.audioUrl, coverImage: s.coverImage ?? undefined, duration: s.duration ?? null })
+          }}
+        >
+          {post.song.coverImage ? <Image source={{ uri: post.song.coverImage }} style={StyleSheet.absoluteFill} contentFit="cover" blurRadius={30} /> : null}
+          <View style={styles.songScrim} pointerEvents="none" />
+          <View style={styles.songRow}>
+            <View style={styles.songCover}>
+              {post.song.coverImage ? <Image source={{ uri: post.song.coverImage }} style={styles.fill} contentFit="cover" /> : <Text style={styles.songNote}>♪</Text>}
+            </View>
+            <View style={styles.flex}>
+              <Text style={styles.songTitle} numberOfLines={2}>{post.song.title ?? '곡'}</Text>
+              <Text style={styles.songSub}>모두의 노래</Text>
+            </View>
+            <View style={styles.songPlayBtn}>
+              <Icon name={songPlaying ? 'pause.fill' : 'play.fill'} size={20} color={mono.color.bg} />
+            </View>
           </View>
-          <View style={styles.flex}>
-            <Text style={styles.songTitle} numberOfLines={1}>{post.song.title ?? '곡'}</Text>
-            <Text style={styles.songSub}>모두의 노래</Text>
-          </View>
-          <Icon name="play.fill" size={18} color={mono.color.textSecondary} />
-        </View>
+        </Pressable>
       ) : null}
 
       {/* 유튜브 / 링크 임베드 — 탭 시 인앱 브라우저(유튜브 재생) */}
@@ -262,29 +283,29 @@ const styles = StyleSheet.create({
   avatarFallback: { alignItems: 'center', justifyContent: 'center' },
   avatarText: { color: mono.color.onMedia, fontSize: 15, fontWeight: '800' },
   nameRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  author: { color: mono.color.text, fontSize: mono.font.small, fontWeight: '700', flexShrink: 1 },
+  author: { color: mono.color.text, fontSize: mono.font.body, fontWeight: '700', flexShrink: 1 },
   mgr: {
     color: mono.color.accentLight, fontSize: 10, fontWeight: '700',
     backgroundColor: 'rgba(124,58,237,0.15)', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 6, overflow: 'hidden',
   },
-  time: { color: mono.color.textTertiary, fontSize: mono.font.tiny, marginTop: 2 },
+  time: { color: mono.color.textTertiary, fontSize: mono.font.small, marginTop: 2 },
   more: { width: 30, height: 30, alignItems: 'center', justifyContent: 'center' },
-  content: { color: mono.color.text, fontSize: mono.font.body, lineHeight: 21 },
+  content: { color: mono.color.text, fontSize: 16, lineHeight: 23 },
   // 이미지 갤러리
   gallery: { flexDirection: 'row', flexWrap: 'wrap', gap: 4 },
   gallerySingle: { width: '100%', aspectRatio: 1.5, borderRadius: mono.radius.md, overflow: 'hidden', backgroundColor: mono.color.surface2 },
   galleryItem: { width: '49%', aspectRatio: 1, borderRadius: mono.radius.sm, overflow: 'hidden', backgroundColor: mono.color.surface2 },
   moreOverlay: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.5)', alignItems: 'center', justifyContent: 'center' },
   moreText: { color: mono.color.onMedia, fontSize: mono.font.h2, fontWeight: '800' },
-  // 곡 임베드
-  song: {
-    flexDirection: 'row', alignItems: 'center', gap: 10,
-    backgroundColor: mono.color.fill, borderRadius: mono.radius.md, padding: 10,
-  },
-  songCover: { width: 40, height: 40, borderRadius: 6, overflow: 'hidden', backgroundColor: mono.color.surface2, alignItems: 'center', justifyContent: 'center' },
-  songNote: { color: mono.color.textTertiary, fontSize: 18 },
-  songTitle: { color: mono.color.text, fontSize: mono.font.small, fontWeight: '700' },
-  songSub: { color: mono.color.textTertiary, fontSize: mono.font.tiny, marginTop: 2 },
+  // 곡 임베드 — 커버 블러 배경 + 세로(3:4) 썸네일 + 화이트 원형 재생(존재감)
+  song: { borderRadius: mono.radius.md, overflow: 'hidden', backgroundColor: mono.color.surface2 },
+  songScrim: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(17,19,24,0.66)' },
+  songRow: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 12, paddingLeft: 12, paddingRight: 16 },
+  songCover: { width: 52, aspectRatio: 3 / 4, borderRadius: mono.radius.sm, overflow: 'hidden', backgroundColor: mono.color.surface2, alignItems: 'center', justifyContent: 'center' },
+  songNote: { color: mono.color.textTertiary, fontSize: 22 },
+  songTitle: { color: mono.color.onMedia, fontSize: 16, fontWeight: '700', lineHeight: 21 },
+  songSub: { color: 'rgba(255,255,255,0.6)', fontSize: mono.font.small, marginTop: 3, fontWeight: '600' },
+  songPlayBtn: { width: 40, height: 40, borderRadius: 20, backgroundColor: '#ffffff', alignItems: 'center', justifyContent: 'center' },
   // 유튜브/링크 임베드
   embed: { borderRadius: mono.radius.md, overflow: 'hidden', backgroundColor: mono.color.surface2 },
   embedThumb: { width: '100%', aspectRatio: 16 / 9 },
@@ -308,6 +329,6 @@ const styles = StyleSheet.create({
   // 좋아요·댓글
   meta: { flexDirection: 'row', gap: 18, alignItems: 'center', marginTop: 2 },
   metaBtn: { flexDirection: 'row', alignItems: 'center', gap: 5, paddingVertical: 2 },
-  metaText: { color: mono.color.textTertiary, fontSize: mono.font.small },
+  metaText: { color: mono.color.textTertiary, fontSize: mono.font.body, fontWeight: '600' },
   liked: { color: mono.color.accentLight },
 })

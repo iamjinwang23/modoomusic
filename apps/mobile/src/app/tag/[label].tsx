@@ -49,7 +49,7 @@ export default function TagScreen() {
           renderItem={({ item }) => (
             <PublicSongRow
               song={item}
-              onPress={() => playSong(item)}
+              onPress={() => playSong(item, songs ?? [item])}
               onCreatorPress={() => router.push(`/creator/${item.username}`)}
             />
           )}

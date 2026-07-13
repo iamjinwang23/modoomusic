@@ -11,6 +11,7 @@ import { playSong } from '@/lib/player'
 import { ProfileGrid, CoverScrim, formatCount } from '@/components/ui/profile-grid'
 import { CollapsingHeader, HEADER_ROW } from '@/components/ui/collapsing-header'
 import { Icon } from '@/components/ui/icon'
+import { GlassIconButton, GlassPill } from '@/components/ui/glass-button'
 import { NotificationBell } from '@/components/ui/notification-bell'
 import { mono } from '@/theme/mono'
 
@@ -84,15 +85,13 @@ export default function ProfileTab() {
 
           {/* 우상단 액션 — 프로필 수정 · 알림 · 설정 */}
           <View style={[styles.topActions, { top: insets.top + 12 }]}>
-            <Pressable onPress={() => router.push('/profile-edit')} style={styles.editPill} hitSlop={8}>
+            <GlassPill onPress={() => router.push('/profile-edit')}>
               <Text style={styles.editText}>프로필 수정</Text>
-            </Pressable>
-            <Pressable onPress={() => router.push('/notifications')} style={styles.circle} hitSlop={8}>
+            </GlassPill>
+            <GlassIconButton size={40} onPress={() => router.push('/notifications')} hitSlop={8}>
               <NotificationBell size={18} color={mono.color.onMedia} />
-            </Pressable>
-            <Pressable onPress={() => router.push('/settings')} style={styles.circle} hitSlop={8}>
-              <Icon name="ellipsis" size={18} color={mono.color.onMedia} />
-            </Pressable>
+            </GlassIconButton>
+            <GlassIconButton name="ellipsis" size={40} iconSize={18} color={mono.color.onMedia} onPress={() => router.push('/settings')} hitSlop={8} />
           </View>
 
           {/* 좌하단 아바타 + 이름 */}
@@ -123,7 +122,7 @@ export default function ProfileTab() {
 
         {/* ── 음악/영상 탭 + 그리드 ── */}
         <View style={styles.gridWrap}>
-          <ProfileGrid songs={songs} onPlay={(s) => playSong(s)} empty="공개한 곡이 아직 없어요" />
+          <ProfileGrid songs={songs} onPlay={(s) => playSong(s, songs)} empty="공개한 곡이 아직 없어요" />
         </View>
       </Animated.ScrollView>
     </View>

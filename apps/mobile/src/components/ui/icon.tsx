@@ -31,6 +31,10 @@ import Following from '@/assets/mingcute/Following.svg'
 import PinSvg from '@/assets/mingcute/Pin.svg'
 import PhotoAlbum from '@/assets/mingcute/Photo-Album.svg'
 import PollSvg from '@/assets/mingcute/Poll.svg'
+import EditSvg from '@/assets/mingcute/Edit.svg'
+import Delete2 from '@/assets/mingcute/Delete-2.svg'
+import Collection from '@/assets/mingcute/Collection.svg'
+import Flag from '@/assets/mingcute/Flag.svg'
 
 // 앱 아이콘 이름 → MingCute 컴포넌트. (좋아요=Thumb-Up 썸즈업, 웹과 동일)
 const MAP = {
@@ -66,6 +70,10 @@ const MAP = {
   pin: PinSvg,                   // 상단 고정(웹 Pin)
   'photo.album': PhotoAlbum,     // 이미지 첨부(웹 Photo-Album)
   poll: PollSvg,                 // 투표(웹 막대차트)
+  edit: EditSvg,                 // 수정(웹 Edit=Pencil)
+  trash: Delete2,                // 삭제(웹 Delete-2)
+  collection: Collection,        // 컬렉션(웹 Collection=Bookmark)
+  flag: Flag,                    // 신고(웹 Flag)
 } as const
 
 export type IconName = keyof typeof MAP

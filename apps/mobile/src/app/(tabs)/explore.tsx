@@ -4,6 +4,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { router, useFocusEffect } from 'expo-router'
 import type { Community, CommunityPost } from '@mono/shared'
 import { api } from '@/lib/api'
+import { hapticLight } from '@/lib/haptics'
 import { CommunityStory, PopularPostCard, CommunityRankRow, CommunityCoverCard } from '@/components/ui/hub-cards'
 import { Icon } from '@/components/ui/icon'
 import { NotificationBell } from '@/components/ui/notification-bell'
@@ -34,6 +35,7 @@ export default function ExploreScreen() {
   useFocusEffect(useCallback(() => { load() }, [load]))
 
   const onRefresh = useCallback(async () => {
+    hapticLight()
     setRefreshing(true); await load(); setRefreshing(false)
   }, [load])
 
