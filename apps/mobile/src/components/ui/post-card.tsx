@@ -182,11 +182,13 @@ export function PostCard({ post, managerId, canInteract = true, onPress, onAutho
 
       {post.content ? <Text style={styles.content}>{post.content}</Text> : null}
 
-      {/* 다중 이미지 갤러리 */}
-      {images.length > 0 ? (
+      {/* 이미지 — 한 장이면 원본 비율 그대로(크롭 X), 여러 장이면 정방형 그리드 */}
+      {images.length === 1 ? (
+        <View style={styles.gallery}><SingleImage uri={images[0]} /></View>
+      ) : images.length > 1 ? (
         <View style={styles.gallery}>
           {images.slice(0, 4).map((uri, i) => (
-            <View key={i} style={images.length === 1 ? styles.gallerySingle : styles.galleryItem}>
+            <View key={i} style={styles.galleryItem}>
               <Image source={{ uri }} style={styles.fill} contentFit="cover" transition={150} />
               {i === 3 && images.length > 4 ? (
                 <View style={styles.moreOverlay}><Text style={styles.moreText}>+{images.length - 4}</Text></View>
@@ -269,6 +271,25 @@ export function PostCard({ post, managerId, canInteract = true, onPress, onAutho
         </View>
       </View>
     </Pressable>
+  )
+}
+
+// 단일 이미지 — 자연 비율을 측정해 컨테이너 비율에 반영(크롭 없이 원본 전체). 극단 비율은 완만히 클램프.
+function SingleImage({ uri }: { uri: string }) {
+  const [ratio, setRatio] = useState(1.5)
+  return (
+    <View style={[styles.gallerySingle, { aspectRatio: ratio }]}>
+      <Image
+        source={{ uri }}
+        style={styles.fill}
+        contentFit="contain"
+        transition={150}
+        onLoad={(e) => {
+          const w = e.source?.width, h = e.source?.height
+          if (w && h) setRatio(Math.min(2.2, Math.max(0.62, w / h)))
+        }}
+      />
+    </View>
   )
 }
 
