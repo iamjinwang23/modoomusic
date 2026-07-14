@@ -112,7 +112,7 @@ function CommentItem({ comment, myId, isReply, canInteract, isManager, onReply, 
         )}
         <View style={styles.cActions}>
           <Pressable onPress={toggleLike} hitSlop={6} style={styles.cActBtn}>
-            <Icon name={liked ? 'heart.fill' : 'heart'} size={16} color={liked ? mono.color.accentLight : mono.color.textTertiary} />
+            <Icon name={liked ? 'heart.fill' : 'heart'} size={16} color={liked ? mono.color.text : mono.color.textTertiary} />
             {likeCount > 0 ? <Text style={[styles.cActText, liked && styles.cActTextOn]}>{likeCount}</Text> : null}
           </Pressable>
           {!isReply && onReply ? <Pressable onPress={() => onReply(comment)} hitSlop={6}><Text style={styles.cActText}>답글</Text></Pressable> : null}
@@ -321,7 +321,7 @@ const styles = StyleSheet.create({
   cActions: { flexDirection: 'row', alignItems: 'center', gap: 16, marginTop: 8 },
   cActBtn: { flexDirection: 'row', alignItems: 'center', gap: 5 },
   cActText: { color: mono.color.textTertiary, fontSize: mono.font.small, fontWeight: '600' },
-  cActTextOn: { color: mono.color.accentLight },
+  cActTextOn: { color: mono.color.text },
   // 인라인 수정
   editWrap: { marginTop: 4 },
   editInput: { color: mono.color.text, fontSize: 16, lineHeight: 22, backgroundColor: mono.color.surface2, borderRadius: mono.radius.md, paddingHorizontal: 12, paddingVertical: 8, minHeight: 44 },

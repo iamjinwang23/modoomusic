@@ -52,9 +52,14 @@ export default function ExploreScreen() {
     <View style={[styles.container, { paddingTop: insets.top + 12 }]}>
       <View style={styles.headerRow}>
         <Text style={styles.h1}>커뮤니티</Text>
-        <Pressable onPress={() => { if (requireAuth()) router.push('/notifications') }} hitSlop={10} style={styles.iconBtn}>
-          <NotificationBell size={18} color={mono.color.text} />
-        </Pressable>
+        <View style={styles.headerActions}>
+          <Pressable onPress={() => { if (requireAuth()) router.push('/community-create') }} hitSlop={10} style={styles.iconBtn}>
+            <Icon name="plus" size={22} color={mono.color.text} />
+          </Pressable>
+          <Pressable onPress={() => { if (requireAuth()) router.push('/notifications') }} hitSlop={10} style={styles.iconBtn}>
+            <NotificationBell size={18} color={mono.color.text} />
+          </Pressable>
+        </View>
       </View>
 
       {hub === null ? (
@@ -130,6 +135,7 @@ function Section({ title, children }: { title: string; children: React.ReactNode
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: mono.color.bg, paddingHorizontal: 20 },
   headerRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 },
+  headerActions: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   iconBtn: { width: 40, height: 40, borderRadius: 20, backgroundColor: mono.color.fill, alignItems: 'center', justifyContent: 'center' },
   h1: { color: mono.color.text, fontSize: mono.font.h1, fontWeight: '800' },
   section: { marginTop: 24 },

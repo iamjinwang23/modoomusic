@@ -3,12 +3,17 @@ import { ActivityIndicator, FlatList, Pressable, StyleSheet, Text, View } from '
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { router } from 'expo-router'
 import { Image } from 'expo-image'
-import type { Notification } from '@mono/shared'
+import * as WebBrowser from 'expo-web-browser'
+import type { Notification, Song } from '@mono/shared'
 import { api } from '@/lib/api'
+import { playSong } from '@/lib/player'
+import type { NowPlaying } from '@/lib/now-playing'
 import { supabase } from '@/lib/supabase'
 import { Icon } from '@/components/ui/icon'
 import { refreshUnreadNotifications } from '@/lib/use-unread-notifications'
 import { mono } from '@/theme/mono'
+
+const WEB_BASE = process.env.EXPO_PUBLIC_API_BASE_URL ?? 'https://www.modoonorae.com'
 
 type Category = 'all' | 'music' | 'community' | 'news'
 const FILTERS: { key: Category; label: string }[] = [
@@ -123,6 +128,35 @@ export default function NotificationsScreen() {
     refreshUnreadNotifications()
   }, [])
 
+  // 알림 탭 → 읽음 처리 + 해당 콘텐츠로 이동(웹 NotificationPanel 파리티).
+  // 모달에서 다른 화면으로 갈 땐 router.back() 후 push(플레이어 오너 탭과 동일 패턴).
+  const openTarget = useCallback(async (n: Notification) => {
+    markRead(n)
+    // 곡(좋아요·댓글·완성) → 플레이어
+    if ((n.type === 'like' || n.type === 'comment' || n.type === 'song_complete') && n.songId) {
+      try {
+        const j = await api.get(`/api/songs/${n.songId}`) as { song?: Song }
+        if (j.song?.audioUrl) {
+          await playSong(j.song as NowPlaying)
+          router.back()
+          router.push('/player')
+        }
+      } catch { /* 곡 삭제 등 — 무시 */ }
+      return
+    }
+    // 팔로우 → 크리에이터 프로필
+    if (n.type === 'follow') {
+      const uname = (n.payload as { username?: string })?.username
+      if (uname) { router.back(); router.push(`/creator/${uname}`) }
+      return
+    }
+    // 시스템·커뮤니티 → payload.url. 커뮤니티는 네이티브 라우트, 그 외(공지 등)는 웹으로.
+    const url = (n.payload as { url?: string })?.url
+    if (!url) return
+    if (url.startsWith('/community')) { router.back(); router.push(url as never) }
+    else WebBrowser.openBrowserAsync(`${WEB_BASE}${url}`).catch(() => {})
+  }, [markRead])
+
   const markAll = useCallback(async () => {
     setItems((prev) => prev?.map((x) => x.readAt ? x : { ...x, readAt: new Date().toISOString() }) ?? prev)
     await supabase.from('notifications').update({ read_at: new Date().toISOString() }).is('read_at', null)
@@ -163,7 +197,7 @@ export default function NotificationsScreen() {
           keyExtractor={(n) => n.id}
           contentContainerStyle={{ paddingBottom: insets.bottom + 24 }}
           renderItem={({ item }) => (
-            <Pressable onPress={() => markRead(item)} style={[styles.row, !item.readAt && styles.unread]}>
+            <Pressable onPress={() => openTarget(item)} style={[styles.row, !item.readAt && styles.unread]}>
               <Visual n={item} />
               <View style={styles.body}>
                 <Text style={styles.msg} numberOfLines={2}>{message(item)}</Text>

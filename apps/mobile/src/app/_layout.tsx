@@ -61,6 +61,7 @@ export default function RootLayout() {
         <Stack.Screen name="(tabs)" />
         <Stack.Screen name="community/[id]" />
         <Stack.Screen name="community-edit/[id]" options={{ presentation: 'modal' }} />
+        <Stack.Screen name="community-create" options={{ presentation: 'modal' }} />
         <Stack.Screen name="post/[id]" />
         <Stack.Screen name="creator/[username]" />
         <Stack.Screen name="tag/[label]" />
