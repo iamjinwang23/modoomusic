@@ -6,6 +6,7 @@ import { router, useFocusEffect, useLocalSearchParams } from 'expo-router'
 import { Image } from 'expo-image'
 import type { Community, CommunityMember, CommunityPost } from '@mono/shared'
 import { api } from '@/lib/api'
+import { useAuthGate } from '@/lib/auth-gate'
 import { hapticLight } from '@/lib/haptics'
 import { setSelectedPost } from '@/lib/selected-post'
 import { shareCommunity } from '@/lib/song-actions'
@@ -20,6 +21,7 @@ import { mono } from '@/theme/mono'
 // 커뮤니티 상세 — 배너/이름/멤버 + 게시글 피드(GET /api/communities/[id], /posts).
 export default function CommunityDetailScreen() {
   const insets = useSafeAreaInsets()
+  const { requireAuth } = useAuthGate()
   const { width } = useWindowDimensions()
   const scrollY = useSharedValue(0)
   const onScroll = useAnimatedScrollHandler((e) => { scrollY.value = e.contentOffset.y })
@@ -61,7 +63,7 @@ export default function CommunityDetailScreen() {
 
   // 가입/탈퇴 — 낙관적 토글 후 서버 반영. 매니저는 탈퇴 불가(서버 가드).
   const toggleJoin = useCallback(async () => {
-    if (!id || !community || joinBusy) return
+    if (!id || !community || joinBusy || !requireAuth()) return
     const next = !community.isMember
     setJoinBusy(true)
     setCommunity({ ...community, isMember: next, memberCount: community.memberCount + (next ? 1 : -1) })
@@ -72,7 +74,7 @@ export default function CommunityDetailScreen() {
     } finally {
       setJoinBusy(false)
     }
-  }, [id, community, joinBusy])
+  }, [id, community, joinBusy, requireAuth])
 
   const banner = community?.coverImage
   const initial = (community?.name ?? '?').trim().charAt(0).toUpperCase() || '?'

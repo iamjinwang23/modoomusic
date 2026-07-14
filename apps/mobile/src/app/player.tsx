@@ -13,6 +13,7 @@ import { useVideoPlayer, VideoView } from 'expo-video'
 import TrackPlayer, { State, useActiveTrack, usePlaybackState, useProgress } from 'react-native-track-player'
 import type { Song, UserProfile } from '@mono/shared'
 import { api } from '@/lib/api'
+import { useAuthGate } from '@/lib/auth-gate'
 import { getNowPlaying, setNowPlaying, useNowPlaying } from '@/lib/now-playing'
 import { supabase } from '@/lib/supabase'
 import { primeMyDisplayName } from '@/lib/me'
@@ -125,6 +126,7 @@ function PlayButton({ playing, onPress, size = 72 }: { playing: boolean; onPress
 // 전체 플레이어(now-playing) — 미니플레이어에서 확장. 커버/제목/진행바/재생 컨트롤.
 export default function PlayerScreen() {
   const insets = useSafeAreaInsets()
+  const { requireAuth } = useAuthGate()
   const { width: screenW, height: screenH } = useWindowDimensions()
   const track = useActiveTrack()
   const song = useNowPlaying()
@@ -199,7 +201,7 @@ export default function PlayerScreen() {
   }, [])
 
   const toggleFollow = async () => {
-    if (!owner || followBusy) return
+    if (!owner || followBusy || !requireAuth()) return
     const next = !following
     setFollowing(next); setFollowBusy(true)
     try {
@@ -262,7 +264,7 @@ export default function PlayerScreen() {
   const isOwn = isMine
 
   const toggleLike = async () => {
-    if (!song || likeBusy) return
+    if (!song || likeBusy || !requireAuth()) return
     const next = !liked
     setLiked(next)
     setMeta((m) => m ? { ...m, likeCount: Math.max(0, m.likeCount + (next ? 1 : -1)) } : m)
@@ -446,7 +448,7 @@ export default function PlayerScreen() {
               <Text style={styles.railCount}>{formatCount(meta?.likeCount ?? 0)}</Text>
             </View>
             <View style={styles.railItem}>
-              <GlassIconButton name="bubble.left" size={48} iconSize={23} onPress={() => canComment ? setCommentsOpen(true) : Alert.alert('비공개 곡엔 댓글을 남길 수 없어요')} />
+              <GlassIconButton name="bubble.left" size={48} iconSize={23} onPress={() => { if (!requireAuth()) return; canComment ? setCommentsOpen(true) : Alert.alert('비공개 곡엔 댓글을 남길 수 없어요') }} />
               <Text style={styles.railCount}>{formatCount(meta?.commentCount ?? 0)}</Text>
             </View>
             <View style={styles.railItem}>

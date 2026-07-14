@@ -4,6 +4,7 @@ import Animated, { ZoomIn, ZoomOut } from 'react-native-reanimated'
 import { Image } from 'expo-image'
 import type { Comment } from '@mono/shared'
 import { api } from '@/lib/api'
+import { useAuthGate } from '@/lib/auth-gate'
 import { supabase } from '@/lib/supabase'
 import { useSession } from '@/lib/use-session'
 import { Icon } from '@/components/ui/icon'
@@ -120,6 +121,7 @@ function CommentItem({ comment, myId, isReply, onReply, onDelete, onEdited, requ
 // active=false 동안엔 로드하지 않음(가사 탭일 때 불필요한 요청 방지).
 export function useSongComments(songId: string | null, active: boolean) {
   const { session } = useSession()
+  const { requireAuth } = useAuthGate()
   const myId = session?.user?.id
   const [comments, setComments] = useState<Comment[] | null>(null)
   const [input, setInput] = useState('')
@@ -137,11 +139,8 @@ export function useSongComments(songId: string | null, active: boolean) {
       })
   }, [myId])
 
-  const requireLogin = useCallback(() => {
-    if (myId) return true
-    Alert.alert('로그인이 필요해요')
-    return false
-  }, [myId])
+  // 로그인 필요 상호작용(작성·좋아요·답글) → 전역 로그인 시트
+  const requireLogin = requireAuth
 
   const load = useCallback(async () => {
     if (!songId) return
@@ -224,7 +223,8 @@ export function SongCommentList({ state }: { state: SongCommentsState }) {
 
 // 댓글 입력창 — 플레이어 하단 고정 바에 렌더 (웹 파리티: rounded 20 글래스 + 원형 ↑ 페이드인)
 export function SongCommentComposer({ state }: { state: SongCommentsState }) {
-  const { me, input, setInput, replyTo, setReplyTo, busy, send } = state
+  const { me, input, setInput, replyTo, setReplyTo, busy, send, myId, requireLogin } = state
+  const loggedIn = !!myId
   return (
     <View>
       {replyTo ? (
@@ -251,8 +251,11 @@ export function SongCommentComposer({ state }: { state: SongCommentsState }) {
             onChangeText={setInput}
             maxLength={500}
             multiline
+            editable={loggedIn}
           />
-          {input.trim() ? (
+          {/* 게스트: 입력창 탭 → 로그인(웹 CommentsPanel 파리티) */}
+          {!loggedIn ? <Pressable style={StyleSheet.absoluteFill} onPress={requireLogin} /> : null}
+          {loggedIn && input.trim() ? (
             <Animated.View entering={ZoomIn.duration(150)} exiting={ZoomOut.duration(150)} style={styles.sendWrap}>
               <Pressable onPress={send} disabled={busy} style={styles.sendBtn} hitSlop={6}>
                 {busy ? <ActivityIndicator size="small" color="#fff" /> : <Text style={styles.sendArrow}>↑</Text>}

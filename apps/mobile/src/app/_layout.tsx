@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef } from 'react';
 import { DarkTheme, DefaultTheme, router, Stack, ThemeProvider } from 'expo-router';
 import * as Notifications from 'expo-notifications';
 import * as SplashScreen from 'expo-splash-screen';
@@ -13,7 +13,6 @@ LogBox.ignoreLogs([
 ]);
 
 import { AnimatedSplashOverlay } from '@/components/animated-icon';
-import { LoginScreen } from '@/components/login-screen';
 import { useSession } from '@/lib/use-session';
 import { configureNotificationHandler, registerForPush, unregisterForPush } from '@/lib/push';
 
@@ -24,9 +23,7 @@ configureNotificationHandler();
 
 export default function RootLayout() {
   const colorScheme = useColorScheme();
-  const { session, loading } = useSession();
-  // 게스트 둘러보기 — 커뮤니티는 공개 읽기라 로그인 없이 탐색 가능.
-  const [guest, setGuest] = useState(false);
+  const { session } = useSession();
 
   // 로그인/로그아웃 전환에 따라 푸시 토큰 등록/해제 (매 렌더가 아닌 전환 시점에만).
   const wasAuthed = useRef(false);
@@ -57,6 +54,7 @@ export default function RootLayout() {
 
   return (
     <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
+      {/* 게스트 기본 시작 — 감상·공개 조회 자유. 로그인 필요한 상호작용은 /login(transparentModal)로 올림. */}
       <AnimatedSplashOverlay />
       {/* 루트 Stack: 탭 그룹(base) + create/player(모달). 모달은 탭·미니플레이어 위로 present. */}
       <Stack screenOptions={{ headerShown: false }}>
@@ -74,9 +72,9 @@ export default function RootLayout() {
         <Stack.Screen name="profile-edit" options={{ presentation: 'modal' }} />
         <Stack.Screen name="settings" options={{ presentation: 'modal' }} />
         <Stack.Screen name="video-create" options={{ presentation: 'modal' }} />
+        {/* 로그인 — 투명 모달(다른 모달 위로도 스택). 하단 액션시트 룩 */}
+        <Stack.Screen name="login" options={{ presentation: 'transparentModal', animation: 'fade' }} />
       </Stack>
-      {/* 미로그인 & 게스트 아님 → 로그인 오버레이. 라우터는 유지. */}
-      {!loading && !session && !guest && <LoginScreen onGuest={() => setGuest(true)} />}
     </ThemeProvider>
   );
 }
