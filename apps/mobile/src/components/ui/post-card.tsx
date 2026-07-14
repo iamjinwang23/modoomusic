@@ -262,7 +262,7 @@ export function PostCard({ post, managerId, canInteract = true, onPress, onAutho
 
       <View style={styles.meta}>
         <Pressable onPress={toggleLike} hitSlop={8} style={styles.metaBtn}>
-          <Icon name={liked ? 'heart.fill' : 'heart'} size={16} color={liked ? mono.color.accentLight : mono.color.textTertiary} />
+          <Icon name={liked ? 'heart.fill' : 'heart'} size={16} color={liked ? mono.color.danger : mono.color.textTertiary} />
           <Text style={[styles.metaText, liked && styles.liked]}>{likeCount}</Text>
         </Pressable>
         <View style={styles.metaBtn}>
@@ -353,5 +353,5 @@ const styles = StyleSheet.create({
   meta: { flexDirection: 'row', gap: 18, alignItems: 'center', marginTop: 2 },
   metaBtn: { flexDirection: 'row', alignItems: 'center', gap: 5, paddingVertical: 2 },
   metaText: { color: mono.color.textTertiary, fontSize: mono.font.body, fontWeight: '600' },
-  liked: { color: mono.color.accentLight },
+  liked: { color: mono.color.danger },
 })
