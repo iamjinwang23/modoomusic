@@ -138,7 +138,7 @@ export default function SettingsScreen() {
           {/* 크레딧 충전 · 플랜 업그레이드 — 결제(IAP) 도입 전까지 준비중 안내 */}
           <Pressable
             style={({ pressed }) => [styles.ctaWhite, pressed && styles.pressed]}
-            onPress={() => Alert.alert('크레딧 충전', '앱 내 결제는 준비 중이에요. 조금만 기다려 주세요.')}
+            onPress={() => router.push('/credit-purchase')}
           >
             <Text style={styles.ctaWhiteText}>크레딧 충전하기</Text>
           </Pressable>

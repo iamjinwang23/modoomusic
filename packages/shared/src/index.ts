@@ -1,5 +1,6 @@
 export * from './domain'
 export * from './errors'
 export * from './pricing'
+export * from './iap'
 export * from './api-client'
 export * from './auth'
