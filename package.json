@@ -16,6 +16,8 @@
     "mobile": "npm run start -w mobile"
   },
   "devDependencies": {
+    "node-addon-api": "^8.9.0",
+    "node-gyp": "^12.4.0",
     "turbo": "^2.3.0"
   }
 }
