@@ -7,6 +7,7 @@ import TrackPlayer, { State, useActiveTrack, usePlaybackState } from 'react-nati
 import type { CommunityPost, CommunityPoll } from '@mono/shared'
 import { api } from '@/lib/api'
 import { useSession } from '@/lib/use-session'
+import { useAuthGate } from '@/lib/auth-gate'
 import { setSelectedPost } from '@/lib/selected-post'
 import { playSong } from '@/lib/player'
 import { Icon } from '@/components/ui/icon'
@@ -55,6 +56,7 @@ export function PostCard({ post, managerId, canInteract = true, onPress, onAutho
   onChanged?: () => void
 }) {
   const { session } = useSession()
+  const { requireAuth } = useAuthGate()
   const myId = session?.user?.id
   const isAuthor = !!myId && post.authorId === myId
   const isMgr = !!myId && !!managerId && managerId === myId
@@ -85,7 +87,7 @@ export function PostCard({ post, managerId, canInteract = true, onPress, onAutho
     return () => { alive = false }
   }, [embedUrl])
 
-  const gate = () => { if (!canInteract) { Alert.alert('먼저 커뮤니티에 가입해주세요'); return false } return true }
+  const gate = () => { if (!requireAuth()) return false; if (!canInteract) { Alert.alert('먼저 커뮤니티에 가입해주세요'); return false } return true }
 
   const toggleLike = async () => {
     if (busy) return
@@ -150,7 +152,7 @@ export function PostCard({ post, managerId, canInteract = true, onPress, onAutho
   }
 
   return (
-    <Pressable onPress={onPress} style={({ pressed }) => [styles.row, pressed && onPress && styles.pressed]}>
+    <Pressable onPress={() => { if (requireAuth()) onPress?.() }} style={({ pressed }) => [styles.row, pressed && onPress && styles.pressed]}>
       {post.pinned ? (
         <View style={styles.pinRow}>
           <Icon name="pin" size={14} color={mono.color.text} />

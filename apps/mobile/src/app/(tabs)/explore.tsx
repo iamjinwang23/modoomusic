@@ -4,6 +4,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { router, useFocusEffect } from 'expo-router'
 import type { Community, CommunityPost } from '@mono/shared'
 import { api } from '@/lib/api'
+import { useAuthGate } from '@/lib/auth-gate'
 import { hapticLight } from '@/lib/haptics'
 import { CommunityStory, PopularPostCard, CommunityRankRow, CommunityCoverCard } from '@/components/ui/hub-cards'
 import { Icon } from '@/components/ui/icon'
@@ -15,6 +16,7 @@ interface Hub { popular: Community[]; recent: Community[]; mine: Community[]; po
 // 커뮤니티 허브 — 웹 파리티: 내 커뮤니티(스토리줄) · 인기 글 · 인기 커뮤니티(순위) · 새 커뮤니티.
 export default function ExploreScreen() {
   const insets = useSafeAreaInsets()
+  const { requireAuth } = useAuthGate()
   const { width } = useWindowDimensions()
   const [hub, setHub] = useState<Hub | null>(null)
   const [error, setError] = useState<string | null>(null)
@@ -50,7 +52,7 @@ export default function ExploreScreen() {
     <View style={[styles.container, { paddingTop: insets.top + 12 }]}>
       <View style={styles.headerRow}>
         <Text style={styles.h1}>커뮤니티</Text>
-        <Pressable onPress={() => router.push('/notifications')} hitSlop={10} style={styles.iconBtn}>
+        <Pressable onPress={() => { if (requireAuth()) router.push('/notifications') }} hitSlop={10} style={styles.iconBtn}>
           <NotificationBell size={18} color={mono.color.text} />
         </Pressable>
       </View>

@@ -6,6 +6,7 @@ import { router, useLocalSearchParams } from 'expo-router'
 import { Image } from 'expo-image'
 import type { PublicSong, UserProfile } from '@mono/shared'
 import { api } from '@/lib/api'
+import { useAuthGate } from '@/lib/auth-gate'
 import { playSong } from '@/lib/player'
 import { ProfileGrid, CoverScrim, formatCount } from '@/components/ui/profile-grid'
 import { CollapsingHeader, HEADER_ROW } from '@/components/ui/collapsing-header'
@@ -16,6 +17,7 @@ import { mono } from '@/theme/mono'
 // 크리에이터 프로필 — 웹 파리티: 커버(아바타·이름 오버레이) + 팔로우 + 스탯 + 세로 그리드.
 export default function CreatorScreen() {
   const insets = useSafeAreaInsets()
+  const { requireAuth } = useAuthGate()
   const { width } = useWindowDimensions()
   const scrollY = useSharedValue(0)
   const onScroll = useAnimatedScrollHandler((e) => { scrollY.value = e.contentOffset.y })
@@ -48,7 +50,7 @@ export default function CreatorScreen() {
   useEffect(() => { load() }, [load])
 
   const toggleFollow = useCallback(async () => {
-    if (!profile || followBusy) return
+    if (!profile || followBusy || !requireAuth()) return
     const next = !following
     setFollowing(next); setFollowerCount((c) => c + (next ? 1 : -1)); setFollowBusy(true)
     try {
@@ -60,7 +62,7 @@ export default function CreatorScreen() {
     } finally {
       setFollowBusy(false)
     }
-  }, [profile, following, followBusy])
+  }, [profile, following, followBusy, requireAuth])
 
   if (loading) {
     return <View style={[styles.container, styles.center]}><ActivityIndicator color={mono.color.accent} /></View>

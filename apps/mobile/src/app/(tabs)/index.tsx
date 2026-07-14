@@ -5,6 +5,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { router } from 'expo-router'
 import type { PublicSong } from '@mono/shared'
 import { api } from '@/lib/api'
+import { useAuthGate } from '@/lib/auth-gate'
 import { hapticLight } from '@/lib/haptics'
 import { playSong } from '@/lib/player'
 import { useAutoHideHeader } from '@/lib/use-auto-hide-header'
@@ -23,6 +24,7 @@ const TABS: { key: Tab; label: string }[] = [
 // 탐색 — 공개곡 피드(GET /api/explore/feed). 탭 탭→재생.
 export default function DiscoverScreen() {
   const insets = useSafeAreaInsets()
+  const { requireAuth } = useAuthGate()
   const { scrollHandler, headerStyle, onHeaderLayout, headerHeight: chipsH } = useAutoHideHeader(58)
   const [titleH, setTitleH] = useState(insets.top + 56)
   const [tab, setTab] = useState<Tab>('recommended')
@@ -95,7 +97,7 @@ export default function DiscoverScreen() {
             <Pressable onPress={() => router.push('/search')} hitSlop={10} style={styles.searchBtn}>
               <Icon name="magnifyingglass" size={18} color={mono.color.text} />
             </Pressable>
-            <Pressable onPress={() => router.push('/notifications')} hitSlop={10} style={styles.searchBtn}>
+            <Pressable onPress={() => { if (requireAuth()) router.push('/notifications') }} hitSlop={10} style={styles.searchBtn}>
               <NotificationBell size={18} color={mono.color.text} />
             </Pressable>
           </View>

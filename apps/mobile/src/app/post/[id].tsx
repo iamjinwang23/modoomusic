@@ -11,6 +11,7 @@ import { api } from '@/lib/api'
 import { supabase } from '@/lib/supabase'
 import { getSelectedPost } from '@/lib/selected-post'
 import { useSession } from '@/lib/use-session'
+import { useAuthGate } from '@/lib/auth-gate'
 import { PostCard } from '@/components/ui/post-card'
 import { Icon } from '@/components/ui/icon'
 import { CommentMoreSheet } from '@/components/ui/comment-more-sheet'
@@ -45,6 +46,7 @@ function CommentItem({ comment, myId, isReply, canInteract, isManager, onReply, 
   onEdited: (id: string, body: string) => void
   onOpenMenu: (h: { isOwner: boolean; canDelete: boolean; onEdit: () => void; onDelete: () => void; onReport: () => void }) => void
 }) {
+  const { requireAuth } = useAuthGate()
   const [liked, setLiked] = useState(!!comment.liked)
   const [likeCount, setLikeCount] = useState(comment.likeCount)
   const [busy, setBusy] = useState(false)
@@ -54,7 +56,7 @@ function CommentItem({ comment, myId, isReply, canInteract, isManager, onReply, 
   const isOwner = comment.authorId === myId
   const name = comment.user.displayName ?? comment.user.username ?? '익명'
   const toggleLike = async () => {
-    if (busy) return
+    if (busy || !requireAuth()) return
     if (!canInteract) { Alert.alert('먼저 커뮤니티에 가입해주세요'); return }
     const next = !liked
     setLiked(next); setLikeCount((c) => c + (next ? 1 : -1)); setBusy(true)
@@ -125,6 +127,7 @@ export default function PostDetailScreen() {
   const insets = useSafeAreaInsets()
   const { id } = useLocalSearchParams<{ id: string }>()
   const { session } = useSession()
+  const { requireAuth } = useAuthGate()
   const myId = session?.user?.id
   const [post] = useState<CommunityPost | null>(() => getSelectedPost())
   const [comments, setComments] = useState<CommunityPostComment[] | null>(null)
@@ -174,6 +177,7 @@ export default function PostDetailScreen() {
   }
 
   const send = async () => {
+    if (!requireAuth()) return
     const body = input.trim()
     if (!body || busy || !id) return
     if (!canInteract) { Alert.alert('먼저 커뮤니티에 가입해주세요'); return }
@@ -253,8 +257,11 @@ export default function PostDetailScreen() {
                 onChangeText={setInput}
                 maxLength={500}
                 multiline
+                editable={!!myId}
               />
-              {input.trim() ? (
+              {/* 게스트: 입력창 탭 → 로그인 */}
+              {!myId ? <Pressable style={StyleSheet.absoluteFill} onPress={requireAuth} /> : null}
+              {myId && input.trim() ? (
                 <Animated.View entering={ZoomIn.duration(150)} exiting={ZoomOut.duration(150)} style={styles.sendWrap}>
                   <Pressable onPress={send} disabled={busy} style={styles.sendBtn} hitSlop={6}>
                     {busy ? <ActivityIndicator size="small" color="#fff" /> : <Text style={styles.sendArrow}>↑</Text>}
