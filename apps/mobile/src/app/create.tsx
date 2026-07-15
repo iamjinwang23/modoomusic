@@ -1,13 +1,16 @@
 import { useEffect, useRef, useState } from 'react'
 import {
-  ActionSheetIOS, ActivityIndicator, Keyboard, KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, StyleSheet, Switch, Text, TextInput, View,
+  ActivityIndicator, Keyboard, KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, StyleSheet, Switch, Text, TextInput, View,
 } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { router } from 'expo-router'
+import Svg, { Path } from 'react-native-svg'
 import { Icon } from '@/components/ui/icon'
 import { GeneratingDots } from '@/components/ui/generating-dots'
+import { BottomSheet } from '@/components/ui/bottom-sheet'
 import { api } from '@/lib/api'
 import { generateSong, MUSIC_MODELS, type MusicModelId } from '@/lib/generate'
+import { pickRefAudio, refAudioAvailable } from '@/lib/ref-audio'
 import { mono } from '@/theme/mono'
 
 // 웹 SongForm ALL_CHIPS — 장르·분위기·악기·보컬 퀵칩(스타일에 append)
@@ -35,6 +38,10 @@ export default function CreateScreen() {
   const [credits, setCredits] = useState<number | null>(null)
   const [lyricsGenerating, setLyricsGenerating] = useState(false)
   const [lyricsModalOpen, setLyricsModalOpen] = useState(false)
+  const [lyricsFullOpen, setLyricsFullOpen] = useState(false)  // 가사 전체화면 편집 시트
+  const [modelSheetOpen, setModelSheetOpen] = useState(false)  // 모델 선택 바텀시트
+  const [refAudio, setRefAudio] = useState<{ name: string; base64: string } | null>(null)  // v2.6 스타일 참조 음원
+  const [refBusy, setRefBusy] = useState(false)
   const [lyricsPrompt, setLyricsPrompt] = useState('')
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -77,17 +84,23 @@ export default function CreateScreen() {
     if (v && model === 'music-2.0') setModel('music-2.6')
   }
 
-  const pickModel = () => {
-    const opts = [...MUSIC_MODELS.map((m) => `${modelShort(m.id)} · ${m.desc}`), '취소']
-    ActionSheetIOS.showActionSheetWithOptions(
-      { options: opts, cancelButtonIndex: opts.length - 1, title: '모델 선택' },
-      (i) => {
-        if (i >= MUSIC_MODELS.length) return
-        const id = MUSIC_MODELS[i].id
-        if (id === 'music-2.0' && instrumental) setInstrumental(false)  // v2.0 선택 시 인스트 해제
-        setModel(id)
-      },
-    )
+  const pickModel = () => setModelSheetOpen(true)
+  const selectModel = (id: MusicModelId) => {
+    if (id === 'music-2.0' && instrumental) setInstrumental(false)  // v2.0 선택 시 인스트 해제
+    if (id !== 'music-2.6') setRefAudio(null)  // 참조는 v2.6 전용
+    setModel(id)
+    setModelSheetOpen(false)
+  }
+
+  // v2.6 스타일 참조 음원 선택 — 6분 초과는 거부(짧은 클립 유도)
+  const chooseRefAudio = async () => {
+    if (refBusy) return
+    setRefBusy(true); setError(null)
+    try {
+      const r = await pickRefAudio()
+      if (r.ok && r.base64) setRefAudio({ name: r.name ?? '참조 음원', base64: r.base64 })
+      else if (r.error) setError(r.error)
+    } finally { setRefBusy(false) }
   }
 
   // AI 가사 — 모달에서 프롬프트 입력 → /api/lyrics(크레딧無) → 가사·제목 적용
@@ -128,6 +141,8 @@ export default function CreateScreen() {
           instrumental,
           autoLyrics: !instrumental && lyrics.trim().length === 0,
           model,
+          // v2.6 + 참조 음원 = cover 모드
+          audioBase64: model === 'music-2.6' && refAudio ? refAudio.base64 : undefined,
         })
       }
       router.replace('/library')
@@ -170,7 +185,7 @@ export default function CreateScreen() {
         {/* 컨트롤 행: 크레딧 · 심플/고급 · 모델(고급) */}
         <View style={styles.controls}>
           <View style={styles.creditPill}>
-            <Icon name="sparkle" size={13} color={mono.color.accentLight} />
+            <Icon name="sparkle" size={13} color={mono.color.text} />
             <Text style={styles.creditText}>{credits ?? '–'}</Text>
           </View>
           <View style={styles.modeToggle}>
@@ -239,6 +254,16 @@ export default function CreateScreen() {
                       <Pressable onPress={() => { setLyricsPrompt(style); setLyricsModalOpen(true) }} style={styles.aiBtn} hitSlop={6}>
                         <Icon name="ai.lyrics" size={15} color={mono.color.text} />
                         <Text style={styles.aiBtnText}>AI 가사</Text>
+                      </Pressable>
+                      {model === 'music-2.6' && refAudioAvailable() ? (
+                        <Pressable onPress={chooseRefAudio} style={[styles.aiBtn, refAudio && styles.aiBtnOn]} hitSlop={6}>
+                          {refBusy ? <ActivityIndicator size="small" color={mono.color.text} /> : <Icon name="music.note" size={15} color={refAudio ? mono.color.accentLight : mono.color.text} />}
+                          <Text style={[styles.aiBtnText, refAudio && styles.aiBtnTextOn]} numberOfLines={1}>{refAudio ? '참조곡 ✓' : '스타일 참조'}</Text>
+                        </Pressable>
+                      ) : null}
+                      <View style={styles.flex} />
+                      <Pressable onPress={() => setLyricsFullOpen(true)} style={styles.expandBtn} hitSlop={8}>
+                        <Icon name="fullscreen" size={17} color={mono.color.text} />
                       </Pressable>
                     </View>
                   </>
@@ -325,6 +350,60 @@ export default function CreateScreen() {
           </View>
         </KeyboardAvoidingView>
       </Modal>
+
+      {/* 가사 전체화면 편집 — 축소 버튼(우상단)으로 닫으면 그대로 반영 */}
+      <Modal visible={lyricsFullOpen} animationType="slide" onRequestClose={() => setLyricsFullOpen(false)}>
+        <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+          <View style={[styles.mScreen, { paddingTop: insets.top + 8 }]}>
+            <View style={styles.mHead}>
+              <Pressable onPress={() => setLyricsFullOpen(false)} hitSlop={12}><Text style={styles.mClose}>✕</Text></Pressable>
+              <Text style={styles.mTitle}>가사</Text>
+              <View style={styles.mHeadSlot} />
+            </View>
+            <TextInput
+              style={styles.mInput}
+              placeholder={'직접 가사를 입력하세요 (최소 10자 이상)\n비워두면 자동으로 인스트루멘탈로 생성돼요\n\n[Verse] [Chorus] [Bridge] 태그로 구조를 지정할 수 있어요'}
+              placeholderTextColor={mono.color.textTertiary}
+              value={lyrics}
+              onChangeText={setLyrics}
+              multiline
+              autoFocus
+            />
+          </View>
+        </KeyboardAvoidingView>
+      </Modal>
+
+      {/* 모델 선택 — 하단 바텀시트(웹 모델 드롭다운 파리티) */}
+      <BottomSheet open={modelSheetOpen} onClose={() => setModelSheetOpen(false)} sheetStyle={styles.modelSheet}>
+        <Text style={styles.modelSheetTitle}>모델 선택</Text>
+        {MUSIC_MODELS.map((m) => {
+          const on = model === m.id
+          return (
+            <Pressable key={m.id} onPress={() => selectModel(m.id)} style={({ pressed }) => [styles.modelRow, pressed && styles.modelRowPressed]}>
+              <View style={styles.flex}>
+                <View style={styles.modelRowHead}>
+                  <Text style={styles.modelName}>{m.label}</Text>
+                  {m.id === 'music-2.6' ? <Text style={styles.modelBadge}>참조</Text> : null}
+                </View>
+                <Text style={styles.modelDesc}>{m.desc}</Text>
+              </View>
+              <View style={styles.modelRight}>
+                <View style={styles.modelCredit}>
+                  <Icon name="sparkle" size={12} color={mono.color.text} />
+                  <Text style={styles.modelCreditText}>{m.credits}</Text>
+                </View>
+                <View style={[styles.modelCheck, on && styles.modelCheckOn]}>
+                  {on ? (
+                    <Svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#ffffff" strokeWidth={3.5} strokeLinecap="round" strokeLinejoin="round">
+                      <Path d="M20 6L9 17l-5-5" />
+                    </Svg>
+                  ) : null}
+                </View>
+              </View>
+            </Pressable>
+          )
+        })}
+      </BottomSheet>
     </View>
   )
 }
@@ -352,9 +431,11 @@ const styles = StyleSheet.create({
   cardTitle: { color: mono.color.text, fontSize: 17, fontWeight: '700' },
   cardTitleOn: { color: mono.color.accentLight },
   cardInput: { color: mono.color.text, fontSize: mono.font.body, paddingTop: 12, paddingBottom: 4, minHeight: 88, textAlignVertical: 'top', lineHeight: 24 },
-  lyricsInput: { minHeight: 132 },
+  // 가사 입력 — 최대 5줄(24*5=120 + 상하패딩)까지 늘어나고 이후 내부 스크롤
+  lyricsInput: { minHeight: 132, maxHeight: 136 },
+  expandBtn: { width: 34, height: 34, borderRadius: 17, backgroundColor: mono.color.fill, alignItems: 'center', justifyContent: 'center' },
   lyricsGenBox: { minHeight: 180, alignItems: 'center', justifyContent: 'center' },
-  cardFoot: { flexDirection: 'row', alignItems: 'center', marginTop: 8 },
+  cardFoot: { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 8 },
   instRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   instLabel: { color: mono.color.textSecondary, fontSize: mono.font.small, fontWeight: '600' },
   instLabelOn: { color: mono.color.accentLight },
@@ -363,7 +444,9 @@ const styles = StyleSheet.create({
   addBtnText: { color: mono.color.text, fontSize: mono.font.small, fontWeight: '600' },
   aiBtn: { flexDirection: 'row', alignItems: 'center', gap: 5, backgroundColor: mono.color.fill, borderRadius: mono.radius.pill, paddingHorizontal: 16, paddingVertical: 10 },
   aiBtnOff: { opacity: 0.45 },
+  aiBtnOn: { backgroundColor: 'rgba(124,58,237,0.18)' },
   aiBtnText: { color: mono.color.text, fontSize: mono.font.small, fontWeight: '600' },
+  aiBtnTextOn: { color: mono.color.accentLight },
 
   railRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 14 },
   railBtn: { width: 36, height: 36, borderRadius: 18, backgroundColor: mono.color.fill, alignItems: 'center', justifyContent: 'center' },
@@ -394,8 +477,23 @@ const styles = StyleSheet.create({
   // AI 가사 — 전체화면 글쓰기 스타일(compose 파리티): 테두리 없는 직접 입력
   mScreen: { flex: 1, backgroundColor: mono.color.bg, paddingHorizontal: 20 },
   mHead: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 },
-  mClose: { color: mono.color.text, fontSize: 22 },
+  mClose: { color: mono.color.text, fontSize: 22, width: 28 },
   mTitle: { color: mono.color.text, fontSize: mono.font.h2, fontWeight: '700' },
+  mHeadSlot: { width: 28 },
+  // 모델 선택 바텀시트
+  modelSheet: { paddingHorizontal: 20 },
+  modelSheetTitle: { color: mono.color.text, fontSize: mono.font.h2, fontWeight: '700', marginBottom: 8 },
+  modelRow: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 14, borderRadius: mono.radius.md },
+  modelRowPressed: { backgroundColor: mono.color.fill },
+  modelRowHead: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  modelName: { color: mono.color.text, fontSize: mono.font.body, fontWeight: '700' },
+  modelBadge: { color: mono.color.accentLight, fontSize: 10, fontWeight: '700', backgroundColor: 'rgba(124,58,237,0.2)', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 6, overflow: 'hidden' },
+  modelDesc: { color: mono.color.textSecondary, fontSize: mono.font.small, marginTop: 3 },
+  modelRight: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  modelCredit: { flexDirection: 'row', alignItems: 'center', gap: 4 },
+  modelCreditText: { color: mono.color.text, fontSize: mono.font.small, fontWeight: '700' },
+  modelCheck: { width: 22, height: 22, borderRadius: 11, borderWidth: 2, borderColor: mono.color.fillStrong, alignItems: 'center', justifyContent: 'center' },
+  modelCheckOn: { backgroundColor: mono.color.accent, borderColor: mono.color.accent },
   mAction: { color: mono.color.accentLight, fontSize: mono.font.body, fontWeight: '800' },
   mActionOff: { color: mono.color.textTertiary },
   mInput: { flex: 1, color: mono.color.text, fontSize: mono.font.body, lineHeight: 24, textAlignVertical: 'top', paddingTop: 8, paddingBottom: 12 },

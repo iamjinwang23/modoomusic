@@ -38,6 +38,7 @@ import Flag from '@/assets/mingcute/Flag.svg'
 import Document from '@/assets/mingcute/Document.svg'
 import Question from '@/assets/mingcute/Question.svg'
 import ExternalLink from '@/assets/mingcute/External-Link.svg'
+import Fullscreen from '@/assets/mingcute/Fullscreen.svg'
 
 // 앱 아이콘 이름 → MingCute 컴포넌트. (좋아요=Thumb-Up 썸즈업, 웹과 동일)
 const MAP = {
@@ -80,6 +81,7 @@ const MAP = {
   document: Document,            // 약관·정책 문서(웹 terms.svg=Document)
   question: Question,            // 도움말·FAQ(웹 Question)
   'external.link': ExternalLink, // 외부(웹 브라우저) 링크 표시
+  fullscreen: Fullscreen,        // 가사 전체화면 편집(웹 Fullscreen)
 } as const
 
 export type IconName = keyof typeof MAP

@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { ActivityIndicator, Alert, FlatList, Pressable, RefreshControl, StyleSheet, Text, View } from 'react-native'
-import Animated from 'react-native-reanimated'
+import Animated, { useAnimatedStyle, useDerivedValue, withTiming } from 'react-native-reanimated'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { router, useFocusEffect } from 'expo-router'
 import type { Collection, Song } from '@mono/shared'
@@ -36,6 +36,10 @@ export default function LibraryScreen() {
   const [titleH, setTitleH] = useState(insets.top + 56)
   const { session } = useSession()
   const [libTab, setLibTab] = useState<'songs' | 'collections'>('songs')
+  const [tabsW, setTabsW] = useState(0)
+  // 밑줄 인디케이터 슬라이드 — libTab 변화 시 부드럽게 이동
+  const tabPos = useDerivedValue(() => withTiming(libTab === 'songs' ? 0 : 1, { duration: 260 }), [libTab])
+  const underlineStyle = useAnimatedStyle(() => ({ transform: [{ translateX: tabPos.value * (tabsW / 2) }] }))
   const [cols, setCols] = useState<Collection[]>([])
   const [songs, setSongs] = useState<Song[] | null>(null)
   const [filter, setFilter] = useState<Filter>('all')
@@ -162,12 +166,13 @@ export default function LibraryScreen() {
             <NotificationBell size={19} color={mono.color.text} />
           </Pressable>
         </View>
-        <View style={styles.libTabs}>
+        <View style={styles.libTabs} onLayout={(e) => setTabsW(e.nativeEvent.layout.width)}>
           {(['songs', 'collections'] as const).map((t) => (
-            <Pressable key={t} onPress={() => setLibTab(t)} hitSlop={6}>
+            <Pressable key={t} onPress={() => setLibTab(t)} style={styles.libTabCell}>
               <Text style={[styles.libTab, libTab === t && styles.libTabOn]}>{t === 'songs' ? '내 음악' : '내 컬렉션'}</Text>
             </Pressable>
           ))}
+          <Animated.View style={[styles.libUnderline, { width: tabsW / 2 }, underlineStyle]} />
         </View>
       </View>
 
@@ -210,7 +215,7 @@ const styles = StyleSheet.create({
   },
   chipsBar: {
     position: 'absolute', left: 0, right: 0, zIndex: 10,
-    backgroundColor: mono.color.bg, paddingHorizontal: 20, paddingBottom: 10,
+    backgroundColor: mono.color.bg, paddingHorizontal: 20, paddingTop: 14, paddingBottom: 10,
   },
   headerRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   headerBtns: { flexDirection: 'row', gap: 8 },
@@ -220,10 +225,12 @@ const styles = StyleSheet.create({
   },
   profileIcon: { color: mono.color.text, fontSize: 18 },
   h1: { color: mono.color.text, fontSize: mono.font.h1, fontWeight: '800' },
-  // 내 음악 / 내 컬렉션 상단 탭(웹 파리티)
-  libTabs: { flexDirection: 'row', gap: 20, marginTop: 14 },
-  libTab: { color: mono.color.textTertiary, fontSize: mono.font.h2, fontWeight: '700', paddingBottom: 4 },
-  libTabOn: { color: mono.color.text, borderBottomWidth: 2, borderBottomColor: mono.color.text },
+  // 내 음악 / 내 컬렉션 상단 탭 — 좌우 꽉 채워 균등 분할(슬라이딩 밑줄, titleBar 패딩 상쇄)
+  libTabs: { flexDirection: 'row', marginTop: 14, marginHorizontal: -20, borderBottomWidth: 1, borderBottomColor: mono.color.borderSoft },
+  libTabCell: { flex: 1, alignItems: 'center', paddingBottom: 10 },
+  libTab: { color: mono.color.textTertiary, fontSize: mono.font.body, fontWeight: '700' },
+  libTabOn: { color: mono.color.text },
+  libUnderline: { position: 'absolute', bottom: -1, left: 0, height: 2, backgroundColor: mono.color.text },
   // 컬렉션 목록 행
   colRow: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 8 },
   colRowPressed: { opacity: 0.6 },
