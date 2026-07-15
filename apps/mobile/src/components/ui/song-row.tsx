@@ -3,6 +3,9 @@ import { Pressable, StyleSheet, Text, View } from 'react-native'
 import Svg, { Defs, LinearGradient, Rect, Stop } from 'react-native-svg'
 import type { Song } from '@mono/shared'
 import { Icon } from '@/components/ui/icon'
+import { BreathingDot } from '@/components/ui/generating-dots'
+import { GeneratingPhrase } from '@/components/ui/generating-phrase'
+import { SkeletonShimmer } from '@/components/ui/skeleton-shimmer'
 import { mono } from '@/theme/mono'
 
 // 재생시간 m:ss (없으면 null)
@@ -16,17 +19,31 @@ function fmtDuration(sec?: number | null): string | null {
 // 곡 한 줄 — 커버(재생시간 오버레이)·제목(모델 배지)·상태·통계(공개 여부). 탭→재생, ⋯→액션(onMore).
 export function SongRow({ song, onPress, onMore }: { song: Song; onPress?: () => void; onMore?: () => void }) {
   const generating = song.status === 'generating'
-  const hue = song.coverHue ?? 250
+  const isNew = !!song.isNew && !generating
+  // 웹 파리티 커버 기본색 — coverHue 없으면 id 해시. 대각선 그라데이션(hue → hue+55).
+  const hue = song.coverHue ?? ((song.id.split('').reduce((a, c) => a + c.charCodeAt(0), 0) * 137) % 360)
+  const h2 = (hue + 55) % 360
   const duration = !generating ? fmtDuration(song.duration) : null
   return (
     <Pressable
       onPress={generating ? undefined : onPress}
       style={({ pressed }) => [styles.row, pressed && !generating && styles.pressed]}
     >
-      <View style={[styles.cover, { backgroundColor: `hsl(${hue}, 30%, 22%)` }]}>
+      <View style={styles.cover}>
+        <Svg style={StyleSheet.absoluteFill} pointerEvents="none">
+          <Defs>
+            <LinearGradient id={`cov-${song.id}`} x1="0" y1="0" x2="1" y2="1">
+              <Stop offset="0" stopColor={`hsl(${hue}, 65%, 48%)`} />
+              <Stop offset="1" stopColor={`hsl(${h2}, 55%, 32%)`} />
+            </LinearGradient>
+          </Defs>
+          <Rect x="0" y="0" width="100%" height="100%" fill={`url(#cov-${song.id})`} />
+        </Svg>
         {song.coverImage ? (
           <Image source={{ uri: song.coverImage }} style={styles.coverImg} contentFit="cover" transition={150} />
         ) : null}
+        {generating && !song.coverImage ? <SkeletonShimmer /> : null}
+        {isNew ? <View style={styles.newDot} /> : null}
         {duration ? (
           <>
             <Svg style={styles.coverScrim} pointerEvents="none">
@@ -47,9 +64,13 @@ export function SongRow({ song, onPress, onMore }: { song: Song; onPress?: () =>
           <Text style={styles.title} numberOfLines={1}>{song.title?.trim() || '제목 없음'}</Text>
           {song.model === 'music-2.6' ? <Text style={styles.modelBadge}>v2.6</Text> : null}
         </View>
-        <Text style={styles.sub} numberOfLines={1}>
-          {generating ? '생성 중…' : [song.genre, song.mood].filter(Boolean).join(' · ') || song.prompt?.trim() || '스타일 미지정'}
-        </Text>
+        {generating ? (
+          <GeneratingPhrase startedAt={song.createdAt} style={styles.sub} />
+        ) : (
+          <Text style={styles.sub} numberOfLines={1}>
+            {[song.genre, song.mood].filter(Boolean).join(' · ') || song.prompt?.trim() || '스타일 미지정'}
+          </Text>
+        )}
         {!generating ? (
           <View style={styles.stats}>
             <View style={styles.stat}><Icon name="play.fill" size={13} color={mono.color.textTertiary} /><Text style={styles.statText}>{song.playCount ?? 0}</Text></View>
@@ -62,7 +83,7 @@ export function SongRow({ song, onPress, onMore }: { song: Song; onPress?: () =>
         ) : null}
       </View>
       {generating ? (
-        <View style={styles.dot} />
+        <View style={styles.more}><BreathingDot /></View>
       ) : onMore ? (
         <Pressable onPress={onMore} hitSlop={12} style={styles.more}><Icon name="ellipsis" size={18} color={mono.color.textSecondary} /></Pressable>
       ) : null}
@@ -76,6 +97,8 @@ const styles = StyleSheet.create({
   // 커버 = 세로(포트레이트) — 브랜드 정체성(웹 파리티)
   cover: { width: 54, aspectRatio: 3 / 4, borderRadius: mono.radius.sm, overflow: 'hidden' },
   coverImg: { width: '100%', height: '100%' },
+  // 새 곡 표시 — 커버 좌하단 빨간 점(웹 파리티)
+  newDot: { position: 'absolute', bottom: 4, left: 4, width: 8, height: 8, borderRadius: 4, backgroundColor: '#ef4444' },
   coverScrim: { position: 'absolute', left: 0, right: 0, bottom: 0, height: '55%' },
   duration: { position: 'absolute', right: 4, bottom: 3, color: mono.color.onMedia, fontSize: 10, fontWeight: '600' },
   meta: { flex: 1, minWidth: 0 },
@@ -92,6 +115,5 @@ const styles = StyleSheet.create({
   statText: { color: mono.color.textTertiary, fontSize: mono.font.small },
   // 공개 — 통계 행에서 compass 아이콘+텍스트(둘러보기 노출 표시, 댓글 통계와 동일 형태)
   publishedText: { color: mono.color.accentLight, fontSize: mono.font.small, fontWeight: '600' },
-  dot: { width: 8, height: 8, borderRadius: 4, backgroundColor: mono.color.accent },
   more: { width: 32, height: 32, alignItems: 'center', justifyContent: 'center' },
 })

@@ -4,7 +4,6 @@ import { createContext, useCallback, useContext, useEffect, useState } from 'rea
 import type { User } from '@supabase/supabase-js'
 import { createClient } from '@/lib/supabase/client'
 import { setSongOwner } from '@/services/song.service'
-import { setCollectionOwner } from '@/services/collection.service'
 import { toast } from '@/components/toast/toast'
 import { track, setUserId, clearUserId, EVENTS } from '@/utils/analytics'
 
@@ -64,7 +63,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const u = data.session?.user ?? null
       setUser(u)
       setSongOwner(u?.id ?? null)
-      setCollectionOwner(u?.id ?? null)
       setLoading(false)
     })
 
@@ -72,7 +70,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const u = session?.user ?? null
       setUser(u)
       setSongOwner(u?.id ?? null)
-      setCollectionOwner(u?.id ?? null)
 
       // Design Ref: §7.4 — GA4 user_id sync + sign_up/login 이벤트
       if (event === 'SIGNED_IN' && u) {

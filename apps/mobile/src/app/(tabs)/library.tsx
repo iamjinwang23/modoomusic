@@ -1,9 +1,9 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { ActivityIndicator, Alert, Pressable, RefreshControl, StyleSheet, Text, View } from 'react-native'
+import { ActivityIndicator, Alert, FlatList, Pressable, RefreshControl, StyleSheet, Text, View } from 'react-native'
 import Animated from 'react-native-reanimated'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { router, useFocusEffect } from 'expo-router'
-import type { Song } from '@mono/shared'
+import type { Collection, Song } from '@mono/shared'
 import { api } from '@/lib/api'
 import { hapticLight } from '@/lib/haptics'
 import { subscribeSongUpdates } from '@/lib/generate'
@@ -14,8 +14,10 @@ import { Icon } from '@/components/ui/icon'
 import { NotificationBell } from '@/components/ui/notification-bell'
 import { playSong } from '@/lib/player'
 import { deleteSong, downloadSong, setSongPublished } from '@/lib/song-actions'
-import { isCollected, toggleCollected } from '@/lib/collection'
+import { isInAnyCollection, collections as collectionStore } from '@/lib/collection'
 import { SongMoreSheet } from '@/components/ui/song-more-sheet'
+import { CollectionPickerModal } from '@/components/ui/collection-picker-modal'
+import { CollectionCover } from '@/components/ui/collection-cover'
 import { SongEditModal } from '@/components/ui/song-edit-modal'
 import { mono } from '@/theme/mono'
 
@@ -33,6 +35,8 @@ export default function LibraryScreen() {
   const { scrollHandler, headerStyle, onHeaderLayout, headerHeight: chipsH } = useAutoHideHeader(58)
   const [titleH, setTitleH] = useState(insets.top + 56)
   const { session } = useSession()
+  const [libTab, setLibTab] = useState<'songs' | 'collections'>('songs')
+  const [cols, setCols] = useState<Collection[]>([])
   const [songs, setSongs] = useState<Song[] | null>(null)
   const [filter, setFilter] = useState<Filter>('all')
   const [error, setError] = useState<string | null>(null)
@@ -53,8 +57,9 @@ export default function LibraryScreen() {
 
   useEffect(() => { load(); loadedOnce.current = true }, [load])
 
-  // 화면 복귀 시 갱신(생성 화면에서 만들기 후 돌아왔을 때)
-  useFocusEffect(useCallback(() => { if (loadedOnce.current) load() }, [load]))
+  // 화면 복귀 시 갱신(생성 화면에서 만들기 후 돌아왔을 때) + 컬렉션 재로딩(담기/제거 반영)
+  const loadCols = useCallback(() => { collectionStore.getAll().then(setCols) }, [])
+  useFocusEffect(useCallback(() => { if (loadedOnce.current) load(); loadCols() }, [load, loadCols]))
 
   // 실시간: 내 곡 상태 전환 시 목록 재로딩(생성 완료 반영)
   useEffect(() => {
@@ -72,8 +77,9 @@ export default function LibraryScreen() {
   const [moreSong, setMoreSong] = useState<Song | null>(null)
   const [editSong, setEditSong] = useState<Song | null>(null)
   const [moreCollected, setMoreCollected] = useState(false)
+  const [pickerSong, setPickerSong] = useState<Song | null>(null)
   const moreRef = useRef<Song | null>(null)
-  useEffect(() => { if (moreSong) isCollected(moreSong.id).then(setMoreCollected) }, [moreSong])
+  useEffect(() => { if (moreSong) isInAnyCollection(moreSong.id).then(setMoreCollected) }, [moreSong])
 
   const openMenu = useCallback((song: Song) => { moreRef.current = song; setMoreSong(song) }, [])
   const confirmDelete = useCallback((song: Song) => {
@@ -83,7 +89,6 @@ export default function LibraryScreen() {
     ])
   }, [load])
 
-  const generating = (songs ?? []).some((s) => s.status === 'generating')
   const filtered = (songs ?? []).filter((s) => {
     if (filter === 'liked') return !!s.liked
     if (filter === 'published') return !!s.published
@@ -94,40 +99,60 @@ export default function LibraryScreen() {
 
   return (
     <View style={styles.container}>
-      <Animated.FlatList
-        data={filtered}
-        keyExtractor={(s) => s.id}
-        renderItem={({ item }) => <SongRow song={item} onPress={() => playSong(item, filtered)} onMore={() => openMenu(item)} />}
-        onScroll={scrollHandler}
-        scrollEventThrottle={16}
-        contentContainerStyle={{ paddingTop: titleH + chipsH + 4, paddingBottom: insets.bottom + 160, paddingHorizontal: 20 }}
-        refreshControl={<RefreshControl progressViewOffset={titleH + chipsH} refreshing={refreshing} onRefresh={onRefresh} tintColor={mono.color.textSecondary} />}
-        ListEmptyComponent={
-          loading ? <ActivityIndicator color={mono.color.accent} style={{ marginTop: 32 }} />
-            : <Text style={styles.empty}>
-                {error ? `불러오지 못했어요 (${error})`
-                  : filter === 'liked' ? '좋아요한 곡이 없어요'
-                  : filter === 'published' ? '공개한 곡이 없어요'
-                  : '아직 만든 음악이 없어요'}
-              </Text>
-        }
-        showsVerticalScrollIndicator={false}
-      />
+      {libTab === 'songs' ? (
+        <>
+          <Animated.FlatList
+            data={filtered}
+            keyExtractor={(s) => s.id}
+            renderItem={({ item }) => <SongRow song={item} onPress={() => playSong(item, filtered)} onMore={() => openMenu(item)} />}
+            onScroll={scrollHandler}
+            scrollEventThrottle={16}
+            contentContainerStyle={{ paddingTop: titleH + chipsH + 4, paddingBottom: insets.bottom + 160, paddingHorizontal: 20 }}
+            refreshControl={<RefreshControl progressViewOffset={titleH + chipsH} refreshing={refreshing} onRefresh={onRefresh} tintColor={mono.color.textSecondary} />}
+            ListEmptyComponent={
+              loading ? <ActivityIndicator color={mono.color.accent} style={{ marginTop: 32 }} />
+                : <Text style={styles.empty}>
+                    {error ? `불러오지 못했어요 (${error})`
+                      : filter === 'liked' ? '좋아요한 곡이 없어요'
+                      : filter === 'published' ? '공개한 곡이 없어요'
+                      : '아직 만든 음악이 없어요'}
+                  </Text>
+            }
+            showsVerticalScrollIndicator={false}
+          />
 
-      {/* 필터칩(+생성 중 안내) — auto-hide(타이틀 아래) */}
-      <Animated.View style={[styles.chipsBar, { top: titleH }, headerStyle]} onLayout={onHeaderLayout}>
-        <View style={styles.tabs}>
-          {FILTERS.map((f) => {
-            const on = filter === f.key
-            return (
-              <Pressable key={f.key} onPress={() => setFilter(f.key)} style={[styles.tab, on && styles.tabOn]}>
-                <Text style={[styles.tabText, on && styles.tabTextOn]}>{f.label}</Text>
-              </Pressable>
-            )
-          })}
-        </View>
-        {generating ? <Text style={styles.sub}>곡을 만들고 있어요…</Text> : null}
-      </Animated.View>
+          {/* 필터칩 — auto-hide(타이틀 아래), 내 음악 탭에서만 */}
+          <Animated.View style={[styles.chipsBar, { top: titleH }, headerStyle]} onLayout={onHeaderLayout}>
+            <View style={styles.tabs}>
+              {FILTERS.map((f) => {
+                const on = filter === f.key
+                return (
+                  <Pressable key={f.key} onPress={() => setFilter(f.key)} style={[styles.tab, on && styles.tabOn]}>
+                    <Text style={[styles.tabText, on && styles.tabTextOn]}>{f.label}</Text>
+                  </Pressable>
+                )
+              })}
+            </View>
+          </Animated.View>
+        </>
+      ) : (
+        <FlatList
+          data={cols}
+          keyExtractor={(c) => c.id}
+          renderItem={({ item }) => (
+            <Pressable style={({ pressed }) => [styles.colRow, pressed && styles.colRowPressed]} onPress={() => router.push(`/collection/${item.id}`)}>
+              <CollectionCover collection={item} size={52} />
+              <View style={styles.colMeta}>
+                <Text style={styles.colName} numberOfLines={1}>{item.name}</Text>
+                <Text style={styles.colCount}>{item.songIds.length}곡</Text>
+              </View>
+            </Pressable>
+          )}
+          contentContainerStyle={{ paddingTop: titleH + 10, paddingBottom: insets.bottom + 160, paddingHorizontal: 20 }}
+          ListEmptyComponent={<Text style={styles.empty}>아직 컬렉션이 없어요{'\n'}곡 더보기에서 컬렉션에 담아보세요</Text>}
+          showsVerticalScrollIndicator={false}
+        />
+      )}
 
       {/* 타이틀 — 고정 */}
       <View style={[styles.titleBar, { paddingTop: insets.top + 12 }]} onLayout={(e) => setTitleH(e.nativeEvent.layout.height)}>
@@ -136,6 +161,13 @@ export default function LibraryScreen() {
           <Pressable onPress={() => router.push('/notifications')} hitSlop={10} style={styles.profileBtn}>
             <NotificationBell size={19} color={mono.color.text} />
           </Pressable>
+        </View>
+        <View style={styles.libTabs}>
+          {(['songs', 'collections'] as const).map((t) => (
+            <Pressable key={t} onPress={() => setLibTab(t)} hitSlop={6}>
+              <Text style={[styles.libTab, libTab === t && styles.libTabOn]}>{t === 'songs' ? '내 음악' : '내 컬렉션'}</Text>
+            </Pressable>
+          ))}
         </View>
       </View>
 
@@ -146,7 +178,7 @@ export default function LibraryScreen() {
         isOwner
         published={!!moreSong?.published}
         collected={moreCollected}
-        onCollect={async () => { const s = moreRef.current; if (s) setMoreCollected(await toggleCollected(s.id)) }}
+        onCollect={() => { const s = moreRef.current; if (s) setPickerSong(s) }}
         onPublishToggle={async () => { const s = moreRef.current; if (s) { await setSongPublished(s.id, !s.published); load() } }}
         onDownload={async () => { const s = moreRef.current; if (s?.audioUrl && !(await downloadSong(s.audioUrl, s.title))) Alert.alert('다운로드에 실패했어요') }}
         onVideoCover={() => { const s = moreRef.current; if (s) router.push(`/video-create?songId=${s.id}`) }}
@@ -159,6 +191,11 @@ export default function LibraryScreen() {
         onClose={() => setEditSong(null)}
         song={editSong ? { id: editSong.id, title: editSong.title, lyrics: editSong.lyrics ?? null, publishComment: editSong.publishComment ?? null } : null}
         onSaved={() => load()}
+      />
+      <CollectionPickerModal
+        open={!!pickerSong}
+        song={pickerSong}
+        onClose={() => { const s = pickerSong; setPickerSong(null); loadCols(); if (s) isInAnyCollection(s.id).then(setMoreCollected) }}
       />
     </View>
   )
@@ -183,13 +220,22 @@ const styles = StyleSheet.create({
   },
   profileIcon: { color: mono.color.text, fontSize: 18 },
   h1: { color: mono.color.text, fontSize: mono.font.h1, fontWeight: '800' },
+  // 내 음악 / 내 컬렉션 상단 탭(웹 파리티)
+  libTabs: { flexDirection: 'row', gap: 20, marginTop: 14 },
+  libTab: { color: mono.color.textTertiary, fontSize: mono.font.h2, fontWeight: '700', paddingBottom: 4 },
+  libTabOn: { color: mono.color.text, borderBottomWidth: 2, borderBottomColor: mono.color.text },
+  // 컬렉션 목록 행
+  colRow: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 8 },
+  colRowPressed: { opacity: 0.6 },
+  colMeta: { flex: 1, minWidth: 0 },
+  colName: { color: mono.color.text, fontSize: mono.font.body, fontWeight: '600' },
+  colCount: { color: mono.color.textTertiary, fontSize: mono.font.small, marginTop: 2 },
   // 필터칩 — 둘러보기와 동일 사이즈, 활성=화이트 채움(다크 텍스트)
   tabs: { flexDirection: 'row', gap: 8 },
   tab: { paddingVertical: 11, paddingHorizontal: 20, borderRadius: mono.radius.pill, backgroundColor: mono.color.fill },
   tabOn: { backgroundColor: '#ffffff' },
   tabText: { color: mono.color.textSecondary, fontSize: mono.font.body, fontWeight: '600' },
   tabTextOn: { color: mono.color.bg, fontWeight: '700' },
-  sub: { color: mono.color.textSecondary, fontSize: mono.font.small, marginTop: 10, marginBottom: 8 },
   empty: { color: mono.color.textSecondary, fontSize: mono.font.body, textAlign: 'center', marginTop: 48 },
   fab: {
     position: 'absolute', alignSelf: 'center',

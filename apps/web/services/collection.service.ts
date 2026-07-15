@@ -1,101 +1,52 @@
 import type { Collection } from '@mono/shared'
 
-let currentUserId: string | null = null
-
-export function setCollectionOwner(userId: string | null) {
-  currentUserId = userId
+// 컬렉션 — 서버(Supabase) 저장으로 웹·앱 완전 동기화. /api/collections 사용(클라 전용, 상대 fetch).
+async function req<T>(path: string, method = 'GET', body?: unknown): Promise<T> {
+  const res = await fetch(path, {
+    method,
+    headers: body ? { 'Content-Type': 'application/json' } : undefined,
+    body: body ? JSON.stringify(body) : undefined,
+  })
+  if (!res.ok) throw new Error(`collection_${method}_${res.status}`)
+  return res.json() as Promise<T>
 }
 
-const DEFAULT_ID = 'col-default'
-
-function key(): string | null {
-  return currentUserId ? `today-collections-${currentUserId}` : null
-}
-
-function load(): Collection[] {
-  if (typeof window === 'undefined') return []
-  const k = key()
-  if (!k) return []
-  try { return JSON.parse(localStorage.getItem(k) ?? '[]') } catch { return [] }
-}
-
-function persist(cols: Collection[]) {
-  const k = key()
-  if (!k) return
-  localStorage.setItem(k, JSON.stringify(cols))
+async function getAll(): Promise<Collection[]> {
+  try {
+    const j = await req<{ collections?: Collection[] }>('/api/collections')
+    return j.collections ?? []
+  } catch {
+    return []
+  }
 }
 
 export const collectionService = {
-  getAll(): Collection[] {
-    return load()
+  getAll,
+  // 서버 GET이 비어 있으면 기본 컬렉션을 생성해 반환 → ensureDefault=getAll
+  ensureDefault: getAll,
+
+  async create(name: string): Promise<Collection> {
+    const j = await req<{ collection: Collection }>('/api/collections', 'POST', { name })
+    return j.collection
   },
 
-  ensureDefault(): Collection[] {
-    let cols = load()
-    if (!cols.find((c) => c.id === DEFAULT_ID)) {
-      cols = [{ id: DEFAULT_ID, name: '기본 컬렉션', songIds: [], createdAt: new Date().toISOString() }, ...cols]
-      persist(cols)
-    }
-    return cols
+  async rename(collectionId: string, name: string): Promise<void> {
+    await req(`/api/collections/${collectionId}`, 'PATCH', { name })
   },
 
-  addSong(collectionId: string, songId: string): void {
-    const cols = load()
-    const col = cols.find((c) => c.id === collectionId)
-    if (col && !col.songIds.includes(songId)) {
-      col.songIds = [songId, ...col.songIds]
-      persist(cols)
-    }
+  async delete(collectionId: string): Promise<void> {
+    await req(`/api/collections/${collectionId}`, 'DELETE')
   },
 
-  removeSong(collectionId: string, songId: string): void {
-    const cols = load()
-    const col = cols.find((c) => c.id === collectionId)
-    if (col) {
-      col.songIds = col.songIds.filter((id) => id !== songId)
-      persist(cols)
-    }
+  async addSong(collectionId: string, songId: string): Promise<void> {
+    await req(`/api/collections/${collectionId}/songs`, 'POST', { songId })
   },
 
-  create(name: string, coverImage?: string): Collection {
-    const cols = load()
-    const col: Collection = { id: `col-${Date.now()}`, name, coverImage, songIds: [], createdAt: new Date().toISOString() }
-    persist([...cols, col])
-    return col
+  async removeSong(collectionId: string, songId: string): Promise<void> {
+    await req(`/api/collections/${collectionId}/songs?songId=${songId}`, 'DELETE')
   },
 
-  delete(collectionId: string): Collection | null {
-    const cols = load()
-    const snapshot = cols.find((c) => c.id === collectionId) ?? null
-    persist(cols.filter((c) => c.id !== collectionId))
-    return snapshot
-  },
-
-  // 삭제된 컬렉션 복원 (실행 취소)
-  restore(snapshot: Collection): void {
-    const cols = load()
-    if (cols.some((c) => c.id === snapshot.id)) return
-    persist([...cols, snapshot])
-  },
-
-  // 컬렉션에서 곡 제거를 되돌리기 (실행 취소)
-  addSongRestore(collectionId: string, songId: string, index: number): void {
-    const cols = load()
-    const col = cols.find((c) => c.id === collectionId)
-    if (col && !col.songIds.includes(songId)) {
-      const insertAt = Math.max(0, Math.min(index, col.songIds.length))
-      col.songIds = [...col.songIds.slice(0, insertAt), songId, ...col.songIds.slice(insertAt)]
-      persist(cols)
-    }
-  },
-
-  rename(collectionId: string, name: string): void {
-    const cols = load()
-    const col = cols.find((c) => c.id === collectionId)
-    if (col) { col.name = name; persist(cols) }
-  },
-
-  getSongCollectionIds(songId: string): string[] {
-    return load().filter((c) => c.songIds.includes(songId)).map((c) => c.id)
+  async getSongCollectionIds(songId: string): Promise<string[]> {
+    return (await getAll()).filter((c) => c.songIds.includes(songId)).map((c) => c.id)
   },
 }

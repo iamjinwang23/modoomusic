@@ -80,7 +80,8 @@ export default function SearchScreen() {
   const showRecents = !q.trim()
 
   return (
-    <View style={[styles.container, { paddingTop: insets.top + 8 }]}>
+    <View style={[styles.container, { paddingTop: 8 }]}>
+      <View style={styles.handleRow}><View style={styles.handle} /></View>
       <View style={styles.searchRow}>
         <View style={styles.inputWrap}>
           <TextInput
@@ -180,6 +181,8 @@ export default function SearchScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: mono.color.bg, paddingHorizontal: 20 },
+  handleRow: { alignItems: 'center', paddingTop: 4, paddingBottom: 38 },
+  handle: { width: 40, height: 5, borderRadius: 3, backgroundColor: mono.color.fillStrong },
   flex: { flex: 1 },
   searchRow: { flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 12 },
   inputWrap: { flex: 1, justifyContent: 'center' },

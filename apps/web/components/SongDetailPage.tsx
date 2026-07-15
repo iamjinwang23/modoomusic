@@ -158,14 +158,14 @@ export function SongDetailPage({ onBack, profile }: Props) {
   // Sync inCollection state when song changes
   useEffect(() => {
     if (!song) return
-    setInCollection(collectionService.getSongCollectionIds(song.id).length > 0)
+    collectionService.getSongCollectionIds(song.id).then((ids) => setInCollection(ids.length > 0))
   }, [song?.id])
 
   useEffect(() => {
     if (!song) return
     function handler() {
       if (!song) return
-      setInCollection(collectionService.getSongCollectionIds(song.id).length > 0)
+      collectionService.getSongCollectionIds(song.id).then((ids) => setInCollection(ids.length > 0))
     }
     window.addEventListener('collection-updated', handler)
     return () => window.removeEventListener('collection-updated', handler)

@@ -1,10 +1,11 @@
 import { useEffect, useRef, useState } from 'react'
 import {
-  ActionSheetIOS, ActivityIndicator, Animated, Keyboard, KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, StyleSheet, Switch, Text, TextInput, View,
+  ActionSheetIOS, ActivityIndicator, Keyboard, KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, StyleSheet, Switch, Text, TextInput, View,
 } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { router } from 'expo-router'
 import { Icon } from '@/components/ui/icon'
+import { GeneratingDots } from '@/components/ui/generating-dots'
 import { api } from '@/lib/api'
 import { generateSong, MUSIC_MODELS, type MusicModelId } from '@/lib/generate'
 import { mono } from '@/theme/mono'
@@ -32,7 +33,7 @@ export default function CreateScreen() {
   const [model, setModel] = useState<MusicModelId>('music-2.0')
   const [chips, setChips] = useState<string[]>(pickChips)
   const [credits, setCredits] = useState<number | null>(null)
-  const [lyricsBusy, setLyricsBusy] = useState(false)
+  const [lyricsGenerating, setLyricsGenerating] = useState(false)
   const [lyricsModalOpen, setLyricsModalOpen] = useState(false)
   const [lyricsPrompt, setLyricsPrompt] = useState('')
   const [busy, setBusy] = useState(false)
@@ -60,23 +61,12 @@ export default function CreateScreen() {
     }
   }, [mode, focusLyrics])
 
-  // AI 가사 모달 — 딤은 페이드, 시트만 슬라이드업(분리 애니메이션)
-  const [modalMounted, setModalMounted] = useState(false)
-  const anim = useRef(new Animated.Value(0)).current
-  useEffect(() => {
-    if (lyricsModalOpen) {
-      setModalMounted(true)
-      Animated.timing(anim, { toValue: 1, duration: 240, useNativeDriver: true }).start()
-    } else if (modalMounted) {
-      Animated.timing(anim, { toValue: 0, duration: 200, useNativeDriver: true }).start(({ finished }) => { if (finished) setModalMounted(false) })
-    }
-  }, [lyricsModalOpen]) // eslint-disable-line react-hooks/exhaustive-deps
-
   const simpleModel: MusicModelId = instrumental ? 'music-2.6' : 'music-2.0'
   const activeModel: MusicModelId = mode === 'simple' ? simpleModel : model
   const modelDef = MUSIC_MODELS.find((m) => m.id === activeModel)
   const cost = modelDef?.credits ?? 0
-  const canSubmit = style.trim().length > 0 && !busy
+  // 가사 생성 중엔 음악 생성 차단 — 아직 안 채워진 가사로 곡이 만들어지는 레이스 방지
+  const canSubmit = style.trim().length > 0 && !busy && !lyricsGenerating
 
   const addChip = (c: string) => setStyle((prev) => (prev ? `${prev}, ${c}` : c))
   const modelShort = (id: MusicModelId) => id.replace('music-', 'v')  // Music 2.0 → v2.0 (웹 표기)
@@ -102,19 +92,21 @@ export default function CreateScreen() {
 
   // AI 가사 — 모달에서 프롬프트 입력 → /api/lyrics(크레딧無) → 가사·제목 적용
   const runLyrics = async (p: string) => {
-    if (!p.trim() || lyricsBusy) return
-    setLyricsBusy(true); setError(null)
+    if (!p.trim() || lyricsGenerating) return
+    // 즉시 모달 닫고 고급 모드로 — 가사 카드에 "생성 중" 인터랙션 노출(비차단)
+    setLyricsModalOpen(false)
+    setMode('advanced'); setInstrumental(false)
+    setLyricsGenerating(true); setError(null)
     try {
       const r = await api.post('/api/lyrics', { prompt: p.trim() }) as { lyrics?: string; songTitle?: string }
       if (r.lyrics) {
-        setLyrics(r.lyrics); setInstrumental(false)
+        setLyrics(r.lyrics)
         if (r.songTitle && !title.trim()) setTitle(r.songTitle)
-        setLyricsModalOpen(false)
       }
     } catch (e) {
       const err = e as { error?: string; status?: number }
       setError(err.status === 429 ? '잠시 후 다시 시도해 주세요' : err.error ?? '가사 생성에 실패했어요')
-    } finally { setLyricsBusy(false) }
+    } finally { setLyricsGenerating(false) }
   }
 
   const buildPrompt = () => {
@@ -171,7 +163,7 @@ export default function CreateScreen() {
   )
 
   return (
-    <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+    <View style={styles.flex}>
       <View style={[styles.container, { paddingTop: 8 }]}>
         <View style={styles.handleRow}><View style={styles.handle} /></View>
 
@@ -196,7 +188,7 @@ export default function CreateScreen() {
           ) : <View style={styles.modelPillGhost} />}
         </View>
 
-        <ScrollView style={styles.flex} contentContainerStyle={{ paddingBottom: 20 }} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
+        <ScrollView style={styles.flex} contentContainerStyle={{ paddingBottom: 20 }} keyboardShouldPersistTaps="handled" automaticallyAdjustKeyboardInsets showsVerticalScrollIndicator={false}>
 
           {mode === 'simple' ? (
             /* 심플 = 설명 카드 하나 */
@@ -228,6 +220,11 @@ export default function CreateScreen() {
                   {instToggle}
                 </View>
                 {!instrumental ? (
+                  lyricsGenerating ? (
+                    <View style={styles.lyricsGenBox}>
+                      <GeneratingDots label="가사를 만들고 있어요…" />
+                    </View>
+                  ) : (
                   <>
                     <TextInput
                       ref={lyricsRef}
@@ -245,6 +242,7 @@ export default function CreateScreen() {
                       </Pressable>
                     </View>
                   </>
+                  )
                 ) : null}
               </View>
 
@@ -291,7 +289,7 @@ export default function CreateScreen() {
           {error ? <Text style={styles.error}>{error}</Text> : null}
         </ScrollView>
 
-        <View style={[styles.footer, { paddingBottom: kbHeight > 0 ? 8 : insets.bottom + 8 }]}>
+        <View style={[styles.footer, { paddingBottom: kbHeight > 0 ? kbHeight + 8 : insets.bottom + 8 }]}>
           <Pressable onPress={canSubmit ? submit : undefined} style={({ pressed }) => [styles.cta, !canSubmit && styles.ctaOff, pressed && canSubmit && styles.ctaPressed]}>
             {busy ? <ActivityIndicator color="#fff" /> : (
               <View style={styles.ctaInner}>
@@ -304,19 +302,16 @@ export default function CreateScreen() {
         </View>
       </View>
 
-      {/* AI 가사 생성 모달 — 딤 페이드 + 시트 슬라이드업(분리) */}
-      <Modal visible={modalMounted} transparent animationType="none" onRequestClose={() => setLyricsModalOpen(false)}>
-        <View style={styles.mRoot}>
-          <Animated.View style={[styles.mDim, { opacity: anim }]}>
-            <Pressable style={StyleSheet.absoluteFill} onPress={() => setLyricsModalOpen(false)} />
-          </Animated.View>
-          <Animated.View style={[styles.mSheet, { paddingBottom: insets.bottom + 20, transform: [{ translateY: anim.interpolate({ inputRange: [0, 1], outputRange: [520, 0] }) }] }]}>
+      {/* AI 가사 생성 — 전체화면 글쓰기(compose) 스타일: 헤더 액션 + 테두리 없는 직접 입력 */}
+      <Modal visible={lyricsModalOpen} animationType="slide" onRequestClose={() => setLyricsModalOpen(false)}>
+        <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+          <View style={[styles.mScreen, { paddingTop: insets.top + 8 }]}>
             <View style={styles.mHead}>
-              <View style={styles.mTitleRow}>
-                <Icon name="ai.lyrics" size={20} color={mono.color.text} />
-                <Text style={styles.mTitle}>AI 가사</Text>
-              </View>
-              <Pressable onPress={() => setLyricsModalOpen(false)} hitSlop={10}><Icon name="close" size={22} color={mono.color.text} /></Pressable>
+              <Pressable onPress={() => setLyricsModalOpen(false)} hitSlop={12}><Text style={styles.mClose}>✕</Text></Pressable>
+              <Text style={styles.mTitle}>AI 가사</Text>
+              <Pressable onPress={() => runLyrics(lyricsPrompt)} disabled={!lyricsPrompt.trim()} hitSlop={12}>
+                <Text style={[styles.mAction, !lyricsPrompt.trim() && styles.mActionOff]}>만들기</Text>
+              </Pressable>
             </View>
             <TextInput
               style={styles.mInput}
@@ -325,20 +320,12 @@ export default function CreateScreen() {
               value={lyricsPrompt}
               onChangeText={setLyricsPrompt}
               multiline
+              autoFocus
             />
-            <Text style={styles.mHint}>입력한 내용을 바탕으로 멋진 가사를 만들어드려요. 크레딧은 소모되지 않아요.</Text>
-            <Pressable onPress={() => runLyrics(lyricsPrompt)} disabled={lyricsBusy || !lyricsPrompt.trim()} style={[styles.cta, !lyricsPrompt.trim() && styles.ctaOff]}>
-              {lyricsBusy ? <ActivityIndicator color="#fff" /> : (
-                <View style={styles.ctaInner}>
-                  <Icon name="ai.lyrics" size={16} color="#fff" />
-                  <Text style={styles.ctaText}>가사 만들기</Text>
-                </View>
-              )}
-            </Pressable>
-          </Animated.View>
-        </View>
+          </View>
+        </KeyboardAvoidingView>
       </Modal>
-    </KeyboardAvoidingView>
+    </View>
   )
 }
 
@@ -366,6 +353,7 @@ const styles = StyleSheet.create({
   cardTitleOn: { color: mono.color.accentLight },
   cardInput: { color: mono.color.text, fontSize: mono.font.body, paddingTop: 12, paddingBottom: 4, minHeight: 88, textAlignVertical: 'top', lineHeight: 24 },
   lyricsInput: { minHeight: 132 },
+  lyricsGenBox: { minHeight: 180, alignItems: 'center', justifyContent: 'center' },
   cardFoot: { flexDirection: 'row', alignItems: 'center', marginTop: 8 },
   instRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   instLabel: { color: mono.color.textSecondary, fontSize: mono.font.small, fontWeight: '600' },
@@ -403,12 +391,12 @@ const styles = StyleSheet.create({
   ctaText: { color: '#fff', fontSize: mono.font.body, fontWeight: '700' },
 
   // AI 가사 모달 (딤 페이드 + 시트 슬라이드)
-  mRoot: { flex: 1, justifyContent: 'flex-end' },
-  mDim: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: mono.color.overlayStrong },
-  mSheet: { backgroundColor: mono.color.surface, borderTopLeftRadius: mono.radius.xl, borderTopRightRadius: mono.radius.xl, padding: 20, gap: 12 },
-  mHead: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  mTitleRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  // AI 가사 — 전체화면 글쓰기 스타일(compose 파리티): 테두리 없는 직접 입력
+  mScreen: { flex: 1, backgroundColor: mono.color.bg, paddingHorizontal: 20 },
+  mHead: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 },
+  mClose: { color: mono.color.text, fontSize: 22 },
   mTitle: { color: mono.color.text, fontSize: mono.font.h2, fontWeight: '700' },
-  mHint: { color: mono.color.textSecondary, fontSize: mono.font.small, lineHeight: 20 },
-  mInput: { backgroundColor: mono.color.bg, borderRadius: mono.radius.md, borderWidth: 1.5, borderColor: mono.color.accent, color: mono.color.text, fontSize: mono.font.body, padding: 16, minHeight: 240, textAlignVertical: 'top', lineHeight: 24 },
+  mAction: { color: mono.color.accentLight, fontSize: mono.font.body, fontWeight: '800' },
+  mActionOff: { color: mono.color.textTertiary },
+  mInput: { flex: 1, color: mono.color.text, fontSize: mono.font.body, lineHeight: 24, textAlignVertical: 'top', paddingTop: 8, paddingBottom: 12 },
 })

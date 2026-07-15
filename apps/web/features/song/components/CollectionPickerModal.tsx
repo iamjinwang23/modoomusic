@@ -60,8 +60,8 @@ export function CollectionPickerModal({ song, onClose }: Props) {
   const [visible, setVisible] = useState(false)
 
   useEffect(() => {
-    setCollections(collectionService.ensureDefault())
-    setInIds(new Set(collectionService.getSongCollectionIds(song.id)))
+    collectionService.ensureDefault().then(setCollections)
+    collectionService.getSongCollectionIds(song.id).then((ids) => setInIds(new Set(ids)))
   }, [song.id])
 
   useEffect(() => {
@@ -74,33 +74,33 @@ export function CollectionPickerModal({ song, onClose }: Props) {
     setTimeout(onClose, 280)
   }
 
-  function refresh() {
-    setCollections(collectionService.getAll())
+  async function refresh() {
+    setCollections(await collectionService.getAll())
   }
 
-  function toggle(collectionId: string) {
+  async function toggle(collectionId: string) {
     const col = collections.find((c) => c.id === collectionId)
     const colName = col?.name ?? '컬렉션'
     if (inIds.has(collectionId)) {
-      collectionService.removeSong(collectionId, song.id)
+      await collectionService.removeSong(collectionId, song.id)
       setInIds((prev) => { const s = new Set(prev); s.delete(collectionId); return s })
       toast.info(`'${colName}'에서 제거되었어요`)
     } else {
-      collectionService.addSong(collectionId, song.id)
+      await collectionService.addSong(collectionId, song.id)
       setInIds((prev) => new Set([...prev, collectionId]))
       toast.success(`'${colName}'에 담았어요`)
     }
-    refresh()
+    await refresh()
     window.dispatchEvent(new CustomEvent('collection-updated'))
   }
 
-  function handleCreate() {
+  async function handleCreate() {
     const name = newName.trim()
     if (!name) return
-    const col = collectionService.create(name, undefined)
-    collectionService.addSong(col.id, song.id)
+    const col = await collectionService.create(name)
+    await collectionService.addSong(col.id, song.id)
     setInIds((prev) => new Set([...prev, col.id]))
-    refresh()
+    await refresh()
     window.dispatchEvent(new CustomEvent('collection-updated'))
     toast.success(`'${name}' 컬렉션이 만들어졌어요`)
     setNewName('')

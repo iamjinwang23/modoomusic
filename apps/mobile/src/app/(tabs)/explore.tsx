@@ -133,12 +133,12 @@ function Section({ title, children }: { title: string; children: React.ReactNode
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: mono.color.bg, paddingHorizontal: 20 },
-  headerRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 },
+  container: { flex: 1, backgroundColor: mono.color.bg },
+  headerRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8, paddingHorizontal: 20 },
   headerActions: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   iconBtn: { width: 40, height: 40, borderRadius: 20, backgroundColor: mono.color.fill, alignItems: 'center', justifyContent: 'center' },
   h1: { color: mono.color.text, fontSize: mono.font.h1, fontWeight: '800' },
-  section: { marginTop: 24 },
+  section: { marginTop: 24, paddingHorizontal: 20 },
   sectionTitle: { color: mono.color.text, fontSize: mono.font.h2, fontWeight: '700', marginBottom: 12 },
   // 캐러셀 풀블리드 — 컨테이너 좌우 패딩(20) 밖으로 나가고, 콘텐츠는 패딩만큼 인셋
   storyScroll: { marginHorizontal: -20 },
