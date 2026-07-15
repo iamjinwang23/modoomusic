@@ -15,7 +15,20 @@ export async function listMySongs(client: SupabaseClient, userId: string): Promi
 }
 
 // 단건 상세 — RLS가 공개/본인 접근 통제. 없거나 접근불가면 null.
+// per-user liked를 계산해 반환(플레이어가 좋아요 상태를 정확히 초기화하도록).
 export async function getSongById(client: SupabaseClient, id: string): Promise<Song | null> {
   const { data } = await client.from('songs').select('*').eq('id', id).maybeSingle()
-  return data ? rowToSong(data as DbSong) : null
+  if (!data) return null
+  const song = rowToSong(data as DbSong)
+  const { data: { user } } = await client.auth.getUser()
+  if (user) {
+    const { data: like } = await client
+      .from('likes')
+      .select('song_id')
+      .eq('user_id', user.id)
+      .eq('song_id', id)
+      .maybeSingle()
+    song.liked = !!like
+  }
+  return song
 }
