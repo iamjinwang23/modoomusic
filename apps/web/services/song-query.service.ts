@@ -11,7 +11,12 @@ export async function listMySongs(client: SupabaseClient, userId: string): Promi
     .eq('user_id', userId)
     .order('created_at', { ascending: false })
   if (error) { console.error('[songs.mine]', error.message); return [] }
-  return (data ?? []).map((r) => rowToSong(r as DbSong))
+  const songs = (data ?? []).map((r) => rowToSong(r as DbSong))
+  // per-user liked 일괄 계산 → 플레이어 진입 시 좋아요가 즉시 표시(fetch 지연 제거)
+  const { data: myLikes } = await client.from('likes').select('song_id').eq('user_id', userId)
+  const likedSet = new Set((myLikes ?? []).map((l) => l.song_id as string))
+  for (const s of songs) s.liked = likedSet.has(s.id)
+  return songs
 }
 
 // 단건 상세 — RLS가 공개/본인 접근 통제. 없거나 접근불가면 null.
