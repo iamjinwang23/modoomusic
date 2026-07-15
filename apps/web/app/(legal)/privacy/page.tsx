@@ -9,7 +9,7 @@ export default function PrivacyPage() {
     <article className="space-y-8 text-zinc-300 leading-relaxed">
       <header className="space-y-2">
         <h1 className="text-3xl font-bold text-white">개인정보처리방침</h1>
-        <p className="text-sm text-zinc-500">시행일: 2026년 5월 27일 · 개정: 2026년 7월 1일 (커뮤니티 활동 정보 수집 항목 반영) · 개정: 2026년 7월 2일 (푸시 알림 구독 정보 수집 항목 반영)</p>
+        <p className="text-sm text-zinc-500">시행일: 2026년 5월 27일 · 개정: 2026년 7월 1일 (커뮤니티 활동 정보 수집 항목 반영) · 개정: 2026년 7월 2일 (푸시 알림 구독 정보 수집 항목 반영) · 개정: 2026년 7월 15일 (모바일 앱 출시에 따른 Expo 푸시 토큰·인앱결제 정보·앱 접근 권한 및 수탁자 항목 반영)</p>
         <p className="text-sm text-zinc-400">
           주식회사 비누컴퍼니(이하 "회사")는 회원의 개인정보를 중요하게 생각하며,
           「개인정보 보호법」 등 관련 법령을 준수하기 위해 본 방침을 수립·공개합니다.
@@ -61,8 +61,22 @@ export default function PrivacyPage() {
 
         <SubSection title="푸시 알림 구독 (선택 · 동의 시)">
           <p className="text-sm text-zinc-300 leading-relaxed">
-            회원이 [내 계정 → 푸시 알림]에서 동의한 경우, 브라우저·기기가 발급하는 푸시 구독 정보(구독 엔드포인트 URL, 공개 키)를 수집·저장하여 곡 생성 완료·좋아요·댓글·커뮤니티 활동·공지 등의 알림을 전송합니다. 이 정보만으로 개인을 직접 식별하지 않으며, 회원이 [내 계정]에서 푸시 알림을 끄거나 브라우저·기기의 알림 권한을 해제하면 전송이 중단되고 구독 정보는 삭제됩니다. 만료된 구독은 자동으로 삭제됩니다.
+            회원이 [내 계정 → 푸시 알림]에서 동의하거나 모바일 앱에서 알림 권한을 허용한 경우, 브라우저·기기가 발급하는 푸시 구독 정보(웹의 경우 구독 엔드포인트 URL·공개 키, 모바일 앱의 경우 Expo 푸시 토큰)를 수집·저장하여 곡 생성 완료·좋아요·댓글·커뮤니티 활동·공지 등의 알림을 전송합니다. 이 정보만으로 개인을 직접 식별하지 않으며, 회원이 [내 계정]에서 푸시 알림을 끄거나 브라우저·기기(앱)의 알림 권한을 해제하면 전송이 중단되고 구독 정보는 삭제됩니다. 만료된 구독은 자동으로 삭제됩니다.
           </p>
+        </SubSection>
+
+        <SubSection title="모바일 앱 이용 시 수집 항목 및 접근 권한">
+          <List items={[
+            'Expo 푸시 토큰 및 기기 정보(OS 종류·버전) — 알림 전송 및 서비스 호환성 확인 목적',
+            '인앱결제 거래 식별자(영수증·트랜잭션 ID) — 크레딧 지급 검증 및 결제 내역 관리 목적 (결제수단 정보는 Apple·Google이 관리하며 회사는 수집하지 않습니다)',
+          ]} />
+          <p className="mt-2 text-sm text-zinc-300 leading-relaxed">
+            모바일 앱은 아래 기기 권한을 요청할 수 있으며, 각 권한은 해당 기능 이용 시에만 사용되고 기기 설정에서 언제든 해제할 수 있습니다. 권한을 허용하지 않아도 해당 기능을 제외한 서비스 이용은 가능합니다.
+          </p>
+          <List items={[
+            '사진·파일 접근: 프로필 사진·커버 이미지 등록, 커뮤니티 게시글 이미지 첨부, 스타일 참조 음원 업로드 시',
+            '알림: 곡 생성 완료·소셜 활동·공지 등 푸시 알림 수신 시',
+          ]} />
         </SubSection>
 
         <SubSection title="브라우저 캐시 (정적 콘텐츠)">
@@ -147,9 +161,19 @@ export default function PrivacyPage() {
                 <td className="p-2 border-b border-white/[0.06]">국내</td>
               </tr>
               <tr>
-                <td className="p-2">Naver Corp.</td>
-                <td className="p-2">OAuth 인증 위임</td>
-                <td className="p-2">국내</td>
+                <td className="p-2 border-b border-white/[0.06]">Naver Corp.</td>
+                <td className="p-2 border-b border-white/[0.06]">OAuth 인증 위임</td>
+                <td className="p-2 border-b border-white/[0.06]">국내</td>
+              </tr>
+              <tr>
+                <td className="p-2 border-b border-white/[0.06]">Apple Inc. · Google LLC</td>
+                <td className="p-2 border-b border-white/[0.06]">모바일 앱 인앱결제 처리 및 결제 검증</td>
+                <td className="p-2 border-b border-white/[0.06]">해외</td>
+              </tr>
+              <tr>
+                <td className="p-2">Expo (650 Industries, Inc.)</td>
+                <td className="p-2">모바일 앱 푸시 알림 전송</td>
+                <td className="p-2">미국</td>
               </tr>
             </tbody>
           </table>
@@ -191,11 +215,25 @@ export default function PrivacyPage() {
                 <td className="p-2 border-b border-white/[0.06]">요청 처리 과정에서 일시 처리 (영구 저장 안 함)</td>
               </tr>
               <tr>
-                <td className="p-2">MiniMax</td>
+                <td className="p-2 border-b border-white/[0.06]">MiniMax</td>
+                <td className="p-2 border-b border-white/[0.06]">해외</td>
+                <td className="p-2 border-b border-white/[0.06]">AI 음악·이미지·가사 생성</td>
+                <td className="p-2 border-b border-white/[0.06]">회원이 입력한 생성 텍스트(스타일·가사), 참조 음원</td>
+                <td className="p-2 border-b border-white/[0.06]">생성 처리 목적 달성 시까지</td>
+              </tr>
+              <tr>
+                <td className="p-2 border-b border-white/[0.06]">Expo (650 Industries, Inc.)</td>
+                <td className="p-2 border-b border-white/[0.06]">미국</td>
+                <td className="p-2 border-b border-white/[0.06]">모바일 앱 푸시 알림 전송</td>
+                <td className="p-2 border-b border-white/[0.06]">Expo 푸시 토큰, 기기 정보</td>
+                <td className="p-2 border-b border-white/[0.06]">알림 구독 해제·토큰 만료 시까지</td>
+              </tr>
+              <tr>
+                <td className="p-2">Apple Inc. · Google LLC</td>
                 <td className="p-2">해외</td>
-                <td className="p-2">AI 음악·이미지·가사 생성</td>
-                <td className="p-2">회원이 입력한 생성 텍스트(스타일·가사), 참조 음원</td>
-                <td className="p-2">생성 처리 목적 달성 시까지</td>
+                <td className="p-2">모바일 앱 인앱결제 처리·검증</td>
+                <td className="p-2">인앱결제 거래 식별자(영수증·트랜잭션 ID)</td>
+                <td className="p-2">전자상거래법상 결제 기록 보존기간(5년)</td>
               </tr>
             </tbody>
           </table>

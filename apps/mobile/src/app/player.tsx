@@ -445,6 +445,10 @@ export default function PlayerScreen() {
           ) : (
             <Text style={styles.artist} numberOfLines={1}>{artist}</Text>
           )}
+          {/* 공개 코멘트(캡션) — 릴스식, 프로필 하단 */}
+          {editData?.publishComment?.trim() ? (
+            <Text style={styles.caption} numberOfLines={3}>{editData.publishComment.trim()}</Text>
+          ) : null}
         </View>
 
         {song ? (
@@ -636,6 +640,8 @@ const styles = StyleSheet.create({
   likeOn: { width: 48, height: 48, borderRadius: 24, backgroundColor: '#ffffff', alignItems: 'center', justifyContent: 'center' },
   title: { color: mono.color.text, fontSize: 28, fontWeight: '700', lineHeight: 34 },
   artist: { color: mono.color.textSecondary, fontSize: mono.font.body },
+  // 공개 코멘트 캡션(릴스식) — 프로필 하단
+  caption: { color: mono.color.text, fontSize: mono.font.small, lineHeight: 20 },
   // 곡 주인 행 — 아바타 + 이름 + 팔로우(이름 바로 옆)
   ownerRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   ownerLeft: { flexDirection: 'row', alignItems: 'center', gap: 10, flexShrink: 1, minWidth: 0 },
