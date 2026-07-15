@@ -10,6 +10,7 @@ import { SongRow } from '@/components/ui/song-row'
 import { CollectionCover } from '@/components/ui/collection-cover'
 import { Icon } from '@/components/ui/icon'
 import { mono } from '@/theme/mono'
+import { toast } from '@/lib/toast'
 
 // 컬렉션 상세 — 담긴 곡 목록. songIds를 내 곡(/api/songs/mine)에서 해석(웹은 클라 캐시).
 // ⚠️ 타인 공개곡을 담은 경우 v1에선 목록에 안 뜸(내 곡만 해석). 후속 개선.
@@ -38,7 +39,7 @@ export default function CollectionDetailScreen() {
     if (!col) return
     Alert.alert(song.title?.trim() || '곡', '컬렉션에서 뺄까요?', [
       { text: '취소', style: 'cancel' },
-      { text: '빼기', style: 'destructive', onPress: async () => { await collectionStore.removeSong(col.id, song.id); loadCol() } },
+      { text: '빼기', style: 'destructive', onPress: async () => { await collectionStore.removeSong(col.id, song.id); loadCol(); toast.info('컬렉션에서 제거되었어요') } },
     ])
   }
 
@@ -46,7 +47,7 @@ export default function CollectionDetailScreen() {
     if (!col) return
     Alert.alert(`'${col.name}' 삭제`, '이 컬렉션을 삭제할까요? 담긴 곡은 삭제되지 않아요.', [
       { text: '취소', style: 'cancel' },
-      { text: '삭제', style: 'destructive', onPress: async () => { await collectionStore.remove(col.id); router.back() } },
+      { text: '삭제', style: 'destructive', onPress: async () => { await collectionStore.remove(col.id); router.back(); toast.info('컬렉션이 삭제되었어요') } },
     ])
   }
 

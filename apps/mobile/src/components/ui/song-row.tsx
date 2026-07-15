@@ -77,7 +77,7 @@ export function SongRow({ song, onPress, onMore }: { song: Song; onPress?: () =>
             <View style={styles.stat}><Icon name="heart" size={13} color={mono.color.textTertiary} /><Text style={styles.statText}>{song.likeCount ?? 0}</Text></View>
             <View style={styles.stat}><Icon name="bubble.left" size={13} color={mono.color.textTertiary} /><Text style={styles.statText}>{song.commentCount ?? 0}</Text></View>
             {song.published ? (
-              <View style={styles.stat}><Icon name="compass" size={13} color={mono.color.accentLight} /><Text style={styles.publishedText}>공개</Text></View>
+              <View style={styles.stat}><Icon name="compass" size={13} color={mono.color.text} /><Text style={styles.publishedText}>공개</Text></View>
             ) : null}
           </View>
         ) : null}
@@ -114,6 +114,6 @@ const styles = StyleSheet.create({
   stat: { flexDirection: 'row', alignItems: 'center', gap: 3 },
   statText: { color: mono.color.textTertiary, fontSize: mono.font.small },
   // 공개 — 통계 행에서 compass 아이콘+텍스트(둘러보기 노출 표시, 댓글 통계와 동일 형태)
-  publishedText: { color: mono.color.accentLight, fontSize: mono.font.small, fontWeight: '600' },
+  publishedText: { color: mono.color.text, fontSize: mono.font.small, fontWeight: '600' },
   more: { width: 32, height: 32, alignItems: 'center', justifyContent: 'center' },
 })

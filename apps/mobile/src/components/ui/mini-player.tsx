@@ -74,5 +74,5 @@ const styles = StyleSheet.create({
   artist: { color: mono.color.textSecondary, fontSize: mono.font.tiny, marginTop: 3 },
   btn: { width: 40, height: 40, alignItems: 'center', justifyContent: 'center' },
   progressTrack: { height: 2.5, backgroundColor: mono.color.fillStrong },
-  progressFill: { height: '100%', backgroundColor: mono.color.accent },
+  progressFill: { height: '100%', backgroundColor: mono.color.text },
 })

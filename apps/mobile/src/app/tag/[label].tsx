@@ -6,6 +6,7 @@ import type { PublicSong } from '@mono/shared'
 import { api } from '@/lib/api'
 import { playSong } from '@/lib/player'
 import { PublicSongRow } from '@/components/ui/public-song-row'
+import { usePublicSongMore } from '@/lib/use-public-song-more'
 import { Icon } from '@/components/ui/icon'
 import { mono } from '@/theme/mono'
 
@@ -28,6 +29,7 @@ export default function TagScreen() {
   }, [label])
 
   useEffect(() => { load() }, [load])
+  const songMore = usePublicSongMore(() => load())
 
   return (
     <View style={[styles.container, { paddingTop: insets.top + 8 }]}>
@@ -51,12 +53,14 @@ export default function TagScreen() {
               song={item}
               onPress={() => playSong(item, songs ?? [item])}
               onCreatorPress={() => router.push(`/creator/${item.username}`)}
+              onMore={() => songMore.open(item)}
             />
           )}
           ListEmptyComponent={<Text style={styles.empty}>{error ? '불러오지 못했어요' : '해당 태그의 곡이 없어요'}</Text>}
           showsVerticalScrollIndicator={false}
         />
       )}
+      {songMore.sheet}
     </View>
   )
 }

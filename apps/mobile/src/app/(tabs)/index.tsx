@@ -10,6 +10,7 @@ import { hapticLight } from '@/lib/haptics'
 import { playSong } from '@/lib/player'
 import { useAutoHideHeader } from '@/lib/use-auto-hide-header'
 import { PublicSongRow } from '@/components/ui/public-song-row'
+import { usePublicSongMore } from '@/lib/use-public-song-more'
 import { Icon } from '@/components/ui/icon'
 import { NotificationBell } from '@/components/ui/notification-bell'
 import { mono } from '@/theme/mono'
@@ -42,6 +43,7 @@ export default function DiscoverScreen() {
       setSongs([])
     }
   }, [])
+  const songMore = usePublicSongMore(() => load(tab))
 
   useEffect(() => { setSongs(null); load(tab) }, [tab, load])
 
@@ -62,6 +64,7 @@ export default function DiscoverScreen() {
             song={item}
             onPress={() => playSong(item, songs ?? [item])}
             onCreatorPress={() => router.push(`/creator/${item.username}`)}
+            onMore={() => songMore.open(item)}
           />
         )}
         onScroll={scrollHandler}
@@ -103,6 +106,7 @@ export default function DiscoverScreen() {
           </View>
         </View>
       </View>
+      {songMore.sheet}
     </View>
   )
 }
