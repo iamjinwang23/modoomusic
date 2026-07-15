@@ -1,9 +1,10 @@
 import * as FileSystem from 'expo-file-system/legacy'
 
-// v2.6 스타일 참조 음원 — 파일 선택 + 검증 + base64. MiniMax cover 참조는 6초~6분 정책이라
-// 6분 초과는 거부하고 짧은 클립 업로드를 유도(앱은 트림 미제공, 서버가 그대로 MiniMax에 전달).
+// v2.6 스타일 참조 음원 — 파일 선택 + 검증 + base64. MiniMax cover 참조는 6초~6분 정책이나,
+// base64를 JSON 바디로 POST /api/generate에 실어 보내므로 ⚠️Vercel serverless 요청 바디 한도(4.5MB)에 걸림.
+// base64는 원본보다 ~33% 커지므로 원본 3MB(=base64 ~4MB)로 상한을 잡아 바디 한도 내로 유지(앱은 트림 미제공).
 // ⚠️ expo-document-picker는 네이티브 모듈 — 미포함 빌드에서 import만 해도 크래시 → 지연 require로 가드.
-const MAX_BYTES = 12 * 1024 * 1024  // 대략 6분 mp3(~192kbps) 안전 상한. 길이 직접측정 대신 크기로 근사.
+const MAX_BYTES = 3 * 1024 * 1024  // 원본 3MB — 대략 30초~1분 클립. base64 후 ~4MB로 Vercel 4.5MB 한도 내.
 
 export interface RefAudioResult {
   ok: boolean
@@ -33,9 +34,9 @@ export async function pickRefAudio(): Promise<RefAudioResult> {
   })
   if (res.canceled || !res.assets?.length) return { ok: false }
   const a = res.assets[0]
-  // 크기로 길이 근사 검증 — 초과 시 짧은 클립 유도
+  // 크기로 검증 — 초과 시 짧은 클립 유도(요청 바디 한도 때문)
   if (typeof a.size === 'number' && a.size > MAX_BYTES) {
-    return { ok: false, error: '음원이 너무 길어요. 6분 이하의 짧은 클립을 올려주세요' }
+    return { ok: false, error: '음원이 너무 커요. 30초~1분 정도의 짧은 클립을 올려주세요' }
   }
   try {
     const base64 = await FileSystem.readAsStringAsync(a.uri, { encoding: FileSystem.EncodingType.Base64 })

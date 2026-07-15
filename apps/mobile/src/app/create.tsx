@@ -92,7 +92,7 @@ export default function CreateScreen() {
     setModelSheetOpen(false)
   }
 
-  // v2.6 스타일 참조 음원 선택 — 6분 초과는 거부(짧은 클립 유도)
+  // v2.6 스타일 참조 음원 선택 — 크기 초과(요청 바디 한도)는 거부(짧은 클립 유도)
   const chooseRefAudio = async () => {
     if (refBusy) return
     setRefBusy(true); setError(null)
