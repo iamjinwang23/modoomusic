@@ -23,12 +23,14 @@ import { SongMoreSheet } from '@/components/ui/song-more-sheet'
 import { CollectionPickerModal } from '@/components/ui/collection-picker-modal'
 import { SongEditModal } from '@/components/ui/song-edit-modal'
 import { Icon } from '@/components/ui/icon'
+import { GeneratingDots } from '@/components/ui/generating-dots'
 import { SongCommentComposer, SongCommentList, useSongComments } from '@/components/ui/song-comments'
 import { Marquee } from '@/components/ui/marquee'
 import { GlassIconButton } from '@/components/ui/glass-button'
 import { SeekBar } from '@/components/ui/seek-bar'
 import { CoverScrim, formatCount } from '@/components/ui/profile-grid'
 import { mono } from '@/theme/mono'
+import { toast } from '@/lib/toast'
 
 function fmt(sec: number): string {
   if (!Number.isFinite(sec) || sec < 0) return '0:00'
@@ -143,7 +145,7 @@ export default function PlayerScreen() {
   const [meta, setMeta] = useState<{ playCount: number; likeCount: number; commentCount: number } | null>(null)
   const [songStyle, setSongStyle] = useState<string | null>(null)
   // 수정 모달 원본(제목·가사·공개코멘트) — 상세 fetch로 채움
-  const [editData, setEditData] = useState<{ id: string; title: string | null; lyrics: string | null; publishComment: string | null } | null>(null)
+  const [editData, setEditData] = useState<{ id: string; title: string | null; lyrics: string | null; publishComment: string | null; coverImage?: string; coverHue?: number } | null>(null)
 
   useEffect(() => {
     if (!song?.id) { setMeta(null); setSongStyle(null); setEditData(null); return }
@@ -154,7 +156,7 @@ export default function PlayerScreen() {
       if (!s) return
       setMeta({ playCount: s.playCount ?? 0, likeCount: s.likeCount ?? 0, commentCount: s.commentCount ?? 0 })
       setSongStyle(s.prompt?.trim() || [s.genre, s.mood].filter(Boolean).join(', ') || null)
-      setEditData({ id: s.id, title: s.title ?? null, lyrics: s.lyrics ?? null, publishComment: s.publishComment ?? null })
+      setEditData({ id: s.id, title: s.title ?? null, lyrics: s.lyrics ?? null, publishComment: s.publishComment ?? null, coverImage: s.coverImage, coverHue: s.coverHue })
       // 서버 per-user liked로 초기화 — 단, 사용자가 그 사이 토글했으면 스킵(race 방지)
       if (!likeTouchedRef.current) setLiked(!!s.liked)
     }).catch(() => {})
@@ -293,7 +295,8 @@ export default function PlayerScreen() {
     const next = !published
     setPublished(next); setPubBusy(true)
     const ok = await setSongPublished(song.id, next)
-    if (!ok) setPublished(!next)
+    if (ok) toast[next ? 'success' : 'info'](next ? '곡을 공개했어요' : '공개가 취소되었어요')
+    else { setPublished(!next); toast.error('처리에 실패했어요') }
     setPubBusy(false)
   }
 
@@ -309,19 +312,19 @@ export default function PlayerScreen() {
   const onDownload = async () => {
     if (!song?.audioUrl) return
     const ok = await downloadSong(song.audioUrl, song.title)
-    if (!ok) Alert.alert('다운로드에 실패했어요')
+    if (!ok) toast.error('다운로드에 실패했어요')
   }
   const onDelete = () => {
     if (!song) return
     Alert.alert('곡을 삭제할까요?', song.title?.trim() || '제목 없음', [
       { text: '취소', style: 'cancel' },
-      { text: '삭제', style: 'destructive', onPress: async () => { const ok = await deleteSong(song.id); if (ok) router.back() } },
+      { text: '삭제', style: 'destructive', onPress: async () => { const ok = await deleteSong(song.id); if (ok) { toast.info('곡이 삭제되었어요'); router.back() } else toast.error('삭제에 실패했어요') } },
     ])
   }
   const REPORT_REASONS = ['욕설·비속어', '음란물', '혐오·차별 표현', '도배', '광고·홍보성 콘텐츠', '개인정보 노출', '저작권 침해', '기타']
   const onReport = () => {
     if (!song) return
-    const run = async (reason: string) => { try { await api.post(`/api/songs/${song.id}/report`, { reason }); Alert.alert('신고했어요') } catch {} }
+    const run = async (reason: string) => { try { await api.post(`/api/songs/${song.id}/report`, { reason }); toast.success('신고가 접수되었어요') } catch { toast.error('처리에 실패했어요') } }
     if (Platform.OS === 'ios') {
       ActionSheetIOS.showActionSheetWithOptions({ options: [...REPORT_REASONS, '취소'], cancelButtonIndex: REPORT_REASONS.length, title: '신고 사유' }, (i) => { if (i < REPORT_REASONS.length) run(REPORT_REASONS[i]) })
     } else {
@@ -401,7 +404,11 @@ export default function PlayerScreen() {
         <View style={StyleSheet.absoluteFill} />
       </GestureDetector>
       {song?.videoCoverStatus === 'generating' ? (
-        <View style={styles.videoBadge}><Text style={styles.videoBadgeText}>영상 생성 중…</Text></View>
+        <View style={styles.videoGenOverlay} pointerEvents="none">
+          <View style={styles.videoGenCard}>
+            <GeneratingDots label="영상을 만들고 있어요…" />
+          </View>
+        </View>
       ) : null}
 
       {/* 캡션(좌) + 세로 액션 레일(우) — 틱톡/쇼츠식 */}
@@ -558,7 +565,7 @@ export default function PlayerScreen() {
       onCollect={onCollect}
       onPublishToggle={togglePublish}
       onDownload={onDownload}
-      onVideoCover={() => song && router.push(`/video-create?songId=${song.id}`)}
+      onVideoCover={() => song && router.push(`/video-create?songId=${song.id}${song.coverImage ? `&cover=${encodeURIComponent(song.coverImage)}` : ''}`)}
       onEdit={() => setEditOpen(true)}
       onDelete={onDelete}
       onReport={onReport}
@@ -572,7 +579,7 @@ export default function PlayerScreen() {
       onSaved={(p) => {
         setEditData((d) => d ? { ...d, ...p } : d)
         const cur = getNowPlaying()
-        if (cur && cur.id === editData?.id) setNowPlaying({ ...cur, title: p.title, lyrics: p.lyrics })
+        if (cur && cur.id === editData?.id) setNowPlaying({ ...cur, title: p.title, lyrics: p.lyrics, coverImage: p.coverImage ?? cur.coverImage })
       }}
     />
 
@@ -621,11 +628,9 @@ const styles = StyleSheet.create({
   // 하단 블러(마스크 페이드)
   bottomBlur: { position: 'absolute', left: 0, right: 0, bottom: 0 },
   blurFull: { width: '100%', height: '100%' },
-  videoBadge: {
-    alignSelf: 'flex-start', marginBottom: 12,
-    backgroundColor: mono.color.overlayStrong, borderRadius: mono.radius.pill, paddingVertical: 6, paddingHorizontal: 12,
-  },
-  videoBadgeText: { color: mono.color.onMedia, fontSize: mono.font.tiny, fontWeight: '700' },
+  // 영상 생성 중 — 화면 중앙 오버레이(가사 생성 중과 동일 톤: 그라데이션 dots + 문구)
+  videoGenOverlay: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, alignItems: 'center', justifyContent: 'center' },
+  videoGenCard: { backgroundColor: 'rgba(0,0,0,0.55)', borderRadius: mono.radius.lg, paddingVertical: 24, paddingHorizontal: 32 },
   artPlaceholder: { alignItems: 'center', justifyContent: 'center' },
   artInitial: { color: mono.color.textTertiary, fontSize: 64 },
   // 캡션(좌) + 세로 레일(우) — 레일 바닥을 캡션 바닥에 맞춤

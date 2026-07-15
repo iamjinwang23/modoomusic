@@ -7,6 +7,7 @@ import * as ImagePicker from 'expo-image-picker'
 import { api } from '@/lib/api'
 import { supabase } from '@/lib/supabase'
 import { uploadProfileImage } from '@/lib/profile-image'
+import { toast } from '@/lib/toast'
 import { Icon } from '@/components/ui/icon'
 import { mono } from '@/theme/mono'
 
@@ -119,8 +120,10 @@ export default function ProfileEditScreen() {
     if (url) {
       await supabase.from('profiles').update({ [type === 'avatar' ? 'avatar_url' : 'cover_url']: url }).eq('id', userId)
       if (type === 'avatar') setAvatarUrl(url); else setCoverUrl(url)
+      toast.success(type === 'avatar' ? '프로필 사진이 변경되었어요' : '커버 이미지가 변경되었어요')
     } else {
       setError('이미지 업로드에 실패했어요')
+      toast.error('이미지 업로드에 실패했어요')
     }
     setUploading(null)
   }
@@ -149,6 +152,7 @@ export default function ProfileEditScreen() {
     if (dbError) { setError('저장에 실패했어요. 잠시 후 다시 시도해 주세요.'); setBusy(false); return }
     await supabase.auth.updateUser({ data: { username: finalUsername, full_name: finalName } }).catch(() => {})
     router.back()
+    toast.success('프로필이 업데이트되었어요')
   }
 
   const initial = (name.trim().charAt(0) || username.charAt(0) || '?').toUpperCase()

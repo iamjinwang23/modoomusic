@@ -11,6 +11,7 @@ import { useAuthGate } from '@/lib/auth-gate'
 import { setSelectedPost } from '@/lib/selected-post'
 import { playSong } from '@/lib/player'
 import { Icon } from '@/components/ui/icon'
+import { toast } from '@/lib/toast'
 import { mono } from '@/theme/mono'
 
 const REPORT_REASONS = ['욕설·비속어', '음란물', '혐오·차별 표현', '도배', '광고·홍보성 콘텐츠', '개인정보 노출', '저작권 침해', '기타']
@@ -121,12 +122,12 @@ export function PostCard({ post, managerId, canInteract = true, onPress, onAutho
   // 더보기 — 수정(작성자)·고정(매니저)·삭제(작성자/매니저)·신고(타인)
   const doDelete = () => Alert.alert('게시글을 삭제할까요?', undefined, [
     { text: '취소', style: 'cancel' },
-    { text: '삭제', style: 'destructive', onPress: async () => { try { await api.del(`/api/community-posts/${post.id}`) } catch { /* 무시 */ } onChanged?.() } },
+    { text: '삭제', style: 'destructive', onPress: async () => { try { await api.del(`/api/community-posts/${post.id}`); toast.info('게시글을 삭제했어요') } catch { toast.error('삭제에 실패했어요') } onChanged?.() } },
   ])
   const doPin = async () => { try { await api.post(`/api/community-posts/${post.id}/pin`) } catch { /* 무시 */ } onChanged?.() }
   const doEdit = () => { setSelectedPost(post); router.push(`/compose?communityId=${post.communityId}&postId=${post.id}`) }
   const doReport = () => {
-    const run = async (reason: string) => { try { await api.post(`/api/community-posts/${post.id}/report`, { reason }); Alert.alert('신고했어요') } catch { /* 무시 */ } }
+    const run = async (reason: string) => { try { await api.post(`/api/community-posts/${post.id}/report`, { reason }); toast.success('신고가 접수되었어요') } catch { toast.error('처리에 실패했어요') } }
     if (Platform.OS === 'ios') {
       ActionSheetIOS.showActionSheetWithOptions({ options: [...REPORT_REASONS, '취소'], cancelButtonIndex: REPORT_REASONS.length, title: '신고 사유' }, (i) => { if (i < REPORT_REASONS.length) run(REPORT_REASONS[i]) })
     } else {

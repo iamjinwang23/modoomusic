@@ -3,6 +3,7 @@ import { KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { router } from 'expo-router'
 import { api } from '@/lib/api'
+import { toast } from '@/lib/toast'
 import { mono } from '@/theme/mono'
 
 // 커뮤니티 만들기 — 웹 CreateCommunityModal 파리티. 이름·주제·소개·공개설정·가입수칙(비공개). 1인 최대 3개.
@@ -35,6 +36,7 @@ export default function CommunityCreateScreen() {
       } else {
         router.back()
       }
+      toast.success('커뮤니티를 만들었어요')
     } catch (e) {
       const code = (e as { error?: string })?.error
       setError(

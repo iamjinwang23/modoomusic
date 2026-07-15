@@ -4,6 +4,7 @@ import Animated, { ZoomIn, ZoomOut } from 'react-native-reanimated'
 import { Image } from 'expo-image'
 import type { Comment } from '@mono/shared'
 import { api } from '@/lib/api'
+import { toast } from '@/lib/toast'
 import { useAuthGate } from '@/lib/auth-gate'
 import { supabase } from '@/lib/supabase'
 import { useSession } from '@/lib/use-session'
@@ -69,7 +70,7 @@ function CommentItem({ comment, myId, isReply, onReply, onDelete, onEdited, requ
   }
   const report = () => {
     if (!requireLogin()) return
-    const run = async (reason: string) => { try { await api.post(`/api/comments/${comment.id}/report`, { reason }); Alert.alert('신고했어요') } catch {} }
+    const run = async (reason: string) => { try { await api.post(`/api/comments/${comment.id}/report`, { reason }); toast.success('신고가 접수되었어요') } catch { toast.error('처리에 실패했어요') } }
     if (Platform.OS === 'ios') {
       ActionSheetIOS.showActionSheetWithOptions({ options: [...REPORT_REASONS, '취소'], cancelButtonIndex: REPORT_REASONS.length, title: '신고 사유' }, (i) => { if (i < REPORT_REASONS.length) run(REPORT_REASONS[i]) })
     } else {
@@ -159,7 +160,7 @@ export function useSongComments(songId: string | null, active: boolean) {
   const deleteComment = (commentId: string) => {
     Alert.alert('댓글을 삭제할까요?', undefined, [
       { text: '취소', style: 'cancel' },
-      { text: '삭제', style: 'destructive', onPress: async () => { try { await api.del(`/api/comments/${commentId}`) } catch {} ; load() } },
+      { text: '삭제', style: 'destructive', onPress: async () => { try { await api.del(`/api/comments/${commentId}`); toast.info('댓글이 삭제되었어요') } catch { toast.error('삭제에 실패했어요') } ; load() } },
     ])
   }
   // 수정 로컬 반영(재조회 없이)

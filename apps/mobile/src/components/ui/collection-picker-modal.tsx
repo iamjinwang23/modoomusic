@@ -12,6 +12,7 @@ import { hapticLight } from '@/lib/haptics'
 import { BottomSheet } from '@/components/ui/bottom-sheet'
 import { CollectionCover } from '@/components/ui/collection-cover'
 import { Icon } from '@/components/ui/icon'
+import { toast } from '@/lib/toast'
 import { mono } from '@/theme/mono'
 
 function hueFrom(id: string): number {
@@ -35,12 +36,15 @@ export function CollectionPickerModal({ open, song, onClose }: { open: boolean; 
 
   const toggle = async (collectionId: string) => {
     hapticLight()
+    const colName = cols.find((c) => c.id === collectionId)?.name ?? '컬렉션'
     if (inIds.has(collectionId)) {
       await collections.removeSong(collectionId, song.id)
       setInIds((prev) => { const s = new Set(prev); s.delete(collectionId); return s })
+      toast.info(`'${colName}'에서 제거되었어요`)
     } else {
       await collections.addSong(collectionId, song.id)
       setInIds((prev) => new Set([...prev, collectionId]))
+      toast.success(`'${colName}'에 담았어요`)
     }
     setCols(await collections.getAll())
   }
@@ -54,6 +58,7 @@ export function CollectionPickerModal({ open, song, onClose }: { open: boolean; 
     setInIds((prev) => new Set([...prev, col.id]))
     setCols(await collections.getAll())
     setNewName(''); setCreating(false)
+    toast.success(`'${name}' 컬렉션이 만들어졌어요`)
   }
 
   const songHue = song.coverHue ?? hueFrom(song.id)

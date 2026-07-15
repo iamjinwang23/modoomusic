@@ -36,3 +36,35 @@ export async function uploadProfileImage(uri: string, type: 'avatar' | 'cover', 
     return null
   }
 }
+
+// 곡 커버 업로드 — 웹 uploadSongCover 파리티. songs-covers/{userId}/{songId}-cover.webp upsert.
+// 반환 = 캐시버스트된 public URL (실패 시 null).
+export async function uploadSongCover(songId: string, uri: string, mime: string): Promise<string | null> {
+  const { data: { session } } = await supabase.auth.getSession()
+  const token = session?.access_token
+  const userId = session?.user?.id
+  if (!token || !userId) return null
+
+  const path = `${userId}/${songId}-cover.webp`
+  try {
+    const res = await uploadAsync(`${SUPABASE_URL}/storage/v1/object/songs-covers/${path}`, uri, {
+      httpMethod: 'POST',
+      uploadType: FileSystemUploadType.BINARY_CONTENT,
+      headers: {
+        Authorization: `Bearer ${token}`,
+        apikey: ANON,
+        'Content-Type': mime || 'image/jpeg',
+        'x-upsert': 'true',
+        'cache-control': '3600',
+      },
+    })
+    if (res.status < 200 || res.status >= 300) {
+      console.warn('[song cover] upload fail', res.status, res.body)
+      return null
+    }
+    return `${SUPABASE_URL}/storage/v1/object/public/songs-covers/${path}?v=${Date.now()}`
+  } catch (e) {
+    console.warn('[song cover] network', e)
+    return null
+  }
+}

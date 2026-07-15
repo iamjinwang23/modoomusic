@@ -13,6 +13,7 @@ LogBox.ignoreLogs([
 ]);
 
 import { AnimatedSplashOverlay } from '@/components/animated-icon';
+import { ToastHost } from '@/components/ui/toast-host';
 import { useSession } from '@/lib/use-session';
 import { configureNotificationHandler, registerForPush, unregisterForPush } from '@/lib/push';
 
@@ -77,6 +78,7 @@ export default function RootLayout() {
         {/* 로그인 — 투명 모달(다른 모달 위로도 스택). 하단 액션시트 룩 */}
         <Stack.Screen name="login" options={{ presentation: 'transparentModal', animation: 'fade' }} />
       </Stack>
+      <ToastHost />
     </ThemeProvider>
   );
 }

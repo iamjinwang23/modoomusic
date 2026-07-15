@@ -6,10 +6,11 @@ import { mono } from '@/theme/mono'
 
 // 공개곡 행 — 탐색·크리에이터 프로필 공용. 커버/제목/크리에이터/좋아요, 탭→재생.
 // onCreatorPress 주면 크리에이터 이름이 별도 탭 타깃(프로필 이동).
-export function PublicSongRow({ song, onPress, onCreatorPress, showCreator = true }: {
+export function PublicSongRow({ song, onPress, onCreatorPress, onMore, showCreator = true }: {
   song: PublicSong
   onPress: () => void
   onCreatorPress?: () => void
+  onMore?: () => void
   showCreator?: boolean
 }) {
   return (
@@ -44,6 +45,9 @@ export function PublicSongRow({ song, onPress, onCreatorPress, showCreator = tru
           </View>
         </View>
       </View>
+      {onMore ? (
+        <Pressable onPress={onMore} hitSlop={12} style={styles.more}><Icon name="ellipsis" size={18} color={mono.color.textSecondary} /></Pressable>
+      ) : null}
     </Pressable>
   )
 }
@@ -61,4 +65,5 @@ const styles = StyleSheet.create({
   stats: { flexDirection: 'row', alignItems: 'center', gap: 12, marginTop: 1 },
   stat: { flexDirection: 'row', alignItems: 'center', gap: 3 },
   statText: { color: mono.color.textTertiary, fontSize: mono.font.small },
+  more: { width: 32, height: 32, alignItems: 'center', justifyContent: 'center' },
 })

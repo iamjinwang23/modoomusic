@@ -20,6 +20,7 @@ import { CollectionPickerModal } from '@/components/ui/collection-picker-modal'
 import { CollectionCover } from '@/components/ui/collection-cover'
 import { SongEditModal } from '@/components/ui/song-edit-modal'
 import { mono } from '@/theme/mono'
+import { toast } from '@/lib/toast'
 
 type Filter = 'all' | 'liked' | 'published'
 const FILTERS: { key: Filter; label: string }[] = [
@@ -89,7 +90,7 @@ export default function LibraryScreen() {
   const confirmDelete = useCallback((song: Song) => {
     Alert.alert('곡을 삭제할까요?', song.title?.trim() || '제목 없음', [
       { text: '취소', style: 'cancel' },
-      { text: '삭제', style: 'destructive', onPress: async () => { await deleteSong(song.id); load() } },
+      { text: '삭제', style: 'destructive', onPress: async () => { const ok = await deleteSong(song.id); toast[ok ? 'info' : 'error'](ok ? '곡이 삭제되었어요' : '삭제에 실패했어요'); load() } },
     ])
   }, [load])
 
@@ -184,9 +185,9 @@ export default function LibraryScreen() {
         published={!!moreSong?.published}
         collected={moreCollected}
         onCollect={() => { const s = moreRef.current; if (s) setPickerSong(s) }}
-        onPublishToggle={async () => { const s = moreRef.current; if (s) { await setSongPublished(s.id, !s.published); load() } }}
-        onDownload={async () => { const s = moreRef.current; if (s?.audioUrl && !(await downloadSong(s.audioUrl, s.title))) Alert.alert('다운로드에 실패했어요') }}
-        onVideoCover={() => { const s = moreRef.current; if (s) router.push(`/video-create?songId=${s.id}`) }}
+        onPublishToggle={async () => { const s = moreRef.current; if (s) { const ok = await setSongPublished(s.id, !s.published); if (ok) toast[s.published ? 'info' : 'success'](s.published ? '공개가 취소되었어요' : '곡을 공개했어요'); else toast.error('처리에 실패했어요'); load() } }}
+        onDownload={async () => { const s = moreRef.current; if (s?.audioUrl) { const ok = await downloadSong(s.audioUrl, s.title); if (!ok) toast.error('다운로드에 실패했어요') } }}
+        onVideoCover={() => { const s = moreRef.current; if (s) router.push(`/video-create?songId=${s.id}${s.coverImage ? `&cover=${encodeURIComponent(s.coverImage)}` : ''}`) }}
         onEdit={() => setEditSong(moreRef.current)}
         onDelete={() => { const s = moreRef.current; if (s) confirmDelete(s) }}
         onReport={() => {}}
@@ -194,7 +195,7 @@ export default function LibraryScreen() {
       <SongEditModal
         open={!!editSong}
         onClose={() => setEditSong(null)}
-        song={editSong ? { id: editSong.id, title: editSong.title, lyrics: editSong.lyrics ?? null, publishComment: editSong.publishComment ?? null } : null}
+        song={editSong ? { id: editSong.id, title: editSong.title, lyrics: editSong.lyrics ?? null, publishComment: editSong.publishComment ?? null, coverImage: editSong.coverImage, coverHue: editSong.coverHue } : null}
         onSaved={() => load()}
       />
       <CollectionPickerModal
