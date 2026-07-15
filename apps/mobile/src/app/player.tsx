@@ -136,6 +136,7 @@ export default function PlayerScreen() {
 
   const [liked, setLiked] = useState<boolean>(!!song?.liked)
   const [likeBusy, setLikeBusy] = useState(false)
+  const likeTouchedRef = useRef(false)  // 사용자가 토글하면 true — fetch가 liked를 덮어쓰지 않게
   const [published, setPublished] = useState<boolean>(!!song?.published)
   const [pubBusy, setPubBusy] = useState(false)
   // 곡 통계(재생·좋아요·댓글 수) + 스타일 — 웹 파리티. 플레이어 진입 시 상세 조회.
@@ -154,16 +155,19 @@ export default function PlayerScreen() {
       setMeta({ playCount: s.playCount ?? 0, likeCount: s.likeCount ?? 0, commentCount: s.commentCount ?? 0 })
       setSongStyle(s.prompt?.trim() || [s.genre, s.mood].filter(Boolean).join(', ') || null)
       setEditData({ id: s.id, title: s.title ?? null, lyrics: s.lyrics ?? null, publishComment: s.publishComment ?? null })
-      // liked/published는 여기서 덮어쓰지 않음 — 사용자가 그 사이 토글하면 되돌려지는 race 방지.
+      // 서버 per-user liked로 초기화 — 단, 사용자가 그 사이 토글했으면 스킵(race 방지)
+      if (!likeTouchedRef.current) setLiked(!!s.liked)
     }).catch(() => {})
     return () => { active = false }
   }, [song?.id])
 
-  // 곡이 바뀌면(이전/다음) liked·published를 now-playing 값으로 즉시 동기화(비동기 fetch race 회피)
+  // 곡이 바뀌면(이전/다음) 토글 플래그 리셋 + liked·published를 now-playing 값으로 즉시 동기화
+  // (상세 fetch가 per-user liked로 곧 보정. song?.liked는 소스에 따라 부정확할 수 있음)
   useEffect(() => {
+    likeTouchedRef.current = false
     setLiked(!!song?.liked)
     setPublished(!!song?.published)
-  }, [song?.id, song?.liked, song?.published])
+  }, [song?.id]) // eslint-disable-line react-hooks/exhaustive-deps
   // 곡 주인(공개곡) 프로필 — 아바타·팔로우 (내 곡=username 없음이라 미노출)
   const [owner, setOwner] = useState<{ userId: string; avatarImage?: string; avatarHue: number; displayName: string } | null>(null)
   const [following, setFollowing] = useState(false)
@@ -266,13 +270,16 @@ export default function PlayerScreen() {
 
   const toggleLike = async () => {
     if (!song || likeBusy || !requireAuth()) return
+    likeTouchedRef.current = true
     const next = !liked
     setLiked(next)
     setMeta((m) => m ? { ...m, likeCount: Math.max(0, m.likeCount + (next ? 1 : -1)) } : m)
     setLikeBusy(true)
     try {
-      const r = await api.post(`/api/songs/${song.id}/like`) as { liked?: boolean }
+      const r = await api.post(`/api/songs/${song.id}/like`) as { liked?: boolean; likeCount?: number }
+      // 서버 권위값으로 확정 — liked 방향·카운트 드리프트 보정
       if (typeof r.liked === 'boolean') setLiked(r.liked)
+      if (typeof r.likeCount === 'number') setMeta((m) => m ? { ...m, likeCount: r.likeCount! } : m)
     } catch {
       setLiked(!next)
       setMeta((m) => m ? { ...m, likeCount: Math.max(0, m.likeCount + (next ? -1 : 1)) } : m)
@@ -447,7 +454,13 @@ export default function PlayerScreen() {
               <Text style={styles.railCount}>{formatCount(meta?.playCount ?? 0)}</Text>
             </View>
             <View style={styles.railItem}>
-              <GlassIconButton name={liked ? 'heart.fill' : 'heart'} size={48} iconSize={24} color={liked ? mono.color.danger : mono.color.text} onPress={toggleLike} disabled={likeBusy} />
+              {liked ? (
+                <Pressable onPress={toggleLike} disabled={likeBusy} style={styles.likeOn}>
+                  <Icon name="heart.fill" size={24} color={mono.color.bg} />
+                </Pressable>
+              ) : (
+                <GlassIconButton name="heart" size={48} iconSize={24} color={mono.color.text} onPress={toggleLike} disabled={likeBusy} />
+              )}
               <Text style={styles.railCount}>{formatCount(meta?.likeCount ?? 0)}</Text>
             </View>
             <View style={styles.railItem}>
@@ -619,6 +632,8 @@ const styles = StyleSheet.create({
   rail: { alignItems: 'center', gap: 16, paddingLeft: 4 },
   railItem: { alignItems: 'center', gap: 5 },
   railCount: { color: mono.color.text, fontSize: mono.font.tiny, fontWeight: '700' },
+  // 좋아요 활성 — 화이트 원형 + 다크 하트(컬러 반전, 글래스보다 돋보이게)
+  likeOn: { width: 48, height: 48, borderRadius: 24, backgroundColor: '#ffffff', alignItems: 'center', justifyContent: 'center' },
   title: { color: mono.color.text, fontSize: 28, fontWeight: '700', lineHeight: 34 },
   artist: { color: mono.color.textSecondary, fontSize: mono.font.body },
   // 곡 주인 행 — 아바타 + 이름 + 팔로우(이름 바로 옆)
