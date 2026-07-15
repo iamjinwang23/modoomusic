@@ -77,9 +77,9 @@ function CreateCollectionModal({ onClose, onCreate }: { onClose: () => void; onC
     if (file?.type.startsWith('image/')) handleFile(file)
   }
 
-  function handleSave() {
+  async function handleSave() {
     if (!name.trim()) return
-    const col = collectionService.create(name.trim(), coverPreview ?? undefined)
+    const col = await collectionService.create(name.trim())
     window.dispatchEvent(new CustomEvent('collection-updated'))
     toast.success('컬렉션이 만들어졌어요')
     onCreate(col)
@@ -158,30 +158,13 @@ function CollectionDetailView({ collection, onBack, onUpdated }: { collection: C
 
   useEffect(() => { setCol(collection) }, [collection])
 
-  function removeSong(songId: string) {
-    const index = col.songIds.indexOf(songId)
-    if (index === -1) return
-    collectionService.removeSong(col.id, songId)
+  async function removeSong(songId: string) {
+    if (!col.songIds.includes(songId)) return
+    await collectionService.removeSong(col.id, songId)
     setCol((prev) => ({ ...prev, songIds: prev.songIds.filter((id) => id !== songId) }))
     window.dispatchEvent(new CustomEvent('collection-updated'))
     onUpdated()
-    toast.info('컬렉션에서 제거되었어요', {
-      duration: 5000,
-      action: {
-        label: '실행 취소',
-        onClick: () => {
-          collectionService.addSongRestore(col.id, songId, index)
-          setCol((prev) => {
-            const next = [...prev.songIds]
-            next.splice(Math.min(index, next.length), 0, songId)
-            return { ...prev, songIds: next }
-          })
-          window.dispatchEvent(new CustomEvent('collection-updated'))
-          onUpdated()
-          toast.success('컬렉션에 복원되었어요')
-        },
-      },
-    })
+    toast.info('컬렉션에서 제거되었어요')
   }
 
   const songs = col.songIds.map((id) => songService.getById(id)).filter(Boolean) as Song[]
@@ -296,8 +279,8 @@ export function MyCollectionPanel() {
   const [deletingId, setDeletingId] = useState<string | null>(null)
   const [creating, setCreating] = useState(false)
 
-  function load() {
-    setCollections(collectionService.ensureDefault())
+  async function load() {
+    setCollections(await collectionService.ensureDefault())
   }
 
   useEffect(() => {
@@ -307,26 +290,13 @@ export function MyCollectionPanel() {
     return () => window.removeEventListener('collection-updated', handler)
   }, [])
 
-  function handleDelete(col: Collection) {
-    const snapshot = collectionService.delete(col.id)
+  async function handleDelete(col: Collection) {
+    await collectionService.delete(col.id)
     setDeletingId(null)
     if (selected?.id === col.id) setSelected(null)
     load()
     window.dispatchEvent(new CustomEvent('collection-updated'))
-    if (snapshot) {
-      toast.info('컬렉션이 삭제되었어요', {
-        duration: 5000,
-        action: {
-          label: '실행 취소',
-          onClick: () => {
-            collectionService.restore(snapshot)
-            load()
-            window.dispatchEvent(new CustomEvent('collection-updated'))
-            toast.success('컬렉션이 복원되었어요')
-          },
-        },
-      })
-    }
+    toast.info('컬렉션이 삭제되었어요')
   }
 
   const deletingCol = collections.find((c) => c.id === deletingId)

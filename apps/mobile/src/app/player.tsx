@@ -18,8 +18,9 @@ import { getNowPlaying, setNowPlaying, useNowPlaying } from '@/lib/now-playing'
 import { supabase } from '@/lib/supabase'
 import { primeMyDisplayName } from '@/lib/me'
 import { deleteSong, downloadSong, setSongPublished, shareSong } from '@/lib/song-actions'
-import { isCollected, toggleCollected } from '@/lib/collection'
+import { isInAnyCollection } from '@/lib/collection'
 import { SongMoreSheet } from '@/components/ui/song-more-sheet'
+import { CollectionPickerModal } from '@/components/ui/collection-picker-modal'
 import { SongEditModal } from '@/components/ui/song-edit-modal'
 import { Icon } from '@/components/ui/icon'
 import { SongCommentComposer, SongCommentList, useSongComments } from '@/components/ui/song-comments'
@@ -293,9 +294,11 @@ export default function PlayerScreen() {
   const [moreOpen, setMoreOpen] = useState(false)
   const [editOpen, setEditOpen] = useState(false)
   const [collected, setCollected] = useState(false)
-  useEffect(() => { if (song?.id) isCollected(song.id).then(setCollected); else setCollected(false) }, [song?.id])
+  const [pickerOpen, setPickerOpen] = useState(false)
+  useEffect(() => { if (song?.id) isInAnyCollection(song.id).then(setCollected); else setCollected(false) }, [song?.id])
 
-  const onCollect = async () => { if (song) setCollected(await toggleCollected(song.id)) }
+  // 시트 닫힌 뒤(300ms) 호출됨 — 컬렉션 담기 모달 오픈
+  const onCollect = () => setPickerOpen(true)
   const onDownload = async () => {
     if (!song?.audioUrl) return
     const ok = await downloadSong(song.audioUrl, song.title)
@@ -554,6 +557,13 @@ export default function PlayerScreen() {
         const cur = getNowPlaying()
         if (cur && cur.id === editData?.id) setNowPlaying({ ...cur, title: p.title, lyrics: p.lyrics })
       }}
+    />
+
+    {/* 컬렉션에 담기 모달 */}
+    <CollectionPickerModal
+      open={pickerOpen}
+      song={song}
+      onClose={() => { setPickerOpen(false); if (song?.id) isInAnyCollection(song.id).then(setCollected) }}
     />
     </GestureHandlerRootView>
   )

@@ -7,8 +7,13 @@
     "icon": "./assets/images/icon.png",
     "scheme": "mobile",
     "userInterfaceStyle": "automatic",
+    "runtimeVersion": {
+      "policy": "fingerprint"
+    },
+    "updates": {
+      "url": "https://u.expo.dev/fa933273-562b-46c6-8ffc-be3f32601352"
+    },
     "ios": {
-      "icon": "./assets/expo.icon",
       "bundleIdentifier": "com.modoomusic.app",
       "infoPlist": {
         "UIBackgroundModes": ["audio"],

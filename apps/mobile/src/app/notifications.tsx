@@ -167,9 +167,10 @@ export default function NotificationsScreen() {
   const filtered = (items ?? []).filter((n) => category === 'all' || categoryOf(n) === category)
 
   return (
-    <View style={[styles.container, { paddingTop: insets.top + 8 }]}>
+    <View style={[styles.container, { paddingTop: 8 }]}>
+      <View style={styles.handleRow}><View style={styles.handle} /></View>
       <View style={styles.header}>
-        <Pressable onPress={() => router.back()} hitSlop={12}><Text style={styles.close}>✕</Text></Pressable>
+        <View style={{ width: 60 }} />
         <Text style={styles.title}>알림</Text>
         {hasUnread ? (
           <Pressable onPress={markAll} hitSlop={8}><Text style={styles.markAll}>모두 읽음</Text></Pressable>
@@ -203,7 +204,6 @@ export default function NotificationsScreen() {
                 <Text style={styles.msg} numberOfLines={2}>{message(item)}</Text>
                 <Text style={styles.time}>{timeAgo(item.createdAt)}</Text>
               </View>
-              {!item.readAt && <View style={styles.dot} />}
             </Pressable>
           )}
           ListEmptyComponent={<Text style={styles.empty}>{error ? `불러오지 못했어요 (${error})` : '아직 알림이 없어요'}</Text>}
@@ -216,9 +216,10 @@ export default function NotificationsScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: mono.color.bg },
+  handleRow: { alignItems: 'center', paddingTop: 4, paddingBottom: 38 },
+  handle: { width: 40, height: 5, borderRadius: 3, backgroundColor: mono.color.fillStrong },
   fill: { width: '100%', height: '100%' },
   header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12, paddingHorizontal: 20 },
-  close: { color: mono.color.text, fontSize: 22, width: 60 },
   title: { color: mono.color.text, fontSize: mono.font.h2, fontWeight: '700' },
   markAll: { color: mono.color.accentLight, fontSize: mono.font.small, fontWeight: '700', width: 60, textAlign: 'right' },
   // 카테고리 필터 알약 — 둘러보기와 동일 토큰
@@ -234,8 +235,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 14, paddingHorizontal: 20,
     borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: mono.color.borderSoft,
   },
-  unread: { backgroundColor: 'rgba(124,58,237,0.08)' },
-  dot: { width: 7, height: 7, borderRadius: 3.5, backgroundColor: '#ef4444', marginLeft: 4 },
+  unread: { backgroundColor: 'rgba(124,58,237,0.12)' },
   // 원형 아바타 / 아이콘
   avatarCircle: { width: 44, height: 44, borderRadius: 22, overflow: 'hidden', backgroundColor: mono.color.surface2, alignItems: 'center', justifyContent: 'center' },
   iconCircle: { width: 44, height: 44, borderRadius: 22, backgroundColor: 'rgba(124,58,237,0.2)', alignItems: 'center', justifyContent: 'center' },

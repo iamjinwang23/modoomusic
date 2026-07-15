@@ -478,12 +478,13 @@ function SongWorkItem({ song, onOpen, onEdit, onDelete, onCollect, onPublish, on
   const playing = isCurrentSong && player.isPlaying
   const [liked, setLiked] = useState(song.liked ?? false)
   const [isNew, setIsNew] = useState(song.isNew ?? false)
-  const [inCollection, setInCollection] = useState(() => collectionService.getSongCollectionIds(song.id).length > 0)
+  const [inCollection, setInCollection] = useState(false)
   const isGenerating = song.status === 'generating'
   const isFailed = song.status === 'failed'
 
   useEffect(() => {
-    function handler() { setInCollection(collectionService.getSongCollectionIds(song.id).length > 0) }
+    function handler() { collectionService.getSongCollectionIds(song.id).then((ids) => setInCollection(ids.length > 0)) }
+    handler()
     window.addEventListener('collection-updated', handler)
     return () => window.removeEventListener('collection-updated', handler)
   }, [song.id])

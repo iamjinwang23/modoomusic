@@ -1,6 +1,7 @@
 import { useEffect, useState, type ReactNode } from 'react'
 import { KeyboardAvoidingView, Modal, Platform, Pressable, StyleSheet, useWindowDimensions, View, type StyleProp, type ViewStyle } from 'react-native'
 import Animated, { interpolate, runOnJS, useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated'
+import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { mono } from '@/theme/mono'
 
 // 딤 페이드 + 시트 슬라이드업(분리) — AI가사·댓글 모달과 동일 패턴.
@@ -11,6 +12,7 @@ export function BottomSheet({ open, onClose, children, sheetStyle }: {
   sheetStyle?: StyleProp<ViewStyle>
 }) {
   const { height } = useWindowDimensions()
+  const insets = useSafeAreaInsets()
   const [mounted, setMounted] = useState(false)
   const anim = useSharedValue(0)
   useEffect(() => {
@@ -27,7 +29,7 @@ export function BottomSheet({ open, onClose, children, sheetStyle }: {
           <Pressable style={StyleSheet.absoluteFill} onPress={onClose} />
         </Animated.View>
         <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={styles.kav}>
-          <Animated.View style={[styles.sheet, slideStyle, sheetStyle]}>
+          <Animated.View style={[styles.sheet, { paddingBottom: insets.bottom + 12 }, slideStyle, sheetStyle]}>
             <View style={styles.handle} />
             {children}
           </Animated.View>
