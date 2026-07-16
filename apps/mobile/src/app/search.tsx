@@ -9,6 +9,7 @@ import { playSong } from '@/lib/player'
 import { addRecent, clearRecents, loadRecents, removeRecent } from '@/lib/recent-searches'
 import { PublicSongRow } from '@/components/ui/public-song-row'
 import { Icon } from '@/components/ui/icon'
+import { SkeletonSongList } from '@/components/ui/skeleton'
 import { mono } from '@/theme/mono'
 
 interface SearchUser { id: string; username: string; displayName: string; avatarUrl: string | null; followerCount: number }
@@ -132,7 +133,7 @@ export default function SearchScreen() {
           <Text style={styles.hint}>곡 제목이나 아티스트를 검색해보세요</Text>
         )
       ) : loading && !results ? (
-        <ActivityIndicator color={mono.color.accent} style={{ marginTop: 32 }} />
+        <SkeletonSongList style={{ marginTop: 8 }} />
       ) : (
         <FlatList
           data={items}

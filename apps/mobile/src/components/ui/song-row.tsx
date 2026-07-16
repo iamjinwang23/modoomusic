@@ -1,11 +1,13 @@
 import { Image } from 'expo-image'
 import { Pressable, StyleSheet, Text, View } from 'react-native'
 import Svg, { Defs, LinearGradient, Rect, Stop } from 'react-native-svg'
+import { State, useActiveTrack, usePlaybackState } from 'react-native-track-player'
 import type { Song } from '@mono/shared'
 import { Icon } from '@/components/ui/icon'
 import { BreathingDot } from '@/components/ui/generating-dots'
 import { GeneratingPhrase } from '@/components/ui/generating-phrase'
 import { SkeletonShimmer } from '@/components/ui/skeleton-shimmer'
+import { PlayingBars } from '@/components/ui/playing-bars'
 import { mono } from '@/theme/mono'
 
 // 재생시간 m:ss (없으면 null)
@@ -20,6 +22,11 @@ function fmtDuration(sec?: number | null): string | null {
 export function SongRow({ song, onPress, onMore }: { song: Song; onPress?: () => void; onMore?: () => void }) {
   const generating = song.status === 'generating'
   const isNew = !!song.isNew && !generating
+  // 현재 재생 중인 곡이면 커버에 사운드 웨이브 표시
+  const activeTrack = useActiveTrack()
+  const playback = usePlaybackState()
+  const isActive = !generating && !!activeTrack && activeTrack.id === song.id
+  const isPlaying = isActive && (playback.state === State.Playing || playback.state === State.Buffering)
   // 웹 파리티 커버 기본색 — coverHue 없으면 id 해시. 대각선 그라데이션(hue → hue+55).
   const hue = song.coverHue ?? ((song.id.split('').reduce((a, c) => a + c.charCodeAt(0), 0) * 137) % 360)
   const h2 = (hue + 55) % 360
@@ -43,6 +50,11 @@ export function SongRow({ song, onPress, onMore }: { song: Song; onPress?: () =>
           <Image source={{ uri: song.coverImage }} style={styles.coverImg} contentFit="cover" transition={150} />
         ) : null}
         {generating && !song.coverImage ? <SkeletonShimmer /> : null}
+        {isPlaying ? (
+          <View style={styles.playingOverlay}>
+            <PlayingBars playing color="#ffffff" size={22} />
+          </View>
+        ) : null}
         {isNew ? <View style={styles.newDot} /> : null}
         {duration ? (
           <>
@@ -99,6 +111,8 @@ const styles = StyleSheet.create({
   coverImg: { width: '100%', height: '100%' },
   // 새 곡 표시 — 커버 좌하단 빨간 점(웹 파리티)
   newDot: { position: 'absolute', bottom: 4, left: 4, width: 8, height: 8, borderRadius: 4, backgroundColor: '#ef4444' },
+  // 재생 중 — 커버 전체 딤 + 중앙 사운드 웨이브
+  playingOverlay: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(0,0,0,0.4)' },
   coverScrim: { position: 'absolute', left: 0, right: 0, bottom: 0, height: '55%' },
   duration: { position: 'absolute', right: 4, bottom: 3, color: mono.color.onMedia, fontSize: 10, fontWeight: '600' },
   meta: { flex: 1, minWidth: 0 },

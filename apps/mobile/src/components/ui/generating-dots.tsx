@@ -16,11 +16,13 @@ export function BreathingDot({ size = 9 }: { size?: number }) {
   return <Animated.View style={[{ width: size, height: size, borderRadius: size / 2 }, style]} />
 }
 
-// 생성 중 인터랙션 — violet→blue 그라데이션 dots가 은은하게 물결치듯 움직임(ChatGPT 이미지 생성 느낌).
+// 생성 중 인터랙션 — 그라데이션 dots가 은은하게 물결치듯 움직임(ChatGPT 이미지 생성 느낌).
 // 스피너 대체. label 옵션으로 안내 문구 하단 표시.
-const DOT_COLORS = ['#7c3aed', '#8b5cf6', '#6d8bef', '#5b8def'] // 좌→우 그라데이션
+// 기본(밝은 배경)=violet→blue. onDark(검정 배경 위)=컬러→밝은 그레이라 안 묻힘.
+const DOT_COLORS = ['#7c3aed', '#8b5cf6', '#6d8bef', '#5b8def']
+const DOT_COLORS_DARK = ['#a855f7', '#b79cf7', '#c7d0e8', '#e8edf7']
 
-function Dot({ index }: { index: number }) {
+function Dot({ index, colors }: { index: number; colors: string[] }) {
   const p = useSharedValue(0)
   useEffect(() => {
     // 인덱스마다 지연 → 물결(웨이브). reverse repeat로 0↔1 왕복.
@@ -30,16 +32,17 @@ function Dot({ index }: { index: number }) {
     opacity: 0.3 + p.value * 0.7,
     transform: [{ translateY: -5 * p.value }, { scale: 0.8 + p.value * 0.35 }],
   }))
-  return <Animated.View style={[styles.dot, { backgroundColor: DOT_COLORS[index] }, style]} />
+  return <Animated.View style={[styles.dot, { backgroundColor: colors[index] }, style]} />
 }
 
-export function GeneratingDots({ label }: { label?: string }) {
+export function GeneratingDots({ label, labelColor, onDark }: { label?: string; labelColor?: string; onDark?: boolean }) {
+  const colors = onDark ? DOT_COLORS_DARK : DOT_COLORS
   return (
     <View style={styles.wrap}>
       <View style={styles.row}>
-        {DOT_COLORS.map((_, i) => <Dot key={i} index={i} />)}
+        {colors.map((_, i) => <Dot key={i} index={i} colors={colors} />)}
       </View>
-      {label ? <Text style={styles.label}>{label}</Text> : null}
+      {label ? <Text style={[styles.label, labelColor ? { color: labelColor } : null]}>{label}</Text> : null}
     </View>
   )
 }

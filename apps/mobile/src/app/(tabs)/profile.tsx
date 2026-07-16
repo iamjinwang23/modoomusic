@@ -13,6 +13,7 @@ import { CollapsingHeader, HEADER_ROW } from '@/components/ui/collapsing-header'
 import { Icon } from '@/components/ui/icon'
 import { GlassIconButton, GlassPill } from '@/components/ui/glass-button'
 import { NotificationBell } from '@/components/ui/notification-bell'
+import { SkeletonBox, SkeletonProfileGrid } from '@/components/ui/skeleton'
 import { mono } from '@/theme/mono'
 
 // 프로필 탭 — 웹 파리티: 커버(아바타·이름 오버레이) + 인라인 스탯 + 음악/영상 탭 + 세로 그리드.
@@ -46,7 +47,12 @@ export default function ProfileTab() {
   useFocusEffect(useCallback(() => { load() }, [load]))
 
   if (loading) {
-    return <View style={[styles.container, styles.center]}><ActivityIndicator color={mono.color.accent} /></View>
+    return (
+      <View style={styles.container}>
+        <SkeletonBox w="100%" h={width * 9 / 16} radius={0} />
+        <SkeletonProfileGrid style={{ marginTop: 44 }} />
+      </View>
+    )
   }
 
   const name = profile?.displayName || profile?.username || '내 프로필'

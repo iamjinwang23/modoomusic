@@ -11,6 +11,7 @@ import type { NowPlaying } from '@/lib/now-playing'
 import { supabase } from '@/lib/supabase'
 import { Icon } from '@/components/ui/icon'
 import { refreshUnreadNotifications } from '@/lib/use-unread-notifications'
+import { SkeletonSongList } from '@/components/ui/skeleton'
 import { mono } from '@/theme/mono'
 
 const WEB_BASE = process.env.EXPO_PUBLIC_API_BASE_URL ?? 'https://www.modoonorae.com'
@@ -191,7 +192,7 @@ export default function NotificationsScreen() {
       </View>
 
       {items === null && !error ? (
-        <ActivityIndicator color={mono.color.accent} style={{ marginTop: 40 }} />
+        <SkeletonSongList style={{ paddingHorizontal: 20, marginTop: 8 }} />
       ) : (
         <FlatList
           data={filtered}

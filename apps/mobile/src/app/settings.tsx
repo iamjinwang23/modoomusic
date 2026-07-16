@@ -38,7 +38,8 @@ function fmtDate(iso: string): string {
   return `${d.getFullYear()}.${String(d.getMonth() + 1).padStart(2, '0')}.${String(d.getDate()).padStart(2, '0')}`
 }
 
-// 설정 — 계정정보 + 프로필 편집 + 크레딧 + 알림 토글 + 이용안내 + 로그아웃 + 회원 탈퇴. 프로필 탭의 톱니에서 진입.
+// 설정 — 계정정보 + 크레딧 + 알림 토글 + 이용안내 + 로그아웃 + 회원 탈퇴. 프로필 탭의 톱니에서 진입.
+// (프로필 편집은 프로필 화면 우상단 pill로 진입 — 설정 중복 제거, 웹 파리티)
 export default function SettingsScreen() {
   const insets = useSafeAreaInsets()
   const [account, setAccount] = useState<AccountInfo | null>(null)
@@ -101,14 +102,6 @@ export default function SettingsScreen() {
         <ActivityIndicator color={mono.color.accent} style={{ marginTop: 40 }} />
       ) : (
         <ScrollView contentContainerStyle={{ paddingBottom: insets.bottom + 24 }} showsVerticalScrollIndicator={false}>
-          {/* 프로필 편집 */}
-          <View style={styles.group}>
-            <Pressable style={styles.cell} onPress={() => router.push('/profile-edit')}>
-              <Text style={styles.cellText}>프로필 편집</Text>
-              <Text style={styles.chevron}>›</Text>
-            </Pressable>
-          </View>
-
           {account && (
             <>
               <Text style={styles.section}>계정 정보</Text>
@@ -159,6 +152,7 @@ export default function SettingsScreen() {
                     <View style={styles.cell}>
                       <Text style={styles.cellText}>{PUSH_CATEGORY_LABELS[c]}</Text>
                       <Switch
+                        style={styles.cellSwitch}
                         value={prefs[c]}
                         onValueChange={(v) => toggle(c, v)}
                         trackColor={{ false: mono.color.fillStrong, true: mono.color.accent }}
@@ -193,7 +187,7 @@ export default function SettingsScreen() {
           {/* 로그아웃 · 회원 탈퇴 — 동일 셀 높이 */}
           <View style={[styles.group, { marginTop: 28 }]}>
             <Pressable style={styles.cell} onPress={logout}>
-              <Text style={styles.cellText}>로그아웃</Text>
+              <Text style={styles.logoutText}>로그아웃</Text>
             </Pressable>
           </View>
           <View style={[styles.group, { marginTop: 10 }]}>
@@ -234,13 +228,16 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
   },
   cellText: { color: mono.color.text, fontSize: mono.font.body, fontWeight: '500' },
+  cellSwitch: { alignSelf: 'center' },
   chevron: { color: mono.color.textTertiary, fontSize: 22 },
   linkLeft: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   infoLabel: { color: mono.color.textSecondary, fontSize: mono.font.body },
   infoValue: { color: mono.color.text, fontSize: mono.font.body, fontWeight: '600', flexShrink: 1, marginLeft: 12, textAlign: 'right' },
   infoStrong: { color: mono.color.text, fontWeight: '800' },
   divider: { height: 1, backgroundColor: mono.color.borderSoft },
-  deleteText: { color: mono.color.danger, fontSize: mono.font.body, fontWeight: '600' },
+  // 로그아웃 = 위험 빨강(자주 쓰는 액션 강조), 회원 탈퇴 = 비활성 흐린색(실수 방지)
+  logoutText: { color: mono.color.danger, fontSize: mono.font.body, fontWeight: '600' },
+  deleteText: { color: mono.color.textTertiary, fontSize: mono.font.body, fontWeight: '500' },
   // 크레딧 CTA — 웹 사이드바 파리티(흰색 충전 / 바이올렛 업그레이드)
   ctaWhite: { marginTop: 10, height: 50, borderRadius: mono.radius.md, alignItems: 'center', justifyContent: 'center', backgroundColor: '#ffffff' },
   ctaWhiteText: { color: '#18181b', fontSize: mono.font.body, fontWeight: '700' },

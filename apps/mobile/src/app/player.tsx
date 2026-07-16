@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { ActionSheetIOS, Alert, KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, StyleSheet, Text, useWindowDimensions, View } from 'react-native'
 import { Gesture, GestureDetector, GestureHandlerRootView } from 'react-native-gesture-handler'
-import Animated, { Extrapolation, interpolate, runOnJS, useAnimatedScrollHandler, useAnimatedStyle, useSharedValue, withTiming, type SharedValue } from 'react-native-reanimated'
+import Animated, { Easing, Extrapolation, interpolate, runOnJS, useAnimatedScrollHandler, useAnimatedStyle, useSharedValue, withSequence, withTiming, type SharedValue } from 'react-native-reanimated'
 import { BlurView } from 'expo-blur'
 import { requireOptionalNativeModule } from 'expo-modules-core'
 import Svg, { Circle, Defs, G, Path, Mask, LinearGradient as SvgGradient, Stop, Rect } from 'react-native-svg'
@@ -24,9 +24,10 @@ import { CollectionPickerModal } from '@/components/ui/collection-picker-modal'
 import { SongEditModal } from '@/components/ui/song-edit-modal'
 import { Icon } from '@/components/ui/icon'
 import { GeneratingDots } from '@/components/ui/generating-dots'
+import { hapticLight } from '@/lib/haptics'
 import { SongCommentComposer, SongCommentList, useSongComments } from '@/components/ui/song-comments'
 import { Marquee } from '@/components/ui/marquee'
-import { GlassIconButton } from '@/components/ui/glass-button'
+import { GlassIconButton, GlassPill } from '@/components/ui/glass-button'
 import { SeekBar } from '@/components/ui/seek-bar'
 import { CoverScrim, formatCount } from '@/components/ui/profile-grid'
 import { mono } from '@/theme/mono'
@@ -139,6 +140,9 @@ export default function PlayerScreen() {
   const [liked, setLiked] = useState<boolean>(!!song?.liked)
   const [likeBusy, setLikeBusy] = useState(false)
   const likeTouchedRef = useRef(false)  // 사용자가 토글하면 true — fetch가 liked를 덮어쓰지 않게
+  // 좋아요 팝 바운스 — 누르면 살짝 작아졌다 튀어오름(애플뮤직·인스타 하트 느낌)
+  const likeScale = useSharedValue(1)
+  const likeBounceStyle = useAnimatedStyle(() => ({ transform: [{ scale: likeScale.value }] }))
   const [published, setPublished] = useState<boolean>(!!song?.published)
   const [pubBusy, setPubBusy] = useState(false)
   // 곡 통계(재생·좋아요·댓글 수) + 스타일 — 웹 파리티. 플레이어 진입 시 상세 조회.
@@ -146,6 +150,10 @@ export default function PlayerScreen() {
   const [songStyle, setSongStyle] = useState<string | null>(null)
   // 수정 모달 원본(제목·가사·공개코멘트) — 상세 fetch로 채움
   const [editData, setEditData] = useState<{ id: string; title: string | null; lyrics: string | null; publishComment: string | null; coverImage?: string; coverHue?: number } | null>(null)
+  // 공개 코멘트 캡션 더보기/접기 — 3줄 초과 시 토글 노출
+  const [captionExpanded, setCaptionExpanded] = useState(false)
+  const [captionOverflow, setCaptionOverflow] = useState(false)
+  const captionMeasured = useRef(false)
 
   useEffect(() => {
     if (!song?.id) { setMeta(null); setSongStyle(null); setEditData(null); return }
@@ -169,6 +177,10 @@ export default function PlayerScreen() {
     likeTouchedRef.current = false
     setLiked(!!song?.liked)
     setPublished(!!song?.published)
+    // 캡션 더보기 상태 리셋(곡마다 다시 측정)
+    captionMeasured.current = false
+    setCaptionExpanded(false)
+    setCaptionOverflow(false)
   }, [song?.id]) // eslint-disable-line react-hooks/exhaustive-deps
   // 곡 주인(공개곡) 프로필 — 아바타·팔로우 (내 곡=username 없음이라 미노출)
   const [owner, setOwner] = useState<{ userId: string; avatarImage?: string; avatarHue: number; displayName: string } | null>(null)
@@ -274,6 +286,12 @@ export default function PlayerScreen() {
     if (!song || likeBusy || !requireAuth()) return
     likeTouchedRef.current = true
     const next = !liked
+    // 딱 한 번 뿅 — 커졌다 원위치(timing만, 스프링 흔들림 없이)
+    hapticLight()
+    likeScale.value = withSequence(
+      withTiming(1.2, { duration: 100, easing: Easing.out(Easing.quad) }),
+      withTiming(1, { duration: 130, easing: Easing.out(Easing.quad) }),
+    )
     setLiked(next)
     setMeta((m) => m ? { ...m, likeCount: Math.max(0, m.likeCount + (next ? 1 : -1)) } : m)
     setLikeBusy(true)
@@ -342,7 +360,15 @@ export default function PlayerScreen() {
   }
 
   // 전 곡 / 다음 곡 (웹 파리티) — 큐 경계면 무시
-  const skipPrev = async () => { try { await TrackPlayer.skipToPrevious() } catch {} }
+  // 이전 곡 버튼 — 표준 플레이어 동작(애플뮤직·스포티파이): 3초 넘게 재생됐으면 현재 곡 처음으로,
+  // 3초 이내면 이전 곡으로. 재생 위치를 신선하게 읽어 판정.
+  const skipPrev = async () => {
+    try {
+      const pos = await TrackPlayer.getPosition()
+      if (pos > 3) await TrackPlayer.seekTo(0)
+      else await TrackPlayer.skipToPrevious()
+    } catch {}
+  }
   const skipNext = async () => { try { await TrackPlayer.skipToNext() } catch {} }
 
   const lyrics = song?.lyrics?.trim()
@@ -406,7 +432,9 @@ export default function PlayerScreen() {
       {song?.videoCoverStatus === 'generating' ? (
         <View style={styles.videoGenOverlay} pointerEvents="none">
           <View style={styles.videoGenCard}>
-            <GeneratingDots label="영상을 만들고 있어요…" />
+            {BLUR_AVAILABLE ? <BlurView intensity={40} tint="dark" style={StyleSheet.absoluteFill} /> : null}
+            <View style={[styles.videoGenTint, !BLUR_AVAILABLE && styles.videoGenTintSolid]} pointerEvents="none" />
+            <GeneratingDots label="영상을 만들고 있어요" labelColor={mono.color.onMedia} onDark />
           </View>
         </View>
       ) : null}
@@ -430,10 +458,10 @@ export default function PlayerScreen() {
                 <Text style={styles.ownerName} numberOfLines={1}>{artist}</Text>
               </Pressable>
               {owner && !isMine ? (
-                <Pressable onPress={toggleFollow} disabled={followBusy} style={[styles.followBtn, followBusy && styles.dim]} hitSlop={6}>
-                  <Icon name={following ? 'following' : 'follow'} size={14} color={mono.color.text} />
+                <GlassPill onPress={toggleFollow} disabled={followBusy} style={[styles.followBtn, followBusy && styles.dim]}>
+                  <Icon name={following ? 'following' : 'follow'} size={14} color={mono.color.onMedia} />
                   <Text style={styles.followText}>{following ? '팔로잉' : '팔로우'}</Text>
-                </Pressable>
+                </GlassPill>
               ) : null}
             </View>
           ) : isOwn && myProfile ? (
@@ -452,9 +480,25 @@ export default function PlayerScreen() {
           ) : (
             <Text style={styles.artist} numberOfLines={1}>{artist}</Text>
           )}
-          {/* 공개 코멘트(캡션) — 릴스식, 프로필 하단 */}
+          {/* 공개 코멘트(캡션) — 릴스식, 프로필 하단. 3줄 넘으면 더보기/접기 토글 */}
           {editData?.publishComment?.trim() ? (
-            <Text style={styles.caption} numberOfLines={3}>{editData.publishComment.trim()}</Text>
+            <Pressable onPress={() => captionOverflow && setCaptionExpanded((v) => !v)}>
+              {/* 숨겨진 측정용 — numberOfLines 없이 실제 줄 수 측정(잘린 Text로는 초과 판정 불가) */}
+              {!captionMeasured.current ? (
+                <Text
+                  style={[styles.caption, styles.captionMeasure]}
+                  onTextLayout={(e) => { captionMeasured.current = true; setCaptionOverflow(e.nativeEvent.lines.length > 3) }}
+                >
+                  {editData.publishComment.trim()}
+                </Text>
+              ) : null}
+              <Text style={styles.caption} numberOfLines={captionExpanded ? undefined : 3}>
+                {editData.publishComment.trim()}
+              </Text>
+              {captionOverflow ? (
+                <Text style={styles.captionMore}>{captionExpanded ? '접기' : '더보기'}</Text>
+              ) : null}
+            </Pressable>
           ) : null}
         </View>
 
@@ -465,13 +509,15 @@ export default function PlayerScreen() {
               <Text style={styles.railCount}>{formatCount(meta?.playCount ?? 0)}</Text>
             </View>
             <View style={styles.railItem}>
-              {liked ? (
-                <Pressable onPress={toggleLike} disabled={likeBusy} style={styles.likeOn}>
-                  <Icon name="heart.fill" size={24} color={mono.color.bg} />
-                </Pressable>
-              ) : (
-                <GlassIconButton name="heart" size={48} iconSize={24} color={mono.color.text} onPress={toggleLike} disabled={likeBusy} />
-              )}
+              <Animated.View style={likeBounceStyle}>
+                {liked ? (
+                  <Pressable onPress={toggleLike} disabled={likeBusy} style={styles.likeOn}>
+                    <Icon name="heart.fill" size={24} color={mono.color.bg} />
+                  </Pressable>
+                ) : (
+                  <GlassIconButton name="heart" size={48} iconSize={24} color={mono.color.text} onPress={toggleLike} disabled={likeBusy} />
+                )}
+              </Animated.View>
               <Text style={styles.railCount}>{formatCount(meta?.likeCount ?? 0)}</Text>
             </View>
             <View style={styles.railItem}>
@@ -629,8 +675,10 @@ const styles = StyleSheet.create({
   bottomBlur: { position: 'absolute', left: 0, right: 0, bottom: 0 },
   blurFull: { width: '100%', height: '100%' },
   // 영상 생성 중 — 화면 중앙 오버레이(가사 생성 중과 동일 톤: 그라데이션 dots + 문구)
-  videoGenOverlay: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, alignItems: 'center', justifyContent: 'center' },
-  videoGenCard: { backgroundColor: 'rgba(0,0,0,0.55)', borderRadius: mono.radius.lg, paddingVertical: 24, paddingHorizontal: 32 },
+  videoGenOverlay: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, alignItems: 'center', justifyContent: 'center', paddingBottom: '45%' },
+  videoGenCard: { borderRadius: mono.radius.lg, paddingVertical: 24, paddingHorizontal: 32, overflow: 'hidden' },
+  videoGenTint: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.28)' },
+  videoGenTintSolid: { backgroundColor: 'rgba(0,0,0,0.55)' },
   artPlaceholder: { alignItems: 'center', justifyContent: 'center' },
   artInitial: { color: mono.color.textTertiary, fontSize: 64 },
   // 캡션(좌) + 세로 레일(우) — 레일 바닥을 캡션 바닥에 맞춤
@@ -646,7 +694,10 @@ const styles = StyleSheet.create({
   title: { color: mono.color.text, fontSize: 28, fontWeight: '700', lineHeight: 34 },
   artist: { color: mono.color.textSecondary, fontSize: mono.font.body },
   // 공개 코멘트 캡션(릴스식) — 프로필 하단
-  caption: { color: mono.color.text, fontSize: mono.font.small, lineHeight: 20 },
+  caption: { color: mono.color.text, fontSize: mono.font.body, lineHeight: 26 },
+  captionMore: { color: mono.color.textSecondary, fontSize: mono.font.small, fontWeight: '700', marginTop: 3 },
+  // 측정 전용 — 실제 줄 수만 재고 화면엔 안 보이게(absolute+투명)
+  captionMeasure: { position: 'absolute', opacity: 0, left: 0, right: 0 },
   // 곡 주인 행 — 아바타 + 이름 + 팔로우(이름 바로 옆)
   ownerRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   ownerLeft: { flexDirection: 'row', alignItems: 'center', gap: 10, flexShrink: 1, minWidth: 0 },
@@ -657,10 +708,10 @@ const styles = StyleSheet.create({
   ownerName: { color: mono.color.text, fontSize: mono.font.body, fontWeight: '600', flexShrink: 1 },
   // 웹: bg-white/8 · rounded-full · px4 py2
   followBtn: {
-    flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 18, paddingVertical: 11,
-    borderRadius: mono.radius.pill, backgroundColor: 'rgba(255,255,255,0.08)',
+    flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 18, height: 40,
+    borderRadius: mono.radius.pill,
   },
-  followText: { color: mono.color.text, fontSize: mono.font.small, fontWeight: '600' },
+  followText: { color: mono.color.onMedia, fontSize: mono.font.small, fontWeight: '600' },
   dim: { opacity: 0.5 },
   progress: { marginBottom: 16 },
   times: { flexDirection: 'row', justifyContent: 'space-between', marginTop: -2 },

@@ -13,12 +13,13 @@ import { SongRow } from '@/components/ui/song-row'
 import { Icon } from '@/components/ui/icon'
 import { NotificationBell } from '@/components/ui/notification-bell'
 import { playSong } from '@/lib/player'
-import { deleteSong, downloadSong, setSongPublished } from '@/lib/song-actions'
+import { clearSongNew, deleteSong, downloadSong, setSongPublished } from '@/lib/song-actions'
 import { isInAnyCollection, collections as collectionStore } from '@/lib/collection'
 import { SongMoreSheet } from '@/components/ui/song-more-sheet'
 import { CollectionPickerModal } from '@/components/ui/collection-picker-modal'
 import { CollectionCover } from '@/components/ui/collection-cover'
 import { SongEditModal } from '@/components/ui/song-edit-modal'
+import { SkeletonSongList } from '@/components/ui/skeleton'
 import { mono } from '@/theme/mono'
 import { toast } from '@/lib/toast'
 
@@ -94,6 +95,15 @@ export default function LibraryScreen() {
     ])
   }, [load])
 
+  // 재생 시 새 곡 배지(빨간점) 해제 — 낙관적 로컬 반영 + 서버 업데이트(웹 clearNew 패리티)
+  const playAndClearNew = useCallback((song: Song, list: Song[]) => {
+    playSong(song, list)
+    if (song.isNew) {
+      setSongs((prev) => prev?.map((s) => (s.id === song.id ? { ...s, isNew: false } : s)) ?? prev)
+      clearSongNew(song.id)
+    }
+  }, [])
+
   const filtered = (songs ?? []).filter((s) => {
     if (filter === 'liked') return !!s.liked
     if (filter === 'published') return !!s.published
@@ -109,13 +119,13 @@ export default function LibraryScreen() {
           <Animated.FlatList
             data={filtered}
             keyExtractor={(s) => s.id}
-            renderItem={({ item }) => <SongRow song={item} onPress={() => playSong(item, filtered)} onMore={() => openMenu(item)} />}
+            renderItem={({ item }) => <SongRow song={item} onPress={() => playAndClearNew(item, filtered)} onMore={() => openMenu(item)} />}
             onScroll={scrollHandler}
             scrollEventThrottle={16}
             contentContainerStyle={{ paddingTop: titleH + chipsH + 4, paddingBottom: insets.bottom + 160, paddingHorizontal: 20 }}
             refreshControl={<RefreshControl progressViewOffset={titleH + chipsH} refreshing={refreshing} onRefresh={onRefresh} tintColor={mono.color.textSecondary} />}
             ListEmptyComponent={
-              loading ? <ActivityIndicator color={mono.color.accent} style={{ marginTop: 32 }} />
+              loading ? <SkeletonSongList />
                 : <Text style={styles.empty}>
                     {error ? `불러오지 못했어요 (${error})`
                       : filter === 'liked' ? '좋아요한 곡이 없어요'
