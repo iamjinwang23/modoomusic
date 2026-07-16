@@ -226,7 +226,7 @@ export async function markPaymentPaidAndGrant(opts: {
     .from('notifications')
     .insert({ user_id: userId, type: 'credit_charged', payload: { credits, amount } })
   if (notifErr) console.error('[payment.grant] 알림 INSERT 실패:', notifErr.message)
-  await sendPushToUser(userId, { title: '크레딧이 충전됐어요', body: '', tag: 'credit', data: { route: '/settings' } }, 'credit')
+  await sendPushToUser(userId, { title: '크레딧이 충전됐어요', body: '충전한 크레딧으로 새 곡을 만들어보세요.', tag: 'credit', data: { route: '/settings' } }, 'credit')
 
   return { granted: true, credits, userId }
 }

@@ -69,7 +69,9 @@ export async function POST(_req: Request, { params }: { params: Promise<Params> 
       }
       // 첫 좋아요 알림일 때만 푸시(중복이면 스킵 — 스팸 방지)
       if (!notifErr) {
-        await sendPushToUser(song.user_id, { title: '새 좋아요', body: '내 곡을 좋아했어요', url: `/?song=${songId}`, tag: `like-${songId}`, data: { route: '/(tabs)' } }, 'likes')
+        const { data: actor } = await admin.from('profiles').select('display_name, username').eq('id', user.id).maybeSingle()
+        const actorName = actor?.display_name ?? actor?.username ?? '누군가'
+        await sendPushToUser(song.user_id, { title: '새 좋아요', body: `${actorName}님이 회원님의 곡을 좋아했어요`, url: `/?song=${songId}`, tag: `like-${songId}`, data: { route: '/(tabs)' } }, 'likes')
       }
     }
   }
