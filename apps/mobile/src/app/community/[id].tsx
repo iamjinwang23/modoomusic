@@ -16,7 +16,7 @@ import { PostCard } from '@/components/ui/post-card'
 import { Icon } from '@/components/ui/icon'
 import { GlassIconButton, GlassPill } from '@/components/ui/glass-button'
 import { NotificationBell } from '@/components/ui/notification-bell'
-import { SkeletonPostList } from '@/components/ui/skeleton'
+import { SkeletonBox, SkeletonPostList } from '@/components/ui/skeleton'
 import { mono } from '@/theme/mono'
 
 // 커뮤니티 상세 — 배너/이름/멤버 + 게시글 피드(GET /api/communities/[id], /posts).
@@ -90,7 +90,7 @@ export default function CommunityDetailScreen() {
         scrollY={scrollY}
         fadeStart={fadeStart}
         fadeEnd={fadeEnd}
-        title={community?.name ?? '커뮤니티'}
+        title={community?.name ?? ''}
         left={
           <Pressable onPress={() => router.back()} hitSlop={8} style={styles.hBack}><Icon name="arrow.left" size={24} color={mono.color.text} /></Pressable>
         }
@@ -148,7 +148,16 @@ export default function CommunityDetailScreen() {
               </View>
             </View>
 
-            {/* 타이틀 행 — 사각 대표 이미지 + 이름 + 멤버(카운트·아바타) */}
+            {/* 타이틀 행 — 사각 대표 이미지 + 이름 + 멤버(카운트·아바타). 로딩 중엔 스켈레톤. */}
+            {!community ? (
+              <View style={styles.titleRow}>
+                <SkeletonBox w={68} h={68} radius={mono.radius.lg} style={styles.cAvatarSkeleton} />
+                <View style={styles.titleCol}>
+                  <SkeletonBox w="55%" h={26} />
+                  <SkeletonBox w={76} h={13} style={{ marginTop: 10 }} />
+                </View>
+              </View>
+            ) : (
             <View style={styles.titleRow}>
               <View style={styles.cAvatar}>
                 {community?.avatarImage ? <Image source={{ uri: community.avatarImage }} style={styles.fill} contentFit="cover" /> : <Text style={styles.cAvatarText}>{initial}</Text>}
@@ -169,6 +178,7 @@ export default function CommunityDetailScreen() {
                 </View>
               </View>
             </View>
+            )}
 
             {community?.description ? (
               <View style={styles.descWrap}>
@@ -234,6 +244,7 @@ const styles = StyleSheet.create({
     borderWidth: 2, borderColor: mono.color.bg,
   },
   cAvatarText: { color: mono.color.accentLight, fontSize: 26, fontWeight: '800' },
+  cAvatarSkeleton: { borderWidth: 2, borderColor: mono.color.bg },
   titleCol: { flex: 1, minWidth: 0 },
   name: {
     color: mono.color.text, fontSize: mono.font.h1, fontWeight: '800',
