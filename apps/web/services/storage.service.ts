@@ -44,6 +44,27 @@ export async function uploadImageBuffer(
   }
 }
 
+// MP3 재생 길이 추정 — 곡 생성은 256kbps CBR(=32000 B/s)로 고정 출력하므로
+// Content-Length ÷ 32000 ≈ 초. MiniMax가 audio_length를 안 줄 때의 폴백.
+const MP3_BYTES_PER_SEC = 256_000 / 8
+export async function estimateMp3Duration(url: string): Promise<number | null> {
+  try {
+    let len = 0
+    const head = await fetch(url, { method: 'HEAD' })
+    len = Number(head.headers.get('content-length') ?? 0)
+    if (!len) {
+      const res = await fetch(url)
+      if (!res.ok) return null
+      len = (await res.arrayBuffer()).byteLength
+    }
+    if (!len) return null
+    const sec = Math.round(len / MP3_BYTES_PER_SEC)
+    return sec > 0 ? sec : null
+  } catch {
+    return null
+  }
+}
+
 export async function uploadFromUrl(
   url: string,
   bucket: string,

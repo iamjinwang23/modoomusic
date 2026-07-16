@@ -50,6 +50,7 @@ interface GenerateParams {
 interface GenerateResult {
   audioUrl: string
   lyrics: string
+  duration: number | null  // 초 단위 — MiniMax extra_info.audio_length(ms)를 초로 변환. 없으면 null(route에서 파일크기로 폴백)
 }
 
 export async function generateSong(params: GenerateParams): Promise<GenerateResult> {
@@ -65,6 +66,7 @@ export async function generateSong(params: GenerateParams): Promise<GenerateResu
     return {
       audioUrl: MOCK_AUDIO_URL,
       lyrics: isInstrumental ? '' : (customLyrics ?? ''),
+      duration: 180,
     }
   }
 
@@ -112,7 +114,11 @@ export async function generateSong(params: GenerateParams): Promise<GenerateResu
     throw new Error(translateMinimaxError(data.base_resp?.status_msg))
   }
 
-  return { audioUrl: data.data.audio, lyrics: isInstrumental ? '' : (customLyrics || '') }
+  // 실제 재생 길이 — MiniMax는 extra_info.audio_length(ms)로 반환. 초로 반올림해 저장.
+  const audioLenMs = (data.extra_info?.audio_length ?? data.data?.audio_length) as unknown
+  const duration = typeof audioLenMs === 'number' && audioLenMs > 0 ? Math.round(audioLenMs / 1000) : null
+
+  return { audioUrl: data.data.audio, lyrics: isInstrumental ? '' : (customLyrics || ''), duration }
 }
 
 const MOCK_COVER_URL = 'https://picsum.photos/seed/minimax/512/512'
