@@ -71,9 +71,9 @@ export default function ExploreScreen() {
           refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={mono.color.textSecondary} />}
           showsVerticalScrollIndicator={false}
         >
-          {/* 내 커뮤니티 — 스토리 가로 스크롤 */}
+          {/* 내 가입 커뮤니티 — 새 글 알림 스토리 가로 스크롤 */}
           {mine.length > 0 && (
-            <Section title="내 커뮤니티">
+            <Section title="새 글이 올라왔어요">
               <ScrollView
                 horizontal
                 showsHorizontalScrollIndicator={false}
