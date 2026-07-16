@@ -27,7 +27,7 @@ export async function POST(_req: Request, { params }: { params: Promise<Params> 
   // 3) 대상 프로필 확인 + actor username 한 번에 조회
   const [{ data: target }, { data: actor }] = await Promise.all([
     admin.from('profiles').select('id, follower_count').eq('id', targetUserId).maybeSingle(),
-    admin.from('profiles').select('username').eq('id', user.id).maybeSingle(),
+    admin.from('profiles').select('username, display_name').eq('id', user.id).maybeSingle(),
   ])
   if (!target) return NextResponse.json({ error: 'not found' }, { status: 404 })
 
@@ -86,9 +86,10 @@ export async function POST(_req: Request, { params }: { params: Promise<Params> 
         })
       if (notifErr) console.error('[follow notify]', notifErr.message)
       const followerUsername = actor?.username ?? null
+      const actorName = actor?.display_name ?? actor?.username ?? '누군가'
       await sendPushToUser(targetUserId, {
         title: '새 팔로워',
-        body: `${followerUsername ?? '누군가'}님이 회원님을 팔로우해요`,
+        body: `${actorName}님이 회원님을 팔로우했어요`,
         tag: `follow-${user.id}`,
         data: { route: followerUsername ? `/creator/${followerUsername}` : '/(tabs)' },
       }, 'follow')
