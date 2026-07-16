@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse, after } from 'next/server'
 import { generateSong, generateCoverImage, MOCK_MODE, MODELS, creditsForModel, type MusicModelId } from '@/services/minimax.service'
-import { uploadFromUrl } from '@/services/storage.service'
+import { estimateMp3Duration, uploadFromUrl } from '@/services/storage.service'
 import { createUserClient } from '@/lib/supabase/server'
 import { requireActiveUser } from '@/lib/auth/active-user'
 import { createAdminClient } from '@/lib/supabase/admin'
@@ -176,9 +176,14 @@ export async function POST(req: NextRequest) {
         if (permCover) finalCoverUrl = permCover
       }
 
+      // 재생 길이 — MiniMax audio_length(초) 우선, 없으면 업로드된 파일 크기로 추정(256kbps CBR)
+      let finalDuration: number | null = songResult.duration
+      if (finalDuration == null && finalAudioUrl) finalDuration = await estimateMp3Duration(finalAudioUrl)
+
       const updatePatch: Record<string, unknown> = {
         audio_url: finalAudioUrl,
         cover_image: finalCoverUrl,
+        duration: finalDuration,
         // 우리가 보낸 가사(커스텀/AI) 우선 — MiniMax는 모델·모드에 따라 lyrics를 응답에 안 돌려줘서
         // songResult.lyrics만 쓰면 일부 곡 가사가 null로 저장돼 상세에서 안 보임.
         lyrics: genLyrics?.trim() || songResult.lyrics?.trim() || null,
