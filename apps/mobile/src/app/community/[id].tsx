@@ -16,6 +16,7 @@ import { PostCard } from '@/components/ui/post-card'
 import { Icon } from '@/components/ui/icon'
 import { GlassIconButton, GlassPill } from '@/components/ui/glass-button'
 import { NotificationBell } from '@/components/ui/notification-bell'
+import { SkeletonPostList } from '@/components/ui/skeleton'
 import { mono } from '@/theme/mono'
 
 // 커뮤니티 상세 — 배너/이름/멤버 + 게시글 피드(GET /api/communities/[id], /posts).
@@ -188,7 +189,7 @@ export default function CommunityDetailScreen() {
         }
         ListEmptyComponent={
           posts === null && !error ? (
-            <ActivityIndicator color={mono.color.accent} style={{ marginTop: 32 }} />
+            <SkeletonPostList style={{ paddingHorizontal: 20 }} />
           ) : (
             <Text style={styles.empty}>{error ? `불러오지 못했어요 (${error})` : '아직 게시글이 없어요'}</Text>
           )

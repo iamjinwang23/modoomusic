@@ -13,6 +13,7 @@ import { PublicSongRow } from '@/components/ui/public-song-row'
 import { usePublicSongMore } from '@/lib/use-public-song-more'
 import { Icon } from '@/components/ui/icon'
 import { NotificationBell } from '@/components/ui/notification-bell'
+import { SkeletonSongList } from '@/components/ui/skeleton'
 import { mono } from '@/theme/mono'
 
 type Tab = 'recommended' | 'latest' | 'popular'
@@ -72,7 +73,7 @@ export default function DiscoverScreen() {
         contentContainerStyle={{ paddingTop: titleH + chipsH + 4, paddingBottom: insets.bottom + 120, paddingHorizontal: 20 }}
         refreshControl={<RefreshControl progressViewOffset={titleH + chipsH} refreshing={refreshing} onRefresh={onRefresh} tintColor={mono.color.textSecondary} />}
         ListEmptyComponent={
-          loading ? <ActivityIndicator color={mono.color.accent} style={{ marginTop: 32 }} />
+          loading ? <SkeletonSongList />
             : <Text style={styles.empty}>{error ? `불러오지 못했어요 (${error})` : '공개된 곡이 없어요'}</Text>
         }
         showsVerticalScrollIndicator={false}

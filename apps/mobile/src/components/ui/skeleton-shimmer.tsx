@@ -9,9 +9,10 @@ export function SkeletonShimmer() {
   const x = useSharedValue(0)
   useEffect(() => {
     if (w === 0) return
-    x.value = withRepeat(withTiming(1, { duration: 1300, easing: Easing.inOut(Easing.ease) }), -1, false)
+    // 은은하게 — 넓은 밴드가 천천히 흐르도록(빠르게 휙휙 지나가지 않게)
+    x.value = withRepeat(withTiming(1, { duration: 2200, easing: Easing.inOut(Easing.ease) }), -1, false)
   }, [w, x])
-  const band = w * 0.6
+  const band = w * 1.4  // 밴드를 넓게 — 부드럽고 은은한 빛 그라데이션
   const style = useAnimatedStyle(() => ({ transform: [{ translateX: -band + x.value * (w + band) }] }))
   return (
     <View style={StyleSheet.absoluteFill} onLayout={(e) => setW(e.nativeEvent.layout.width)} pointerEvents="none">
@@ -21,7 +22,7 @@ export function SkeletonShimmer() {
             <Defs>
               <LinearGradient id="shimmer" x1="0" y1="0" x2="1" y2="0">
                 <Stop offset="0" stopColor="#ffffff" stopOpacity={0} />
-                <Stop offset="0.5" stopColor="#ffffff" stopOpacity={0.16} />
+                <Stop offset="0.5" stopColor="#ffffff" stopOpacity={0.1} />
                 <Stop offset="1" stopColor="#ffffff" stopOpacity={0} />
               </LinearGradient>
             </Defs>

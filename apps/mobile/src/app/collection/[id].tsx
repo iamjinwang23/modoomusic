@@ -9,6 +9,7 @@ import { collections as collectionStore } from '@/lib/collection'
 import { SongRow } from '@/components/ui/song-row'
 import { CollectionCover } from '@/components/ui/collection-cover'
 import { Icon } from '@/components/ui/icon'
+import { SkeletonSongList } from '@/components/ui/skeleton'
 import { mono } from '@/theme/mono'
 import { toast } from '@/lib/toast'
 
@@ -68,7 +69,7 @@ export default function CollectionDetailScreen() {
       </View>
 
       {loading ? (
-        <ActivityIndicator color={mono.color.accent} style={{ marginTop: 40 }} />
+        <SkeletonSongList style={{ paddingHorizontal: 20, marginTop: 8 }} />
       ) : (
         <FlatList
           data={songs}

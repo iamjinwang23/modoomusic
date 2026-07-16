@@ -1,9 +1,10 @@
 import { Pressable, StyleSheet, Text, useWindowDimensions, View } from 'react-native'
 import { Image } from 'expo-image'
 import Svg, { Defs, LinearGradient, Rect, Stop } from 'react-native-svg'
+import { State, useActiveTrack, usePlaybackState } from 'react-native-track-player'
 import type { PublicSong } from '@mono/shared'
-import { useNowPlaying } from '@/lib/now-playing'
 import { Icon } from '@/components/ui/icon'
+import { PlayingBars } from '@/components/ui/playing-bars'
 import { mono } from '@/theme/mono'
 
 // 1000+ → 1.2k (웹 formatCount와 동일)
@@ -67,8 +68,10 @@ export function ProfileGrid({ songs, onPlay, empty = '아직 공개된 곡이 �
 }
 
 function ProfileThumb({ song, width, height, onPress }: { song: PublicSong; width: number; height: number; onPress: () => void }) {
-  const nowPlaying = useNowPlaying()
-  const isPlaying = nowPlaying?.id === song.id
+  const activeTrack = useActiveTrack()
+  const playback = usePlaybackState()
+  const isActive = !!activeTrack && activeTrack.id === song.id
+  const isPlaying = isActive && (playback.state === State.Playing || playback.state === State.Buffering)
   const hue = song.coverHue ?? 250
   return (
     <Pressable onPress={onPress} style={({ pressed }) => [styles.thumb, { width, height }, pressed && styles.thumbPressed]}>
@@ -80,7 +83,7 @@ function ProfileThumb({ song, width, height, onPress }: { song: PublicSong; widt
 
       {isPlaying ? (
         <View style={styles.playingOverlay}>
-          <Icon name="play.fill" size={20} color={mono.color.onMedia} />
+          <PlayingBars playing color={mono.color.onMedia} size={22} />
         </View>
       ) : null}
 

@@ -9,6 +9,7 @@ import { hapticLight } from '@/lib/haptics'
 import { CommunityStory, PopularPostCard, CommunityRankRow, CommunityCoverCard } from '@/components/ui/hub-cards'
 import { Icon } from '@/components/ui/icon'
 import { NotificationBell } from '@/components/ui/notification-bell'
+import { SkeletonCommunityHub } from '@/components/ui/skeleton'
 import { mono } from '@/theme/mono'
 
 interface Hub { popular: Community[]; recent: Community[]; mine: Community[]; popularPosts: CommunityPost[] }
@@ -63,7 +64,7 @@ export default function ExploreScreen() {
       </View>
 
       {hub === null ? (
-        <ActivityIndicator color={mono.color.accent} style={{ marginTop: 32 }} />
+        <SkeletonCommunityHub />
       ) : (
         <ScrollView
           contentContainerStyle={{ paddingBottom: insets.bottom + 120 }}

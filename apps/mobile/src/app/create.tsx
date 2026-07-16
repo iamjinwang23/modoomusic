@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import {
-  ActivityIndicator, Keyboard, KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, StyleSheet, Switch, Text, TextInput, View,
+  ActivityIndicator, Alert, Keyboard, KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, StyleSheet, Switch, Text, TextInput, View,
 } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { router } from 'expo-router'
@@ -147,9 +147,18 @@ export default function CreateScreen() {
       }
       router.replace('/library')
     } catch (e) {
-      const err = e as { error?: string; status?: number }
-      setError(err.error ?? (err.status === 401 ? '로그인이 필요해요' : '생성에 실패했어요'))
+      const err = e as { error?: string; status?: number; code?: string }
       setBusy(false)
+      // 크레딧 부족(429=일일 한도/부족) → 충전 화면으로 유도. api-client는 code를 안 실어서 status로도 판정.
+      const isCreditShortage = err.code === 'DAILY_LIMIT' || (err.status === 429 && !!err.error?.includes('크레딧'))
+      if (isCreditShortage) {
+        Alert.alert('크레딧이 부족해요', err.error ?? '크레딧을 충전하면 계속 만들 수 있어요.', [
+          { text: '닫기', style: 'cancel' },
+          { text: '충전하기', onPress: () => router.push('/credit-purchase') },
+        ])
+        return
+      }
+      setError(err.error ?? (err.status === 401 ? '로그인이 필요해요' : '생성에 실패했어요'))
     }
   }
 
@@ -184,10 +193,10 @@ export default function CreateScreen() {
 
         {/* 컨트롤 행: 크레딧 · 심플/고급 · 모델(고급) */}
         <View style={styles.controls}>
-          <View style={styles.creditPill}>
+          <Pressable style={styles.creditPill} onPress={() => router.push('/credit-purchase')} hitSlop={6}>
             <Icon name="sparkle" size={13} color={mono.color.text} />
             <Text style={styles.creditText}>{credits ?? '–'}</Text>
-          </View>
+          </Pressable>
           <View style={styles.modeToggle}>
             {(['simple', 'advanced'] as const).map((m) => (
               <Pressable key={m} onPress={() => setMode(m)} style={[styles.modeBtn, mode === m && styles.modeBtnOn]}>

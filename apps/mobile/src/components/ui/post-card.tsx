@@ -11,6 +11,7 @@ import { useAuthGate } from '@/lib/auth-gate'
 import { setSelectedPost } from '@/lib/selected-post'
 import { playSong } from '@/lib/player'
 import { Icon } from '@/components/ui/icon'
+import { PlayingBars } from '@/components/ui/playing-bars'
 import { toast } from '@/lib/toast'
 import { mono } from '@/theme/mono'
 
@@ -215,6 +216,11 @@ export function PostCard({ post, managerId, canInteract = true, onPress, onAutho
           <View style={styles.songRow}>
             <View style={styles.songCover}>
               {post.song.coverImage ? <Image source={{ uri: post.song.coverImage }} style={styles.fill} contentFit="cover" /> : <Text style={styles.songNote}>♪</Text>}
+              {songPlaying ? (
+                <View style={styles.songPlayingOverlay}>
+                  <PlayingBars playing color="#ffffff" size={20} />
+                </View>
+              ) : null}
             </View>
             <View style={styles.flex}>
               <Text style={styles.songTitle} numberOfLines={2}>{post.song.title ?? '곡'}</Text>
@@ -326,10 +332,11 @@ const styles = StyleSheet.create({
   songScrim: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(17,19,24,0.66)' },
   songRow: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 12, paddingLeft: 12, paddingRight: 16 },
   songCover: { width: 52, aspectRatio: 3 / 4, borderRadius: mono.radius.sm, overflow: 'hidden', backgroundColor: mono.color.surface2, alignItems: 'center', justifyContent: 'center' },
+  songPlayingOverlay: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(0,0,0,0.4)' },
   songNote: { color: mono.color.textTertiary, fontSize: 22 },
   songTitle: { color: mono.color.onMedia, fontSize: 16, fontWeight: '700', lineHeight: 21 },
   songSub: { color: 'rgba(255,255,255,0.6)', fontSize: mono.font.small, marginTop: 3, fontWeight: '600' },
-  songPlayBtn: { width: 40, height: 40, borderRadius: 20, backgroundColor: '#ffffff', alignItems: 'center', justifyContent: 'center' },
+  songPlayBtn: { width: 40, height: 40, borderRadius: 20, backgroundColor: 'rgba(255,255,255,0.82)', alignItems: 'center', justifyContent: 'center' },
   // 유튜브/링크 임베드
   embed: { borderRadius: mono.radius.md, overflow: 'hidden', backgroundColor: mono.color.surface2 },
   embedThumb: { width: '100%', aspectRatio: 16 / 9 },

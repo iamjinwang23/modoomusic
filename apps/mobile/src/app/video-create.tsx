@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/button'
 import { Icon } from '@/components/ui/icon'
 import { BottomSheet } from '@/components/ui/bottom-sheet'
 import { generateVideoCover, VIDEO_TIERS, type VideoTier, type VideoMode } from '@/lib/video'
+import { getNowPlaying, setNowPlaying } from '@/lib/now-playing'
 import { toast } from '@/lib/toast'
 import { mono } from '@/theme/mono'
 
@@ -58,7 +59,10 @@ export default function VideoCreateScreen() {
     setBusy(true); setError(null)
     try {
       await generateVideoCover(songId, { mode, tier, motionPrompt: motion, textPrompt, imageData: customImage?.data })
-      toast.success('영상을 만들고 있어요')
+      // 현재 재생 중인 곡이면 즉시 '생성 중'으로 반영 → 플레이어 중앙 표시가 바로 뜸(닫았다 열 필요 없음)
+      const cur = getNowPlaying()
+      if (cur && cur.id === songId) setNowPlaying({ ...cur, videoCoverStatus: 'generating' })
+      toast.success('영상을 만들고 있어요', { description: '완성까지 몇 분 정도 걸려요' })
       router.back()
     } catch (e) {
       const err = e as { error?: string; status?: number }

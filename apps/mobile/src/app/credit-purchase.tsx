@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { ActivityIndicator, Alert, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native'
+import { ActivityIndicator, Alert, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { router } from 'expo-router'
 import { iapCredits } from '@mono/shared'
@@ -90,7 +90,7 @@ export default function CreditPurchaseScreen() {
 
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: insets.bottom + 40 }}>
         <View style={styles.balance}>
-          <Icon name="sparkle" size={18} color={mono.color.accentLight} />
+          <Icon name="sparkle" size={18} color={mono.color.text} />
           <Text style={styles.balanceLabel}>보유 크레딧</Text>
           <Text style={styles.balanceValue}>{credits ? credits.total : '—'}</Text>
         </View>
@@ -120,7 +120,7 @@ export default function CreditPurchaseScreen() {
 
         {error ? <Text style={styles.error}>{error}</Text> : null}
 
-        <Text style={styles.terms}>결제는 App Store/Google Play를 통해 처리되며, 크레딧은 계정에 즉시(지연 시 잠시 후) 충전됩니다. 충전된 크레딧의 환불은 스토어 정책 및 이용약관을 따릅니다.</Text>
+        <Text style={styles.terms}>결제는 {Platform.OS === 'ios' ? 'App Store' : 'Google Play'}의 인앱결제로 처리되며, 크레딧은 계정에 즉시(지연 시 잠시 후) 충전됩니다. 충전된 크레딧의 환불은 {Platform.OS === 'ios' ? 'App Store' : 'Google Play'}의 정책 및 이용약관을 따릅니다.</Text>
       </ScrollView>
     </View>
   )
@@ -132,7 +132,7 @@ const styles = StyleSheet.create({
   close: { color: mono.color.text, fontSize: 22 },
   title: { color: mono.color.text, fontSize: mono.font.h2, fontWeight: '700' },
   balance: { flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: mono.color.surface, borderRadius: mono.radius.lg, borderWidth: 1, borderColor: mono.color.borderSoft, paddingHorizontal: 16, paddingVertical: 16, marginBottom: 20 },
-  balanceLabel: { color: mono.color.textSecondary, fontSize: mono.font.body, flex: 1 },
+  balanceLabel: { color: mono.color.text, fontSize: mono.font.body, flex: 1 },
   balanceValue: { color: mono.color.text, fontSize: mono.font.h2, fontWeight: '800' },
   pack: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', backgroundColor: mono.color.surface, borderRadius: mono.radius.lg, borderWidth: 1, borderColor: mono.color.borderSoft, paddingHorizontal: 18, paddingVertical: 18, marginBottom: 12 },
   packBusy: { opacity: 0.6 },

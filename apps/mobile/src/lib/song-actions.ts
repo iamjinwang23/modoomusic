@@ -42,6 +42,11 @@ export async function updateSong(songId: string, patch: { title?: string | null;
   return !error
 }
 
+// 새 곡 배지 해제 — 재생하면 커버 좌하단 빨간점 제거(웹 clearNew 패리티, RLS: 소유자만).
+export async function clearSongNew(songId: string): Promise<void> {
+  await supabase.from('songs').update({ is_new: false }).eq('id', songId).then(() => {}, () => {})
+}
+
 // 오디오 다운로드 — 원격 mp3를 캐시에 받아 네이티브 공유 시트(파일 저장·다른 앱 전송). 웹 DownloadModal 패리티.
 export async function downloadSong(audioUrl: string, title?: string | null): Promise<boolean> {
   try {
