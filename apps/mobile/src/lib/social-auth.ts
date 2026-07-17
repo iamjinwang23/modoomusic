@@ -103,7 +103,11 @@ export async function signInWithAppleNative(): Promise<{ error?: string }> {
     return error ? { error: error.message } : {}
   } catch (e: unknown) {
     const err = e as { code?: string; message?: string }
-    if (err?.code === 'ERR_REQUEST_CANCELED') return { error: 'cancelled' }
+    // 취소는 실패가 아니다. 모듈은 RequestCanceledException(=ERR_REQUEST_CANCELED)을 던지지만
+    // ⚠️ 그 code가 JS까지 실려오지 않는 경우가 있어(실측) 메시지로도 함께 판별한다.
+    if (err?.code === 'ERR_REQUEST_CANCELED' || /cancel/i.test(err?.message ?? '')) {
+      return { error: 'cancelled' }
+    }
     return { error: err?.message ?? 'Apple 로그인에 실패했어요.' }
   }
 }
