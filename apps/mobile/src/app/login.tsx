@@ -6,7 +6,7 @@ import Svg, { Defs, Path, RadialGradient, Rect, Stop } from 'react-native-svg'
 import AsyncStorage from '@react-native-async-storage/async-storage'
 import { router } from 'expo-router'
 import * as WebBrowser from 'expo-web-browser'
-import { signInWithNaver, signInWithProvider, type SocialProvider } from '@/lib/social-auth'
+import { signInWithApple, signInWithNaver, signInWithProvider, type SocialProvider } from '@/lib/social-auth'
 import { useSession } from '@/lib/use-session'
 import Logo from '@/assets/logo.svg'
 import { mono } from '@/theme/mono'
@@ -37,9 +37,16 @@ export default function LoginModal() {
   async function social(provider: Provider) {
     setLoading(provider); setError(null)
     AsyncStorage.setItem(LAST_LOGIN_KEY, provider).catch(() => {})
-    const { error } = provider === 'naver' ? await signInWithNaver() : await signInWithProvider(provider)
+    const { error } =
+      provider === 'naver' ? await signInWithNaver()
+      : provider === 'apple' ? await signInWithApple()
+      : await signInWithProvider(provider)
     setLoading(null)
-    if (error && error !== 'cancelled') setError(error)
+    if (error && error !== 'cancelled') {
+      // 사람이 읽을 문장으로 감싸되 원인은 남긴다 — 코드만 덩그러니 노출하지 않기 위해.
+      console.warn(`[login] ${provider} 실패:`, error)
+      setError(`로그인에 실패했어요. 잠시 후 다시 시도해 주세요.\n(${error})`)
+    }
     // 성공 시 위 useEffect(session)가 router.back()으로 닫음
   }
 
