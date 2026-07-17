@@ -1,5 +1,7 @@
+import { Platform } from 'react-native'
 import * as WebBrowser from 'expo-web-browser'
 import * as AuthSession from 'expo-auth-session'
+import * as AppleAuthentication from 'expo-apple-authentication'
 import { supabase } from './supabase'
 
 // 웹 브라우저 인증 세션 완료 처리(리다이렉트 복귀)
@@ -56,13 +58,23 @@ export async function signInWithProvider(provider: SocialProvider): Promise<{ er
   }
 
   const url = new URL(res.url)
+  const frag = new URLSearchParams(url.hash.replace(/^#/, ''))
+
+  // ⚠️ Supabase는 실패를 쿼리가 아니라 프래그먼트에 실어 보낼 때가 있다(#error=...).
+  // 둘 다 보지 않으면 실패 원인이 통째로 사라지고 "code 없음"으로만 보인다.
+  const authError = url.searchParams.get('error') ?? frag.get('error')
+  if (authError) {
+    const desc = url.searchParams.get('error_description') ?? frag.get('error_description')
+    if (authError === 'access_denied' || /cancel/i.test(desc ?? '')) return { error: 'cancelled' }
+    return { error: desc ?? authError }
+  }
+
   const code = url.searchParams.get('code')
   if (code) {
     const { error: exErr } = await supabase.auth.exchangeCodeForSession(code)
     return exErr ? { error: exErr.message } : {}
   }
   // fragment 토큰 폴백(#access_token=...)
-  const frag = new URLSearchParams(url.hash.replace(/^#/, ''))
   const access_token = frag.get('access_token')
   const refresh_token = frag.get('refresh_token')
   if (access_token && refresh_token) {
@@ -70,4 +82,36 @@ export async function signInWithProvider(provider: SocialProvider): Promise<{ er
     return e ? { error: e.message } : {}
   }
   return { error: 'no_code' }
+}
+
+// Apple — iOS에선 네이티브(AuthenticationServices)로. 웹 OAuth 왕복을 없애 기기별 편차를 제거한다.
+// ⚠️ Supabase Apple provider의 Client IDs에 번들ID(com.modoomusic.app)가 등록돼 있어야 토큰 검증을 통과한다.
+export async function signInWithAppleNative(): Promise<{ error?: string }> {
+  try {
+    const credential = await AppleAuthentication.signInAsync({
+      requestedScopes: [
+        AppleAuthentication.AppleAuthenticationScope.FULL_NAME,
+        AppleAuthentication.AppleAuthenticationScope.EMAIL,
+      ],
+    })
+    if (!credential.identityToken) return { error: 'Apple 인증 토큰을 받지 못했어요.' }
+
+    const { error } = await supabase.auth.signInWithIdToken({
+      provider: 'apple',
+      token: credential.identityToken,
+    })
+    return error ? { error: error.message } : {}
+  } catch (e: unknown) {
+    const err = e as { code?: string; message?: string }
+    if (err?.code === 'ERR_REQUEST_CANCELED') return { error: 'cancelled' }
+    return { error: err?.message ?? 'Apple 로그인에 실패했어요.' }
+  }
+}
+
+// Apple 진입점 — iOS는 네이티브, 그 외(안드로이드)는 기존 웹 OAuth.
+export async function signInWithApple(): Promise<{ error?: string }> {
+  if (Platform.OS === 'ios' && (await AppleAuthentication.isAvailableAsync())) {
+    return signInWithAppleNative()
+  }
+  return signInWithProvider('apple')
 }
