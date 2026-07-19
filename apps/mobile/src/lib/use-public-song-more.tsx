@@ -3,6 +3,7 @@ import { ActionSheetIOS, Alert, Platform } from 'react-native'
 import { router } from 'expo-router'
 import type { PublicSong } from '@mono/shared'
 import { api } from './api'
+import { blockUser } from './block'
 import { shareSong, setSongPublished, downloadSong, deleteSong } from './song-actions'
 import { isInAnyCollection } from './collection'
 import { useSession } from './use-session'
@@ -46,6 +47,24 @@ export function usePublicSongMore(onChanged?: () => void) {
     }
   }
 
+  const block = (song: PublicSong) => {
+    Alert.alert('이 사용자를 차단할까요?', `${song.displayName || '이 사용자'}님의 콘텐츠가 더 이상 보이지 않아요.`, [
+      { text: '아니요', style: 'cancel' },
+      { text: '차단하기', style: 'destructive', onPress: async () => {
+        try {
+          await blockUser(song.userId)
+          toast.success('차단했어요')
+          onChanged?.()
+          // 신고 함께 제안
+          Alert.alert('신고도 하시겠어요?', '부적절한 콘텐츠라면 함께 신고해 주세요.', [
+            { text: '건너뛰기', style: 'cancel' },
+            { text: '신고하기', onPress: () => report(song) },
+          ])
+        } catch { toast.error('처리에 실패했어요') }
+      } },
+    ])
+  }
+
   const confirmDelete = (song: PublicSong) => {
     Alert.alert('곡을 삭제할까요?', song.title?.trim() || '제목 없음', [
       { text: '취소', style: 'cancel' },
@@ -79,6 +98,7 @@ export function usePublicSongMore(onChanged?: () => void) {
           onCollect={() => { if (ref.current && requireAuth()) setPickerSong(ref.current) }}
           onShare={() => { const s = ref.current; if (s) shareSong(s.id, s.title) }}
           onReport={() => { if (ref.current && requireAuth()) report(ref.current) }}
+          onBlock={() => { if (ref.current && requireAuth()) block(ref.current) }}
         />
       )}
       <SongEditModal

@@ -14,7 +14,7 @@ function Row({ icon, label, onPress, color }: { icon: IconName; label: string; o
 }
 
 // 공개곡 더보기 — 남의 공개곡에서 할 수 있는 경량 액션(컬렉션 담기·공유·신고). 웹엔 없는 앱 확장.
-export function PublicSongMoreSheet({ open, onClose, isOwner, collected, onCollect, onShare, onReport }: {
+export function PublicSongMoreSheet({ open, onClose, isOwner, collected, onCollect, onShare, onReport, onBlock }: {
   open: boolean
   onClose: () => void
   isOwner: boolean
@@ -22,6 +22,7 @@ export function PublicSongMoreSheet({ open, onClose, isOwner, collected, onColle
   onCollect: () => void
   onShare: () => void
   onReport: () => void
+  onBlock: () => void
 }) {
   // 닫고 실행 — 시트 닫힘(200ms)+언마운트 후 실행(iOS 모달 중첩 무시 회피)
   const run = (fn: () => void) => () => { onClose(); setTimeout(fn, 300) }
@@ -34,6 +35,7 @@ export function PublicSongMoreSheet({ open, onClose, isOwner, collected, onColle
           <>
             <View style={styles.divider} />
             <Row icon="flag" label="신고" onPress={run(onReport)} color={mono.color.danger} />
+            <Row icon="close" label="차단" onPress={run(onBlock)} color={mono.color.danger} />
           </>
         ) : null}
       </View>
