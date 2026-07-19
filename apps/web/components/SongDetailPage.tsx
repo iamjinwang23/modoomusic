@@ -227,6 +227,12 @@ export function SongDetailPage({ onBack, profile }: Props) {
     if (data?.username) window.dispatchEvent(new CustomEvent('view-profile', { detail: data.username }))
   }
 
+  // 비로그인 액션 게이트 — 로그인 모달 트리거. true면 진행 가능.
+  const requireLogin = () => {
+    if (!user) { window.dispatchEvent(new Event('open-login')); return false }
+    return true
+  }
+
   // 곡 작성자 차단 — ownerUserId(곡 작성자 userId) 기준. 성공 시 신고도 이어서 제안.
   async function handleBlock() {
     if (blockBusy) return
@@ -458,13 +464,13 @@ export function SongDetailPage({ onBack, profile }: Props) {
             <SongMoreMenu
               isOwner={isOwner}
               inCollection={inCollection}
-              onCollect={() => setCollectOpen(true)}
+              onCollect={() => { if (requireLogin()) setCollectOpen(true) }}
               onEdit={isOwner ? () => setEditOpen(true) : undefined}
               onDelete={isOwner ? () => setConfirmDelete(true) : undefined}
               onPublish={isOwner && !song.published ? () => setPublishOpen(true) : undefined}
               onUnpublish={isOwner && song.published ? () => setConfirmUnpublish(true) : undefined}
-              onReport={!isOwner ? () => setReportOpen(true) : undefined}
-              onBlock={!isOwner ? () => setBlockOpen(true) : undefined}
+              onReport={!isOwner ? () => { if (requireLogin()) setReportOpen(true) } : undefined}
+              onBlock={!isOwner ? () => { if (requireLogin()) setBlockOpen(true) } : undefined}
               onDownload={isOwner && song.audioUrl ? () => setDownloadOpen(true) : undefined}
               onVideoCover={isOwner ? () => setVideoOpen(true) : undefined}
             />
@@ -570,13 +576,13 @@ export function SongDetailPage({ onBack, profile }: Props) {
               <SongMoreMenu
                 isOwner={isOwner}
                 inCollection={inCollection}
-                onCollect={() => setCollectOpen(true)}
+                onCollect={() => { if (requireLogin()) setCollectOpen(true) }}
                 onEdit={isOwner ? () => setEditOpen(true) : undefined}
                 onDelete={isOwner ? () => setConfirmDelete(true) : undefined}
                 onPublish={isOwner && !song.published ? () => setPublishOpen(true) : undefined}
                 onUnpublish={isOwner && song.published ? () => setConfirmUnpublish(true) : undefined}
-                onReport={!isOwner ? () => setReportOpen(true) : undefined}
-                onBlock={!isOwner ? () => setBlockOpen(true) : undefined}
+                onReport={!isOwner ? () => { if (requireLogin()) setReportOpen(true) } : undefined}
+                onBlock={!isOwner ? () => { if (requireLogin()) setBlockOpen(true) } : undefined}
                 onDownload={isOwner && song.audioUrl ? () => setDownloadOpen(true) : undefined}
               onVideoCover={isOwner ? () => setVideoOpen(true) : undefined}
               />
