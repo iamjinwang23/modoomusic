@@ -6,6 +6,7 @@ import * as WebBrowser from 'expo-web-browser'
 import TrackPlayer, { State, useActiveTrack, usePlaybackState } from 'react-native-track-player'
 import type { CommunityPost, CommunityPoll } from '@mono/shared'
 import { api } from '@/lib/api'
+import { blockUser } from '@/lib/block'
 import { useSession } from '@/lib/use-session'
 import { useAuthGate } from '@/lib/auth-gate'
 import { setSelectedPost } from '@/lib/selected-post'
@@ -135,12 +136,28 @@ export function PostCard({ post, managerId, canInteract = true, onPress, onAutho
       Alert.alert('신고 사유', undefined, [...REPORT_REASONS.map((r) => ({ text: r, onPress: () => run(r) })), { text: '취소', style: 'cancel' as const }])
     }
   }
+  const doBlock = () => {
+    Alert.alert('이 사용자를 차단할까요?', '이 사용자의 콘텐츠가 더 이상 보이지 않아요.', [
+      { text: '아니요', style: 'cancel' },
+      { text: '차단하기', style: 'destructive', onPress: async () => {
+        try {
+          await blockUser(post.authorId)
+          toast.success('차단했어요')
+          onChanged?.()
+          Alert.alert('신고도 하시겠어요?', '부적절한 콘텐츠라면 함께 신고해 주세요.', [
+            { text: '건너뛰기', style: 'cancel' },
+            { text: '신고하기', onPress: doReport },
+          ])
+        } catch { toast.error('처리에 실패했어요') }
+      } },
+    ])
+  }
   const openMenu = () => {
     const opts: string[] = []; const acts: Array<() => void> = []
     if (isAuthor) { opts.push('수정'); acts.push(doEdit) }
     if (isMgr) { opts.push(post.pinned ? '고정 해제' : '고정'); acts.push(doPin) }
     if (isAuthor || isMgr) { opts.push('삭제'); acts.push(doDelete) }
-    if (!isAuthor) { opts.push('신고'); acts.push(doReport) }
+    if (!isAuthor) { opts.push('신고'); acts.push(doReport); opts.push('차단'); acts.push(doBlock) }
     if (opts.length === 0) return
     const delIdx = opts.indexOf('삭제')
     if (Platform.OS === 'ios') {

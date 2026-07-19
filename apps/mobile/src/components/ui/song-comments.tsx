@@ -5,6 +5,7 @@ import { Image } from 'expo-image'
 import type { Comment } from '@mono/shared'
 import { api } from '@/lib/api'
 import { toast } from '@/lib/toast'
+import { blockUser } from '@/lib/block'
 import { useAuthGate } from '@/lib/auth-gate'
 import { supabase } from '@/lib/supabase'
 import { useSession } from '@/lib/use-session'
@@ -12,7 +13,7 @@ import { Icon } from '@/components/ui/icon'
 import { CommentMoreSheet } from '@/components/ui/comment-more-sheet'
 import { mono } from '@/theme/mono'
 
-type MenuHandlers = { isOwner: boolean; onEdit: () => void; onDelete: () => void; onReport: () => void }
+type MenuHandlers = { isOwner: boolean; onEdit: () => void; onDelete: () => void; onReport: () => void; onBlock: () => void }
 
 function initial(name: string | null): string {
   return (name?.trim().charAt(0) || '?').toUpperCase()
@@ -40,7 +41,7 @@ function CommentItem({ comment, myId, isReply, onReply, onDelete, onEdited, requ
   onDelete: (id: string) => void
   onEdited: (id: string, body: string) => void
   requireLogin: () => boolean
-  onOpenMenu: (h: { isOwner: boolean; onEdit: () => void; onDelete: () => void; onReport: () => void }) => void
+  onOpenMenu: (h: { isOwner: boolean; onEdit: () => void; onDelete: () => void; onReport: () => void; onBlock: () => void }) => void
 }) {
   const [liked, setLiked] = useState(!!comment.liked)
   const [likeCount, setLikeCount] = useState(comment.likeCount)
@@ -77,7 +78,22 @@ function CommentItem({ comment, myId, isReply, onReply, onDelete, onEdited, requ
       Alert.alert('신고 사유', undefined, [...REPORT_REASONS.map((r) => ({ text: r, onPress: () => run(r) })), { text: '취소', style: 'cancel' as const }])
     }
   }
-  const openMenu = () => onOpenMenu({ isOwner, onEdit: () => { setEditText(comment.body); setEditing(true) }, onDelete: () => onDelete(comment.id), onReport: report })
+  const block = () => {
+    Alert.alert('이 사용자를 차단할까요?', `${name}님의 콘텐츠가 더 이상 보이지 않아요.`, [
+      { text: '아니요', style: 'cancel' },
+      { text: '차단하기', style: 'destructive', onPress: async () => {
+        try {
+          await blockUser(comment.userId)
+          toast.success('차단했어요')
+          Alert.alert('신고도 하시겠어요?', '부적절한 콘텐츠라면 함께 신고해 주세요.', [
+            { text: '건너뛰기', style: 'cancel' },
+            { text: '신고하기', onPress: report },
+          ])
+        } catch { toast.error('처리에 실패했어요') }
+      } },
+    ])
+  }
+  const openMenu = () => onOpenMenu({ isOwner, onEdit: () => { setEditText(comment.body); setEditing(true) }, onDelete: () => onDelete(comment.id), onReport: report, onBlock: block })
   return (
     <View style={[styles.comment, isReply && styles.reply]}>
       <View style={isReply ? styles.rAvatar : styles.cAvatar}>
@@ -217,6 +233,7 @@ export function SongCommentList({ state }: { state: SongCommentsState }) {
         onEdit={() => menu?.onEdit()}
         onDelete={() => menu?.onDelete()}
         onReport={() => menu?.onReport()}
+        onBlock={() => menu?.onBlock()}
       />
     </View>
   )

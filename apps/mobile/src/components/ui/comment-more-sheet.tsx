@@ -14,7 +14,7 @@ function Row({ icon, label, onPress, color }: { icon: IconName; label: string; o
 }
 
 // 댓글 더보기 바텀시트 — 웹 CommentItem 더보기 파리티(본인: 수정·삭제 / 타인: 신고. 매니저: 삭제).
-export function CommentMoreSheet({ open, onClose, isOwner, canDelete, canReport, onEdit, onDelete, onReport }: {
+export function CommentMoreSheet({ open, onClose, isOwner, canDelete, canReport, onEdit, onDelete, onReport, onBlock }: {
   open: boolean
   onClose: () => void
   isOwner: boolean
@@ -23,6 +23,7 @@ export function CommentMoreSheet({ open, onClose, isOwner, canDelete, canReport,
   onEdit: () => void
   onDelete: () => void
   onReport: () => void
+  onBlock: () => void
 }) {
   const run = (fn: () => void) => () => { onClose(); setTimeout(fn, 260) }
   return (
@@ -30,6 +31,7 @@ export function CommentMoreSheet({ open, onClose, isOwner, canDelete, canReport,
       {isOwner ? <Row icon="edit" label="수정" onPress={run(onEdit)} /> : null}
       {canDelete ? <Row icon="trash" label="삭제" onPress={run(onDelete)} color={mono.color.danger} /> : null}
       {canReport && !isOwner ? <Row icon="flag" label="신고" onPress={run(onReport)} color={mono.color.danger} /> : null}
+      {!isOwner ? <Row icon="close" label="차단" onPress={run(onBlock)} color={mono.color.danger} /> : null}
     </BottomSheet>
   )
 }
