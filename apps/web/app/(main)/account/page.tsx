@@ -8,6 +8,7 @@ import { useRouter } from 'next/navigation'
 import { useAuth } from '@/components/AuthProvider'
 import { AccountDeletionModal } from '@/components/AccountDeletionModal'
 import { PushToggle } from '@/components/PushToggle'
+import { BlockedUsersSection } from '@/components/BlockedUsersSection'
 import { toast } from '@/components/toast/toast'
 
 // 더보기(푸터) 항목 — 모바일에서 접근 경로 확보 위해 내 계정에도 노출
@@ -160,6 +161,9 @@ export default function AccountPage() {
           )}
         </section>
         )}
+
+        {/* 차단한 사용자 */}
+        <BlockedUsersSection />
 
         {/* 계정 관리 */}
         <section className="space-y-2 pt-2">
