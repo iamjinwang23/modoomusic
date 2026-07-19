@@ -3,7 +3,20 @@ import { createAdminClient } from '@/lib/supabase/admin'
 import { notifyCommunityModeration, isCommunityClosing } from '@/services/community.service'
 import { sendPushToUser } from '@/services/push.service'
 import { findBannedWord } from '@/services/moderation.service'
+import { getBlockedUserIds } from '@/services/block.service'
 import type { CommunityPost, CommunityPostComment, CommunityPoll } from '@mono/shared'
+
+// 차단 유저(authorId 기준) 콘텐츠 제외. 비로그인은 필터 없음.
+async function filterBlockedByAuthor<T extends { authorId: string }>(
+  admin: ReturnType<typeof createAdminClient>,
+  items: T[],
+  userId?: string,
+): Promise<T[]> {
+  if (!userId || items.length === 0) return items
+  const blocked = new Set(await getBlockedUserIds(admin, userId))
+  if (blocked.size === 0) return items
+  return items.filter((it) => !blocked.has(it.authorId))
+}
 
 // 커뮤니티 소셜 알림(좋아요·댓글·답글) — 인앱(actor 아바타 렌더) + 웹푸시. 본인 대상/중복은 호출부에서 가드.
 async function notifyCommunityActivity(
@@ -273,7 +286,7 @@ export async function listPosts(
     .order('pinned', { ascending: false })
     .order('created_at', { ascending: false })
     .limit(limit)
-  const posts = (data ?? []).map((r) => rowToPost(r as PostRow))
+  const posts = await filterBlockedByAuthor(admin, (data ?? []).map((r) => rowToPost(r as PostRow)), userId)
   return fillPolls(admin, await fillLiked(admin, posts, userId), userId)
 }
 
@@ -287,7 +300,7 @@ export async function getPopularPosts(userId?: string, limit = 9): Promise<Commu
     .order('like_count', { ascending: false })
     .order('created_at', { ascending: false })
     .limit(limit)
-  const posts = (data ?? []).map((r) => rowToPost(r as PostRow))
+  const posts = await filterBlockedByAuthor(admin, (data ?? []).map((r) => rowToPost(r as PostRow)), userId)
   return fillPolls(admin, await fillLiked(admin, posts, userId), userId)
 }
 
@@ -420,6 +433,11 @@ export async function addComment(userId: string, postId: string, body: string, p
   if (!post || post.status !== 'active') return { ok: false, error: 'not_found' }
   if (await isCommunityClosing(admin, post.community_id as string)) return { ok: false, error: 'community_closing' }
   if (!(await canAccessCommunity(admin, post.community_id as string, userId))) return { ok: false, error: 'not_member' }
+  // 차단 관계면 댓글 불가(양방향)
+  if (post.author_id) {
+    const blocked = await getBlockedUserIds(admin, userId)
+    if (blocked.includes(post.author_id as string)) return { ok: false, error: 'blocked' }
+  }
   // 대댓글이면 부모가 같은 글의 최상위 댓글인지 검증 (1단계만 허용)
   let parentAuthorId: string | null = null
   if (parentId) {
@@ -492,7 +510,7 @@ export async function listComments(postId: string, userId?: string): Promise<Com
     .eq('post_id', postId)
     .order('created_at', { ascending: true })
     .limit(300)
-  const rows = (data ?? []).map((r) => rowToComment(r as CommentRow))
+  const rows = await filterBlockedByAuthor(admin, (data ?? []).map((r) => rowToComment(r as CommentRow)), userId)
   // 좋아요 여부 채우기
   if (userId && rows.length > 0) {
     const ids = rows.map((c) => c.id)

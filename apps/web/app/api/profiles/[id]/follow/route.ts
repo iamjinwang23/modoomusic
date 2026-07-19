@@ -4,6 +4,7 @@ import { NextResponse } from 'next/server'
 import { createUserClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { sendPushToUser } from '@/services/push.service'
+import { getBlockedUserIds } from '@/services/block.service'
 
 interface Params { id: string }
 
@@ -23,6 +24,12 @@ export async function POST(_req: Request, { params }: { params: Promise<Params> 
 
   // admin: cookies 없는 진짜 service-role — RLS 완전 우회 (트리거 follower_count UPDATE + notifications INSERT 통과)
   const admin = createAdminClient()
+
+  // 차단 관계면 팔로우 불가(양방향)
+  const blockedIds = await getBlockedUserIds(admin, user.id)
+  if (blockedIds.includes(targetUserId)) {
+    return NextResponse.json({ error: '차단한 사용자는 팔로우할 수 없어요', code: 'BLOCKED' }, { status: 403 })
+  }
 
   // 3) 대상 프로필 확인 + actor username 한 번에 조회
   const [{ data: target }, { data: actor }] = await Promise.all([
