@@ -1,0 +1,11 @@
+# EAS Build tarball 제외 — 빌드에 불필요한 대용량 산출물.
+# (로컬 웹 dev 캐시가 tarball에 딸려가 2GB 한도 초과했던 이력)
+apps/web/.next
+apps/web/.next.nosync
+apps/web/.vercel
+**/node_modules
+apps/mobile/ios/build
+apps/mobile/ios/Pods
+apps/mobile/.expo
+dist
+.turbo
