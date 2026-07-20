@@ -74,6 +74,7 @@ export default function RootLayout() {
         <Stack.Screen name="search" options={{ presentation: 'modal' }} />
         <Stack.Screen name="profile-edit" options={{ presentation: 'modal' }} />
         <Stack.Screen name="settings" options={{ presentation: 'modal' }} />
+        <Stack.Screen name="blocked-users" options={{ presentation: 'modal' }} />
         <Stack.Screen name="video-create" options={{ presentation: 'modal' }} />
         {/* 로그인 — 투명 모달(다른 모달 위로도 스택). 하단 액션시트 룩 */}
         <Stack.Screen name="login" options={{ presentation: 'transparentModal', animation: 'fade' }} />

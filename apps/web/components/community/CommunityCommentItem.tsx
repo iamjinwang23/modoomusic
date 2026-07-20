@@ -31,6 +31,7 @@ export function CommunityCommentItem({ comment, currentUserId, isManager, isRepl
   const [editBody, setEditBody] = useState(comment.body)
   const [editSaving, setEditSaving] = useState(false)
   const [confirmDel, setConfirmDel] = useState(false)
+  const [confirmBlock, setConfirmBlock] = useState(false)
 
   const [replyOpen, setReplyOpen] = useState(false)
   const [replyBody, setReplyBody] = useState('')
@@ -62,6 +63,15 @@ export function CommunityCommentItem({ comment, currentUserId, isManager, isRepl
       toast.info('댓글이 삭제되었어요')
       onMutated()
     } catch { toast.error('삭제에 실패했어요') }
+  }
+  async function blockAuthor() {
+    setConfirmBlock(false)
+    try {
+      const res = await fetch(`/api/users/${comment.authorId}/block`, { method: 'POST' })
+      if (!res.ok) throw new Error()
+      toast.success('차단했어요')
+      onMutated()
+    } catch { toast.error('처리에 실패했어요') }
   }
 
   async function handleLike() {
@@ -138,7 +148,7 @@ export function CommunityCommentItem({ comment, currentUserId, isManager, isRepl
             {!isReply && (
               <button type="button" onClick={() => { if (!gate()) return; setReplyOpen((v) => !v) }} className="hover:text-white transition-colors">답글달기</button>
             )}
-            {(isOwner || canDelete) && (
+            {(isOwner || canDelete || (!!currentUserId && !isOwner)) && (
               <div className="relative ml-auto">
                 <button type="button" onClick={() => setMoreOpen((v) => !v)} className="w-6 h-6 rounded-full hover:bg-white/[0.06] flex items-center justify-center text-zinc-500 hover:text-white transition-colors" aria-label="더보기">⋯</button>
                 {moreOpen && (
@@ -153,6 +163,11 @@ export function CommunityCommentItem({ comment, currentUserId, isManager, isRepl
                       {canDelete && (
                         <button type="button" onClick={() => { setMoreOpen(false); setConfirmDel(true) }} className="w-full flex items-center gap-2 px-3 py-2 text-sm text-red-400 hover:bg-red-500/10 transition-colors">
                           <Image src="/Delete-2.svg" alt="" width={12} height={12} style={{ filter: 'invert(0.4) sepia(1) saturate(3) hue-rotate(300deg)' }} /> 삭제
+                        </button>
+                      )}
+                      {!isOwner && !!currentUserId && (
+                        <button type="button" onClick={() => { setMoreOpen(false); if (gate()) setConfirmBlock(true) }} className="w-full flex items-center gap-2 px-3 py-2 text-sm text-red-400 hover:bg-red-500/10 transition-colors">
+                          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="4.9" y1="4.9" x2="19.1" y2="19.1"/></svg> 차단
                         </button>
                       )}
                     </div>
@@ -184,6 +199,7 @@ export function CommunityCommentItem({ comment, currentUserId, isManager, isRepl
       </div>
 
       <ConfirmModal open={confirmDel} title="이 댓글을 정말 삭제하시겠어요?" description={isReply ? '삭제하면 되돌릴 수 없어요.' : '삭제 시 등록된 대댓글도 함께 삭제돼요.'} confirmLabel="삭제하기" cancelLabel="아니요" variant="danger" onConfirm={handleDelete} onClose={() => setConfirmDel(false)} />
+      <ConfirmModal open={confirmBlock} title="이 사용자를 차단할까요?" description="이 사용자의 글과 댓글이 더 이상 보이지 않아요." confirmLabel="차단하기" cancelLabel="아니요" variant="danger" onConfirm={blockAuthor} onClose={() => setConfirmBlock(false)} />
     </div>
   )
 }

@@ -109,6 +109,7 @@ export default function CommunityCafePage() {
   const [reportPostId, setReportPostId] = useState<string | null>(null)
   const [confirmDelPost, setConfirmDelPost] = useState<CommunityPost | null>(null)
   const [confirmKick, setConfirmKick] = useState<CommunityPost | null>(null)
+  const [confirmBlock, setConfirmBlock] = useState<CommunityPost | null>(null)
   const [confirmLeave, setConfirmLeave] = useState(false)
   const [highlightPostId, setHighlightPostId] = useState<string | null>(null)
   const postRefs = useRef<Record<string, HTMLDivElement | null>>({})
@@ -248,6 +249,12 @@ export default function CommunityCafePage() {
   async function del(p: CommunityPost) {
     const res = await fetch(`/api/community-posts/${p.id}`, { method: 'DELETE' })
     if (res.ok) { setPosts(prev => prev?.filter(x => x.id !== p.id) ?? null); toast.success('글을 삭제했어요') } else toast.error('삭제에 실패했어요')
+  }
+  // 차단 — 해당 작성자의 글·댓글을 피드에서 즉시 제거(양방향 완전차단)
+  async function blockAuthor(p: CommunityPost) {
+    const res = await fetch(`/api/users/${p.authorId}/block`, { method: 'POST' })
+    if (res.ok) { setPosts(prev => prev?.filter(x => x.authorId !== p.authorId) ?? null); toast.success('차단했어요') }
+    else toast.error('처리에 실패했어요')
   }
   function goProfile(username: string | null) {
     if (username) window.dispatchEvent(new CustomEvent('view-profile', { detail: username }))
@@ -405,6 +412,12 @@ export default function CommunityCafePage() {
                   {user && p.authorId !== user.id && (
                     <button onClick={() => { setMoreOpenId(null); setReportPostId(p.id) }} className="w-full flex items-center gap-2 px-3 py-2 text-sm text-red-400 hover:bg-red-500/10 transition-colors">
                       <Image src="/Flag.svg" alt="" width={12} height={12} style={{ filter: 'invert(0.4) sepia(1) saturate(3) hue-rotate(300deg)' }} /> 신고
+                    </button>
+                  )}
+                  {user && p.authorId !== user.id && (
+                    <button onClick={() => { setMoreOpenId(null); setConfirmBlock(p) }} className="w-full flex items-center gap-2 px-3 py-2 text-sm text-red-400 hover:bg-red-500/10 transition-colors">
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="4.9" y1="4.9" x2="19.1" y2="19.1"/></svg>
+                      차단
                     </button>
                   )}
                 </div>
@@ -739,6 +752,7 @@ export default function CommunityCafePage() {
 
       <ConfirmModal open={!!confirmDelPost} title="이 글을 정말 삭제하시겠어요?" description="삭제 시 등록된 댓글도 함께 삭제되며 되돌릴 수 없어요." confirmLabel="삭제하기" cancelLabel="아니요" variant="danger" onClose={() => setConfirmDelPost(null)} onConfirm={() => { if (confirmDelPost) del(confirmDelPost); setConfirmDelPost(null) }} />
       <ConfirmModal open={!!confirmKick} title={`${confirmKick?.authorName ?? '이 사용자'}님을 강퇴할까요?`} description="커뮤니티에서 내보내지고 알림이 전송돼요. 확인 후 재가입 차단 여부를 물어봐요." confirmLabel="강퇴하기" cancelLabel="아니요" variant="danger" onClose={() => setConfirmKick(null)} onConfirm={() => { if (confirmKick) { const ban = window.confirm('이 회원의 재가입을 영구 차단할까요?\n확인=차단 후 강퇴 / 취소=차단 없이 강퇴'); kick(confirmKick, ban) } setConfirmKick(null) }} />
+      <ConfirmModal open={!!confirmBlock} title={`${confirmBlock?.authorName ?? '이 사용자'}님을 차단할까요?`} description="이 사용자의 글과 댓글이 더 이상 보이지 않아요." confirmLabel="차단하기" cancelLabel="아니요" variant="danger" onClose={() => setConfirmBlock(null)} onConfirm={() => { if (confirmBlock) blockAuthor(confirmBlock); setConfirmBlock(null) }} />
       <ConfirmModal open={confirmLeave} title="이 커뮤니티를 정말 탈퇴하시겠어요?" description="탈퇴하면 이 커뮤니티에 다시 가입해야 글·댓글을 남길 수 있어요." confirmLabel="탈퇴하기" cancelLabel="아니요" variant="danger" busy={busy} onClose={() => setConfirmLeave(false)} onConfirm={() => { setConfirmLeave(false); leave() }} />
       {reportPostId && <CommunityPostReportModal postId={reportPostId} onClose={() => setReportPostId(null)} onSubmitted={() => reportDone(reportPostId)} />}
       {editOpen && community && <CommunityEditModal community={community} onClose={() => setEditOpen(false)} onSaved={(c) => setCommunity(c)} onClosed={() => router.push('/community')} />}

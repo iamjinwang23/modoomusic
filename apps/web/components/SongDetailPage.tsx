@@ -134,6 +134,8 @@ export function SongDetailPage({ onBack, profile }: Props) {
   const [publishOpen, setPublishOpen] = useState(false)
   const [confirmUnpublish, setConfirmUnpublish] = useState(false)
   const [reportOpen, setReportOpen] = useState(false)
+  const [blockOpen, setBlockOpen] = useState(false)
+  const [blockBusy, setBlockBusy] = useState(false)
   const [downloadOpen, setDownloadOpen] = useState(false)
   const [blinded, setBlinded] = useState(false)
   const [liked, setLiked] = useState(song?.liked ?? false)
@@ -223,6 +225,35 @@ export function SongDetailPage({ onBack, profile }: Props) {
     const { data } = await createClient()
       .from('profiles').select('username').eq('id', ownerUserId).maybeSingle()
     if (data?.username) window.dispatchEvent(new CustomEvent('view-profile', { detail: data.username }))
+  }
+
+  // 비로그인 액션 게이트 — 로그인 모달 트리거. true면 진행 가능.
+  const requireLogin = () => {
+    if (!user) { window.dispatchEvent(new Event('open-login')); return false }
+    return true
+  }
+
+  // 곡 작성자 차단 — ownerUserId(곡 작성자 userId) 기준. 성공 시 신고도 이어서 제안.
+  async function handleBlock() {
+    if (blockBusy) return
+    if (!user) { window.dispatchEvent(new Event('open-login')); return }
+    if (!ownerUserId) { toast.error('차단할 수 없어요'); return }
+    setBlockBusy(true)
+    try {
+      const r = await fetch(`/api/users/${ownerUserId}/block`, { method: 'POST' })
+      if (!r.ok) {
+        if (r.status === 401) window.dispatchEvent(new Event('open-login'))
+        throw new Error('block failed')
+      }
+      toast.success('차단했어요. 이 사용자의 콘텐츠가 더 이상 보이지 않아요')
+      setBlockOpen(false)
+      // 차단 후 신고 제안 — 기존 신고 모달 재사용
+      setReportOpen(true)
+    } catch {
+      toast.error('차단에 실패했어요')
+    } finally {
+      setBlockBusy(false)
+    }
   }
 
   function handleDelete() {
@@ -433,12 +464,13 @@ export function SongDetailPage({ onBack, profile }: Props) {
             <SongMoreMenu
               isOwner={isOwner}
               inCollection={inCollection}
-              onCollect={() => setCollectOpen(true)}
+              onCollect={() => { if (requireLogin()) setCollectOpen(true) }}
               onEdit={isOwner ? () => setEditOpen(true) : undefined}
               onDelete={isOwner ? () => setConfirmDelete(true) : undefined}
               onPublish={isOwner && !song.published ? () => setPublishOpen(true) : undefined}
               onUnpublish={isOwner && song.published ? () => setConfirmUnpublish(true) : undefined}
-              onReport={!isOwner ? () => setReportOpen(true) : undefined}
+              onReport={!isOwner ? () => { if (requireLogin()) setReportOpen(true) } : undefined}
+              onBlock={!isOwner ? () => { if (requireLogin()) setBlockOpen(true) } : undefined}
               onDownload={isOwner && song.audioUrl ? () => setDownloadOpen(true) : undefined}
               onVideoCover={isOwner ? () => setVideoOpen(true) : undefined}
             />
@@ -544,12 +576,13 @@ export function SongDetailPage({ onBack, profile }: Props) {
               <SongMoreMenu
                 isOwner={isOwner}
                 inCollection={inCollection}
-                onCollect={() => setCollectOpen(true)}
+                onCollect={() => { if (requireLogin()) setCollectOpen(true) }}
                 onEdit={isOwner ? () => setEditOpen(true) : undefined}
                 onDelete={isOwner ? () => setConfirmDelete(true) : undefined}
                 onPublish={isOwner && !song.published ? () => setPublishOpen(true) : undefined}
                 onUnpublish={isOwner && song.published ? () => setConfirmUnpublish(true) : undefined}
-                onReport={!isOwner ? () => setReportOpen(true) : undefined}
+                onReport={!isOwner ? () => { if (requireLogin()) setReportOpen(true) } : undefined}
+                onBlock={!isOwner ? () => { if (requireLogin()) setBlockOpen(true) } : undefined}
                 onDownload={isOwner && song.audioUrl ? () => setDownloadOpen(true) : undefined}
               onVideoCover={isOwner ? () => setVideoOpen(true) : undefined}
               />
@@ -616,6 +649,18 @@ export function SongDetailPage({ onBack, profile }: Props) {
           onSubmitted={() => setBlinded(true)}
         />
       )}
+
+      <ConfirmModal
+        open={blockOpen}
+        variant="danger"
+        title="이 사용자를 차단할까요?"
+        description="이 사용자의 콘텐츠가 더 이상 보이지 않아요."
+        confirmLabel="차단하기"
+        cancelLabel="아니요"
+        busy={blockBusy}
+        onConfirm={handleBlock}
+        onClose={() => setBlockOpen(false)}
+      />
 
       <DownloadDialog
         open={downloadOpen}
@@ -718,7 +763,7 @@ function ActionBtn({ title, icon, active, count, onClick }: { title: string; ico
   )
 }
 
-function SongMoreMenu({ isOwner, inCollection, onCollect, onPublish, onUnpublish, onEdit, onDelete, onReport, onDownload, onVideoCover }: {
+function SongMoreMenu({ isOwner, inCollection, onCollect, onPublish, onUnpublish, onEdit, onDelete, onReport, onBlock, onDownload, onVideoCover }: {
   isOwner: boolean
   inCollection: boolean
   onCollect: () => void
@@ -727,6 +772,7 @@ function SongMoreMenu({ isOwner, inCollection, onCollect, onPublish, onUnpublish
   onEdit?: () => void
   onDelete?: () => void
   onReport?: () => void
+  onBlock?: () => void
   onDownload?: () => void
   onVideoCover?: () => void
 }) {
@@ -790,6 +836,11 @@ function SongMoreMenu({ isOwner, inCollection, onCollect, onPublish, onUnpublish
               <button onClick={() => { setOpen(false); onReport() }} className="w-full flex items-center gap-2.5 px-3 py-2.5 text-sm text-red-400 hover:bg-red-500/10 transition-colors">
                 <Image src="/Flag.svg" alt="" width={14} height={14} style={{ filter: 'invert(0.4) sepia(1) saturate(3) hue-rotate(300deg)' }} /> 신고
               </button>
+              {onBlock && (
+                <button onClick={() => { setOpen(false); onBlock() }} className="w-full flex items-center gap-2.5 px-3 py-2.5 text-sm text-red-400 hover:bg-red-500/10 transition-colors">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="9" /><path d="M5.6 5.6l12.8 12.8" /></svg> 차단
+                </button>
+              )}
             </>
           )}
           {isOwner && (

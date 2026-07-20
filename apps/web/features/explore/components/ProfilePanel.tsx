@@ -2,8 +2,10 @@
 
 import { useState, useEffect, useRef } from 'react'
 import { createPortal } from 'react-dom'
+import { useRouter } from 'next/navigation'
 import Image from 'next/image'
 import Link from 'next/link'
+import { ConfirmModal } from '@/components/ConfirmModal'
 import { exploreService } from '@/services/explore.service'
 import { songService } from '@/services/song.service'
 import { useAuth } from '@/components/AuthProvider'
@@ -513,20 +515,23 @@ export function ProfilePanel({ username }: Props) {
                   </div>
                 </>
               ) : (
-                <button
-                  onClick={() => toggleFollow()}
-                  aria-pressed={following}
-                  className="flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-medium backdrop-blur-sm transition-colors bg-black/25 text-white hover:bg-black/40"
-                >
-                  <Image
-                    src={following ? '/Following.svg' : '/Follow.svg'}
-                    alt=""
-                    width={14}
-                    height={14}
-                    style={{ filter: 'invert(1)' }}
-                  />
-                  {following ? '팔로잉' : '팔로우'}
-                </button>
+                <>
+                  <button
+                    onClick={() => toggleFollow()}
+                    aria-pressed={following}
+                    className="flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-medium backdrop-blur-sm transition-colors bg-black/25 text-white hover:bg-black/40"
+                  >
+                    <Image
+                      src={following ? '/Following.svg' : '/Follow.svg'}
+                      alt=""
+                      width={14}
+                      height={14}
+                      style={{ filter: 'invert(1)' }}
+                    />
+                    {following ? '팔로잉' : '팔로우'}
+                  </button>
+                  <ProfileBlockMenu userId={profile.userId} name={profile.displayName || profile.username} />
+                </>
               )}
             </div>
 
@@ -676,6 +681,79 @@ export function ProfilePanel({ username }: Props) {
 
 // 본인 프로필 우상단 설정 아이콘 → 이메일·법적 메뉴·로그아웃 드롭다운
 // 커버의 overflow-hidden 경계를 탈출하기 위해 React Portal로 body에 렌더링.
+// 타인 프로필 더보기(⋮) — 차단. SelfSettingsMenu와 동일하게 portal+fixed로 커버 overflow 회피.
+function ProfileBlockMenu({ userId, name }: { userId: string; name: string }) {
+  const { user } = useAuth()
+  const router = useRouter()
+  const [open, setOpen] = useState(false)
+  const [pos, setPos] = useState<{ top: number; right: number } | null>(null)
+  const [confirmBlock, setConfirmBlock] = useState(false)
+  const btnRef = useRef<HTMLButtonElement>(null)
+
+  function toggle() {
+    if (!user) { window.dispatchEvent(new Event('open-login')); return }
+    if (open) { setOpen(false); return }
+    const r = btnRef.current?.getBoundingClientRect()
+    if (r) setPos({ top: r.bottom + 8, right: window.innerWidth - r.right })
+    setOpen(true)
+  }
+
+  useEffect(() => {
+    if (!open) return
+    const close = () => setOpen(false)
+    window.addEventListener('scroll', close, true)
+    window.addEventListener('resize', close)
+    return () => {
+      window.removeEventListener('scroll', close, true)
+      window.removeEventListener('resize', close)
+    }
+  }, [open])
+
+  async function block() {
+    setConfirmBlock(false)
+    const res = await fetch(`/api/users/${userId}/block`, { method: 'POST' })
+    if (res.ok) { toast.success('차단했어요'); router.push('/') } else toast.error('처리에 실패했어요')
+  }
+
+  return (
+    <div className="relative">
+      <button
+        ref={btnRef}
+        onClick={toggle}
+        className="w-10 h-10 rounded-full bg-black/25 backdrop-blur-sm text-white hover:bg-black/40 flex items-center justify-center transition-colors"
+        title="더보기"
+      >
+        <Image src="/More.svg" alt="더보기" width={18} height={18} style={{ filter: 'invert(1)' }} />
+      </button>
+      {open && pos && typeof document !== 'undefined' && createPortal(
+        <>
+          <div className="fixed inset-0 z-[54]" onClick={() => setOpen(false)} />
+          <div className="fixed z-[55] w-28 bg-[#282D38] border border-white/[0.08] rounded-xl py-1 shadow-xl overflow-hidden" style={{ top: pos.top, right: pos.right }}>
+            <button
+              onClick={() => { setOpen(false); setConfirmBlock(true) }}
+              className="w-full flex items-center gap-2 px-3 py-2 text-sm text-red-400 hover:bg-red-500/10 transition-colors"
+            >
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="4.9" y1="4.9" x2="19.1" y2="19.1"/></svg>
+              차단
+            </button>
+          </div>
+        </>,
+        document.body,
+      )}
+      <ConfirmModal
+        open={confirmBlock}
+        title={`${name}님을 차단할까요?`}
+        description="이 사용자의 곡·댓글·게시글이 더 이상 보이지 않아요."
+        confirmLabel="차단하기"
+        cancelLabel="아니요"
+        variant="danger"
+        onClose={() => setConfirmBlock(false)}
+        onConfirm={block}
+      />
+    </div>
+  )
+}
+
 function SelfSettingsMenu() {
   const [open, setOpen] = useState(false)
   const [pos, setPos] = useState<{ top: number; right: number } | null>(null)

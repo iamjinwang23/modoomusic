@@ -167,6 +167,18 @@ export default function SettingsScreen() {
             </>
           )}
 
+          {/* 안전 — 차단 관리 */}
+          <Text style={styles.section}>안전</Text>
+          <View style={styles.group}>
+            <Pressable style={styles.cell} onPress={() => router.push('/blocked-users')}>
+              <View style={styles.linkLeft}>
+                <Icon name="close" size={18} color={mono.color.textSecondary} />
+                <Text style={styles.cellText}>차단 목록</Text>
+              </View>
+              <Text style={styles.chevron}>›</Text>
+            </Pressable>
+          </View>
+
           {/* 이용 안내·지원 */}
           <Text style={styles.section}>이용 안내·지원</Text>
           <View style={styles.group}>

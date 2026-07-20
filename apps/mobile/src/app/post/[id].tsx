@@ -8,6 +8,8 @@ import { router, useLocalSearchParams } from 'expo-router'
 import { Image } from 'expo-image'
 import type { CommunityPost, CommunityPostComment } from '@mono/shared'
 import { api } from '@/lib/api'
+import { blockUser } from '@/lib/block'
+import { toast } from '@/lib/toast'
 import { supabase } from '@/lib/supabase'
 import { getSelectedPost } from '@/lib/selected-post'
 import { useSession } from '@/lib/use-session'
@@ -44,7 +46,7 @@ function CommentItem({ comment, myId, isReply, canInteract, isManager, onReply, 
   onReply?: (c: CommunityPostComment) => void
   onDelete: (id: string) => void
   onEdited: (id: string, body: string) => void
-  onOpenMenu: (h: { isOwner: boolean; canDelete: boolean; onEdit: () => void; onDelete: () => void; onReport: () => void }) => void
+  onOpenMenu: (h: { isOwner: boolean; canDelete: boolean; onEdit: () => void; onDelete: () => void; onReport: () => void; onBlock: () => void }) => void
 }) {
   const { requireAuth } = useAuthGate()
   const [liked, setLiked] = useState(!!comment.liked)
@@ -82,8 +84,23 @@ function CommentItem({ comment, myId, isReply, canInteract, isManager, onReply, 
       Alert.alert('신고 사유', undefined, [...REPORT_REASONS.map((r) => ({ text: r, onPress: () => run(r) })), { text: '취소', style: 'cancel' as const }])
     }
   }
-  // ⋯ 메뉴 — 항상 노출(본인·매니저=수정/삭제 / 타인=신고)
-  const openMenu = () => onOpenMenu({ isOwner, canDelete: isOwner || !!isManager, onEdit: () => { setEditText(comment.body); setEditing(true) }, onDelete: () => onDelete(comment.id), onReport: report })
+  const block = () => {
+    Alert.alert('이 사용자를 차단할까요?', `${name}님의 콘텐츠가 더 이상 보이지 않아요.`, [
+      { text: '아니요', style: 'cancel' },
+      { text: '차단하기', style: 'destructive', onPress: async () => {
+        try {
+          await blockUser(comment.authorId)
+          toast.success('차단했어요')
+          Alert.alert('신고도 하시겠어요?', '부적절한 콘텐츠라면 함께 신고해 주세요.', [
+            { text: '건너뛰기', style: 'cancel' },
+            { text: '신고하기', onPress: report },
+          ])
+        } catch { toast.error('처리에 실패했어요') }
+      } },
+    ])
+  }
+  // ⋯ 메뉴 — 항상 노출(본인·매니저=수정/삭제 / 타인=신고·차단)
+  const openMenu = () => onOpenMenu({ isOwner, canDelete: isOwner || !!isManager, onEdit: () => { setEditText(comment.body); setEditing(true) }, onDelete: () => onDelete(comment.id), onReport: report, onBlock: block })
   return (
     <View style={[styles.comment, isReply && styles.reply]}>
       <View style={isReply ? styles.rAvatar : styles.cAvatar}>
@@ -136,7 +153,7 @@ export default function PostDetailScreen() {
   const [canInteract, setCanInteract] = useState(false)
   const [isManager, setIsManager] = useState(false)
   const [busy, setBusy] = useState(false)
-  const [menu, setMenu] = useState<{ isOwner: boolean; canDelete: boolean; onEdit: () => void; onDelete: () => void; onReport: () => void } | null>(null)
+  const [menu, setMenu] = useState<{ isOwner: boolean; canDelete: boolean; onEdit: () => void; onDelete: () => void; onReport: () => void; onBlock: () => void } | null>(null)
   const [myAvatar, setMyAvatar] = useState<{ url: string | null; hue: number; name: string | null } | null>(null)
 
   // 커뮤니티 멤버십 조회 → 비회원은 댓글·좋아요 게이팅
@@ -282,6 +299,7 @@ export default function PostDetailScreen() {
         onEdit={() => menu?.onEdit()}
         onDelete={() => menu?.onDelete()}
         onReport={() => menu?.onReport()}
+        onBlock={() => menu?.onBlock()}
       />
     </KeyboardAvoidingView>
   )

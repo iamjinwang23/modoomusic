@@ -4,6 +4,7 @@ import { createUserClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { sendPushToUser } from '@/services/push.service'
 import { findBannedWord } from '@/services/moderation.service'
+import { getBlockedUserIds } from '@/services/block.service'
 import type { Comment } from '@mono/shared'
 
 type ProfileJoin = {
@@ -79,7 +80,12 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
     likedSet = new Set((likes ?? []).map((l) => (l as { comment_id: string }).comment_id))
   }
 
-  const comments = (rows as unknown as CommentRow[]).map((r) => toComment(r, likedSet))
+  let comments = (rows as unknown as CommentRow[]).map((r) => toComment(r, likedSet))
+  // 차단 유저 댓글 숨김(양방향)
+  if (user) {
+    const blocked = new Set(await getBlockedUserIds(userClient, user.id))
+    if (blocked.size > 0) comments = comments.filter((c) => !blocked.has(c.userId))
+  }
   return NextResponse.json({ comments })
 }
 
@@ -105,6 +111,12 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     .maybeSingle()
   if (songErr || !song) return NextResponse.json({ error: '곡을 찾을 수 없어요' }, { status: 404 })
   if (!song.is_public) return NextResponse.json({ error: '비공개 곡엔 댓글을 남길 수 없어요', code: 'PRIVATE' }, { status: 403 })
+
+  // 차단 관계면 댓글 불가(양방향)
+  const blockedIds = await getBlockedUserIds(admin, user.id)
+  if (blockedIds.includes(song.user_id)) {
+    return NextResponse.json({ error: '차단한 사용자의 곡에는 댓글을 남길 수 없어요', code: 'BLOCKED' }, { status: 403 })
+  }
 
   // INSERT (RLS도 public 검증 — 이중)
   const { data: inserted, error: insErr } = await userClient

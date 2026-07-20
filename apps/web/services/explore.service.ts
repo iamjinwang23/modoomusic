@@ -1,7 +1,9 @@
 // Explore feed + 다른 사용자 프로필을 Supabase에서 조회
 // 모든 메서드는 async — 호출부는 useEffect로 fetch 후 setState 사용
+import type { SupabaseClient } from '@supabase/supabase-js'
 import type { PublicSong, UserProfile, SocialLinks } from '@mono/shared'
 import { createClient } from '@/lib/supabase/client'
+import { getBlockedUserIds } from '@/services/block.service'
 
 export type FeedTab = 'recommended' | 'latest' | 'popular'
 
@@ -153,6 +155,20 @@ async function filterMyReported(
   return songs.filter((s) => !reportedSet.has(s.id))
 }
 
+// 차단 유저 곡 숨김(양방향). user_blocks SELECT RLS가 blocker=me OR blocked=me 허용 →
+// 브라우저 client로 양방향 조회됨. 비로그인은 필터 없음.
+async function filterBlocked(
+  supabase: ReturnType<typeof createClient>,
+  songs: PublicSong[],
+): Promise<PublicSong[]> {
+  if (songs.length === 0) return songs
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return songs
+  const blocked = new Set(await getBlockedUserIds(supabase as unknown as SupabaseClient, user.id))
+  if (blocked.size === 0) return songs
+  return songs.filter((s) => !blocked.has(s.userId))
+}
+
 export const exploreService = {
   async getFeed(tab: FeedTab, limit = 60): Promise<PublicSong[]> {
     const supabase = createClient()
@@ -167,7 +183,8 @@ export const exploreService = {
       .limit(fetchLimit)
     if (error) { console.error('[exploreService.getFeed]', error.message); return [] }
     const mapped = await fillIsLiked(supabase, (data as unknown as SongRow[]).map(rowToPublicSong))
-    const filtered = await filterMyReported(supabase, mapped)
+    let filtered = await filterMyReported(supabase, mapped)
+    filtered = await filterBlocked(supabase, filtered)
     return tab === 'recommended' ? sortRecommended(filtered).slice(0, limit) : filtered
   },
 
@@ -185,6 +202,7 @@ export const exploreService = {
     if (error) { console.error('[exploreService.getByFilter]', error.message); return [] }
     let mapped = await fillIsLiked(supabase, (data as unknown as SongRow[]).map(rowToPublicSong))
     mapped = await filterMyReported(supabase, mapped)
+    mapped = await filterBlocked(supabase, mapped)
     if (genres.length > 0 || moods.length > 0) {
       const { inferTags } = await import('@/utils/extractTags')
       const songRows = data as unknown as Array<SongRow & { prompt?: string | null; title?: string | null; lyrics?: string | null }>
@@ -270,7 +288,8 @@ export const exploreService = {
       .limit(limit)
     if (error) { console.error('[exploreService.getUserSongs]', error.message); return [] }
     const liked = await fillIsLiked(supabase, (data as unknown as SongRow[]).map(rowToPublicSong))
-    return filterMyReported(supabase, liked)
+    const reported = await filterMyReported(supabase, liked)
+    return filterBlocked(supabase, reported)
   },
 
   async getPublicSongById(id: string): Promise<PublicSong | null> {

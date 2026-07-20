@@ -135,8 +135,16 @@ export default function AdminReportsPage() {
             <tbody>
               {reports.map((r) => (
                 <tr key={`${r.type}-${r.id}`} className="border-b border-zinc-100 hover:bg-zinc-50">
-                  <td className="py-2.5 pr-3 text-xs text-zinc-700 tabular-nums whitespace-nowrap">
-                    {new Date(r.createdAt).toLocaleString('ko-KR')}
+                  <td className="py-2.5 pr-3 text-xs tabular-nums whitespace-nowrap">
+                    {(() => {
+                      const overdue = tab === 'pending' && (Date.now() - new Date(r.createdAt).getTime()) > 24 * 3.6e6
+                      return (
+                        <span className={overdue ? 'text-red-600 font-semibold' : 'text-zinc-700'}>
+                          {new Date(r.createdAt).toLocaleString('ko-KR')}
+                          {overdue ? ' · 24h+' : ''}
+                        </span>
+                      )
+                    })()}
                   </td>
                   <td className="py-2.5 pr-3">
                     <span className={`text-[10px] font-semibold px-2 py-0.5 rounded ${typeBadgeClass(r.type)}`}>

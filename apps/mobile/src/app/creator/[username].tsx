@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
-import { ActivityIndicator, Pressable, StyleSheet, Text, useWindowDimensions, View } from 'react-native'
+import { ActivityIndicator, Alert, Pressable, StyleSheet, Text, useWindowDimensions, View } from 'react-native'
 import Animated, { useAnimatedScrollHandler, useSharedValue } from 'react-native-reanimated'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { router, useLocalSearchParams } from 'expo-router'
@@ -7,6 +7,9 @@ import { Image } from 'expo-image'
 import type { PublicSong, UserProfile } from '@mono/shared'
 import { api } from '@/lib/api'
 import { useAuthGate } from '@/lib/auth-gate'
+import { useSession } from '@/lib/use-session'
+import { blockUser } from '@/lib/block'
+import { toast } from '@/lib/toast'
 import { playSong } from '@/lib/player'
 import { ProfileGrid, CoverScrim, formatCount } from '@/components/ui/profile-grid'
 import { CollapsingHeader, HEADER_ROW } from '@/components/ui/collapsing-header'
@@ -19,6 +22,8 @@ import { mono } from '@/theme/mono'
 export default function CreatorScreen() {
   const insets = useSafeAreaInsets()
   const { requireAuth } = useAuthGate()
+  const { session } = useSession()
+  const myId = session?.user?.id
   const { width } = useWindowDimensions()
   const scrollY = useSharedValue(0)
   const onScroll = useAnimatedScrollHandler((e) => { scrollY.value = e.contentOffset.y })
@@ -84,6 +89,24 @@ export default function CreatorScreen() {
 
   const name = profile.displayName || profile.username
   const initial = (name.trim().charAt(0) || '?').toUpperCase()
+  const isMe = !!myId && profile.userId === myId
+
+  const blockThisUser = () => {
+    Alert.alert('이 사용자를 차단할까요?', `${name}님의 콘텐츠가 더 이상 보이지 않아요.`, [
+      { text: '아니요', style: 'cancel' },
+      { text: '차단하기', style: 'destructive', onPress: async () => {
+        try { await blockUser(profile.userId); toast.success('차단했어요'); router.back() }
+        catch { toast.error('처리에 실패했어요') }
+      } },
+    ])
+  }
+  const openProfileMenu = () => {
+    if (!requireAuth()) return
+    Alert.alert(name, undefined, [
+      { text: '차단하기', style: 'destructive', onPress: blockThisUser },
+      { text: '취소', style: 'cancel' },
+    ])
+  }
 
   const coverH = width * 9 / 16
   const fadeEnd = Math.max(coverH - (insets.top + HEADER_ROW), 60)
@@ -119,11 +142,14 @@ export default function CreatorScreen() {
           {/* 뒤로가기 (좌상단) — 글래스 딤 */}
           <GlassIconButton name="arrow.left" size={40} iconSize={22} onPress={() => router.back()} style={[styles.back, { top: insets.top + 12 }]} hitSlop={10} />
 
-          {/* 팔로우 (우상단) — 글래스 */}
-          <GlassPill onPress={toggleFollow} disabled={followBusy} style={[styles.followPill, { top: insets.top + 12 }, followBusy && styles.dim]}>
-            <Icon name={following ? 'following' : 'follow'} size={15} color={mono.color.onMedia} />
-            <Text style={styles.followText}>{following ? '팔로잉' : '팔로우'}</Text>
-          </GlassPill>
+          {/* 팔로우 + 더보기 (우상단) — 글래스 */}
+          <View style={[styles.headerActions, { top: insets.top + 12 }]}>
+            <GlassPill onPress={toggleFollow} disabled={followBusy} style={followBusy && styles.dim}>
+              <Icon name={following ? 'following' : 'follow'} size={15} color={mono.color.onMedia} />
+              <Text style={styles.followText}>{following ? '팔로잉' : '팔로우'}</Text>
+            </GlassPill>
+            {!isMe ? <GlassIconButton name="ellipsis" size={40} iconSize={20} onPress={openProfileMenu} /> : null}
+          </View>
 
           {/* 좌하단 아바타 + 이름 */}
           <View style={styles.identity}>
@@ -169,6 +195,7 @@ const styles = StyleSheet.create({
   coverFallback: { backgroundColor: mono.color.surface },
   back: { position: 'absolute', left: 20 },
   followPill: { position: 'absolute', right: 20 },
+  headerActions: { position: 'absolute', right: 20, flexDirection: 'row', alignItems: 'center', gap: 8 },
   dim: { opacity: 0.5 },
   followText: { color: mono.color.onMedia, fontSize: mono.font.small, fontWeight: '700' },
   // 스크롤 헤더 내 뒤로가기·팔로우
