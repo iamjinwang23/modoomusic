@@ -9,7 +9,7 @@ export default function PrivacyPage() {
     <article className="space-y-8 text-zinc-300 leading-relaxed">
       <header className="space-y-2">
         <h1 className="text-3xl font-bold text-white">개인정보처리방침</h1>
-        <p className="text-sm text-zinc-500">시행일: 2026년 5월 27일 · 개정: 2026년 7월 1일 (커뮤니티 활동 정보 수집 항목 반영) · 개정: 2026년 7월 2일 (푸시 알림 구독 정보 수집 항목 반영) · 개정: 2026년 7월 15일 (모바일 앱 출시에 따른 Expo 푸시 토큰·인앱결제 정보·앱 접근 권한 및 수탁자 항목 반영)</p>
+        <p className="text-sm text-zinc-500">시행일: 2026년 5월 27일 · 개정: 2026년 7월 1일 (커뮤니티 활동 정보 수집 항목 반영) · 개정: 2026년 7월 2일 (푸시 알림 구독 정보 수집 항목 반영) · 개정: 2026년 7월 15일 (모바일 앱 출시에 따른 Expo 푸시 토큰·인앱결제 정보·앱 접근 권한 및 수탁자 항목 반영) · 개정: 2026년 7월 20일 (결제 시 본인확인을 위한 통합인증서비스 수집 항목(CI·DI 등) 반영)</p>
         <p className="text-sm text-zinc-400">
           주식회사 비누컴퍼니(이하 "회사")는 회원의 개인정보를 중요하게 생각하며,
           「개인정보 보호법」 등 관련 법령을 준수하기 위해 본 방침을 수립·공개합니다.
@@ -77,6 +77,16 @@ export default function PrivacyPage() {
             '사진·파일 접근: 프로필 사진·커버 이미지 등록, 커뮤니티 게시글 이미지 첨부, 스타일 참조 음원 업로드 시',
             '알림: 곡 생성 완료·소셜 활동·공지 등 푸시 알림 수신 시',
           ]} />
+        </SubSection>
+
+        <SubSection title="본인인증 시 (결제 등)">
+          <List items={[
+            '이름, 성별, 생년월일, 내/외국인 여부, 휴대폰 번호, 이동통신사',
+            '암호화된 이용자 확인값(CI), 중복가입확인정보(DI)',
+          ]} />
+          <p className="mt-2 text-sm text-zinc-300 leading-relaxed">
+            회원이 크레딧 결제 등 본인 확인이 필요한 서비스를 이용할 때, 통합인증서비스(KG이니시스) 등 본인확인기관을 통해 본인 확인을 진행하며 위 정보를 수집합니다. 수집·이용 목적은 결제 시 본인 확인 및 명의도용·부정이용 방지이며, 관련 법령에서 정한 기간 동안 보관 후 파기합니다.
+          </p>
         </SubSection>
 
         <SubSection title="브라우저 캐시 (정적 콘텐츠)">
