@@ -31,7 +31,7 @@ export function CommentMoreSheet({ open, onClose, isOwner, canDelete, canReport,
       {isOwner ? <Row icon="edit" label="수정" onPress={run(onEdit)} /> : null}
       {canDelete ? <Row icon="trash" label="삭제" onPress={run(onDelete)} color={mono.color.danger} /> : null}
       {canReport && !isOwner ? <Row icon="flag" label="신고" onPress={run(onReport)} color={mono.color.danger} /> : null}
-      {!isOwner ? <Row icon="close" label="차단" onPress={run(onBlock)} color={mono.color.danger} /> : null}
+      {!isOwner ? <Row icon="forbid" label="차단" onPress={run(onBlock)} color={mono.color.danger} /> : null}
     </BottomSheet>
   )
 }

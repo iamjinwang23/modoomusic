@@ -3,6 +3,8 @@
 // SECURITY DEFINER 함수가 profiles/songs/follows RLS 우회 → admin client 불필요, anon client로 충분.
 
 import { createUserClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/admin'
+import { getBlockedUserIds } from '@/services/block.service'
 import type { RecommendedCreator } from '@mono/shared'
 
 interface RpcRow {
@@ -28,13 +30,19 @@ export async function getRecommendedCreators(
   }
 
   const rows = (data as RpcRow[] | null) ?? []
-  return rows.map((r) => ({
-    id: r.id,
-    username: r.username,
-    displayName: r.display_name ?? r.username,
-    avatarHue: r.avatar_hue ?? 0,
-    avatarUrl: r.avatar_url,
-    followerCount: r.follower_count ?? 0,
-    bucket: r.bucket as 1 | 2 | 3,
-  }))
+  // 차단 유저(양방향) 추천 제외
+  const blocked = userId
+    ? new Set(await getBlockedUserIds(createAdminClient(), userId))
+    : new Set<string>()
+  return rows
+    .filter((r) => !blocked.has(r.id))
+    .map((r) => ({
+      id: r.id,
+      username: r.username,
+      displayName: r.display_name ?? r.username,
+      avatarHue: r.avatar_hue ?? 0,
+      avatarUrl: r.avatar_url,
+      followerCount: r.follower_count ?? 0,
+      bucket: r.bucket as 1 | 2 | 3,
+    }))
 }

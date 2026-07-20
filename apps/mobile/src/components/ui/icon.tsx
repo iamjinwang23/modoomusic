@@ -39,6 +39,7 @@ import Document from '@/assets/mingcute/Document.svg'
 import Question from '@/assets/mingcute/Question.svg'
 import ExternalLink from '@/assets/mingcute/External-Link.svg'
 import Fullscreen from '@/assets/mingcute/Fullscreen.svg'
+import ForbidCircle from '@/assets/mingcute/Forbid-Circle.svg'
 
 // 앱 아이콘 이름 → MingCute 컴포넌트. (좋아요=Thumb-Up 썸즈업, 웹과 동일)
 const MAP = {
@@ -82,6 +83,7 @@ const MAP = {
   question: Question,            // 도움말·FAQ(웹 Question)
   'external.link': ExternalLink, // 외부(웹 브라우저) 링크 표시
   fullscreen: Fullscreen,        // 가사 전체화면 편집(웹 Fullscreen)
+  forbid: ForbidCircle,          // 차단(금지 원+대각선)
 } as const
 
 export type IconName = keyof typeof MAP

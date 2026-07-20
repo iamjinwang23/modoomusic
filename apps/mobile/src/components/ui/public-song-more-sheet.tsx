@@ -35,7 +35,7 @@ export function PublicSongMoreSheet({ open, onClose, isOwner, collected, onColle
           <>
             <View style={styles.divider} />
             <Row icon="flag" label="신고" onPress={run(onReport)} color={mono.color.danger} />
-            <Row icon="close" label="차단" onPress={run(onBlock)} color={mono.color.danger} />
+            <Row icon="forbid" label="차단" onPress={run(onBlock)} color={mono.color.danger} />
           </>
         ) : null}
       </View>
