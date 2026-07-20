@@ -3,6 +3,8 @@
 // SQL 와일드카드(%·_) + .or() separator(,) escape로 와일드카드 오용 방지
 
 import { createUserClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/admin'
+import { getBlockedUserIds } from '@/services/block.service'
 import { GENRE_LABELS, MOOD_LABELS } from '@/utils/extractTags'
 import { SONG_SELECT, rowToPublicSong, type SongRow } from '@/services/explore.service'
 import type { PublicSong } from '@mono/shared'
@@ -58,6 +60,18 @@ export async function searchAll(
   const songsWithLikes = currentUserId
     ? await fillIsLikedServer(supabase, songs, currentUserId)
     : songs
+
+  // 차단 유저 곡·프로필 제외(양방향)
+  if (currentUserId) {
+    const blocked = new Set(await getBlockedUserIds(createAdminClient(), currentUserId))
+    if (blocked.size > 0) {
+      return {
+        songs: songsWithLikes.filter((s) => !blocked.has(s.userId)),
+        users: users.filter((u) => !blocked.has(u.id)),
+        tags,
+      }
+    }
+  }
 
   return { songs: songsWithLikes, users, tags }
 }
