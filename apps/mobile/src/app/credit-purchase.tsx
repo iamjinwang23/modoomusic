@@ -107,13 +107,13 @@ export default function CreditPurchaseScreen() {
       </View>
 
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: insets.bottom + 40 }}>
-        {/* 보유 크레딧 — 박스 없이 큰 폰트로 */}
+        {/* 보유 크레딧 — 캡션+아이콘(동일 색) 위, 숫자만 가운데 큰 폰트 */}
         <View style={styles.balanceHero}>
-          <Text style={styles.balanceCap}>보유 크레딧</Text>
-          <View style={styles.balanceRow}>
-            <Icon name="sparkle" size={26} color={mono.color.accentLight} />
-            <Text style={styles.balanceBig}>{credits ? credits.total.toLocaleString() : '—'}</Text>
+          <View style={styles.balanceCapRow}>
+            <Text style={styles.balanceCap}>보유 크레딧</Text>
+            <Icon name="sparkle" size={15} color={mono.color.textSecondary} />
           </View>
+          <Text style={styles.balanceBig}>{credits ? credits.total.toLocaleString() : '—'}</Text>
         </View>
 
         {products === null ? (
@@ -155,9 +155,9 @@ const styles = StyleSheet.create({
   title: { color: mono.color.text, fontSize: mono.font.h2, fontWeight: '700' },
   // 보유 크레딧 — 박스 없이 큰 폰트 히어로
   balanceHero: { alignItems: 'center', paddingTop: 18, paddingBottom: 30 },
-  balanceCap: { color: mono.color.textSecondary, fontSize: mono.font.body, fontWeight: '600', marginBottom: 6 },
-  balanceRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  balanceBig: { color: mono.color.text, fontSize: 52, fontWeight: '800', letterSpacing: -1 },
+  balanceCapRow: { flexDirection: 'row', alignItems: 'center', gap: 5, marginBottom: 8 },
+  balanceCap: { color: mono.color.textSecondary, fontSize: mono.font.body, fontWeight: '600' },
+  balanceBig: { color: mono.color.text, fontSize: 52, fontWeight: '800', letterSpacing: -1, textAlign: 'center' },
   pack: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', backgroundColor: mono.color.surface, borderRadius: mono.radius.lg, borderWidth: 1, borderColor: mono.color.borderSoft, paddingHorizontal: 18, paddingVertical: 18, marginBottom: 12 },
   packBusy: { opacity: 0.6 },
   packLeft: { gap: 3 },
