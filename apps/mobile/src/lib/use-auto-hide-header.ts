@@ -31,5 +31,6 @@ export function useAutoHideHeader(initialHeight = 0) {
     setHeaderHeight(h)
   }
 
-  return { scrollHandler, headerStyle, onHeaderLayout, headerHeight }
+  // translateY·headerH도 노출 — 소비 측에서 슬라이드 진행도로 opacity 등 파생 스타일을 만들 수 있게(투명 헤더 겹침 방지).
+  return { scrollHandler, headerStyle, onHeaderLayout, headerHeight, translateY, headerH }
 }

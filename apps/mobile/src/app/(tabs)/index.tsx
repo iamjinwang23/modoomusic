@@ -1,6 +1,6 @@
-import { useCallback, useEffect, useState } from 'react'
-import { ActivityIndicator, Pressable, RefreshControl, StyleSheet, Text, View } from 'react-native'
-import Animated from 'react-native-reanimated'
+import { useCallback, useEffect, useMemo, useState } from 'react'
+import { ActivityIndicator, Pressable, RefreshControl, StyleSheet, Text, useWindowDimensions, View } from 'react-native'
+import Animated, { interpolate, useAnimatedStyle } from 'react-native-reanimated'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { router } from 'expo-router'
 import type { PublicSong } from '@mono/shared'
@@ -14,6 +14,7 @@ import { usePublicSongMore } from '@/lib/use-public-song-more'
 import { Icon } from '@/components/ui/icon'
 import { NotificationBell } from '@/components/ui/notification-bell'
 import { SkeletonSongList } from '@/components/ui/skeleton'
+import { HeaderMesh } from '@/components/ui/header-mesh'
 import { mono } from '@/theme/mono'
 
 type Tab = 'recommended' | 'latest' | 'popular'
@@ -26,8 +27,11 @@ const TABS: { key: Tab; label: string }[] = [
 // 탐색 — 공개곡 피드(GET /api/explore/feed). 탭 탭→재생.
 export default function DiscoverScreen() {
   const insets = useSafeAreaInsets()
+  const { width } = useWindowDimensions()
   const { requireAuth } = useAuthGate()
-  const { scrollHandler, headerStyle, onHeaderLayout, headerHeight: chipsH } = useAutoHideHeader(58)
+  const { scrollHandler, headerStyle, onHeaderLayout, headerHeight: chipsH, translateY, headerH } = useAutoHideHeader(58)
+  // 칩이 타이틀 뒤로 슬라이드하며 숨을 때 opacity도 페이드 — 투명 타이틀 뒤로 비치는 겹침 방지
+  const chipsFade = useAnimatedStyle(() => ({ opacity: interpolate(translateY.value, [-headerH.value, -headerH.value * 0.4, 0], [0, 0.6, 1], 'clamp') }))
   const [titleH, setTitleH] = useState(insets.top + 56)
   const [tab, setTab] = useState<Tab>('recommended')
   const [songs, setSongs] = useState<PublicSong[] | null>(null)
@@ -55,6 +59,14 @@ export default function DiscoverScreen() {
 
   const loading = songs === null && !error
 
+  // 상단 색감 워시용 hue — 피드 상단 커버 몇 개를 spread 샘플링(index 0·2·4)해 색 다양성 확보
+  const topHues = useMemo(() => {
+    const list = songs ?? []
+    const hues = [0, 2, 4].map((i) => list[i]?.coverHue).filter((h): h is number => typeof h === 'number')
+    return hues.length ? hues : [250]
+  }, [songs])
+  const meshH = titleH + chipsH + 90
+
   return (
     <View style={styles.container}>
       <Animated.FlatList
@@ -79,8 +91,13 @@ export default function DiscoverScreen() {
         showsVerticalScrollIndicator={false}
       />
 
+      {/* 상단 색감 워시(매시) — 헤더 바 뒤, 콘텐츠 위 */}
+      <View pointerEvents="none" style={[styles.mesh, { height: meshH }]}>
+        <HeaderMesh hues={topHues} width={width} height={meshH} fadeStart={(titleH + chipsH) / meshH} />
+      </View>
+
       {/* 필터칩 — auto-hide(타이틀 아래) */}
-      <Animated.View style={[styles.chipsBar, { top: titleH }, headerStyle]} onLayout={onHeaderLayout}>
+      <Animated.View style={[styles.chipsBar, { top: titleH }, headerStyle, chipsFade]} onLayout={onHeaderLayout}>
         <View style={styles.tabs}>
           {TABS.map((t) => {
             const on = tab === t.key
@@ -115,13 +132,15 @@ export default function DiscoverScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: mono.color.bg },
   // 고정 타이틀바(위) + auto-hide 칩바(아래, 타이틀 뒤로 슬라이드)
+  // 바 배경은 투명 — 뒤의 색감 워시(mesh)가 헤더 배경 역할(불투명 다크 베이스로 콘텐츠 마스킹)
+  mesh: { position: 'absolute', top: 0, left: 0, right: 0, zIndex: 5 },
   titleBar: {
     position: 'absolute', top: 0, left: 0, right: 0, zIndex: 20,
-    backgroundColor: mono.color.bg, paddingHorizontal: 20, paddingBottom: 8,
+    backgroundColor: 'transparent', paddingHorizontal: 20, paddingBottom: 8,
   },
   chipsBar: {
     position: 'absolute', left: 0, right: 0, zIndex: 10,
-    backgroundColor: mono.color.bg, paddingHorizontal: 20, paddingBottom: 10,
+    backgroundColor: 'transparent', paddingHorizontal: 20, paddingBottom: 10,
   },
   headerRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   headerActions: { flexDirection: 'row', alignItems: 'center', gap: 8 },
