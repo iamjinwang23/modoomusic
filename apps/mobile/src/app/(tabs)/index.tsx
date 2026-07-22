@@ -1,6 +1,6 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { ActivityIndicator, Pressable, RefreshControl, StyleSheet, Text, useWindowDimensions, View } from 'react-native'
-import Animated, { interpolate, useAnimatedStyle } from 'react-native-reanimated'
+import Animated, { interpolate, useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { router } from 'expo-router'
 import type { PublicSong } from '@mono/shared'
@@ -59,13 +59,23 @@ export default function DiscoverScreen() {
 
   const loading = songs === null && !error
 
-  // 상단 색감 워시용 hue — 피드 상단 커버 몇 개를 spread 샘플링(index 0·2·4)해 색 다양성 확보
-  const topHues = useMemo(() => {
-    const list = songs ?? []
-    const hues = [0, 2, 4].map((i) => list[i]?.coverHue).filter((h): h is number => typeof h === 'number')
-    return hues.length ? hues : [250]
+  // 상단 색감 워시 hue — 피드 상단 커버 spread 샘플링(index 0·2·4). 로딩 중엔 이전 색 유지(기본값 튐 방지),
+  // 실제 로드됐을 때만 갱신 → 페이드 아웃/인과 맞물려 부드럽게 전환.
+  const [meshHues, setMeshHues] = useState<number[]>([250])
+  useEffect(() => {
+    if (songs && songs.length) {
+      const hues = [0, 2, 4].map((i) => songs[i]?.coverHue).filter((h): h is number => typeof h === 'number')
+      if (hues.length) setMeshHues(hues)
+    }
   }, [songs])
-  const meshH = titleH + chipsH + 90
+  // 로딩 중 페이드 아웃 → 로드되면 페이드 인 (뚝뚝 끊김 대신 슥). on=1(마스킹 유지); 은은함은 블롭 색 투명도로.
+  const meshOpacity = useSharedValue(0)
+  useEffect(() => {
+    meshOpacity.value = withTiming(loading ? 0 : 1, { duration: loading ? 200 : 420 })
+  }, [loading, meshOpacity])
+  const meshFade = useAnimatedStyle(() => ({ opacity: meshOpacity.value }))
+  // 매시 높이는 헤더(타이틀+칩) 영역 + 소폭만 — 콘텐츠로 어둡게 번지지 않게(그림자 방지)
+  const meshH = titleH + chipsH + 6
 
   return (
     <View style={styles.container}>
@@ -91,10 +101,10 @@ export default function DiscoverScreen() {
         showsVerticalScrollIndicator={false}
       />
 
-      {/* 상단 색감 워시(매시) — 헤더 바 뒤, 콘텐츠 위 */}
-      <View pointerEvents="none" style={[styles.mesh, { height: meshH }]}>
-        <HeaderMesh hues={topHues} width={width} height={meshH} fadeStart={(titleH + chipsH) / meshH} />
-      </View>
+      {/* 상단 색감 워시(매시) — 헤더 바 뒤, 콘텐츠 위. 로딩 연동 페이드 */}
+      <Animated.View pointerEvents="none" style={[styles.mesh, { height: meshH }, meshFade]}>
+        <HeaderMesh hues={meshHues} width={width} height={meshH} fadeStart={(titleH + chipsH) / meshH} />
+      </Animated.View>
 
       {/* 필터칩 — auto-hide(타이틀 아래) */}
       <Animated.View style={[styles.chipsBar, { top: titleH }, headerStyle, chipsFade]} onLayout={onHeaderLayout}>

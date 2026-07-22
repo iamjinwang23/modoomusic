@@ -23,8 +23,8 @@ export function HeaderMesh({ hues, width, height, fadeStart = 0.6 }: {
       <Defs>
         {hs.map((h, i) => (
           <RadialGradient key={i} id={`hm${i}`} cx={SPOTS[i].cx} cy={SPOTS[i].cy} rx={SPOTS[i].rx} ry={SPOTS[i].ry}>
-            <Stop offset="0" stopColor={`hsl(${h}, 55%, 34%)`} stopOpacity={0.85} />
-            <Stop offset="1" stopColor={`hsl(${h}, 55%, 34%)`} stopOpacity={0} />
+            <Stop offset="0" stopColor={`hsl(${h}, 52%, 32%)`} stopOpacity={0.55} />
+            <Stop offset="1" stopColor={`hsl(${h}, 52%, 32%)`} stopOpacity={0} />
           </RadialGradient>
         ))}
         {/* 다크 베이스: fadeStart까지 불투명(마스킹) → 하단 투명(콘텐츠 노출) */}
