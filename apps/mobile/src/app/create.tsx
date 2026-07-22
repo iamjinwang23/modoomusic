@@ -391,6 +391,13 @@ export default function CreateScreen() {
           const on = model === m.id
           return (
             <Pressable key={m.id} onPress={() => selectModel(m.id)} style={({ pressed }) => [styles.modelRow, pressed && styles.modelRowPressed]}>
+              <View style={[styles.modelCheck, on && styles.modelCheckOn]}>
+                {on ? (
+                  <Svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#ffffff" strokeWidth={3.5} strokeLinecap="round" strokeLinejoin="round">
+                    <Path d="M20 6L9 17l-5-5" />
+                  </Svg>
+                ) : null}
+              </View>
               <View style={styles.flex}>
                 <View style={styles.modelRowHead}>
                   <Text style={styles.modelName}>{m.label}</Text>
@@ -398,18 +405,9 @@ export default function CreateScreen() {
                 </View>
                 <Text style={styles.modelDesc}>{m.desc}</Text>
               </View>
-              <View style={styles.modelRight}>
-                <View style={styles.modelCredit}>
-                  <Icon name="sparkle" size={12} color={mono.color.text} />
-                  <Text style={styles.modelCreditText}>{m.credits}</Text>
-                </View>
-                <View style={[styles.modelCheck, on && styles.modelCheckOn]}>
-                  {on ? (
-                    <Svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#ffffff" strokeWidth={3.5} strokeLinecap="round" strokeLinejoin="round">
-                      <Path d="M20 6L9 17l-5-5" />
-                    </Svg>
-                  ) : null}
-                </View>
+              <View style={styles.modelCredit}>
+                <Icon name="sparkle" size={12} color={mono.color.text} />
+                <Text style={styles.modelCreditText}>{m.credits}</Text>
               </View>
             </Pressable>
           )
@@ -493,14 +491,13 @@ const styles = StyleSheet.create({
   mHeadSlot: { width: 28 },
   // 모델 선택 바텀시트
   modelSheet: { paddingHorizontal: 20 },
-  modelSheetTitle: { color: mono.color.text, fontSize: mono.font.h2, fontWeight: '700', marginBottom: 8 },
-  modelRow: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 14, borderRadius: mono.radius.md },
+  modelSheetTitle: { color: mono.color.text, fontSize: mono.font.h2, fontWeight: '700', textAlign: 'center', marginBottom: 22 },
+  modelRow: { flexDirection: 'row', alignItems: 'center', gap: 14, paddingVertical: 16, borderRadius: mono.radius.md },
   modelRowPressed: { backgroundColor: mono.color.fill },
   modelRowHead: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   modelName: { color: mono.color.text, fontSize: mono.font.body, fontWeight: '700' },
   modelBadge: { color: mono.color.accentLight, fontSize: 10, fontWeight: '700', backgroundColor: 'rgba(124,58,237,0.2)', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 6, overflow: 'hidden' },
   modelDesc: { color: mono.color.textSecondary, fontSize: mono.font.small, marginTop: 3 },
-  modelRight: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   modelCredit: { flexDirection: 'row', alignItems: 'center', gap: 4 },
   modelCreditText: { color: mono.color.text, fontSize: mono.font.small, fontWeight: '700' },
   modelCheck: { width: 22, height: 22, borderRadius: 11, borderWidth: 2, borderColor: mono.color.fillStrong, alignItems: 'center', justifyContent: 'center' },
