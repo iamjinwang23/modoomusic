@@ -9,7 +9,7 @@ type Key = 'instagram' | 'tiktok' | 'youtube' | 'facebook' | 'x'
 const ORDER: Key[] = ['instagram', 'tiktok', 'youtube', 'facebook', 'x']
 
 function Glyph({ kind, color }: { kind: Key; color: string }) {
-  const p = { width: 16, height: 16, viewBox: '0 0 24 24' } as const
+  const p = { width: 19, height: 19, viewBox: '0 0 24 24' } as const
   switch (kind) {
     case 'instagram':
       return (
@@ -52,6 +52,6 @@ export function SocialLinksRow({ links }: { links?: SocialLinks | null }) {
 
 const styles = StyleSheet.create({
   row: { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 12 },
-  btn: { width: 36, height: 36, borderRadius: 18, backgroundColor: 'rgba(255,255,255,0.08)', alignItems: 'center', justifyContent: 'center' },
+  btn: { width: 42, height: 42, borderRadius: 21, backgroundColor: 'rgba(255,255,255,0.08)', alignItems: 'center', justifyContent: 'center' },
   btnPressed: { backgroundColor: 'rgba(255,255,255,0.16)', transform: [{ scale: 0.94 }] },
 })
