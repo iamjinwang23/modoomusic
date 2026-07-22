@@ -18,6 +18,7 @@ import { useGlobalPlayer } from '@/contexts/GlobalPlayerContext'
 import { toast } from '@/components/toast/toast'
 import { SoundWaveIcon } from '@/components/SoundWaveIcon'
 import { profileColor } from '@/utils/profileColor'
+import { modelBadgeInfo } from '@/utils/modelBadge'
 import { buildSongShareUrl } from '@/utils/shareUrl'
 import { useOptimisticToggle } from '@/hooks/useOptimisticToggle'
 import { track, EVENTS } from '@/utils/analytics'
@@ -30,13 +31,6 @@ interface SongProfile {
   displayName: string
   username: string
   avatarHue?: number
-}
-
-// 'music-2.6' → 'v2.6' 등 모델 라벨 변환
-function modelLabel(model: string | null | undefined): string {
-  if (!model) return ''
-  const m = model.replace(/^music-/, '')
-  return `v${m}`
 }
 
 interface Props {
@@ -391,9 +385,9 @@ export function SongDetailPage({ onBack, profile }: Props) {
               text={displayTitle}
               className="text-2xl font-bold text-white leading-snug flex-1 min-w-0"
             />
-            {song.model === 'music-2.6' && (
-              <span className="shrink-0 text-[10px] font-medium px-1.5 py-1 rounded-md leading-none text-violet-300 bg-violet-600/20">
-                {modelLabel(song.model)}
+            {modelBadgeInfo(song.model) && (
+              <span className={`shrink-0 text-[10px] font-medium px-1.5 py-1 rounded-md leading-none ${modelBadgeInfo(song.model)!.cls}`}>
+                {modelBadgeInfo(song.model)!.label}
               </span>
             )}
             {song.instrumental && (
@@ -502,9 +496,9 @@ export function SongDetailPage({ onBack, profile }: Props) {
               {/* 제목 */}
               <div className="flex items-center gap-2">
                 <h2 className="text-2xl font-bold text-white leading-snug">{displayTitle}</h2>
-                {song.model === 'music-2.6' && (
-                  <span className="shrink-0 text-[10px] font-medium px-1.5 py-1 rounded-md leading-none text-violet-300 bg-violet-600/20">
-                    {modelLabel(song.model)}
+                {modelBadgeInfo(song.model) && (
+                  <span className={`shrink-0 text-[10px] font-medium px-1.5 py-1 rounded-md leading-none ${modelBadgeInfo(song.model)!.cls}`}>
+                    {modelBadgeInfo(song.model)!.label}
                   </span>
                 )}
                 {song.instrumental && (
