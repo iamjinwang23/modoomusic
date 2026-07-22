@@ -41,7 +41,7 @@ export function Footer() {
           <div className="md:w-52 shrink-0">
             <Image src="/logo.svg" alt="모두의 노래" width={72} height={16} style={{ filter: 'invert(1)', opacity: 0.4 }} />
           </div>
-          <div className="flex-1 grid grid-cols-2 md:grid-cols-3 gap-8 md:gap-12">
+          <div className="flex-1 grid grid-cols-2 md:grid-cols-4 gap-8 md:gap-10">
           <Col title="서비스">
             {SITEMAP.map((l) => (
               <li key={l.href}>
@@ -69,6 +69,26 @@ export function Footer() {
               </li>
             ))}
           </Col>
+          {/* 모바일 앱 다운로드 — 고객지원 우측 컬럼. 공식 App Store 배지(다크, 컴팩트) */}
+          <div className="space-y-2.5">
+            <h3 className="text-xs font-semibold text-white">모바일 앱</h3>
+            <a
+              href="https://apps.apple.com/us/app/mono-ai-%EB%85%B8%EB%9E%98-%EC%9D%8C%EC%95%85-%EB%A7%8C%EB%93%A4%EA%B8%B0/id6790648491?itscg=30200&itsct=apps_box_badge&mttnsubad=6790648491"
+              target="_blank"
+              rel="noopener noreferrer"
+              aria-label="App Store에서 MONO 다운로드"
+              className="inline-block transition-opacity hover:opacity-80"
+            >
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src="https://toolbox.marketingtools.apple.com/api/v2/badges/download-on-the-app-store/black/ko-kr?releaseDate=1784592000"
+                alt="App Store에서 다운로드"
+                width={130}
+                height={40}
+                style={{ height: 40, width: 'auto' }}
+              />
+            </a>
+          </div>
           </div>
         </div>
 
