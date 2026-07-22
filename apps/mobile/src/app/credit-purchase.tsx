@@ -106,7 +106,7 @@ export default function CreditPurchaseScreen() {
         <View style={{ width: 22 }} />
       </View>
 
-      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: insets.bottom + 20, flexGrow: 1 }}>
+      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: insets.bottom + 40 }}>
         {/* 보유 크레딧 — 캡션+아이콘(동일 색) 위, 숫자만 가운데 큰 폰트 */}
         <View style={styles.balanceHero}>
           <View style={styles.balanceCapRow}>
@@ -124,7 +124,7 @@ export default function CreditPurchaseScreen() {
             <Text style={styles.emptySub}>결제 준비가 끝나면 이곳에서 바로 충전할 수 있어요.</Text>
           </View>
         ) : (
-          <View style={styles.packs}>{products.map((p) => {
+          products.map((p) => {
             const cr = iapCredits(pSku(p))
             const on = buying === pSku(p)
             return (
@@ -136,7 +136,7 @@ export default function CreditPurchaseScreen() {
                 {on ? <ActivityIndicator color="#fff" /> : <Text style={styles.packPrice}>{pPrice(p)}</Text>}
               </Pressable>
             )
-          })}</View>
+          })
         )}
 
         {error ? <Text style={styles.error}>{error}</Text> : null}
@@ -153,19 +153,18 @@ const styles = StyleSheet.create({
   header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, marginBottom: 8 },
   close: { color: mono.color.text, fontSize: 22 },
   title: { color: mono.color.text, fontSize: mono.font.h2, fontWeight: '700' },
-  // 보유 크레딧 — 박스 없이 큰 폰트 히어로. 그룹 위/아래 갭 넉넉히.
-  balanceHero: { alignItems: 'center', paddingTop: 30, paddingBottom: 44 },
+  // 보유 크레딧 — 박스 없이 큰 폰트 히어로. 위 갭 넉넉히.
+  balanceHero: { alignItems: 'center', paddingTop: 48, paddingBottom: 34 },
   balanceCapRow: { flexDirection: 'row', alignItems: 'center', gap: 5, marginBottom: 8 },
   balanceCap: { color: mono.color.textSecondary, fontSize: mono.font.body, fontWeight: '600' },
   balanceBig: { color: mono.color.text, fontSize: 52, fontWeight: '800', letterSpacing: -1, textAlign: 'center' },
-  // 팩 컨테이너 — 잔액~약관 사이 공간을 채우도록 세로 분산(위 답답함 해소)
-  packs: { flex: 1, justifyContent: 'space-between' },
-  pack: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', backgroundColor: mono.color.surface, borderRadius: mono.radius.lg, borderWidth: 1, borderColor: mono.color.borderSoft, paddingHorizontal: 18, paddingVertical: 20 },
+  pack: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', backgroundColor: mono.color.surface, borderRadius: mono.radius.lg, borderWidth: 1, borderColor: mono.color.borderSoft, paddingHorizontal: 18, paddingVertical: 20, marginBottom: 14 },
   packBusy: { opacity: 0.6 },
   packLeft: { gap: 3 },
   packCredits: { color: mono.color.text, fontSize: mono.font.h2, fontWeight: '800' },
   packLabel: { color: mono.color.textTertiary, fontSize: mono.font.small },
-  packPrice: { color: mono.color.accentLight, fontSize: mono.font.body, fontWeight: '700' },
+  // 가격 알약 — 보라색 배경 + 검정 텍스트(박스 우측 위치 유지)
+  packPrice: { color: '#000', fontSize: mono.font.small, fontWeight: '800', backgroundColor: mono.color.accentLight, paddingHorizontal: 14, paddingVertical: 8, borderRadius: 999, overflow: 'hidden' },
   empty: { alignItems: 'center', marginTop: 48, gap: 8 },
   emptyText: { color: mono.color.text, fontSize: mono.font.body, fontWeight: '600' },
   emptySub: { color: mono.color.textTertiary, fontSize: mono.font.small, textAlign: 'center' },
