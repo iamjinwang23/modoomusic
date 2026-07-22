@@ -62,7 +62,7 @@ export async function finalizeVideoCover(song: VideoSongRow): Promise<FinalizeRe
         video_cover_generated_at: new Date().toISOString(),
       }).eq('id', song.id)
       await admin.from('notifications').insert({ user_id: song.user_id, type: 'song_complete', song_id: song.id, payload: { kind: 'video_cover' } })
-      await sendPushToUser(song.user_id, { title: '영상이 완성됐어요', body: '영상 커버가 완성됐어요. 지금 확인해보세요.', url: '/library', tag: `videocover-${song.id}`, data: { route: '/(tabs)' } }, 'song_complete')
+      await sendPushToUser(song.user_id, { title: '영상이 완성됐어요', body: '영상 커버가 완성됐어요. 지금 확인해보세요.', url: '/library', tag: `videocover-${song.id}`, data: { route: '/(tabs)', songId: song.id } }, 'song_complete')
       return { status: 'done', videoCoverUrl: bustedUrl }
     }
     if (status === 'Fail') { await markFailed(); return { status: 'failed' } }
