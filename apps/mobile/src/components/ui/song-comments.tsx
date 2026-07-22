@@ -213,9 +213,13 @@ export function SongCommentList({ state }: { state: SongCommentsState }) {
   const itemProps = { myId, requireLogin, onDelete: deleteComment, onEdited: patchLocal, onOpenMenu: setMenu }
 
   return (
-    <View>
+    <View style={styles.listRoot}>
       {comments === null ? <ActivityIndicator color={mono.color.accent} style={{ marginTop: 20 }} /> : null}
-      {comments && tops.length === 0 ? <Text style={styles.empty}>첫 댓글을 남겨보세요</Text> : null}
+      {comments && tops.length === 0 ? (
+        <View style={styles.emptyWrap}>
+          <Text style={styles.empty}>아직 댓글이 없습니다.{'\n'}첫 댓글을 남겨보세요</Text>
+        </View>
+      ) : null}
       {tops.map((c) => (
         <View key={c.id}>
           <CommentItem comment={c} {...itemProps} onReply={(t) => setReplyTo({ id: t.id, name: t.user.displayName ?? t.user.username ?? '익명' })} />
@@ -288,7 +292,10 @@ export function SongCommentComposer({ state }: { state: SongCommentsState }) {
 
 const styles = StyleSheet.create({
   flex: { flex: 1 },
-  empty: { color: mono.color.textSecondary, fontSize: mono.font.small, textAlign: 'center', marginTop: 20 },
+  listRoot: { flexGrow: 1 },
+  // 빈 상태 — 댓글 영역 가운데쯤에 2줄로 배치
+  emptyWrap: { flexGrow: 1, minHeight: 220, alignItems: 'center', justifyContent: 'center' },
+  empty: { color: mono.color.textSecondary, fontSize: mono.font.small, textAlign: 'center', lineHeight: 22 },
   comment: { flexDirection: 'row', gap: 12, paddingVertical: 12 },
   reply: { paddingLeft: 48 },
   cAvatar: { width: 36, height: 36, borderRadius: 18, overflow: 'hidden', backgroundColor: mono.color.surface2, alignItems: 'center', justifyContent: 'center' },

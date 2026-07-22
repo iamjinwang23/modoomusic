@@ -599,7 +599,7 @@ export default function PlayerScreen() {
               <Text style={styles.sheetTitle}>댓글 {formatCount(meta?.commentCount ?? 0)}</Text>
               <Pressable onPress={() => setCommentsOpen(false)} hitSlop={8}><Icon name="close" size={22} color={mono.color.textSecondary} /></Pressable>
             </View>
-            <ScrollView style={styles.sheetList} contentContainerStyle={{ paddingBottom: 12 }} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
+            <ScrollView style={styles.sheetList} contentContainerStyle={{ paddingBottom: 12, flexGrow: 1 }} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
               <SongCommentList state={commentsState} />
             </ScrollView>
             <SongCommentComposer state={commentsState} />

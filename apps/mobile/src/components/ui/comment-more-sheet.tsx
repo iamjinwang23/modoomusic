@@ -1,4 +1,4 @@
-import { Pressable, StyleSheet, Text } from 'react-native'
+import { Pressable, StyleSheet, Text, View } from 'react-native'
 import { BottomSheet } from '@/components/ui/bottom-sheet'
 import { Icon, type IconName } from '@/components/ui/icon'
 import { mono } from '@/theme/mono'
@@ -28,16 +28,19 @@ export function CommentMoreSheet({ open, onClose, isOwner, canDelete, canReport,
   const run = (fn: () => void) => () => { onClose(); setTimeout(fn, 260) }
   return (
     <BottomSheet open={open} onClose={onClose} sheetStyle={styles.sheet}>
-      {isOwner ? <Row icon="edit" label="수정" onPress={run(onEdit)} /> : null}
-      {canDelete ? <Row icon="trash" label="삭제" onPress={run(onDelete)} color={mono.color.danger} /> : null}
-      {canReport && !isOwner ? <Row icon="flag" label="신고" onPress={run(onReport)} color={mono.color.danger} /> : null}
-      {!isOwner ? <Row icon="forbid" label="차단" onPress={run(onBlock)} color={mono.color.danger} /> : null}
+      <View style={styles.list}>
+        {isOwner ? <Row icon="edit" label="수정" onPress={run(onEdit)} /> : null}
+        {canDelete ? <Row icon="trash" label="삭제" onPress={run(onDelete)} color={mono.color.danger} /> : null}
+        {canReport && !isOwner ? <Row icon="flag" label="신고" onPress={run(onReport)} color={mono.color.danger} /> : null}
+        {!isOwner ? <Row icon="forbid" label="차단" onPress={run(onBlock)} color={mono.color.danger} /> : null}
+      </View>
     </BottomSheet>
   )
 }
 
 const styles = StyleSheet.create({
-  sheet: { paddingHorizontal: 8, paddingBottom: 8 },
+  sheet: { paddingHorizontal: 8 },
+  list: { paddingBottom: 8 },
   row: { flexDirection: 'row', alignItems: 'center', gap: 14, paddingHorizontal: 14, paddingVertical: 15, borderRadius: mono.radius.md },
   rowPressed: { backgroundColor: mono.color.fill },
   label: { fontSize: mono.font.body, fontWeight: '600' },
