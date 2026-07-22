@@ -7,6 +7,7 @@ import type { Collection, Song } from '@mono/shared'
 import { api } from '@/lib/api'
 import { hapticLight } from '@/lib/haptics'
 import { subscribeSongUpdates } from '@/lib/generate'
+import { watchVideoSong } from '@/lib/video-poll'
 import { useSession } from '@/lib/use-session'
 import { useAutoHideHeader } from '@/lib/use-auto-hide-header'
 import { SongRow } from '@/components/ui/song-row'
@@ -54,6 +55,8 @@ export default function LibraryScreen() {
     try {
       const j: { songs?: Song[] } = await api.get('/api/songs/mine')
       setSongs(j.songs ?? [])
+      // 진행중 영상은 폴러에 등록 → 앱 재실행 후에도 완료로 수렴(서버 finalize 트리거)
+      ;(j.songs ?? []).forEach((s) => { if (s.videoCoverStatus === 'generating') watchVideoSong(s.id) })
     } catch (e) {
       const err = e as { error?: string; status?: number }
       setError(err.status === 401 ? '로그인이 필요해요' : err.error ?? 'network_error')

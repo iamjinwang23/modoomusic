@@ -9,6 +9,7 @@ import { Icon } from '@/components/ui/icon'
 import { BottomSheet } from '@/components/ui/bottom-sheet'
 import { generateVideoCover, VIDEO_TIERS, type VideoTier, type VideoMode } from '@/lib/video'
 import { getNowPlaying, setNowPlaying } from '@/lib/now-playing'
+import { watchVideoSong } from '@/lib/video-poll'
 import { api } from '@/lib/api'
 import { toast } from '@/lib/toast'
 import { mono } from '@/theme/mono'
@@ -66,6 +67,7 @@ export default function VideoCreateScreen() {
     setBusy(true); setError(null)
     try {
       await generateVideoCover(songId, { mode, tier, motionPrompt: motion, textPrompt, imageData: customImage?.data })
+      watchVideoSong(songId) // 폴러가 완료까지 추적 → 서버 finalize 트리거
       // 현재 재생 중인 곡이면 즉시 '생성 중'으로 반영 → 플레이어 중앙 표시가 바로 뜸(닫았다 열 필요 없음)
       const cur = getNowPlaying()
       if (cur && cur.id === songId) setNowPlaying({ ...cur, videoCoverStatus: 'generating' })

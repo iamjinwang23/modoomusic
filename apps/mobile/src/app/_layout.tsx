@@ -21,6 +21,7 @@ import { configureNotificationHandler, registerForPush, unregisterForPush } from
 import { PRETENDARD_FONTS, applyPretendardToText } from '@/lib/fonts';
 import { api } from '@/lib/api';
 import { playSong } from '@/lib/player';
+import { pollVideoTick } from '@/lib/video-poll';
 import type { NowPlaying } from '@/lib/now-playing';
 
 SplashScreen.preventAutoHideAsync();
@@ -47,6 +48,17 @@ export default function RootLayout() {
       wasAuthed.current = false;
       unregisterForPush();
     }
+  }, [session]);
+
+  // 영상 폴러 — 로그인 상태에서 8초마다 진행중(generating) 영상을 서버 finalize로 수렴(웹 파리티).
+  // 앱은 video-status를 능동 폴링하지 않으면 영상이 '생성 중'에 갇힘(크론은 하루 1회뿐).
+  useEffect(() => {
+    if (!session) return;
+    let cancelled = false;
+    const tick = () => { if (!cancelled) pollVideoTick(); };
+    tick();
+    const iv = setInterval(tick, 8000);
+    return () => { cancelled = true; clearInterval(iv); };
   }, [session]);
 
   // 알림 탭 처리. 콜드스타트(알림 탭으로 앱이 열린 경우)도 처리.
