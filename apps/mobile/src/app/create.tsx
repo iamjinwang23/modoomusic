@@ -11,6 +11,7 @@ import { BottomSheet } from '@/components/ui/bottom-sheet'
 import { api } from '@/lib/api'
 import { generateSong, MUSIC_MODELS, type MusicModelId } from '@/lib/generate'
 import { pickRefAudio, refAudioAvailable } from '@/lib/ref-audio'
+import { hapticLight } from '@/lib/haptics'
 import { mono } from '@/theme/mono'
 
 // 웹 SongForm ALL_CHIPS — 장르·분위기·악기·보컬 퀵칩(스타일에 append)
@@ -86,6 +87,7 @@ export default function CreateScreen() {
 
   const pickModel = () => setModelSheetOpen(true)
   const selectModel = (id: MusicModelId) => {
+    hapticLight()
     if (id === 'music-2.0' && instrumental) setInstrumental(false)  // v2.0 선택 시 인스트 해제
     if (id !== 'music-2.6') setRefAudio(null)  // 참조는 v2.6 전용
     setModel(id)
