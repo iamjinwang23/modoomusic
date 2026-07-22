@@ -12,10 +12,14 @@ LogBox.ignoreLogs([
   /Linking scheme 'mono'/,
 ]);
 
+import type { Song } from '@mono/shared';
 import { AnimatedSplashOverlay } from '@/components/animated-icon';
 import { ToastHost } from '@/components/ui/toast-host';
 import { useSession } from '@/lib/use-session';
 import { configureNotificationHandler, registerForPush, unregisterForPush } from '@/lib/push';
+import { api } from '@/lib/api';
+import { playSong } from '@/lib/player';
+import type { NowPlaying } from '@/lib/now-playing';
 
 SplashScreen.preventAutoHideAsync();
 
@@ -39,16 +43,30 @@ export default function RootLayout() {
     }
   }, [session]);
 
-  // 알림 탭 → data.route로 딥링크. 콜드스타트(알림 탭으로 앱이 열린 경우)도 처리.
+  // 알림 탭 처리. 콜드스타트(알림 탭으로 앱이 열린 경우)도 처리.
+  // - data.songId가 있으면(곡·영상 완성) 그 곡을 재생하며 플레이어를 연다(인앱 알림 목록과 동일 동작).
+  // - 없으면 data.route로 딥링크 이동.
   useEffect(() => {
-    const go = (route?: unknown) => {
+    const handle = async (data: Record<string, unknown> | undefined) => {
+      const songId = typeof data?.songId === 'string' ? data.songId : null;
+      if (songId) {
+        try {
+          const j = (await api.get(`/api/songs/${songId}`)) as { song?: Song };
+          if (j.song?.audioUrl) {
+            await playSong(j.song as NowPlaying);
+            router.push('/player');
+            return;
+          }
+        } catch { /* 곡 삭제 등 — 아래 route 폴백 */ }
+      }
+      const route = data?.route;
       if (typeof route === 'string' && route) router.push(route as never);
     };
     const sub = Notifications.addNotificationResponseReceivedListener((r) => {
-      go(r.notification.request.content.data?.route);
+      handle(r.notification.request.content.data as Record<string, unknown> | undefined);
     });
     Notifications.getLastNotificationResponseAsync().then((r) => {
-      if (r) go(r.notification.request.content.data?.route);
+      if (r) handle(r.notification.request.content.data as Record<string, unknown> | undefined);
     });
     return () => sub.remove();
   }, []);
