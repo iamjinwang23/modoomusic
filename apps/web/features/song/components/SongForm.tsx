@@ -107,7 +107,7 @@ export function SongForm() {
   const [styleRefNotice, setStyleRefNotice] = useState(false)
   const [styleRefDontShow, setStyleRefDontShow] = useState(false)
   const [vocalGender, setVocalGender] = useState<'male' | 'female' | null>(null)
-  const [model, setModel] = useState<MusicModelId>('music-2.0')
+  const [model, setModel] = useState<MusicModelId>('music-3.0')
   const [lyricsModalOpen, setLyricsModalOpen] = useState(false)
   // 가사 풀스크린 편집 — 폼 안에서 가사 박스가 다른 섹션 숨기고 확장.
   // ESC 키로 닫기. CSS transition으로 부드러운 확장/축소.

@@ -27,7 +27,7 @@ export async function cleanupGeneratingZombies(): Promise<CleanupResult> {
   if (!zombies || zombies.length === 0) return { cleaned: 0, refundFailed: 0, cutoff }
 
   // songs에 model 컬럼이 없어 정확한 cost를 알 수 없음. 좀비는 빈도 낮으니 사용자 친화로 max 환불.
-  const refundAmount = creditsForModel(MODELS[0].id as MusicModelId)  // music-2.6 → 10cr
+  const refundAmount = creditsForModel(MODELS[0].id as MusicModelId)  // MODELS[0]=music-3.0 → 10cr (최대 환불)
 
   const { error: updErr } = await admin
     .from('songs')
