@@ -169,6 +169,6 @@ const styles = StyleSheet.create({
   stats: { flexDirection: 'row', gap: 20 },
   statItem: { color: mono.color.textTertiary, fontSize: mono.font.small },
   statNum: { color: mono.color.text, fontWeight: '700' },
-  bio: { color: mono.color.textSecondary, fontSize: mono.font.body, lineHeight: 20 },
+  bio: { color: mono.color.text, fontSize: mono.font.body, lineHeight: 20 },
   gridWrap: { marginTop: 18 },
 })
