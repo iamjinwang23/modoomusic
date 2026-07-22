@@ -163,8 +163,8 @@ const styles = StyleSheet.create({
   packLeft: { gap: 3 },
   packCredits: { color: mono.color.text, fontSize: mono.font.h2, fontWeight: '800' },
   packLabel: { color: mono.color.textTertiary, fontSize: mono.font.small },
-  // 가격 알약 — 보라색 배경 + 검정 텍스트(박스 우측 위치 유지)
-  packPrice: { color: '#000', fontSize: mono.font.small, fontWeight: '800', backgroundColor: mono.color.accentLight, paddingHorizontal: 14, paddingVertical: 8, borderRadius: 999, overflow: 'hidden' },
+  // 가격 알약 — 앱 CTA 보라색(accent) + 흰 텍스트(박스 우측 위치 유지)
+  packPrice: { color: '#fff', fontSize: mono.font.small, fontWeight: '800', backgroundColor: mono.color.accent, paddingHorizontal: 14, paddingVertical: 8, borderRadius: 999, overflow: 'hidden' },
   empty: { alignItems: 'center', marginTop: 48, gap: 8 },
   emptyText: { color: mono.color.text, fontSize: mono.font.body, fontWeight: '600' },
   emptySub: { color: mono.color.textTertiary, fontSize: mono.font.small, textAlign: 'center' },
