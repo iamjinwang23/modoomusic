@@ -4,6 +4,7 @@ import { State, useActiveTrack, usePlaybackState } from 'react-native-track-play
 import type { PublicSong } from '@mono/shared'
 import { Icon } from '@/components/ui/icon'
 import { PlayingBars } from '@/components/ui/playing-bars'
+import { modelBadge } from '@/lib/generate'
 import { mono } from '@/theme/mono'
 
 // 공개곡 행 — 탐색·크리에이터 프로필 공용. 커버/제목/크리에이터/좋아요, 탭→재생.
@@ -30,7 +31,10 @@ export function PublicSongRow({ song, onPress, onCreatorPress, onMore, showCreat
         ) : null}
       </View>
       <View style={styles.body}>
-        <Text style={styles.title} numberOfLines={1}>{song.title ?? '제목 없음'}</Text>
+        <View style={styles.titleRow}>
+          <Text style={styles.title} numberOfLines={1}>{song.title ?? '제목 없음'}</Text>
+          {(() => { const b = modelBadge(song.model); return b ? <Text style={[styles.modelBadge, { color: b.color, backgroundColor: b.bg }]}>{b.label}</Text> : null })()}
+        </View>
         {showCreator ? (
           <Text
             style={styles.creator}
@@ -71,7 +75,9 @@ const styles = StyleSheet.create({
   coverImg: { width: '100%', height: '100%' },
   playingOverlay: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(0,0,0,0.4)' },
   body: { flex: 1, gap: 4 },
-  title: { color: mono.color.text, fontSize: mono.font.body, fontWeight: '600' },
+  titleRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  title: { color: mono.color.text, fontSize: mono.font.body, fontWeight: '600', flexShrink: 1 },
+  modelBadge: { fontSize: 10, fontWeight: '700', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 6, overflow: 'hidden' },
   // alignSelf flex-start — 이름 글자 폭만 탭 영역(빈 공간은 행 재생으로 떨어짐)
   creator: { color: mono.color.textSecondary, fontSize: mono.font.small, alignSelf: 'flex-start', maxWidth: '100%' },
   stats: { flexDirection: 'row', alignItems: 'center', gap: 12, marginTop: 1 },
