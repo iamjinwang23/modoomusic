@@ -42,7 +42,7 @@ export default function TabsLayout() {
           },
           tabBarBackground: GLASS_AVAILABLE ? () => <GlassSurface preferBlur tint="rgba(16,18,24,0.8)" /> : undefined,
           tabBarIconStyle: { marginBottom: 1 },
-          tabBarLabelStyle: { fontSize: 11.5, fontWeight: '600' },
+          tabBarLabelStyle: { fontSize: 10.5, fontWeight: '600' },
         }}>
         <Tabs.Screen
           name="index"
