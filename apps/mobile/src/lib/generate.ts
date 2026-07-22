@@ -11,6 +11,13 @@ export const MUSIC_MODELS = [
 
 export type MusicModelId = (typeof MUSIC_MODELS)[number]['id']
 
+// 곡 모델 뱃지 — 2.6=바이올렛, 3.0=틸(#14B8A6 기반)으로 구분. 2.0=기본이라 미표시. 웹 modelLabel 패리티.
+export function modelBadge(model?: string | null): { label: string; color: string; bg: string } | null {
+  if (model === 'music-3.0') return { label: 'v3.0', color: '#5eead4', bg: 'rgba(20,184,166,0.2)' }
+  if (model === 'music-2.6') return { label: 'v2.6', color: '#c4b5fd', bg: 'rgba(124,58,237,0.2)' }
+  return null
+}
+
 export interface GenerateInput {
   prompt: string
   title?: string

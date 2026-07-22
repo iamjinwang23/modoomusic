@@ -17,6 +17,7 @@ import { useGlobalPlayer } from '@/contexts/GlobalPlayerContext'
 import { useAuth } from '@/components/AuthProvider'
 import { toast } from '@/components/toast/toast'
 import { buildSongShareUrl } from '@/utils/shareUrl'
+import { modelBadgeInfo } from '@/utils/modelBadge'
 import { SoundWaveIcon } from '@/components/SoundWaveIcon'
 import { AnimatedGradientBackground } from '@/components/AnimatedGradientBackground'
 import { GeneratingPhrase } from '@/components/GeneratingPhrase'
@@ -628,9 +629,9 @@ function SongWorkItem({ song, onOpen, onEdit, onDelete, onCollect, onPublish, on
             >
               <div className="flex items-center gap-1.5 min-w-0">
                 <p className="text-sm font-medium text-white truncate min-w-0">{displayTitle}</p>
-                {song.model === 'music-2.6' && (
-                  <span className="shrink-0 text-[10px] font-medium px-1.5 py-1 rounded-md leading-none text-violet-300 bg-violet-600/20">
-                    {`v${song.model.replace(/^music-/, '')}`}
+                {modelBadgeInfo(song.model) && (
+                  <span className={`shrink-0 text-[10px] font-medium px-1.5 py-1 rounded-md leading-none ${modelBadgeInfo(song.model)!.cls}`}>
+                    {modelBadgeInfo(song.model)!.label}
                   </span>
                 )}
                 {song.instrumental && !isGenerating && (

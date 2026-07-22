@@ -18,6 +18,7 @@ import { getNowPlaying, setNowPlaying, useNowPlaying } from '@/lib/now-playing'
 import { supabase } from '@/lib/supabase'
 import { primeMyDisplayName } from '@/lib/me'
 import { deleteSong, downloadSong, setSongPublished, shareSong } from '@/lib/song-actions'
+import { modelBadge } from '@/lib/generate'
 import { isInAnyCollection } from '@/lib/collection'
 import { SongMoreSheet } from '@/components/ui/song-more-sheet'
 import { CollectionPickerModal } from '@/components/ui/collection-picker-modal'
@@ -149,6 +150,7 @@ export default function PlayerScreen() {
   // 곡 통계(재생·좋아요·댓글 수) + 스타일 — 웹 파리티. 플레이어 진입 시 상세 조회.
   const [meta, setMeta] = useState<{ playCount: number; likeCount: number; commentCount: number } | null>(null)
   const [songStyle, setSongStyle] = useState<string | null>(null)
+  const [songModel, setSongModel] = useState<string | null>(null)
   // 수정 모달 원본(제목·가사·공개코멘트) — 상세 fetch로 채움
   const [editData, setEditData] = useState<{ id: string; title: string | null; lyrics: string | null; publishComment: string | null; coverImage?: string; coverHue?: number } | null>(null)
   // 공개 코멘트 캡션 더보기/접기 — 3줄 초과 시 토글 노출
@@ -157,7 +159,7 @@ export default function PlayerScreen() {
   const captionMeasured = useRef(false)
 
   useEffect(() => {
-    if (!song?.id) { setMeta(null); setSongStyle(null); setEditData(null); return }
+    if (!song?.id) { setMeta(null); setSongStyle(null); setSongModel(null); setEditData(null); return }
     let active = true
     api.get(`/api/songs/${song.id}`).then((j) => {
       if (!active) return
@@ -165,6 +167,7 @@ export default function PlayerScreen() {
       if (!s) return
       setMeta({ playCount: s.playCount ?? 0, likeCount: s.likeCount ?? 0, commentCount: s.commentCount ?? 0 })
       setSongStyle(s.prompt?.trim() || [s.genre, s.mood].filter(Boolean).join(', ') || null)
+      setSongModel(s.model ?? null)
       setEditData({ id: s.id, title: s.title ?? null, lyrics: s.lyrics ?? null, publishComment: s.publishComment ?? null, coverImage: s.coverImage, coverHue: s.coverHue })
       // 서버 per-user liked로 초기화 — 단, 사용자가 그 사이 토글했으면 스킵(race 방지)
       if (!likeTouchedRef.current) setLiked(!!s.liked)
@@ -445,6 +448,7 @@ export default function PlayerScreen() {
       {/* 캡션(좌) + 세로 액션 레일(우) — 틱톡/쇼츠식 */}
       <View style={styles.heroRow} onLayout={(e) => setInfoY(e.nativeEvent.layout.y)}>
         <View style={styles.info}>
+          {(() => { const b = modelBadge(songModel); return b ? <Text style={[styles.modelBadge, { color: b.color, backgroundColor: b.bg }]}>{b.label}</Text> : null })()}
           <Marquee text={title} style={styles.title} />
           {song?.username ? (
             <View style={styles.ownerRow}>
@@ -708,6 +712,8 @@ const styles = StyleSheet.create({
   // 좋아요 활성 — 화이트 원형 + 다크 하트(컬러 반전, 글래스보다 돋보이게)
   likeOn: { width: 48, height: 48, borderRadius: 24, backgroundColor: '#ffffff', alignItems: 'center', justifyContent: 'center' },
   title: { color: mono.color.text, fontSize: 28, fontWeight: '700', lineHeight: 34 },
+  // 모델 뱃지 — 제목 위, 2.6=바이올렛 / 3.0=틸(색상은 inline). alignSelf로 좌측 정렬.
+  modelBadge: { alignSelf: 'flex-start', fontSize: 11, fontWeight: '700', paddingHorizontal: 8, paddingVertical: 3, borderRadius: 7, overflow: 'hidden' },
   artist: { color: mono.color.textSecondary, fontSize: mono.font.body },
   // 공개 코멘트 캡션(릴스식) — 프로필 하단
   caption: { color: mono.color.text, fontSize: mono.font.body, lineHeight: 26 },

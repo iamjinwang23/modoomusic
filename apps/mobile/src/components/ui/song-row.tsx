@@ -4,6 +4,7 @@ import Svg, { Defs, LinearGradient, Rect, Stop } from 'react-native-svg'
 import { State, useActiveTrack, usePlaybackState } from 'react-native-track-player'
 import type { Song } from '@mono/shared'
 import { Icon } from '@/components/ui/icon'
+import { modelBadge } from '@/lib/generate'
 import { BreathingDot } from '@/components/ui/generating-dots'
 import { GeneratingPhrase } from '@/components/ui/generating-phrase'
 import { SkeletonShimmer } from '@/components/ui/skeleton-shimmer'
@@ -74,7 +75,7 @@ export function SongRow({ song, onPress, onMore }: { song: Song; onPress?: () =>
       <View style={styles.meta}>
         <View style={styles.titleRow}>
           <Text style={styles.title} numberOfLines={1}>{song.title?.trim() || '제목 없음'}</Text>
-          {song.model === 'music-2.6' ? <Text style={styles.modelBadge}>v2.6</Text> : null}
+          {(() => { const b = modelBadge(song.model); return b ? <Text style={[styles.modelBadge, { color: b.color, backgroundColor: b.bg }]}>{b.label}</Text> : null })()}
         </View>
         {generating ? (
           <GeneratingPhrase startedAt={song.createdAt} style={styles.sub} />
