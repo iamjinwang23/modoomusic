@@ -2,6 +2,7 @@ import { useEffect, useRef } from 'react';
 import { DarkTheme, DefaultTheme, router, Stack, ThemeProvider } from 'expo-router';
 import * as Notifications from 'expo-notifications';
 import * as SplashScreen from 'expo-splash-screen';
+import { useFonts } from 'expo-font';
 import { LogBox, useColorScheme } from 'react-native';
 
 // 알려진 무해 경고 억제(다른 경고는 유지):
@@ -17,6 +18,7 @@ import { AnimatedSplashOverlay } from '@/components/animated-icon';
 import { ToastHost } from '@/components/ui/toast-host';
 import { useSession } from '@/lib/use-session';
 import { configureNotificationHandler, registerForPush, unregisterForPush } from '@/lib/push';
+import { PRETENDARD_FONTS, applyPretendardToText } from '@/lib/fonts';
 import { api } from '@/lib/api';
 import { playSong } from '@/lib/player';
 import type { NowPlaying } from '@/lib/now-playing';
@@ -25,10 +27,14 @@ SplashScreen.preventAutoHideAsync();
 
 // 모듈 로드 시 1회 — 알림이 도착하기 전에 포그라운드 핸들러를 설정.
 configureNotificationHandler();
+// 모듈 로드 시 1회 — 모든 Text가 Pretendard로 렌더되도록 전역 override(웹 폰트 파리티).
+applyPretendardToText();
 
 export default function RootLayout() {
   const colorScheme = useColorScheme();
   const { session } = useSession();
+  // Pretendard 로드(웨이트 5종). 로컬 에셋이라 스플래시 동안 로드됨.
+  useFonts(PRETENDARD_FONTS);
 
   // 로그인/로그아웃 전환에 따라 푸시 토큰 등록/해제 (매 렌더가 아닌 전환 시점에만).
   const wasAuthed = useRef(false);
