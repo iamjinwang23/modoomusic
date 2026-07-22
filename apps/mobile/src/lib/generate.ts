@@ -4,8 +4,8 @@ import { supabase } from './supabase'
 
 // 음악 생성 모델 — 웹 minimax.service MODELS와 동기화(id/label/credits).
 export const MUSIC_MODELS = [
+  { id: 'music-3.0', label: 'Music 3.0', desc: '가장 자연스럽고 완성도 높은 최신 모델', credits: 10 },
   { id: 'music-2.6', label: 'Music 2.6', desc: '다른 곡을 참고해 만들 수 있어요', credits: 10 },
-  { id: 'music-2.5+', label: 'Music 2.5+', desc: '연주곡(인스트루멘탈)을 만들 수 있어요', credits: 10 },
   { id: 'music-2.0', label: 'Music 2.0', desc: '빠르고 가볍게 만들 수 있어요', credits: 2 },
 ] as const
 

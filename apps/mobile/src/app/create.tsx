@@ -33,7 +33,7 @@ export default function CreateScreen() {
   const [lyrics, setLyrics] = useState('')
   const [instrumental, setInstrumental] = useState(false)
   const [vocalGender, setVocalGender] = useState<'female' | 'male' | null>(null)
-  const [model, setModel] = useState<MusicModelId>('music-2.0')
+  const [model, setModel] = useState<MusicModelId>('music-3.0')
   const [chips, setChips] = useState<string[]>(pickChips)
   const [credits, setCredits] = useState<number | null>(null)
   const [lyricsGenerating, setLyricsGenerating] = useState(false)

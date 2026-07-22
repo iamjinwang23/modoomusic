@@ -29,7 +29,7 @@ export interface Song {
   likeCount?: number
   commentCount?: number
   status?: SongStatus
-  model?: string | null  // 'music-2.0' | 'music-2.5+' | 'music-2.6' (mig 029)
+  model?: string | null  // 'music-3.0' | 'music-2.6' | 'music-2.0' (mig 029). 과거 곡은 'music-2.5+'도 존재
   // 비디오 커버 (mig 035)
   videoCoverUrl?: string
   videoCoverStatus?: VideoCoverStatus

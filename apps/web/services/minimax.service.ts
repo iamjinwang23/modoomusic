@@ -21,13 +21,13 @@ const MOCK_LYRICS = `[Verse]
 오늘의 내 하루를`
 
 // MiniMax 공식 카피 기반 (https://platform.minimax.io/docs/guides/pricing-paygo)
-// - 2.0: 기본 (보컬+악기). $0.03/곡
-// - 2.5+: 인스트루멘탈 음악 제작 지원. $0.15/곡
-// - 2.6: 참조 음원 커버 + 인스트루멘탈 지원. $0.15/곡 (Limited Free promo)
+// - 3.0: 최신 추천 모델. 보컬↑·드리프트↓, 보컬/인스트루멘탈 지원. $0.15/곡
+// - 2.6: 참조 음원 커버 + 인스트루멘탈 지원. $0.15/곡
+// - 2.0: 기본 (보컬+악기). 빠르고 저렴. $0.03/곡
 // cover 모드는 model 단위 flag가 아닌 audioBase64 유무로 동적 분기 (music-2.6 + audio = cover)
 export const MODELS = [
+  { id: 'music-3.0',  label: 'Music 3.0',  desc: '가장 자연스럽고 완성도 높은 최신 모델이에요', locked: false, credits: 10 },
   { id: 'music-2.6',  label: 'Music 2.6',  desc: '좋아하는 노래 분위기를 참고해 만들 수 있어요', locked: false, credits: 10 },
-  { id: 'music-2.5+', label: 'Music 2.5+', desc: '보컬 없이 연주곡도 만들 수 있어요',           locked: false, credits: 10 },
   { id: 'music-2.0',  label: 'Music 2.0',  desc: '빠르고 가볍게 보컬곡을 만들 수 있어요',       locked: false, credits: 2  },
 ] as const
 
@@ -80,8 +80,8 @@ export async function generateSong(params: GenerateParams): Promise<GenerateResu
     audio_setting: { sample_rate: 44100, bitrate: 256000, format: 'mp3' },
   }
 
-  // is_instrumental은 Music 2.5+/2.6 계열에서만 지원. Music 2.0은 lyrics 유무로 판정
-  const supportsInstrumentalFlag = model === 'music-2.5+' || model === 'music-2.6'
+  // is_instrumental은 Music 3.0/2.6 계열에서만 지원. Music 2.0은 lyrics 유무로 판정
+  const supportsInstrumentalFlag = model === 'music-3.0' || model === 'music-2.6'
 
   if (isCoverRequest) {
     body.audio_base64 = audioBase64

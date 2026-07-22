@@ -71,6 +71,11 @@ function message(n: Notification): string {
       return p.body || p.title || '커뮤니티 알림이 있어요'
     }
     case 'credit_charged': return '크레딧이 충전됐어요'
+    case 'system': {
+      // 공지(What's New) 발행 알림 — payload.title/body(웹 NotificationItem 파리티). 앱은 한 줄이라 제목 우선.
+      const p = (n.payload as { title?: string; body?: string }) ?? {}
+      return p.title || p.body || '새 알림이 있어요'
+    }
     default: return '새 알림이 있어요'
   }
 }
