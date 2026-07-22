@@ -1,6 +1,8 @@
 import { router, Tabs } from 'expo-router';
+import { StyleSheet } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { MiniPlayer } from '@/components/ui/mini-player';
+import { GlassSurface, GLASS_AVAILABLE } from '@/components/ui/glass-surface';
 import { useAuthGate } from '@/lib/auth-gate';
 import { mono } from '@/theme/mono';
 // 웹 BottomNav와 동일한 MingCute 탭 아이콘 (둘러보기·커뮤니티·만들기·라이브러리·프로필)
@@ -27,14 +29,18 @@ export default function TabsLayout() {
           headerShown: false,
           tabBarActiveTintColor: mono.color.text,
           tabBarInactiveTintColor: mono.color.textTertiary,
+          // 풀폭 글라스 탭바 — iOS26 Liquid Glass / 이하 BlurView. 콘텐츠가 밑으로 비침. 미니플레이어와 동일 표면.
           tabBarStyle: {
-            backgroundColor: mono.color.bg,
-            borderTopColor: mono.color.borderSoft,
-            borderTopWidth: 1,
+            position: 'absolute',
+            backgroundColor: GLASS_AVAILABLE ? 'transparent' : mono.color.bg,
+            borderTopColor: 'rgba(255,255,255,0.08)',
+            borderTopWidth: StyleSheet.hairlineWidth,
+            elevation: 0,
             height: 62 + insets.bottom,
             paddingTop: 9,
             paddingBottom: insets.bottom > 0 ? insets.bottom - 4 : 8,
           },
+          tabBarBackground: GLASS_AVAILABLE ? () => <GlassSurface preferBlur tint="rgba(16,18,24,0.8)" /> : undefined,
           tabBarIconStyle: { marginBottom: 1 },
           tabBarLabelStyle: { fontSize: 11.5, fontWeight: '600' },
         }}>

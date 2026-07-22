@@ -7,6 +7,7 @@ export interface NowPlaying {
   title: string | null
   audioUrl: string
   coverImage?: string
+  coverHue?: number      // 커버 지배색 hue — 미니플레이어 글라스 틴트 등에 사용
   duration?: number | null
   lyrics?: string | null
   liked?: boolean
