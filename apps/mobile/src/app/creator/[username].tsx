@@ -14,6 +14,7 @@ import { playSong } from '@/lib/player'
 import { ProfileGrid, CoverScrim, formatCount } from '@/components/ui/profile-grid'
 import { CollapsingHeader, HEADER_ROW } from '@/components/ui/collapsing-header'
 import { Icon } from '@/components/ui/icon'
+import { SocialLinksRow } from '@/components/ui/social-links-row'
 import { GlassIconButton, GlassPill } from '@/components/ui/glass-button'
 import { SkeletonBox, SkeletonProfileGrid } from '@/components/ui/skeleton'
 import { mono } from '@/theme/mono'
@@ -175,6 +176,7 @@ export default function CreatorScreen() {
             <Text style={styles.statItem}><Text style={styles.statNum}>{profile.followingCount.toLocaleString()}</Text> 팔로잉</Text>
           </View>
           {profile.bio ? <Text style={styles.bio}>{profile.bio}</Text> : null}
+          <SocialLinksRow links={profile.links} />
         </View>
 
         {/* ── 음악/영상 탭 + 그리드 ── */}
