@@ -106,7 +106,7 @@ export default function CreditPurchaseScreen() {
         <View style={{ width: 22 }} />
       </View>
 
-      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: insets.bottom + 40 }}>
+      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: insets.bottom + 20, flexGrow: 1 }}>
         {/* 보유 크레딧 — 캡션+아이콘(동일 색) 위, 숫자만 가운데 큰 폰트 */}
         <View style={styles.balanceHero}>
           <View style={styles.balanceCapRow}>
@@ -153,12 +153,12 @@ const styles = StyleSheet.create({
   header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, marginBottom: 8 },
   close: { color: mono.color.text, fontSize: 22 },
   title: { color: mono.color.text, fontSize: mono.font.h2, fontWeight: '700' },
-  // 보유 크레딧 — 박스 없이 큰 폰트 히어로
-  balanceHero: { alignItems: 'center', paddingTop: 18, paddingBottom: 30 },
+  // 보유 크레딧 — 박스 없이 큰 폰트 히어로. 그룹 위/아래 갭 넉넉히.
+  balanceHero: { alignItems: 'center', paddingTop: 30, paddingBottom: 44 },
   balanceCapRow: { flexDirection: 'row', alignItems: 'center', gap: 5, marginBottom: 8 },
   balanceCap: { color: mono.color.textSecondary, fontSize: mono.font.body, fontWeight: '600' },
   balanceBig: { color: mono.color.text, fontSize: 52, fontWeight: '800', letterSpacing: -1, textAlign: 'center' },
-  pack: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', backgroundColor: mono.color.surface, borderRadius: mono.radius.lg, borderWidth: 1, borderColor: mono.color.borderSoft, paddingHorizontal: 18, paddingVertical: 18, marginBottom: 12 },
+  pack: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', backgroundColor: mono.color.surface, borderRadius: mono.radius.lg, borderWidth: 1, borderColor: mono.color.borderSoft, paddingHorizontal: 18, paddingVertical: 20, marginBottom: 14 },
   packBusy: { opacity: 0.6 },
   packLeft: { gap: 3 },
   packCredits: { color: mono.color.text, fontSize: mono.font.h2, fontWeight: '800' },
@@ -168,5 +168,5 @@ const styles = StyleSheet.create({
   emptyText: { color: mono.color.text, fontSize: mono.font.body, fontWeight: '600' },
   emptySub: { color: mono.color.textTertiary, fontSize: mono.font.small, textAlign: 'center' },
   error: { color: mono.color.danger, fontSize: mono.font.small, textAlign: 'center', marginTop: 12 },
-  terms: { color: mono.color.textTertiary, fontSize: mono.font.tiny, lineHeight: 17, marginTop: 24 },
+  terms: { color: mono.color.textTertiary, fontSize: mono.font.tiny, lineHeight: 17, marginTop: 'auto', paddingTop: 28 },
 })
