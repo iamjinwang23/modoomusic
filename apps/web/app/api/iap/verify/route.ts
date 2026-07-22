@@ -13,6 +13,10 @@ import { iapCredits } from '@mono/shared'
 interface VerifiedTx { transactionId: string; productId: string; store: string }
 
 const BUNDLE_ID = 'com.modoomusic.app'
+// App Store 앱 ID(공개 식별자). @apple/app-store-server-library는 PRODUCTION 환경 검증 시
+// appAppleId가 없으면 생성자에서 예외를 던짐 → 실결제(production) 영수증 검증이 통째로 실패한다.
+// (SANDBOX/TestFlight는 appAppleId 불필요라 그동안 문제가 드러나지 않았음.)
+const APP_APPLE_ID = 6790648491
 // Apple 루트 CA(공개, DER base64) — Vercel 파일추적 회피 위해 인라인. G3(StoreKit2 ECC 체인)·G2.
 const APPLE_ROOT_CAS = [
   'MIICQzCCAcmgAwIBAgIILcX8iNLFS5UwCgYIKoZIzj0EAwMwZzEbMBkGA1UEAwwSQXBwbGUgUm9vdCBDQSAtIEczMSYwJAYDVQQLDB1BcHBsZSBDZXJ0aWZpY2F0aW9uIEF1dGhvcml0eTETMBEGA1UECgwKQXBwbGUgSW5jLjELMAkGA1UEBhMCVVMwHhcNMTQwNDMwMTgxOTA2WhcNMzkwNDMwMTgxOTA2WjBnMRswGQYDVQQDDBJBcHBsZSBSb290IENBIC0gRzMxJjAkBgNVBAsMHUFwcGxlIENlcnRpZmljYXRpb24gQXV0aG9yaXR5MRMwEQYDVQQKDApBcHBsZSBJbmMuMQswCQYDVQQGEwJVUzB2MBAGByqGSM49AgEGBSuBBAAiA2IABJjpLz1AcqTtkyJygRMc3RCV8cWjTnHcFBbZDuWmBSp3ZHtfTjjTuxxEtX/1H7YyYl3J6YRbTzBPEVoA/VhYDKX1DyxNB0cTddqXl5dvMVztK517IDvYuVTZXpmkOlEKMaNCMEAwHQYDVR0OBBYEFLuw3qFYM4iapIqZ3r6966/ayySrMA8GA1UdEwEB/wQFMAMBAf8wDgYDVR0PAQH/BAQDAgEGMAoGCCqGSM49BAMDA2gAMGUCMQCD6cHEFl4aXTQY2e3v9GwOAEZLuN+yRhHFD/3meoyhpmvOwgPUnPWTxnS4at+qIxUCMG1mihDK1A3UT82NQz60imOlM27jbdoXt2QfyFMm+YhidDkLF1vLUagM6BgD56KyKA==',
@@ -23,7 +27,9 @@ const APPLE_ROOT_CAS = [
 async function verifyApple(signedTransaction: string): Promise<VerifiedTx | null> {
   for (const env of [Environment.SANDBOX, Environment.PRODUCTION]) {
     try {
-      const verifier = new SignedDataVerifier(APPLE_ROOT_CAS, false, env, BUNDLE_ID)
+      // PRODUCTION은 appAppleId 필수(없으면 생성자 throw), SANDBOX는 넘기면 안 됨(undefined).
+      const appAppleId = env === Environment.PRODUCTION ? APP_APPLE_ID : undefined
+      const verifier = new SignedDataVerifier(APPLE_ROOT_CAS, false, env, BUNDLE_ID, appAppleId)
       const tx = await verifier.verifyAndDecodeTransaction(signedTransaction)
       if (tx?.productId && tx?.transactionId != null) {
         return { transactionId: String(tx.transactionId), productId: String(tx.productId), store: 'app_store' }
