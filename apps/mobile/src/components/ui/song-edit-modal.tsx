@@ -41,7 +41,9 @@ export function SongEditModal({ open, onClose, song, onSaved }: {
     if (!song || uploading) return
     const perm = await ImagePicker.requestMediaLibraryPermissionsAsync()
     if (!perm.granted) { toast.error('사진 접근 권한이 필요해요'); return }
-    const res = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ['images'], allowsEditing: true, aspect: [3, 4], quality: 0.8 })
+    // allowsEditing 끔 — iOS는 이 옵션에서 aspect를 무시하고 강제 정방형 크로퍼를 띄워
+    // (세로 커버에 부적합) 잘린 정방형이 전체화면 커버에 과하게 확대됨. 원본을 그대로 사용(표시 시 cover-fit).
+    const res = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ['images'], quality: 0.8 })
     if (res.canceled || !res.assets?.[0]) return
     const a = res.assets[0]
     setUploading(true)
