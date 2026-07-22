@@ -124,7 +124,7 @@ export default function CreditPurchaseScreen() {
             <Text style={styles.emptySub}>결제 준비가 끝나면 이곳에서 바로 충전할 수 있어요.</Text>
           </View>
         ) : (
-          products.map((p) => {
+          <View style={styles.packs}>{products.map((p) => {
             const cr = iapCredits(pSku(p))
             const on = buying === pSku(p)
             return (
@@ -136,7 +136,7 @@ export default function CreditPurchaseScreen() {
                 {on ? <ActivityIndicator color="#fff" /> : <Text style={styles.packPrice}>{pPrice(p)}</Text>}
               </Pressable>
             )
-          })
+          })}</View>
         )}
 
         {error ? <Text style={styles.error}>{error}</Text> : null}
@@ -158,7 +158,9 @@ const styles = StyleSheet.create({
   balanceCapRow: { flexDirection: 'row', alignItems: 'center', gap: 5, marginBottom: 8 },
   balanceCap: { color: mono.color.textSecondary, fontSize: mono.font.body, fontWeight: '600' },
   balanceBig: { color: mono.color.text, fontSize: 52, fontWeight: '800', letterSpacing: -1, textAlign: 'center' },
-  pack: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', backgroundColor: mono.color.surface, borderRadius: mono.radius.lg, borderWidth: 1, borderColor: mono.color.borderSoft, paddingHorizontal: 18, paddingVertical: 20, marginBottom: 14 },
+  // 팩 컨테이너 — 잔액~약관 사이 공간을 채우도록 세로 분산(위 답답함 해소)
+  packs: { flex: 1, justifyContent: 'space-between' },
+  pack: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', backgroundColor: mono.color.surface, borderRadius: mono.radius.lg, borderWidth: 1, borderColor: mono.color.borderSoft, paddingHorizontal: 18, paddingVertical: 20 },
   packBusy: { opacity: 0.6 },
   packLeft: { gap: 3 },
   packCredits: { color: mono.color.text, fontSize: mono.font.h2, fontWeight: '800' },
@@ -168,5 +170,5 @@ const styles = StyleSheet.create({
   emptyText: { color: mono.color.text, fontSize: mono.font.body, fontWeight: '600' },
   emptySub: { color: mono.color.textTertiary, fontSize: mono.font.small, textAlign: 'center' },
   error: { color: mono.color.danger, fontSize: mono.font.small, textAlign: 'center', marginTop: 12 },
-  terms: { color: mono.color.textTertiary, fontSize: mono.font.tiny, lineHeight: 17, marginTop: 'auto', paddingTop: 28 },
+  terms: { color: mono.color.textTertiary, fontSize: mono.font.tiny, lineHeight: 17, marginTop: 24 },
 })
