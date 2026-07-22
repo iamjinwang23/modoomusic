@@ -16,7 +16,6 @@ interface CreditState { total: number; paid: number }
 // v15 Product 필드 방어적 접근(스토어/버전별 필드명 편차 대비)
 const pSku = (p: Product): string => (p as { id?: string; productId?: string }).id ?? (p as { productId?: string }).productId ?? ''
 const pPrice = (p: Product): string => (p as { displayPrice?: string; localizedPrice?: string; price?: string }).displayPrice ?? (p as { localizedPrice?: string }).localizedPrice ?? (p as { price?: string }).price ?? ''
-const pTitle = (p: Product): string => (p as { title?: string }).title ?? 'MONO 크레딧'
 
 // 크레딧 충전 — 직접 인앱결제(react-native-iap). 지급은 서버 검증(/api/iap/verify).
 export default function CreditPurchaseScreen() {
@@ -110,7 +109,7 @@ export default function CreditPurchaseScreen() {
               <Pressable key={pSku(p)} style={[styles.pack, on && styles.packBusy]} disabled={!!buying} onPress={() => buy(p)}>
                 <View style={styles.packLeft}>
                   <Text style={styles.packCredits}>{cr ?? '?'} 크레딧</Text>
-                  <Text style={styles.packLabel}>{pTitle(p)}</Text>
+                  <Text style={styles.packLabel}>{cr ?? '?'} Credits</Text>
                 </View>
                 {on ? <ActivityIndicator color="#fff" /> : <Text style={styles.packPrice}>{pPrice(p)}</Text>}
               </Pressable>
