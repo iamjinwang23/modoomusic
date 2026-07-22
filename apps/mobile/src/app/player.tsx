@@ -22,6 +22,7 @@ import { isInAnyCollection } from '@/lib/collection'
 import { SongMoreSheet } from '@/components/ui/song-more-sheet'
 import { CollectionPickerModal } from '@/components/ui/collection-picker-modal'
 import { SongEditModal } from '@/components/ui/song-edit-modal'
+import { PublishSheet } from '@/components/ui/publish-sheet'
 import { Icon } from '@/components/ui/icon'
 import { GeneratingDots } from '@/components/ui/generating-dots'
 import { hapticLight } from '@/lib/haptics'
@@ -310,17 +311,19 @@ export default function PlayerScreen() {
 
   const togglePublish = async () => {
     if (!song || pubBusy) return
-    const next = !published
-    setPublished(next); setPubBusy(true)
-    const ok = await setSongPublished(song.id, next)
-    if (ok) toast[next ? 'success' : 'info'](next ? '곡을 공개했어요' : '공개가 취소되었어요')
-    else { setPublished(!next); toast.error('처리에 실패했어요') }
+    // 공개: 코멘트 입력 시트를 통해 발행(웹 PublishModal 패리티). 공개 취소: 즉시.
+    if (!published) { setPublishOpen(true); return }
+    setPublished(false); setPubBusy(true)
+    const ok = await setSongPublished(song.id, false)
+    if (ok) toast.info('공개가 취소되었어요')
+    else { setPublished(true); toast.error('처리에 실패했어요') }
     setPubBusy(false)
   }
 
   // 더보기(⋮) 바텀시트 + 수정 모달 + 컬렉션 상태
   const [moreOpen, setMoreOpen] = useState(false)
   const [editOpen, setEditOpen] = useState(false)
+  const [publishOpen, setPublishOpen] = useState(false)
   const [collected, setCollected] = useState(false)
   const [pickerOpen, setPickerOpen] = useState(false)
   useEffect(() => { if (song?.id) isInAnyCollection(song.id).then(setCollected); else setCollected(false) }, [song?.id])
@@ -626,6 +629,19 @@ export default function PlayerScreen() {
         setEditData((d) => d ? { ...d, ...p } : d)
         const cur = getNowPlaying()
         if (cur && cur.id === editData?.id) setNowPlaying({ ...cur, title: p.title, lyrics: p.lyrics, coverImage: p.coverImage ?? cur.coverImage })
+      }}
+    />
+
+    {/* 공개하기 — 코멘트 입력 후 발행 */}
+    <PublishSheet
+      open={publishOpen}
+      onClose={() => setPublishOpen(false)}
+      song={song ? { id: song.id, title: song.title, publishComment: editData?.publishComment ?? null, coverImage: song.coverImage, coverHue: editData?.coverHue } : null}
+      onPublished={(c) => {
+        setPublished(true)
+        setEditData((d) => d ? { ...d, publishComment: c } : d)
+        const cur = getNowPlaying()
+        if (cur && cur.id === song?.id) setNowPlaying({ ...cur, published: true })
       }}
     />
 

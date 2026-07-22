@@ -18,11 +18,11 @@ export async function shareCommunity(id: string, name?: string | null) {
 }
 
 // 공개/비공개 토글 — songs.is_public 직접 업데이트(RLS: 소유자만). 웹 song.service 패리티.
-export async function setSongPublished(songId: string, published: boolean): Promise<boolean> {
-  const { error } = await supabase
-    .from('songs')
-    .update({ is_public: published, published_at: published ? new Date().toISOString() : null })
-    .eq('id', songId)
+// 공개 시 publishComment를 함께 저장 가능(웹 PublishModal 패리티). 미전달이면 코멘트 미변경.
+export async function setSongPublished(songId: string, published: boolean, publishComment?: string | null): Promise<boolean> {
+  const row: Record<string, unknown> = { is_public: published, published_at: published ? new Date().toISOString() : null }
+  if (published && publishComment !== undefined) row.publish_comment = publishComment
+  const { error } = await supabase.from('songs').update(row).eq('id', songId)
   return !error
 }
 
