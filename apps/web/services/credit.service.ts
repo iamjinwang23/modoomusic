@@ -29,6 +29,7 @@ export interface CreditState {
   bonus: number           // 무상 보너스 잔여
   paid: number            // 유상(구매) 잔여 — 무기한, 최후 소진
   total: number           // 일일 + 보너스 + 유상 합산 (사용 가능 총량)
+  videoTrial: number      // 비디오 커버 무료 체험권 잔여 (mig 035) — 있으면 영상 무료
   resetAt: string
 }
 
@@ -43,7 +44,7 @@ export async function getCreditState(userId: string): Promise<CreditState> {
   const supabase = createAdminClient()
   const { data } = await supabase
     .from('profiles')
-    .select('daily_credits_used, last_credit_reset_at, bonus_credits, paid_credits, is_admin')
+    .select('daily_credits_used, last_credit_reset_at, bonus_credits, paid_credits, is_admin, video_trial_remaining')
     .eq('id', userId)
     .maybeSingle()
 
@@ -53,6 +54,7 @@ export async function getCreditState(userId: string): Promise<CreditState> {
   const needsReset = !lastReset || new Date(lastReset) < new Date(todayStartUtc)
   const bonus = (data?.bonus_credits as number | null) ?? 0
   const paid = (data?.paid_credits as number | null) ?? 0
+  const videoTrial = (data?.video_trial_remaining as number | null) ?? 0
 
   if (needsReset && data) {
     await supabase
@@ -66,6 +68,7 @@ export async function getCreditState(userId: string): Promise<CreditState> {
       bonus,
       paid,
       total: limit + bonus + paid,
+      videoTrial,
       resetAt: nextKstMidnightIso(),
     }
   }
@@ -79,6 +82,7 @@ export async function getCreditState(userId: string): Promise<CreditState> {
     bonus,
     paid,
     total: remaining + bonus + paid,
+    videoTrial,
     resetAt: nextKstMidnightIso(),
   }
 }

@@ -5,11 +5,11 @@ import { router, useLocalSearchParams } from 'expo-router'
 import * as ImagePicker from 'expo-image-picker'
 import * as FileSystem from 'expo-file-system/legacy'
 import Svg, { Path } from 'react-native-svg'
-import { Button } from '@/components/ui/button'
 import { Icon } from '@/components/ui/icon'
 import { BottomSheet } from '@/components/ui/bottom-sheet'
 import { generateVideoCover, VIDEO_TIERS, type VideoTier, type VideoMode } from '@/lib/video'
 import { getNowPlaying, setNowPlaying } from '@/lib/now-playing'
+import { api } from '@/lib/api'
 import { toast } from '@/lib/toast'
 import { mono } from '@/theme/mono'
 
@@ -27,11 +27,18 @@ export default function VideoCreateScreen() {
   const [error, setError] = useState<string | null>(null)
   const [tierSheet, setTierSheet] = useState(false)
   const [kbHeight, setKbHeight] = useState(0)
+  // 비디오 무료 체험권 잔여(웹 파리티). 있으면 CTA·안내에 '무료'로 표시.
+  const [videoTrial, setVideoTrial] = useState(0)
   const activeTier = VIDEO_TIERS.find((t) => t.id === tier)!
   useEffect(() => {
     const show = Keyboard.addListener('keyboardWillShow', (e) => setKbHeight(e.endCoordinates.height))
     const hide = Keyboard.addListener('keyboardWillHide', () => setKbHeight(0))
     return () => { show.remove(); hide.remove() }
+  }, [])
+  useEffect(() => {
+    (api.get('/api/credits/me') as Promise<{ videoTrial?: number } | null>)
+      .then((c) => setVideoTrial(c?.videoTrial ?? 0))
+      .catch(() => {})
   }, [])
 
   const sourceImage = customImage?.uri ?? (cover || null)
@@ -122,7 +129,22 @@ export default function VideoCreateScreen() {
       </ScrollView>
 
       <View style={[styles.footer, { paddingBottom: kbHeight > 0 ? kbHeight + 8 : insets.bottom + 8 }]}>
-        <Button label={busy ? '만드는 중…' : '영상 만들기'} onPress={submit} loading={busy} />
+        {/* CTA — 웹 파리티: 영상 만들기 + ✦ (체험권 있으면 '무료', 없으면 화질별 크레딧) */}
+        <Pressable
+          onPress={busy ? undefined : submit}
+          style={({ pressed }) => [styles.cta, busy && styles.ctaOff, pressed && !busy && styles.ctaPressed]}
+        >
+          {busy ? (
+            <ActivityIndicator color="#fff" />
+          ) : (
+            <View style={styles.ctaRow}>
+              <Text style={styles.ctaLabel}>영상 만들기</Text>
+              <Icon name="sparkle" size={15} color={mono.color.text} />
+              <Text style={styles.ctaValue}>{videoTrial > 0 ? '무료' : activeTier.credits}</Text>
+            </View>
+          )}
+        </Pressable>
+        {videoTrial > 0 ? <Text style={styles.trialNote}>무료 체험권 {videoTrial}회 남음</Text> : null}
       </View>
 
       {/* 화질 선택 — 하단 바텀시트(만들기 모델선택 패리티) */}
@@ -199,4 +221,12 @@ const styles = StyleSheet.create({
   area: { minHeight: 88, maxHeight: 132, textAlignVertical: 'top', paddingTop: 12, lineHeight: 22 },
   error: { color: mono.color.danger, fontSize: mono.font.small, marginTop: 16, textAlign: 'center' },
   footer: { paddingTop: 12 },
+  // CTA — Button primary 스타일 + 아이콘/값 슬롯(웹 파리티)
+  cta: { backgroundColor: mono.color.accent, borderRadius: mono.radius.md, paddingVertical: 15, alignItems: 'center', justifyContent: 'center' },
+  ctaOff: { opacity: 0.5 },
+  ctaPressed: { opacity: 0.85 },
+  ctaRow: { flexDirection: 'row', alignItems: 'center', gap: 7 },
+  ctaLabel: { color: mono.color.text, fontSize: mono.font.body, fontWeight: '700' },
+  ctaValue: { color: mono.color.text, fontSize: mono.font.body, fontWeight: '800', fontVariant: ['tabular-nums'] },
+  trialNote: { color: mono.color.textTertiary, fontSize: mono.font.small, textAlign: 'center', marginTop: 10 },
 })
