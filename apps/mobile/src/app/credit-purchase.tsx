@@ -110,8 +110,8 @@ export default function CreditPurchaseScreen() {
         {/* 보유 크레딧 — 캡션+아이콘(동일 색) 위, 숫자만 가운데 큰 폰트 */}
         <View style={styles.balanceHero}>
           <View style={styles.balanceCapRow}>
-            <Text style={styles.balanceCap}>보유 크레딧</Text>
             <Icon name="sparkle" size={15} color={mono.color.textSecondary} />
+            <Text style={styles.balanceCap}>보유 크레딧</Text>
           </View>
           <Text style={styles.balanceBig}>{credits ? credits.total.toLocaleString() : '—'}</Text>
         </View>
