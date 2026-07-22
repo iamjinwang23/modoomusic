@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { ActivityIndicator, Alert, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { router } from 'expo-router'
+import Svg, { Defs, RadialGradient, Rect, Stop } from 'react-native-svg'
 import { iapCredits } from '@mono/shared'
 import { api } from '@/lib/api'
 import {
@@ -80,18 +81,39 @@ export default function CreditPurchaseScreen() {
   }
 
   return (
-    <View style={[styles.container, { paddingTop: insets.top + 8 }]}>
-      <View style={styles.header}>
+    <View style={styles.container}>
+      {/* 상단 오로라 그라데이션(로그인 파리티, 네이티브 SVG) */}
+      <View style={styles.aurora} pointerEvents="none">
+        <Svg width="100%" height="100%">
+          <Defs>
+            <RadialGradient id="cg1" cx="26%" cy="0%" rx="74%" ry="64%">
+              <Stop offset="0" stopColor="#7c3aed" stopOpacity="0.32" />
+              <Stop offset="1" stopColor="#7c3aed" stopOpacity="0" />
+            </RadialGradient>
+            <RadialGradient id="cg2" cx="88%" cy="4%" rx="62%" ry="52%">
+              <Stop offset="0" stopColor="#5b8def" stopOpacity="0.2" />
+              <Stop offset="1" stopColor="#5b8def" stopOpacity="0" />
+            </RadialGradient>
+          </Defs>
+          <Rect width="100%" height="100%" fill="url(#cg1)" />
+          <Rect width="100%" height="100%" fill="url(#cg2)" />
+        </Svg>
+      </View>
+
+      <View style={[styles.header, { paddingTop: insets.top + 8 }]}>
         <Pressable onPress={() => router.back()} hitSlop={12}><Text style={styles.close}>✕</Text></Pressable>
         <Text style={styles.title}>크레딧 충전</Text>
         <View style={{ width: 22 }} />
       </View>
 
-      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: insets.bottom + 40 }}>
-        <View style={styles.balance}>
-          <Icon name="sparkle" size={18} color={mono.color.text} />
-          <Text style={styles.balanceLabel}>보유 크레딧</Text>
-          <Text style={styles.balanceValue}>{credits ? credits.total : '—'}</Text>
+      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: insets.bottom + 40 }}>
+        {/* 보유 크레딧 — 박스 없이 큰 폰트로 */}
+        <View style={styles.balanceHero}>
+          <Text style={styles.balanceCap}>보유 크레딧</Text>
+          <View style={styles.balanceRow}>
+            <Icon name="sparkle" size={26} color={mono.color.accentLight} />
+            <Text style={styles.balanceBig}>{credits ? credits.total.toLocaleString() : '—'}</Text>
+          </View>
         </View>
 
         {products === null ? (
@@ -126,13 +148,16 @@ export default function CreditPurchaseScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: mono.color.bg, paddingHorizontal: 20 },
-  header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 },
+  container: { flex: 1, backgroundColor: mono.color.bg },
+  aurora: { position: 'absolute', top: 0, left: 0, right: 0, height: 280 },
+  header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, marginBottom: 8 },
   close: { color: mono.color.text, fontSize: 22 },
   title: { color: mono.color.text, fontSize: mono.font.h2, fontWeight: '700' },
-  balance: { flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: mono.color.surface, borderRadius: mono.radius.lg, borderWidth: 1, borderColor: mono.color.borderSoft, paddingHorizontal: 16, paddingVertical: 16, marginBottom: 20 },
-  balanceLabel: { color: mono.color.text, fontSize: mono.font.body, flex: 1 },
-  balanceValue: { color: mono.color.text, fontSize: mono.font.h2, fontWeight: '800' },
+  // 보유 크레딧 — 박스 없이 큰 폰트 히어로
+  balanceHero: { alignItems: 'center', paddingTop: 18, paddingBottom: 30 },
+  balanceCap: { color: mono.color.textSecondary, fontSize: mono.font.body, fontWeight: '600', marginBottom: 6 },
+  balanceRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  balanceBig: { color: mono.color.text, fontSize: 52, fontWeight: '800', letterSpacing: -1 },
   pack: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', backgroundColor: mono.color.surface, borderRadius: mono.radius.lg, borderWidth: 1, borderColor: mono.color.borderSoft, paddingHorizontal: 18, paddingVertical: 18, marginBottom: 12 },
   packBusy: { opacity: 0.6 },
   packLeft: { gap: 3 },
