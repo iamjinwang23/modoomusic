@@ -265,7 +265,7 @@ export default function PlayerScreen() {
       .catch(() => {})
     return () => { alive = false }
   }, [track])
-  const hasPrev = queueInfo.index > 0
+  // 이전 버튼은 항상 활성(현재 곡 처음으로 되감기 로직이 있어 첫곡에서도 기능함). 다음만 끝곡에서 비활성.
   const hasNext = queueInfo.len > 0 && queueInfo.index < queueInfo.len - 1
   const scrollY = useSharedValue(0)
   const onScroll = useAnimatedScrollHandler((e) => { scrollY.value = e.contentOffset.y })
@@ -563,7 +563,7 @@ export default function PlayerScreen() {
       </View>
 
       <View style={styles.controls}>
-        <Pressable onPress={skipPrev} disabled={!hasPrev} hitSlop={12} style={!hasPrev && styles.ctrlDisabled}><Icon name="gobackward.10" size={30} color={mono.color.text} /></Pressable>
+        <Pressable onPress={skipPrev} hitSlop={12}><Icon name="gobackward.10" size={30} color={mono.color.text} /></Pressable>
         <PlayButton playing={playing} onPress={() => (playing ? TrackPlayer.pause() : TrackPlayer.play())} />
         <Pressable onPress={skipNext} disabled={!hasNext} hitSlop={12} style={!hasNext && styles.ctrlDisabled}><Icon name="goforward.10" size={30} color={mono.color.text} /></Pressable>
       </View>
