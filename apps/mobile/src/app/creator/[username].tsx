@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
-import { ActivityIndicator, Alert, Pressable, StyleSheet, Text, useWindowDimensions, View } from 'react-native'
+import { ActivityIndicator, Alert, Pressable, RefreshControl, StyleSheet, Text, useWindowDimensions, View } from 'react-native'
 import Animated, { useAnimatedScrollHandler, useAnimatedStyle, useSharedValue } from 'react-native-reanimated'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { router, useLocalSearchParams } from 'expo-router'
@@ -11,6 +11,7 @@ import { useSession } from '@/lib/use-session'
 import { blockUser } from '@/lib/block'
 import { toast } from '@/lib/toast'
 import { playSong } from '@/lib/player'
+import { hapticLight } from '@/lib/haptics'
 import { ProfileGrid, CoverScrim, formatCount } from '@/components/ui/profile-grid'
 import { CollapsingHeader, HEADER_ROW } from '@/components/ui/collapsing-header'
 import { Icon } from '@/components/ui/icon'
@@ -36,6 +37,7 @@ export default function CreatorScreen() {
   const [following, setFollowing] = useState(false)
   const [followerCount, setFollowerCount] = useState(0)
   const [followBusy, setFollowBusy] = useState(false)
+  const [refreshing, setRefreshing] = useState(false)
 
   const load = useCallback(async () => {
     if (!username) return
@@ -55,6 +57,10 @@ export default function CreatorScreen() {
   }, [username])
 
   useEffect(() => { load() }, [load])
+
+  const onRefresh = useCallback(async () => {
+    hapticLight(); setRefreshing(true); await load(); setRefreshing(false)
+  }, [load])
 
   // 스트레치 헤더 — 아래로 당기면(오버스크롤 y<0) 커버가 상단 고정된 채 확대(빈공간 노출 방지).
   // ⚠️ 훅은 반드시 early return 위에 (조건부 훅 = "rendered more hooks" 에러).
@@ -139,7 +145,13 @@ export default function CreatorScreen() {
           </Pressable>
         }
       />
-      <Animated.ScrollView onScroll={onScroll} scrollEventThrottle={16} contentContainerStyle={{ paddingBottom: insets.bottom + 40 }} showsVerticalScrollIndicator={false}>
+      <Animated.ScrollView
+        onScroll={onScroll}
+        scrollEventThrottle={16}
+        contentContainerStyle={{ paddingBottom: insets.bottom + 40 }}
+        showsVerticalScrollIndicator={false}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={mono.color.textSecondary} />}
+      >
         {/* ── 커버 + 아바타·이름 오버레이 ── */}
         <View style={styles.cover}>
           {/* 배경 이미지만 스트레치(오버레이는 고정) */}

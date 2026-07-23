@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
-import { ActivityIndicator, Pressable, StyleSheet, Text, useWindowDimensions, View } from 'react-native'
+import { ActivityIndicator, Pressable, RefreshControl, StyleSheet, Text, useWindowDimensions, View } from 'react-native'
 import Animated, { useAnimatedScrollHandler, useAnimatedStyle, useSharedValue } from 'react-native-reanimated'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { router, useFocusEffect } from 'expo-router'
@@ -8,6 +8,7 @@ import type { PublicSong, UserProfile } from '@mono/shared'
 import { api } from '@/lib/api'
 import { supabase } from '@/lib/supabase'
 import { playSong } from '@/lib/player'
+import { hapticLight } from '@/lib/haptics'
 import { ProfileGrid, CoverScrim, formatCount } from '@/components/ui/profile-grid'
 import { CollapsingHeader, HEADER_ROW } from '@/components/ui/collapsing-header'
 import { Icon } from '@/components/ui/icon'
@@ -26,6 +27,7 @@ export default function ProfileTab() {
   const [profile, setProfile] = useState<UserProfile | null>(null)
   const [songs, setSongs] = useState<PublicSong[]>([])
   const [loading, setLoading] = useState(true)
+  const [refreshing, setRefreshing] = useState(false)
 
   const load = useCallback(async () => {
     const { data: { user } } = await supabase.auth.getUser()
@@ -46,6 +48,10 @@ export default function ProfileTab() {
 
   useEffect(() => { load() }, [load])
   useFocusEffect(useCallback(() => { load() }, [load]))
+
+  const onRefresh = useCallback(async () => {
+    hapticLight(); setRefreshing(true); await load(); setRefreshing(false)
+  }, [load])
 
   // 스트레치 헤더 — 아래로 당기면(오버스크롤 y<0) 커버가 상단 고정된 채 확대(빈공간 노출 방지).
   // ⚠️ 훅은 반드시 early return 위에 (조건부 훅 = "rendered more hooks" 에러).
@@ -88,7 +94,13 @@ export default function ProfileTab() {
           </>
         }
       />
-      <Animated.ScrollView onScroll={onScroll} scrollEventThrottle={16} contentContainerStyle={{ paddingBottom: insets.bottom + 40 }} showsVerticalScrollIndicator={false}>
+      <Animated.ScrollView
+        onScroll={onScroll}
+        scrollEventThrottle={16}
+        contentContainerStyle={{ paddingBottom: insets.bottom + 40 }}
+        showsVerticalScrollIndicator={false}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={mono.color.textSecondary} />}
+      >
         {/* ── 커버 + 아바타·이름 오버레이 ── */}
         <View style={styles.cover}>
           {/* 배경 이미지만 스트레치(오버레이는 고정) */}
