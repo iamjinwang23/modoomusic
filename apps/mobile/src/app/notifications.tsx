@@ -83,7 +83,7 @@ function message(n: Notification): string {
 // 좌측 비주얼 — 소식/커뮤니티공지=원형 아이콘, 크레딧=원형 반짝, 곡 완성=사각 커버, 그 외=원형 아바타(웹 파리티).
 function Visual({ n }: { n: Notification }) {
   if (NOTICE_TYPES.includes(n.type)) {
-    return <View style={styles.iconCircle}><Icon name="bell" size={18} color={mono.color.accentLight} /></View>
+    return <View style={styles.iconCircle}><Icon name="notice" size={18} color={mono.color.accentLight} /></View>
   }
   if (n.type === 'credit_charged') {
     return <View style={styles.iconCircle}><Icon name="sparkle" size={18} color={mono.color.accentLight} /></View>

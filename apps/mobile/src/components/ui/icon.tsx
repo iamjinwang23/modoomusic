@@ -5,6 +5,7 @@ import ThumbUp from '@/assets/mingcute/Thumb-Up.svg'
 import Chat from '@/assets/mingcute/chat.svg'
 import Share from '@/assets/mingcute/Share.svg'
 import Notification from '@/assets/mingcute/Notification.svg'
+import Notice from '@/assets/mingcute/notice.svg'
 import SearchSvg from '@/assets/mingcute/Search.svg'
 import PlaySvg from '@/assets/mingcute/Play.svg'
 import PauseSvg from '@/assets/mingcute/Pause.svg'
@@ -47,6 +48,7 @@ import ForbidCircleFill from '@/assets/mingcute/Forbid-Circle-Fill.svg'
 // 앱 아이콘 이름 → MingCute 컴포넌트. (좋아요=Thumb-Up 썸즈업, 웹과 동일)
 const MAP = {
   bell: Notification,
+  notice: Notice,                // 공지(나팔) — 웹 notice.svg 파리티
   'line.3.horizontal': Profile,   // 라이브러리 헤더 프로필 진입
   plus: Add,
   ellipsis: More,
