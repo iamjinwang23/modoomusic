@@ -15,6 +15,7 @@
     },
     "ios": {
       "bundleIdentifier": "com.modoomusic.app",
+      "buildNumber": "17",
       "usesAppleSignIn": true,
       "infoPlist": {
         "UIBackgroundModes": ["audio"],
