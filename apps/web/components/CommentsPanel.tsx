@@ -100,16 +100,20 @@ export function CommentsPanel({ songId, songOwnerId, songIsPublic }: Props) {
 
   function handleReplyCreated(reply: Comment) {
     setComments((prev) => [...prev, reply])
+    // 답글도 카운트에 포함(IG/TikTok식) — mig 062
+    window.dispatchEvent(new CustomEvent('song-comment-count-changed', { detail: { songId, delta: 1 } }))
   }
   function handleEdited(next: Comment) {
     setComments((prev) => prev.map((c) => c.id === next.id ? next : c))
   }
   function handleDeleted(id: string) {
     const deleted = comments.find((c) => c.id === id)
+    // 답글 포함 카운트(mig 062): top-level 삭제 시 자신 + 딸린 답글(cascade)만큼, 답글 삭제는 -1.
+    const replyCount = comments.filter((c) => c.parentId === id).length
     setComments((prev) => prev.filter((c) => c.id !== id && c.parentId !== id))
-    // top-level 삭제만 카운트 감소 (대댓글은 부모 cascade로 함께 사라지므로 별도 카운트 없음)
-    if (deleted && deleted.parentId === null) {
-      window.dispatchEvent(new CustomEvent('song-comment-count-changed', { detail: { songId, delta: -1 } }))
+    if (deleted) {
+      const delta = deleted.parentId === null ? -(1 + replyCount) : -1
+      window.dispatchEvent(new CustomEvent('song-comment-count-changed', { detail: { songId, delta } }))
     }
   }
 
