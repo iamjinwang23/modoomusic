@@ -34,7 +34,6 @@ import { SeekBar } from '@/components/ui/seek-bar'
 import { CoverScrim, formatCount } from '@/components/ui/profile-grid'
 import { mono } from '@/theme/mono'
 import { toast } from '@/lib/toast'
-import * as Clipboard from 'expo-clipboard'
 
 function fmt(sec: number): string {
   if (!Number.isFinite(sec) || sec < 0) return '0:00'
@@ -130,11 +129,26 @@ function PlayButton({ playing, onPress, size = 72 }: { playing: boolean; onPress
   )
 }
 
+// expo-clipboard는 네이티브 모듈 — 미포함 빌드(dev client·Build14)에선 top-level import만으로 크래시.
+// 지연 require + 가용성 캐시로 가드([[feedback-code-pitfalls]] iap.ts 패턴). 미포함이면 CopyBtn 자체를 숨김.
+interface ClipboardMod { setStringAsync: (t: string) => Promise<boolean> }
+let clipboardMod: ClipboardMod | null = null
+let clipboardTried = false
+function clipboard(): ClipboardMod | null {
+  if (clipboardTried) return clipboardMod
+  clipboardTried = true
+  try { clipboardMod = require('expo-clipboard') as ClipboardMod } catch { clipboardMod = null }
+  return clipboardMod
+}
+
 // 복사 버튼(가사·스타일) — 탭 시 클립보드 복사 + '복사되었어요' 스낵바. 웹 CopyBtn 파리티.
+// 클립보드 네이티브 미포함 빌드에선 렌더 안 함(크래시·깨진 버튼 방지).
 function CopyBtn({ text }: { text: string }) {
+  const c = clipboard()
+  if (!c) return null
   return (
     <Pressable
-      onPress={async () => { await Clipboard.setStringAsync(text); toast.success('복사되었어요') }}
+      onPress={async () => { await c.setStringAsync(text); toast.success('복사되었어요') }}
       hitSlop={10}
       style={({ pressed }) => [styles.copyBtn, pressed && { opacity: 0.55 }]}
     >
