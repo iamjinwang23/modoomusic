@@ -68,7 +68,8 @@ export function LoginModal({ onClose }: Props) {
     const supabase = createClient()
     await supabase.auth.signInWithOAuth({
       provider: 'google',
-      options: { redirectTo: `${window.location.origin}/auth/callback` },
+      // 계정 여러 개일 때 자동 SSO 대신 계정 선택 화면을 강제 → 로그아웃 후 다른 계정 로그인 가능.
+      options: { redirectTo: `${window.location.origin}/auth/callback`, queryParams: { prompt: 'select_account' } },
     })
   }
 

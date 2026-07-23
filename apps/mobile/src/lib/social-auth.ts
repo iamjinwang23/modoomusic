@@ -47,7 +47,12 @@ export async function signInWithNaver(): Promise<{ error?: string }> {
 export async function signInWithProvider(provider: SocialProvider): Promise<{ error?: string }> {
   const { data, error } = await supabase.auth.signInWithOAuth({
     provider,
-    options: { redirectTo: oauthRedirectTo, skipBrowserRedirect: true },
+    options: {
+      redirectTo: oauthRedirectTo,
+      skipBrowserRedirect: true,
+      // 계정 여러 개일 때 자동 SSO 대신 계정 선택 화면을 강제(Google). 로그아웃 후 다른 계정 로그인 가능.
+      ...(provider === 'google' ? { queryParams: { prompt: 'select_account' } } : {}),
+    },
   })
   if (error) return { error: error.message }
   if (!data?.url) return { error: 'no_auth_url' }
