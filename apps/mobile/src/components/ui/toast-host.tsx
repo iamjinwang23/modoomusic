@@ -1,27 +1,19 @@
-import { useEffect } from 'react'
-import { Modal, Pressable, StyleSheet, Text, View } from 'react-native'
+import { Pressable, StyleSheet, Text, View } from 'react-native'
 import Animated, { Easing, FadeInDown, FadeOutDown, LinearTransition } from 'react-native-reanimated'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
-import { dismissToast, TOAST_DURATION, useToasts, type ToastItem, type ToastType } from '@/lib/toast'
+import { dismissToast, useToasts, type ToastItem, type ToastType } from '@/lib/toast'
 import { Icon, type IconName } from '@/components/ui/icon'
-import { hapticNotify } from '@/lib/haptics'
 import { mono } from '@/theme/mono'
 
-// 타입별 좌측 아이콘 + 색(초록/노랑/빨강)과 등장 햅틱.
-const TYPE_META: Record<ToastType, { icon: IconName; color: string; haptic: 'success' | 'warning' | 'error' }> = {
-  success: { icon: 'check.circle.fill', color: '#16A34A', haptic: 'success' },  // 초록
-  info: { icon: 'info.circle.fill', color: '#EAB308', haptic: 'warning' },      // 노랑
-  error: { icon: 'forbid.circle.fill', color: '#DC2626', haptic: 'error' },     // 빨강
+// 타입별 좌측 아이콘 + 색(초록/노랑/빨강). 등장 햅틱·자동닫힘은 lib/toast.ts(생성 시점 1회) 담당.
+const TYPE_META: Record<ToastType, { icon: IconName; color: string }> = {
+  success: { icon: 'check.circle.fill', color: '#16A34A' },  // 초록
+  info: { icon: 'info.circle.fill', color: '#EAB308' },      // 노랑
+  error: { icon: 'forbid.circle.fill', color: '#DC2626' },   // 빨강
 }
 
 function Row({ item }: { item: ToastItem }) {
   const meta = TYPE_META[item.type]
-  useEffect(() => {
-    hapticNotify(meta.haptic)  // 스낵바 등장 시 타입별 햅틱
-    const t = setTimeout(() => dismissToast(item.id), item.duration ?? TOAST_DURATION[item.type])
-    return () => clearTimeout(t)
-  }, [item.id, item.duration, item.type, meta.haptic])
-
   return (
     <Animated.View entering={FadeInDown.duration(200).easing(Easing.out(Easing.cubic))} exiting={FadeOutDown.duration(150)} layout={LinearTransition.duration(180)}>
       <Pressable style={styles.toast} onPress={() => dismissToast(item.id)}>
@@ -40,20 +32,17 @@ function Row({ item }: { item: ToastItem }) {
   )
 }
 
-// 전역 스낵바 호스트 — 루트에 1회 마운트. 미니플레이어·탭바 위, 하단 정렬.
-// ⚠️ 노래 상세(player) 등 네이티브 모달 위에도 뜨도록 RN Modal로 감싼다: 스낵바가 있을 때만
-//    투명 Modal을 present → 현재 최상위 모달보다 위에 올라온다. box-none으로 아래 조작은 안 막음.
+// 전역 스낵바 호스트 — 하단 정렬 오버레이(box-none, 비차단). 부수효과가 lib에 있어 여러 곳에 마운트해도 안전.
+// ⚠️ 네이티브 모달(노래 상세 player 등) 위에 띄우려면 그 화면 안에도 <ToastHost/>를 마운트한다
+//    (네이티브 모달은 별도 VC라 루트 오버레이가 가려짐 — 최상위 VC 안에서 렌더해야 위에 보임).
 export function ToastHost() {
   const items = useToasts()
   const insets = useSafeAreaInsets()
+  if (items.length === 0) return null
   return (
-    <Modal visible={items.length > 0} transparent statusBarTranslucent animationType="none" onRequestClose={() => {}}>
-      <View pointerEvents="box-none" style={StyleSheet.absoluteFill}>
-        <View pointerEvents="box-none" style={[styles.wrap, { paddingBottom: insets.bottom + 76 }]}>
-          {items.map((it) => <Row key={it.id} item={it} />)}
-        </View>
-      </View>
-    </Modal>
+    <View pointerEvents="box-none" style={[styles.wrap, { paddingBottom: insets.bottom + 76 }]}>
+      {items.map((it) => <Row key={it.id} item={it} />)}
+    </View>
   )
 }
 

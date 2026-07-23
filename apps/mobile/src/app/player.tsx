@@ -34,6 +34,7 @@ import { SeekBar } from '@/components/ui/seek-bar'
 import { CoverScrim, formatCount } from '@/components/ui/profile-grid'
 import { mono } from '@/theme/mono'
 import { toast } from '@/lib/toast'
+import { ToastHost } from '@/components/ui/toast-host'
 
 function fmt(sec: number): string {
   if (!Number.isFinite(sec) || sec < 0) return '0:00'
@@ -700,6 +701,8 @@ export default function PlayerScreen() {
       song={song}
       onClose={() => { setPickerOpen(false); if (song?.id) isInAnyCollection(song.id).then(setCollected) }}
     />
+    {/* 스낵바 — 노래 상세는 네이티브 모달이라 루트 ToastHost가 가려짐. 이 화면 VC 안에도 마운트해 위에 표시. */}
+    <ToastHost />
     </GestureHandlerRootView>
   )
 }
