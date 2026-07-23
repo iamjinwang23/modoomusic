@@ -34,6 +34,7 @@ import { SeekBar } from '@/components/ui/seek-bar'
 import { CoverScrim, formatCount } from '@/components/ui/profile-grid'
 import { mono } from '@/theme/mono'
 import { toast } from '@/lib/toast'
+import * as Clipboard from 'expo-clipboard'
 
 function fmt(sec: number): string {
   if (!Number.isFinite(sec) || sec < 0) return '0:00'
@@ -125,6 +126,19 @@ function PlayButton({ playing, onPress, size = 72 }: { playing: boolean; onPress
         </Defs>
         <Circle cx="8" cy="8" r="8" fill="#fff" mask="url(#playKnockout)" />
       </Svg>
+    </Pressable>
+  )
+}
+
+// 복사 버튼(가사·스타일) — 탭 시 클립보드 복사 + '복사되었어요' 스낵바. 웹 CopyBtn 파리티.
+function CopyBtn({ text }: { text: string }) {
+  return (
+    <Pressable
+      onPress={async () => { await Clipboard.setStringAsync(text); toast.success('복사되었어요') }}
+      hitSlop={10}
+      style={({ pressed }) => [styles.copyBtn, pressed && { opacity: 0.55 }]}
+    >
+      <Icon name="copy" size={16} color={mono.color.textSecondary} />
     </Pressable>
   )
 }
@@ -573,7 +587,10 @@ export default function PlayerScreen() {
       {/* 스타일 */}
       {songStyle ? (
         <View style={styles.section}>
-          <Text style={styles.sectionLabel}>스타일</Text>
+          <View style={styles.sectionHead}>
+            <Text style={styles.sectionLabel}>스타일</Text>
+            <CopyBtn text={songStyle} />
+          </View>
           <Text style={styles.sectionBody}>{songStyle}</Text>
         </View>
       ) : null}
@@ -581,7 +598,10 @@ export default function PlayerScreen() {
       {/* 가사 */}
       {lyrics ? (
         <View style={styles.section}>
-          <Text style={styles.sectionLabel}>가사</Text>
+          <View style={styles.sectionHead}>
+            <Text style={styles.sectionLabel}>가사</Text>
+            <CopyBtn text={lyrics} />
+          </View>
           <Text style={styles.lyrics}>{lyrics}</Text>
         </View>
       ) : null}
@@ -775,7 +795,9 @@ const styles = StyleSheet.create({
   },
   // 스타일·가사 섹션
   section: { marginTop: 32 },
-  sectionLabel: { color: mono.color.text, fontSize: mono.font.body, fontWeight: '700', marginBottom: 10 },
+  sectionHead: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 },
+  sectionLabel: { color: mono.color.text, fontSize: mono.font.body, fontWeight: '700' },
+  copyBtn: { padding: 4, marginRight: -4 },
   sectionBody: { color: mono.color.textSecondary, fontSize: mono.font.body, lineHeight: 24 },
   lyrics: { color: mono.color.textSecondary, fontSize: mono.font.body, lineHeight: 26 },
   // 댓글 바텀시트 모달

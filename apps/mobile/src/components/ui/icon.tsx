@@ -6,6 +6,7 @@ import Chat from '@/assets/mingcute/chat.svg'
 import Share from '@/assets/mingcute/Share.svg'
 import Notification from '@/assets/mingcute/Notification.svg'
 import Notice from '@/assets/mingcute/notice.svg'
+import Copy from '@/assets/mingcute/copy.svg'
 import SearchSvg from '@/assets/mingcute/Search.svg'
 import PlaySvg from '@/assets/mingcute/Play.svg'
 import PauseSvg from '@/assets/mingcute/Pause.svg'
@@ -49,6 +50,7 @@ import ForbidCircleFill from '@/assets/mingcute/Forbid-Circle-Fill.svg'
 const MAP = {
   bell: Notification,
   notice: Notice,                // 공지(나팔) — 웹 notice.svg 파리티
+  copy: Copy,                    // 복사(가사·스타일) — 웹 Copy.svg 파리티
   'line.3.horizontal': Profile,   // 라이브러리 헤더 프로필 진입
   plus: Add,
   ellipsis: More,
