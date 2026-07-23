@@ -115,6 +115,10 @@ export default function ProfileEditScreen() {
     })
     if (res.canceled || !res.assets?.[0] || !userId) return
     const a = res.assets[0]
+    // GIF 차단(웹 파리티·용량) — 웹은 첫 프레임 정적 WebP로 변환, 앱은 정적 변환이 네이티브(Build15)라 지금은 차단.
+    if ((a.mimeType ?? '').toLowerCase().includes('gif') || a.uri.toLowerCase().includes('.gif')) {
+      setError('GIF는 프로필 이미지로 사용할 수 없어요'); toast.error('GIF는 프로필 이미지로 사용할 수 없어요'); return
+    }
     setUploading(type); setError(null)
     const url = await uploadProfileImage(a.uri, type, a.mimeType ?? 'image/jpeg')
     if (url) {
