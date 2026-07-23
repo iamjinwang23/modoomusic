@@ -22,8 +22,8 @@ const styles = StyleSheet.create({
   // 우상단 빨간 점 — 아이콘과 안 겹치게 바깥으로 띄움(보더 없음).
   dot: {
     position: 'absolute',
-    top: -4,
-    right: -4,
+    top: -3.5,
+    right: -3.5,
     width: 6,
     height: 6,
     borderRadius: 3,
