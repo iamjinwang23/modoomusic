@@ -255,6 +255,7 @@ export default function PlayerScreen() {
   const commentsState = useSongComments(song?.id ?? null, canComment && commentsOpen)
   // 컴팩트 헤더 페이드 기준 — 제목(info) 블록의 콘텐츠 내 y를 onLayout으로 측정
   const [infoY, setInfoY] = useState(420)
+  const [seeking, setSeeking] = useState(false) // 시크바 드래그 중엔 스크롤 끔(제스처 뺏김 방지)
   const scrollY = useSharedValue(0)
   const onScroll = useAnimatedScrollHandler((e) => { scrollY.value = e.contentOffset.y })
   // 고정 커버(이미지·영상 동일) — 콘텐츠가 위로 스크롤될수록 어두워짐. 마스크 불필요 → 영상도 동일 UI.
@@ -426,6 +427,7 @@ export default function PlayerScreen() {
       showsVerticalScrollIndicator={false}
       onScroll={onScroll}
       scrollEventThrottle={16}
+      scrollEnabled={!seeking}
       keyboardShouldPersistTaps="handled"
       onLayout={(e) => setViewportH(e.nativeEvent.layout.height)}
     >
@@ -542,7 +544,7 @@ export default function PlayerScreen() {
       </View>
 
       <View style={styles.progress}>
-        <SeekBar position={position} duration={duration} height={4} hitVertical={14} color="#ffffff" trackColor="rgba(255,255,255,0.24)" />
+        <SeekBar position={position} duration={duration} height={4} hitVertical={14} color="#ffffff" trackColor="rgba(255,255,255,0.24)" onActiveChange={setSeeking} />
         <View style={styles.times}>
           <Text style={styles.time}>{fmt(position)}</Text>
           <Text style={styles.time}>{fmt(duration)}</Text>
