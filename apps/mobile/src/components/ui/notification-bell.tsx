@@ -19,15 +19,13 @@ export function NotificationBell({ size = 18, color = mono.color.text, dotColor 
 }
 
 const styles = StyleSheet.create({
-  // 우상단 빨간 점 — 배경색 링으로 아이콘과 분리해 또렷하게.
+  // 우상단 빨간 점 — 아이콘과 안 겹치게 바깥으로 띄움(보더 없음).
   dot: {
     position: 'absolute',
-    top: -2,
-    right: -2,
-    width: 9,
-    height: 9,
-    borderRadius: 4.5,
-    borderWidth: 1.5,
-    borderColor: mono.color.bg,
+    top: -4,
+    right: -4,
+    width: 8,
+    height: 8,
+    borderRadius: 4,
   },
 })
