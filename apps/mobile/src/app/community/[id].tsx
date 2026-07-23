@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
 import { ActivityIndicator, Pressable, RefreshControl, StyleSheet, Text, useWindowDimensions, View } from 'react-native'
-import Animated, { useAnimatedScrollHandler, useSharedValue } from 'react-native-reanimated'
+import Animated, { useAnimatedScrollHandler, useAnimatedStyle, useSharedValue } from 'react-native-reanimated'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { router, useFocusEffect, useLocalSearchParams } from 'expo-router'
 import { Image } from 'expo-image'
@@ -26,6 +26,14 @@ export default function CommunityDetailScreen() {
   const { width } = useWindowDimensions()
   const scrollY = useSharedValue(0)
   const onScroll = useAnimatedScrollHandler((e) => { scrollY.value = e.contentOffset.y })
+  // 스트레치 헤더 — 아래로 당기면(오버스크롤 y<0) 배너가 상단 고정된 채 확대(빈공간 노출 방지).
+  // ⚠️ 훅은 early return 위(상단)에 둘 것 (조건부 훅 = "rendered more hooks" 에러).
+  const coverStretch = useAnimatedStyle(() => {
+    const y = scrollY.value
+    const ch = width * 9 / 16
+    if (y >= 0) return { transform: [{ translateY: 0 }, { scale: 1 }] }
+    return { transform: [{ translateY: y / 2 }, { scale: (ch - y) / ch }] }
+  })
   const { id } = useLocalSearchParams<{ id: string }>()
   const [community, setCommunity] = useState<Community | null>(null)
   const [members, setMembers] = useState<CommunityMember[]>([])
@@ -121,7 +129,10 @@ export default function CommunityDetailScreen() {
         ListHeaderComponent={
           <View style={styles.header}>
             <View style={styles.bannerWrap}>
-              {banner ? <Image source={{ uri: banner }} style={StyleSheet.absoluteFill} contentFit="cover" /> : <View style={[StyleSheet.absoluteFill, styles.bannerFallback]} />}
+              {/* 배경 배너만 스트레치(오버레이는 고정) */}
+              <Animated.View style={[StyleSheet.absoluteFill, coverStretch]}>
+                {banner ? <Image source={{ uri: banner }} style={StyleSheet.absoluteFill} contentFit="cover" /> : <View style={[StyleSheet.absoluteFill, styles.bannerFallback]} />}
+              </Animated.View>
               <CoverScrim />
               <GlassIconButton name="arrow.left" size={40} iconSize={22} onPress={() => router.back()} style={[styles.back, { top: insets.top + 8 }]} hitSlop={10} />
               {/* 우상단 — (매니저)수정 / (비매니저)가입·탈퇴 · 알림 · 공유 */}
@@ -221,7 +232,8 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: mono.color.bg },
   header: { marginHorizontal: -16, marginBottom: 12 },
   // 커버 — 16:9(프로필과 동일), 하단 그라데이션 디졸브(CoverScrim)
-  bannerWrap: { width: '100%', aspectRatio: 16 / 9, backgroundColor: mono.color.surface2, overflow: 'hidden' },
+  // overflow는 스트레치 시 배너가 위로 확장되도록 visible. 아래로는 확장 안 됨(bottom 고정).
+  bannerWrap: { width: '100%', aspectRatio: 16 / 9, backgroundColor: mono.color.surface2 },
   bannerFallback: { backgroundColor: mono.color.surface },
   coverActions: { position: 'absolute', right: 12, flexDirection: 'row', alignItems: 'center', gap: 8 },
   circleBtn: { width: 40, height: 40, borderRadius: 20, backgroundColor: mono.color.overlay, alignItems: 'center', justifyContent: 'center' },
