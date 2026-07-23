@@ -47,6 +47,15 @@ export default function ProfileTab() {
   useEffect(() => { load() }, [load])
   useFocusEffect(useCallback(() => { load() }, [load]))
 
+  // 스트레치 헤더 — 아래로 당기면(오버스크롤 y<0) 커버가 상단 고정된 채 확대(빈공간 노출 방지).
+  // ⚠️ 훅은 반드시 early return 위에 (조건부 훅 = "rendered more hooks" 에러).
+  const coverStretch = useAnimatedStyle(() => {
+    const y = scrollY.value
+    const ch = width * 9 / 16
+    if (y >= 0) return { transform: [{ translateY: 0 }, { scale: 1 }] }
+    return { transform: [{ translateY: y / 2 }, { scale: (ch - y) / ch }] }
+  })
+
   if (loading) {
     return (
       <View style={styles.container}>
@@ -64,13 +73,6 @@ export default function ProfileTab() {
   const coverH = width * 9 / 16
   const fadeEnd = Math.max(coverH - (insets.top + HEADER_ROW), 60)
   const fadeStart = Math.max(fadeEnd - 70, 0)
-
-  // 스트레치 헤더 — 아래로 당기면(오버스크롤 y<0) 커버가 상단 고정된 채 당긴 만큼 확대(빈공간 노출 방지).
-  const coverStretch = useAnimatedStyle(() => {
-    const y = scrollY.value
-    if (y >= 0) return { transform: [{ translateY: 0 }, { scale: 1 }] }
-    return { transform: [{ translateY: y / 2 }, { scale: (coverH - y) / coverH }] }
-  })
 
   return (
     <View style={styles.container}>
