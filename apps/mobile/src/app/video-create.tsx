@@ -209,7 +209,7 @@ const styles = StyleSheet.create({
   tierCredits: { color: mono.color.text, fontSize: mono.font.small, fontWeight: '700' },
   // 화질 선택 바텀시트
   tierSheet: { paddingHorizontal: 20 },
-  tierSheetTitle: { color: mono.color.text, fontSize: mono.font.h2, fontWeight: '700', marginBottom: 8 },
+  tierSheetTitle: { color: mono.color.text, fontSize: mono.font.h2, fontWeight: '700', marginTop: 14, marginBottom: 8 },
   tierRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 14, borderRadius: mono.radius.md },
   tierRowPressed: { backgroundColor: mono.color.fill },
   tierRowName: { color: mono.color.text, fontSize: mono.font.body, fontWeight: '700' },

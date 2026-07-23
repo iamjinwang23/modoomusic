@@ -491,7 +491,7 @@ const styles = StyleSheet.create({
   mHeadSlot: { width: 28 },
   // 모델 선택 바텀시트
   modelSheet: { paddingHorizontal: 20 },
-  modelSheetTitle: { color: mono.color.text, fontSize: mono.font.h2, fontWeight: '700', textAlign: 'center', marginBottom: 22 },
+  modelSheetTitle: { color: mono.color.text, fontSize: mono.font.h2, fontWeight: '700', textAlign: 'center', marginTop: 14, marginBottom: 22 },
   modelRow: { flexDirection: 'row', alignItems: 'center', gap: 14, paddingVertical: 16, borderRadius: mono.radius.md },
   modelRowPressed: { backgroundColor: mono.color.fill },
   modelRowHead: { flexDirection: 'row', alignItems: 'center', gap: 8 },
