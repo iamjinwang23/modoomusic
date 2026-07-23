@@ -166,7 +166,7 @@ export default function VideoCreateScreen() {
                 <Text style={styles.tierBadge}>{t.res}</Text>
               </View>
               <View style={styles.creditPill}>
-                <Icon name="sparkle" size={13} color={mono.color.text} />
+                <Icon name="sparkle" size={15} color={mono.color.text} />
                 <Text style={styles.tierCredits}>{t.credits}</Text>
               </View>
             </Pressable>
@@ -202,8 +202,8 @@ const styles = StyleSheet.create({
   tierHead: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   // 해상도 배지 — 곡 리스트 모델 배지(v2.6)와 동일 스타일
   tierBadge: { color: mono.color.accentLight, fontSize: 10, fontWeight: '700', backgroundColor: 'rgba(124,58,237,0.2)', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 6, overflow: 'hidden' },
-  creditPill: { flexDirection: 'row', alignItems: 'center', gap: 4 },
-  tierCredits: { color: mono.color.text, fontSize: mono.font.small, fontWeight: '700' },
+  creditPill: { flexDirection: 'row', alignItems: 'center', gap: 5 },
+  tierCredits: { color: mono.color.text, fontSize: mono.font.body, fontWeight: '700' },
   // 화질 선택 바텀시트
   tierSheet: { paddingHorizontal: 20 },
   tierSheetTitle: { color: mono.color.text, fontSize: mono.font.h2, fontWeight: '700', textAlign: 'center', marginTop: 14, marginBottom: 22 },

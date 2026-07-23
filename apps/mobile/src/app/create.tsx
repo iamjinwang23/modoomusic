@@ -406,7 +406,7 @@ export default function CreateScreen() {
                 <Text style={styles.modelDesc}>{m.desc}</Text>
               </View>
               <View style={styles.modelCredit}>
-                <Icon name="sparkle" size={12} color={mono.color.text} />
+                <Icon name="sparkle" size={15} color={mono.color.text} />
                 <Text style={styles.modelCreditText}>{m.credits}</Text>
               </View>
             </Pressable>
@@ -498,8 +498,8 @@ const styles = StyleSheet.create({
   modelName: { color: mono.color.text, fontSize: mono.font.body, fontWeight: '700' },
   modelBadge: { color: mono.color.accentLight, fontSize: 10, fontWeight: '700', backgroundColor: 'rgba(124,58,237,0.2)', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 6, overflow: 'hidden' },
   modelDesc: { color: mono.color.textSecondary, fontSize: mono.font.small, marginTop: 3 },
-  modelCredit: { flexDirection: 'row', alignItems: 'center', gap: 4 },
-  modelCreditText: { color: mono.color.text, fontSize: mono.font.small, fontWeight: '700' },
+  modelCredit: { flexDirection: 'row', alignItems: 'center', gap: 5 },
+  modelCreditText: { color: mono.color.text, fontSize: mono.font.body, fontWeight: '700' },
   modelCheck: { width: 22, height: 22, borderRadius: 11, borderWidth: 2, borderColor: mono.color.fillStrong, alignItems: 'center', justifyContent: 'center' },
   modelCheckOn: { backgroundColor: mono.color.accent, borderColor: mono.color.accent },
   mAction: { color: mono.color.accentLight, fontSize: mono.font.body, fontWeight: '800' },
