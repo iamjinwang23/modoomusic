@@ -129,26 +129,23 @@ function PlayButton({ playing, onPress, size = 72 }: { playing: boolean; onPress
   )
 }
 
-// expo-clipboard는 네이티브 모듈 — 미포함 빌드(dev client·Build14)에선 top-level import만으로 크래시.
-// 지연 require + 가용성 캐시로 가드([[feedback-code-pitfalls]] iap.ts 패턴). 미포함이면 CopyBtn 자체를 숨김.
-interface ClipboardMod { setStringAsync: (t: string) => Promise<boolean> }
-let clipboardMod: ClipboardMod | null = null
-let clipboardTried = false
-function clipboard(): ClipboardMod | null {
-  if (clipboardTried) return clipboardMod
-  clipboardTried = true
-  try { clipboardMod = require('expo-clipboard') as ClipboardMod } catch { clipboardMod = null }
-  return clipboardMod
-}
+// expo-clipboard는 네이티브 모듈 — 미포함 빌드(dev client·Build14)에선 로드만으로 크래시(dev는 try/catch로도
+// 못 막음: Metro가 모듈 로드 실패를 별도로 빨간화면 보고). → require를 아예 하지 말고, expo-modules-core의
+// 비파괴적 requireOptionalNativeModule로 네이티브 존재만 확인. 없으면 CopyBtn을 숨겨 require 자체를 회피.
+const CLIPBOARD_AVAILABLE = !!requireOptionalNativeModule('ExpoClipboard')
 
 // 복사 버튼(가사·스타일) — 탭 시 클립보드 복사 + '복사되었어요' 스낵바. 웹 CopyBtn 파리티.
-// 클립보드 네이티브 미포함 빌드에선 렌더 안 함(크래시·깨진 버튼 방지).
+// 네이티브 미포함(dev client·Build14)에선 렌더 안 함 → require 미실행 → 크래시 없음. Build 15에서 동작.
 function CopyBtn({ text }: { text: string }) {
-  const c = clipboard()
-  if (!c) return null
+  if (!CLIPBOARD_AVAILABLE) return null
   return (
     <Pressable
-      onPress={async () => { await c.setStringAsync(text); toast.success('복사되었어요') }}
+      onPress={async () => {
+        try {
+          await (require('expo-clipboard') as { setStringAsync: (t: string) => Promise<boolean> }).setStringAsync(text)
+          toast.success('복사되었어요')
+        } catch { toast.error('복사에 실패했어요') }
+      }}
       hitSlop={10}
       style={({ pressed }) => [styles.copyBtn, pressed && { opacity: 0.55 }]}
     >
