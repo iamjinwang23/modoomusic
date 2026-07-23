@@ -256,6 +256,17 @@ export default function PlayerScreen() {
   // 컴팩트 헤더 페이드 기준 — 제목(info) 블록의 콘텐츠 내 y를 onLayout으로 측정
   const [infoY, setInfoY] = useState(420)
   const [seeking, setSeeking] = useState(false) // 시크바 드래그 중엔 스크롤 끔(제스처 뺏김 방지)
+  // 큐 위치 — 첫곡/끝곡에서 이전/다음 버튼 비활성화(흐리게)용
+  const [queueInfo, setQueueInfo] = useState({ index: 0, len: 0 })
+  useEffect(() => {
+    let alive = true
+    Promise.all([TrackPlayer.getActiveTrackIndex(), TrackPlayer.getQueue()])
+      .then(([i, q]) => { if (alive) setQueueInfo({ index: typeof i === 'number' ? i : 0, len: q?.length ?? 0 }) })
+      .catch(() => {})
+    return () => { alive = false }
+  }, [track])
+  const hasPrev = queueInfo.index > 0
+  const hasNext = queueInfo.len > 0 && queueInfo.index < queueInfo.len - 1
   const scrollY = useSharedValue(0)
   const onScroll = useAnimatedScrollHandler((e) => { scrollY.value = e.contentOffset.y })
   // 고정 커버(이미지·영상 동일) — 콘텐츠가 위로 스크롤될수록 어두워짐. 마스크 불필요 → 영상도 동일 UI.
@@ -552,9 +563,9 @@ export default function PlayerScreen() {
       </View>
 
       <View style={styles.controls}>
-        <Pressable onPress={skipPrev} hitSlop={12}><Icon name="gobackward.10" size={30} color={mono.color.text} /></Pressable>
+        <Pressable onPress={skipPrev} disabled={!hasPrev} hitSlop={12} style={!hasPrev && styles.ctrlDisabled}><Icon name="gobackward.10" size={30} color={mono.color.text} /></Pressable>
         <PlayButton playing={playing} onPress={() => (playing ? TrackPlayer.pause() : TrackPlayer.play())} />
-        <Pressable onPress={skipNext} hitSlop={12}><Icon name="goforward.10" size={30} color={mono.color.text} /></Pressable>
+        <Pressable onPress={skipNext} disabled={!hasNext} hitSlop={12} style={!hasNext && styles.ctrlDisabled}><Icon name="goforward.10" size={30} color={mono.color.text} /></Pressable>
       </View>
 
       </View>
@@ -742,6 +753,7 @@ const styles = StyleSheet.create({
   times: { flexDirection: 'row', justifyContent: 'space-between', marginTop: -2 },
   time: { color: mono.color.text, fontSize: mono.font.tiny },
   controls: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 36, marginBottom: 40 },
+  ctrlDisabled: { opacity: 0.3 }, // 첫곡/끝곡 — 이전/다음 없음
   ctrlSecondary: { color: mono.color.textSecondary, fontSize: mono.font.body, fontWeight: '700' },
   playBtn: {
     width: 72, height: 72, borderRadius: 36, backgroundColor: mono.color.accent,
