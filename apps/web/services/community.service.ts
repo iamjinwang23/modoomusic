@@ -10,7 +10,7 @@ export async function notifyCommunityModeration(targetUserId: string, title: str
   const admin = createAdminClient()
   const { error } = await admin.from('notifications').insert({ user_id: targetUserId, type: 'system', payload: { title, body, url } })
   if (error) console.error('[community.notify]', error.message)
-  sendPushToUser(targetUserId, { title, body, url }).catch(() => {})
+  sendPushToUser(targetUserId, { title, body, url, data: { route: url } }).catch(() => {})
 }
 
 interface CommunityRow {
@@ -494,5 +494,5 @@ export function notifyJoinDecision(
   const type = kind === 'approved' ? 'community_join_approved' : 'community_join_rejected'
   admin.from('notifications').insert({ user_id: userId, type, payload: { title, body, url } })
     .then(({ error }) => { if (error) console.error('[community.notifyJoinDecision]', error.message) })
-  sendPushToUser(userId, { title, body, url }).catch(() => {})
+  sendPushToUser(userId, { title, body, url, data: { route: url } }).catch(() => {})
 }

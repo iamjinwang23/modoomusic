@@ -39,7 +39,7 @@ export async function requestJoin(userId: string, communityId: string): Promise<
   const url = `/community/${communityId}`
   admin.from('notifications').insert({ user_id: managerId, type: 'community_join_request', payload: { title, body, url } })
     .then(({ error: e }) => { if (e) console.error('[community.requestJoin.notify]', e.message) })
-  sendPushToUser(managerId, { title, body, url }).catch(() => {})
+  sendPushToUser(managerId, { title, body, url, data: { route: url } }).catch(() => {})
   return { ok: true, status: 'pending' }
 }
 

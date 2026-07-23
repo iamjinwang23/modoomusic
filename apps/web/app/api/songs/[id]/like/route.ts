@@ -71,7 +71,7 @@ export async function POST(_req: Request, { params }: { params: Promise<Params> 
       if (!notifErr) {
         const { data: actor } = await admin.from('profiles').select('display_name, username').eq('id', user.id).maybeSingle()
         const actorName = actor?.display_name ?? actor?.username ?? '누군가'
-        await sendPushToUser(song.user_id, { title: '새 좋아요', body: `${actorName}님이 회원님의 곡을 좋아했어요`, url: `/?song=${songId}`, tag: `like-${songId}`, data: { route: '/(tabs)' } }, 'likes')
+        await sendPushToUser(song.user_id, { title: '새 좋아요', body: `${actorName}님이 회원님의 곡을 좋아했어요`, url: `/?song=${songId}`, tag: `like-${songId}`, data: { route: '/(tabs)', songId } }, 'likes')
       }
     }
   }

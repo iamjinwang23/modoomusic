@@ -143,7 +143,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     if (nErr) console.error('[comments POST notif]', nErr.message)
     const { data: actor } = await admin.from('profiles').select('display_name, username').eq('id', user.id).maybeSingle()
     const actorName = actor?.display_name ?? actor?.username ?? '누군가'
-    await sendPushToUser(song.user_id, { title: '새 댓글', body: `${actorName}님이 회원님의 곡에 댓글을 남겼어요`, url: `/?song=${songId}`, tag: `comment-${songId}`, data: { route: '/(tabs)' } }, 'comments')
+    await sendPushToUser(song.user_id, { title: '새 댓글', body: `${actorName}님이 회원님의 곡에 댓글을 남겼어요`, url: `/?song=${songId}`, tag: `comment-${songId}`, data: { route: '/(tabs)', songId } }, 'comments')
   }
 
   return NextResponse.json({ comment: toComment(inserted as unknown as CommentRow, new Set()) })
