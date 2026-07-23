@@ -6,6 +6,7 @@ import * as WebBrowser from 'expo-web-browser'
 import { PUSH_CATEGORIES, PUSH_CATEGORY_LABELS, type PushCategory } from '@mono/shared'
 import { api } from '@/lib/api'
 import { supabase } from '@/lib/supabase'
+import { toast } from '@/lib/toast'
 import { Icon, type IconName } from '@/components/ui/icon'
 import { AccountDeletionSheet } from '@/components/ui/account-deletion-sheet'
 import { mono } from '@/theme/mono'
@@ -87,6 +88,7 @@ export default function SettingsScreen() {
 
   const logout = async () => {
     await supabase.auth.signOut()
+    toast.success('로그아웃했어요')
     router.replace('/')
   }
 

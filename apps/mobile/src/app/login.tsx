@@ -8,6 +8,7 @@ import { router } from 'expo-router'
 import * as WebBrowser from 'expo-web-browser'
 import { signInWithApple, signInWithNaver, signInWithProvider, type SocialProvider } from '@/lib/social-auth'
 import { useSession } from '@/lib/use-session'
+import { toast } from '@/lib/toast'
 import Logo from '@/assets/logo.svg'
 import { mono } from '@/theme/mono'
 
@@ -46,6 +47,8 @@ export default function LoginModal() {
       // 사람이 읽을 문장으로 감싸되 원인은 남긴다 — 코드만 덩그러니 노출하지 않기 위해.
       console.warn(`[login] ${provider} 실패:`, error)
       setError(`로그인에 실패했어요. 잠시 후 다시 시도해 주세요.\n(${error})`)
+    } else if (!error) {
+      toast.success('로그인했어요')
     }
     // 성공 시 위 useEffect(session)가 router.back()으로 닫음
   }
