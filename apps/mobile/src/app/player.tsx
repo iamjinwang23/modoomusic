@@ -431,9 +431,10 @@ export default function PlayerScreen() {
     >
       {/* 첫 화면 = 뷰포트 높이(틱톡식) — 커버 영역(빈 공간) + 히어로 콘텐츠(하단 앵커) */}
       <View style={viewportH ? { height: viewportH, justifyContent: 'flex-end', paddingBottom: 8 } : null}>
-      {/* 커버 스와이프 영역 = 첫 화면 전체(콘텐츠 뒤). 좌우=이전/다음 곡, 세로=스크롤 통과. 버튼은 위에 있어 그대로 탭 */}
+      {/* 커버 스와이프 영역 = 히어로(제목) 위쪽 커버 영역까지만. 좌우=이전/다음 곡, 세로=스크롤 통과.
+          제목·시크바·컨트롤 영역은 제외해 시크바 드래그와 곡전환 스와이프 충돌 방지. */}
       <GestureDetector gesture={swipe}>
-        <View style={StyleSheet.absoluteFill} />
+        <View style={infoY > 0 ? { position: 'absolute', top: 0, left: 0, right: 0, height: infoY } : StyleSheet.absoluteFill} />
       </GestureDetector>
       {song?.videoCoverStatus === 'generating' ? (
         <View style={styles.videoGenOverlay} pointerEvents="none">
@@ -541,7 +542,7 @@ export default function PlayerScreen() {
       </View>
 
       <View style={styles.progress}>
-        <SeekBar position={position} duration={duration} height={4} hitVertical={9} color="#ffffff" trackColor="rgba(255,255,255,0.24)" />
+        <SeekBar position={position} duration={duration} height={4} hitVertical={14} color="#ffffff" trackColor="rgba(255,255,255,0.24)" />
         <View style={styles.times}>
           <Text style={styles.time}>{fmt(position)}</Text>
           <Text style={styles.time}>{fmt(duration)}</Text>
