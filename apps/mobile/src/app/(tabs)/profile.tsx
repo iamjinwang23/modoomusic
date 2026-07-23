@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
 import { ActivityIndicator, Pressable, StyleSheet, Text, useWindowDimensions, View } from 'react-native'
-import Animated, { useAnimatedScrollHandler, useSharedValue } from 'react-native-reanimated'
+import Animated, { useAnimatedScrollHandler, useAnimatedStyle, useSharedValue } from 'react-native-reanimated'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { router, useFocusEffect } from 'expo-router'
 import { Image } from 'expo-image'
@@ -65,6 +65,13 @@ export default function ProfileTab() {
   const fadeEnd = Math.max(coverH - (insets.top + HEADER_ROW), 60)
   const fadeStart = Math.max(fadeEnd - 70, 0)
 
+  // 스트레치 헤더 — 아래로 당기면(오버스크롤 y<0) 커버가 상단 고정된 채 당긴 만큼 확대(빈공간 노출 방지).
+  const coverStretch = useAnimatedStyle(() => {
+    const y = scrollY.value
+    if (y >= 0) return { transform: [{ translateY: 0 }, { scale: 1 }] }
+    return { transform: [{ translateY: y / 2 }, { scale: (coverH - y) / coverH }] }
+  })
+
   return (
     <View style={styles.container}>
       <CollapsingHeader
@@ -82,11 +89,14 @@ export default function ProfileTab() {
       <Animated.ScrollView onScroll={onScroll} scrollEventThrottle={16} contentContainerStyle={{ paddingBottom: insets.bottom + 40 }} showsVerticalScrollIndicator={false}>
         {/* ── 커버 + 아바타·이름 오버레이 ── */}
         <View style={styles.cover}>
-          {profile?.coverImage ? (
-            <Image source={{ uri: profile.coverImage }} style={StyleSheet.absoluteFill} contentFit="cover" />
-          ) : (
-            <View style={[StyleSheet.absoluteFill, styles.coverFallback]} />
-          )}
+          {/* 배경 이미지만 스트레치(오버레이는 고정) */}
+          <Animated.View style={[StyleSheet.absoluteFill, coverStretch]}>
+            {profile?.coverImage ? (
+              <Image source={{ uri: profile.coverImage }} style={StyleSheet.absoluteFill} contentFit="cover" />
+            ) : (
+              <View style={[StyleSheet.absoluteFill, styles.coverFallback]} />
+            )}
+          </Animated.View>
           {/* 하단 스크림 — 오버레이 텍스트 가독성(그라데이션) */}
           <CoverScrim />
 
@@ -141,7 +151,8 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: mono.color.bg },
   center: { alignItems: 'center', justifyContent: 'center' },
   // 커버 = 16:9(웹 aspect-video)
-  cover: { width: '100%', aspectRatio: 16 / 9, backgroundColor: mono.color.surface2, overflow: 'hidden' },
+  // overflow는 스트레치 시 이미지가 위로 확장되도록 visible. 아래로는 확장 안 됨(bottom 고정).
+  cover: { width: '100%', aspectRatio: 16 / 9, backgroundColor: mono.color.surface2 },
   coverFallback: { backgroundColor: mono.color.surface },
   topActions: { position: 'absolute', right: 20, flexDirection: 'row', alignItems: 'center', gap: 8 },
   editPill: {
