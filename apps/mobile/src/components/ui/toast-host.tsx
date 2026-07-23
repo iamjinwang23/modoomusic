@@ -1,5 +1,5 @@
 import { useEffect } from 'react'
-import { Pressable, StyleSheet, Text, View } from 'react-native'
+import { Modal, Pressable, StyleSheet, Text, View } from 'react-native'
 import Animated, { Easing, FadeInDown, FadeOutDown, LinearTransition } from 'react-native-reanimated'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { dismissToast, TOAST_DURATION, useToasts, type ToastItem, type ToastType } from '@/lib/toast'
@@ -41,14 +41,19 @@ function Row({ item }: { item: ToastItem }) {
 }
 
 // 전역 스낵바 호스트 — 루트에 1회 마운트. 미니플레이어·탭바 위, 하단 정렬.
+// ⚠️ 노래 상세(player) 등 네이티브 모달 위에도 뜨도록 RN Modal로 감싼다: 스낵바가 있을 때만
+//    투명 Modal을 present → 현재 최상위 모달보다 위에 올라온다. box-none으로 아래 조작은 안 막음.
 export function ToastHost() {
   const items = useToasts()
   const insets = useSafeAreaInsets()
-  if (items.length === 0) return null
   return (
-    <View pointerEvents="box-none" style={[styles.wrap, { paddingBottom: insets.bottom + 76 }]}>
-      {items.map((it) => <Row key={it.id} item={it} />)}
-    </View>
+    <Modal visible={items.length > 0} transparent statusBarTranslucent animationType="none" onRequestClose={() => {}}>
+      <View pointerEvents="box-none" style={StyleSheet.absoluteFill}>
+        <View pointerEvents="box-none" style={[styles.wrap, { paddingBottom: insets.bottom + 76 }]}>
+          {items.map((it) => <Row key={it.id} item={it} />)}
+        </View>
+      </View>
+    </Modal>
   )
 }
 
