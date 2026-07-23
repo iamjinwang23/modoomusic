@@ -4,6 +4,7 @@ import { createAdminClient } from '@/lib/supabase/admin'
 import { getPortonePayment } from '@/lib/portone'
 import { type CreditProduct } from '@/lib/credit-products'
 import { sendPushToUser } from '@/services/push.service'
+import { iapProduct } from '@mono/shared'
 
 export { CREDIT_PRODUCTS, getCreditProduct, type CreditProduct } from '@/lib/credit-products'
 
@@ -181,6 +182,57 @@ export async function listAllPayments(limit = 200): Promise<AdminPaymentRow[]> {
       refundRequestReason: r.refund_request_reason as string | null,
       createdAt: r.created_at as string,
       ...extractMatchKeys(r.raw),
+    }
+  })
+}
+
+// ── 앱 인앱결제(IAP) 조회 (어드민, 조회 전용) ──────────────────────────────
+// iap_purchases는 지급 로그(성공 = 1행). 금액·상태·취소 개념 없음 — 정산·환불은 스토어(Apple/Google).
+// priceKrwApprox는 상품ID→국내 기준가 매핑(참고용). 실제 청구액은 스토어/국가별로 다름.
+export interface AdminIapRow {
+  id: string
+  createdAt: string
+  userId: string
+  userName: string | null
+  store: string            // 'app_store' | 'play_store' | 'unknown'
+  productId: string
+  productLabel: string
+  credits: number
+  priceKrwApprox: number | null
+  transactionId: string
+}
+
+export async function listAllIapPurchases(limit = 200): Promise<AdminIapRow[]> {
+  const admin = createAdminClient()
+  const { data, error } = await admin
+    .from('iap_purchases')
+    .select('id, user_id, store, product_id, credits, transaction_id, created_at')
+    .order('created_at', { ascending: false })
+    .limit(limit)
+  if (error) { console.error('[iap.listAll]', error.message); return [] }
+  const rows = data ?? []
+  // iap_purchases.user_id → auth.users(직접 FK). profiles 임베드가 모호할 수 있어 2단계 조회.
+  const ids = [...new Set(rows.map((r) => r.user_id as string))]
+  const nameById = new Map<string, string | null>()
+  if (ids.length) {
+    const { data: profs } = await admin.from('profiles').select('id, display_name, username').in('id', ids)
+    for (const p of profs ?? []) {
+      nameById.set(p.id as string, (p.display_name as string | null) ?? (p.username as string | null) ?? null)
+    }
+  }
+  return rows.map((r) => {
+    const prod = iapProduct(r.product_id as string)
+    return {
+      id: r.id as string,
+      createdAt: r.created_at as string,
+      userId: r.user_id as string,
+      userName: nameById.get(r.user_id as string) ?? null,
+      store: (r.store as string) ?? 'unknown',
+      productId: r.product_id as string,
+      productLabel: prod?.label ?? (r.product_id as string),
+      credits: r.credits as number,
+      priceKrwApprox: prod?.priceKrw ?? null,
+      transactionId: r.transaction_id as string,
     }
   })
 }

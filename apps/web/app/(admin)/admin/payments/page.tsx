@@ -36,6 +36,23 @@ const STATUS: Record<string, { label: string; cls: string }> = {
   failed:    { label: '실패',     cls: 'bg-red-50 text-red-700' },
 }
 
+type Tab = 'pg' | 'iap'
+type Store = 'app_store' | 'play_store'
+const STORE_LABEL: Record<string, string> = { app_store: 'App Store', play_store: 'Play Store', unknown: '기타' }
+
+interface IapRow {
+  id: string
+  createdAt: string
+  userId: string
+  userName: string | null
+  store: string
+  productId: string
+  productLabel: string
+  credits: number
+  priceKrwApprox: number | null
+  transactionId: string
+}
+
 function fmt(iso: string | null): string {
   if (!iso) return '-'
   const d = new Date(iso)
@@ -50,6 +67,9 @@ export default function AdminPaymentsPage() {
   const [busy, setBusy] = useState(false)
   const [expanded, setExpanded] = useState<string | null>(null)
   const [syncing, setSyncing] = useState<string | null>(null)
+  const [tab, setTab] = useState<Tab>('pg')
+  const [iapItems, setIapItems] = useState<IapRow[] | null>(null)
+  const [iapStore, setIapStore] = useState<Store>('app_store')
 
   const load = useCallback(async () => {
     const res = await fetch('/api/admin/payments')
@@ -58,7 +78,17 @@ export default function AdminPaymentsPage() {
     setItems(json.data ?? [])
   }, [])
 
+  const loadIap = useCallback(async () => {
+    const res = await fetch('/api/admin/iap')
+    if (!res.ok) { setIapItems([]); return }
+    const json = await res.json()
+    setIapItems(json.data ?? [])
+  }, [])
+
   useEffect(() => { load() }, [load])
+  useEffect(() => { if (tab === 'iap' && iapItems === null) loadIap() }, [tab, iapItems, loadIap])
+
+  const iapFiltered = (iapItems ?? []).filter((r) => r.store === iapStore)
 
   function openCancel(p: PaymentRow) {
     setConfirm(p); setMode('normal'); setReason('')
@@ -109,9 +139,27 @@ export default function AdminPaymentsPage() {
     <div className="space-y-6">
       <header>
         <h1 className="text-xl font-semibold text-zinc-900">결제</h1>
-        <p className="text-sm text-zinc-500 mt-1">크레딧 구매 결제·지급·취소 내역. 문의 시 결제완료 건을 취소(환불)할 수 있어요.</p>
+        <p className="text-sm text-zinc-500 mt-1">
+          {tab === 'pg'
+            ? '웹 크레딧 구매(PortOne) 결제·지급·취소 내역. 문의 시 결제완료 건을 취소(환불)할 수 있어요.'
+            : '앱 인앱결제(App Store/Play Store) 지급 내역 — 조회 전용. 결제·환불·정산은 각 스토어에서 처리됩니다.'}
+        </p>
       </header>
 
+      {/* 상위 탭 — PG(PortOne) / 인앱결제(IAP) */}
+      <div className="flex items-center gap-1 border-b border-[#ebebeb]">
+        {([['pg', 'PG 결제'], ['iap', '인앱결제']] as const).map(([k, label]) => (
+          <button
+            key={k}
+            onClick={() => setTab(k)}
+            className={`px-3.5 py-2 text-sm font-medium -mb-px border-b-2 transition ${tab === k ? 'border-zinc-900 text-zinc-900' : 'border-transparent text-zinc-400 hover:text-zinc-700'}`}
+          >
+            {label}
+          </button>
+        ))}
+      </div>
+
+      {tab === 'pg' && (
       <AdminPanel>
         {items === null ? (
           <div className="space-y-3">{[0, 1, 2].map((i) => <div key={i} className="h-12 rounded-lg bg-zinc-50 shimmer" />)}</div>
@@ -221,6 +269,70 @@ export default function AdminPaymentsPage() {
           </div>
         )}
       </AdminPanel>
+      )}
+
+      {tab === 'iap' && (
+      <div className="space-y-3">
+        {/* 스토어 하위 필터 — App Store / Play Store(현재 비어있음) */}
+        <div className="flex items-center gap-1.5">
+          {(['app_store', 'play_store'] as const).map((s) => {
+            const on = iapStore === s
+            const count = (iapItems ?? []).filter((r) => r.store === s).length
+            return (
+              <button
+                key={s}
+                onClick={() => setIapStore(s)}
+                className={`px-3 py-1.5 rounded-full text-[13px] font-medium border transition ${on ? 'bg-zinc-900 text-white border-zinc-900' : 'bg-white text-zinc-600 border-[#ebebeb] hover:border-zinc-300'}`}
+              >
+                {STORE_LABEL[s]}{iapItems !== null && ` (${count})`}
+              </button>
+            )
+          })}
+        </div>
+
+        <AdminPanel>
+          {iapItems === null ? (
+            <div className="space-y-3">{[0, 1, 2].map((i) => <div key={i} className="h-12 rounded-lg bg-zinc-50 shimmer" />)}</div>
+          ) : iapFiltered.length === 0 ? (
+            <p className="text-sm text-zinc-500 py-10 text-center">
+              {iapStore === 'play_store' ? 'Play Store 인앱결제는 아직 없어요 (Android 결제 미가동).' : '인앱결제 내역이 없어요.'}
+            </p>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="text-left text-xs text-zinc-500 border-b border-[#ebebeb]">
+                    <th className="py-2 pr-3 font-medium">일시</th>
+                    <th className="py-2 pr-3 font-medium">사용자</th>
+                    <th className="py-2 pr-3 font-medium">스토어</th>
+                    <th className="py-2 pr-3 font-medium">상품</th>
+                    <th className="py-2 pr-3 font-medium text-right">금액(참고)</th>
+                    <th className="py-2 pr-3 font-medium text-right">크레딧</th>
+                    <th className="py-2 font-medium">거래 ID</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {iapFiltered.map((r) => (
+                    <tr key={r.id} className="border-b border-zinc-100">
+                      <td className="py-2.5 pr-3 text-zinc-500 whitespace-nowrap">{fmt(r.createdAt)}</td>
+                      <td className="py-2.5 pr-3 text-zinc-700 max-w-[120px] truncate">{r.userName ?? r.userId.slice(0, 8)}</td>
+                      <td className="py-2.5 pr-3 text-zinc-700 whitespace-nowrap">{STORE_LABEL[r.store] ?? r.store}</td>
+                      <td className="py-2.5 pr-3 text-zinc-700">{r.productLabel}</td>
+                      <td className="py-2.5 pr-3 text-zinc-500 text-right tabular-nums whitespace-nowrap">
+                        {r.priceKrwApprox != null ? `≈ ₩${r.priceKrwApprox.toLocaleString()}` : '-'}
+                      </td>
+                      <td className="py-2.5 pr-3 text-zinc-700 text-right tabular-nums">{r.credits.toLocaleString()}</td>
+                      <td className="py-2.5 text-zinc-500 font-mono text-[12px] max-w-[180px] truncate select-all" title={r.transactionId}>{r.transactionId}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+              <p className="mt-3 text-[11px] text-zinc-400">금액은 국내 기준가 근사치(참고용)입니다. 실제 청구·수수료·정산·환불은 App Store Connect / Play Console에서 확인하세요.</p>
+            </div>
+          )}
+        </AdminPanel>
+      </div>
+      )}
 
       {confirm && (
         <div className="fixed inset-0 z-[80] flex items-center justify-center p-4">
