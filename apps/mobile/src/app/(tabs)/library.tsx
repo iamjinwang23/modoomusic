@@ -177,7 +177,7 @@ export default function LibraryScreen() {
         <View style={styles.headerRow}>
           <Text style={styles.h1}>라이브러리</Text>
           <Pressable onPress={() => router.push('/notifications')} hitSlop={10} style={styles.profileBtn}>
-            <NotificationBell size={19} color={mono.color.text} />
+            <NotificationBell size={18} color={mono.color.text} />
           </Pressable>
         </View>
         <View style={styles.libTabs} onLayout={(e) => setTabsW(e.nativeEvent.layout.width)}>
