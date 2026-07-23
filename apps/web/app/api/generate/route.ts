@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse, after } from 'next/server'
-import { generateSong, generateCoverImage, MOCK_MODE, MODELS, creditsForModel, type MusicModelId } from '@/services/minimax.service'
+import { generateSong, generateCoverImage, craftCoverPrompt, MOCK_MODE, MODELS, creditsForModel, type MusicModelId } from '@/services/minimax.service'
 import { estimateMp3Duration, uploadFromUrl } from '@/services/storage.service'
 import { createUserClient } from '@/lib/supabase/server'
 import { requireActiveUser } from '@/lib/auth/active-user'
@@ -158,10 +158,13 @@ export async function POST(req: NextRequest) {
         }
       }
 
+      // 커버 프롬프트: LLM 아트디렉터로 곡 맥락을 시각 프롬프트로 번역(우선). 실패 시 기존 로직으로 폴백.
       const imagePromptInput = pickImagePrompt({ customLyrics: genLyrics, title, prompt })
+      const fallbackCoverPrompt = [genre, mood, imagePromptInput].filter(Boolean).join(', ')
       const [songResult, coverUrl] = await Promise.all([
         generateSong({ prompt: genPrompt, genre, mood, customLyrics: genLyrics, instrumental, model, audioBase64 }),
-        generateCoverImage([genre, mood, imagePromptInput].filter(Boolean).join(', ')),
+        craftCoverPrompt({ genre, mood, title: title || autoTitle || undefined, lyrics: genLyrics })
+          .then((crafted) => generateCoverImage(crafted || fallbackCoverPrompt)),
       ])
 
       let finalAudioUrl: string | null = songResult.audioUrl

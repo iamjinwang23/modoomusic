@@ -157,6 +157,46 @@ export async function generateCoverImage(stylePrompt: string): Promise<string | 
   return data.data?.image_urls?.[0] ?? null
 }
 
+// 곡 맥락(장르·무드·제목·가사)을 이미지 생성용 "시각 프롬프트"로 번역하는 아트디렉터(LLM).
+// 서사적 가사·제목을 그대로 image-01에 넣으면 맥락 없는 이미지가 나오던 문제를 개선.
+// 실패/타임아웃/미설정이면 null → 호출부가 기존 로직으로 폴백(커버 생성 안 깨짐).
+// 비용 ~ $0.0004/곡(MiniMax-M3). 지연은 곡 생성에 가려짐(병렬).
+const COVER_ART_SYSTEM =
+  'You are an album cover art director. From a song\'s genre, mood, title, and lyrics, write ONE vivid English prompt for an AI image model to create the album cover. Describe a concrete visual scene: subject, setting, composition, color palette, lighting, and art style/medium, all matching the song\'s emotion. Rules: purely visual (no music/audio words); include NO text, letters, words, numbers, or logos in the image; do NOT quote the lyrics; avoid generic clichés; 1-2 sentences, under 80 words. Output only the prompt, no preamble.'
+
+export async function craftCoverPrompt(ctx: { genre?: string; mood?: string; title?: string; lyrics?: string }): Promise<string | null> {
+  if (MOCK_MODE) return null
+  const lyrics = (ctx.lyrics ?? '').replace(/\[.*?\]/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 400)
+  const parts = [
+    ctx.genre ? `Genre: ${ctx.genre}` : '',
+    ctx.mood ? `Mood: ${ctx.mood}` : '',
+    ctx.title ? `Title: ${ctx.title}` : '',
+    lyrics ? `Lyrics: ${lyrics}` : '',
+  ].filter(Boolean).join('\n')
+  if (!parts) return null
+  try {
+    const res = await fetch('https://api.minimax.io/v1/text/chatcompletion_v2', {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${process.env.MINIMAX_API_KEY}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: process.env.MINIMAX_TEXT_MODEL || 'MiniMax-M3',
+        messages: [
+          { role: 'system', content: COVER_ART_SYSTEM },
+          { role: 'user', content: parts },
+        ],
+      }),
+    })
+    if (!res.ok) return null
+    const data = await res.json()
+    if (data.base_resp?.status_code != null && data.base_resp.status_code !== 0) return null
+    const out = data.choices?.[0]?.message?.content
+    const text = typeof out === 'string' ? out.trim() : ''
+    return text ? text.slice(0, 1200) : null
+  } catch {
+    return null
+  }
+}
+
 export { MOCK_MODE }
 
 // MiniMax 영문 에러 메시지 → 한국어 친화 메시지
