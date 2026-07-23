@@ -156,20 +156,18 @@ export default function VideoCreateScreen() {
           const on = tier === t.id
           return (
             <Pressable key={t.id} onPress={() => { setTier(t.id); setTierSheet(false) }} style={({ pressed }) => [styles.tierRow, pressed && styles.tierRowPressed]}>
-              <View style={styles.tierHead}>
+              <View style={[styles.tierCheck, on && styles.tierCheckOn]}>
+                {on ? (
+                  <Svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#ffffff" strokeWidth={3.5} strokeLinecap="round" strokeLinejoin="round"><Path d="M20 6L9 17l-5-5" /></Svg>
+                ) : null}
+              </View>
+              <View style={[styles.tierHead, styles.flex]}>
                 <Text style={styles.tierRowName}>{t.name}</Text>
                 <Text style={styles.tierBadge}>{t.res}</Text>
               </View>
-              <View style={styles.tierSelectRight}>
-                <View style={styles.creditPill}>
-                  <Icon name="sparkle" size={13} color={mono.color.text} />
-                  <Text style={styles.tierCredits}>{t.credits}</Text>
-                </View>
-                <View style={[styles.tierCheck, on && styles.tierCheckOn]}>
-                  {on ? (
-                    <Svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#ffffff" strokeWidth={3.5} strokeLinecap="round" strokeLinejoin="round"><Path d="M20 6L9 17l-5-5" /></Svg>
-                  ) : null}
-                </View>
+              <View style={styles.creditPill}>
+                <Icon name="sparkle" size={13} color={mono.color.text} />
+                <Text style={styles.tierCredits}>{t.credits}</Text>
               </View>
             </Pressable>
           )
@@ -201,7 +199,6 @@ const styles = StyleSheet.create({
   // 화질 pill — 헤더 우측(만들기 화면 상단 모델선택 pill 패턴)
   tierPill: { flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: mono.color.fill, borderRadius: mono.radius.pill, paddingHorizontal: 12, paddingVertical: 9 },
   tierChipName: { color: mono.color.text, fontSize: mono.font.small, fontWeight: '700' },
-  tierSelectRight: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   tierHead: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   // 해상도 배지 — 곡 리스트 모델 배지(v2.6)와 동일 스타일
   tierBadge: { color: mono.color.accentLight, fontSize: 10, fontWeight: '700', backgroundColor: 'rgba(124,58,237,0.2)', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 6, overflow: 'hidden' },
@@ -209,8 +206,8 @@ const styles = StyleSheet.create({
   tierCredits: { color: mono.color.text, fontSize: mono.font.small, fontWeight: '700' },
   // 화질 선택 바텀시트
   tierSheet: { paddingHorizontal: 20 },
-  tierSheetTitle: { color: mono.color.text, fontSize: mono.font.h2, fontWeight: '700', marginTop: 14, marginBottom: 8 },
-  tierRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 14, borderRadius: mono.radius.md },
+  tierSheetTitle: { color: mono.color.text, fontSize: mono.font.h2, fontWeight: '700', textAlign: 'center', marginTop: 14, marginBottom: 22 },
+  tierRow: { flexDirection: 'row', alignItems: 'center', gap: 14, paddingVertical: 16, borderRadius: mono.radius.md },
   tierRowPressed: { backgroundColor: mono.color.fill },
   tierRowName: { color: mono.color.text, fontSize: mono.font.body, fontWeight: '700' },
   tierCheck: { width: 22, height: 22, borderRadius: 11, borderWidth: 2, borderColor: mono.color.fillStrong, alignItems: 'center', justifyContent: 'center' },
