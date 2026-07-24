@@ -40,6 +40,35 @@ export interface ConsumedBreakdown {
   paid: number
 }
 
+// 크레딧 원장 기록 (mig 064). 부가 기록이라 실패해도 본 흐름을 막지 않음(로그만).
+//   category: 'charge'(충전 탭) | 'usage'(사용 탭)
+//   kind:     'charge' | 'use' | 'refund',  amount: 부호 있는 증감(충전+ / 사용−)
+export interface CreditTxInput {
+  category: 'charge' | 'usage'
+  kind: 'charge' | 'use' | 'refund'
+  amount: number
+  source: string
+  refId?: string | null
+  title: string
+}
+export async function recordCreditTx(userId: string, tx: CreditTxInput): Promise<void> {
+  try {
+    const supabase = createAdminClient()
+    const { error } = await supabase.from('credit_transactions').insert({
+      user_id: userId,
+      category: tx.category,
+      kind: tx.kind,
+      amount: tx.amount,
+      source: tx.source,
+      ref_id: tx.refId ?? null,
+      title: tx.title,
+    })
+    if (error) console.error('[credit.tx] insert 실패:', error.message)
+  } catch (e) {
+    console.error('[credit.tx] insert 예외:', (e as Error).message)
+  }
+}
+
 export async function getCreditState(userId: string): Promise<CreditState> {
   const supabase = createAdminClient()
   const { data } = await supabase

@@ -3,7 +3,7 @@
 import { createAdminClient } from '@/lib/supabase/admin'
 import { queryVideoTask, retrieveFileUrl, VIDEO_TIERS } from '@/services/video.service'
 import { uploadFromUrl } from '@/services/storage.service'
-import { refundVideoTrial, refundCredits } from '@/services/credit.service'
+import { refundVideoTrial, refundCredits, recordCreditTx } from '@/services/credit.service'
 import { sendPushToUser } from '@/services/push.service'
 
 const TIMEOUT_MS = 12 * 60 * 1000
@@ -28,7 +28,10 @@ export async function finalizeVideoCover(song: VideoSongRow): Promise<FinalizeRe
   const tier = song.video_cover_resolution === '768P' ? 'hd' : 'basic'
   const refund = async () => {
     if (song.video_cover_charge === 'trial') await refundVideoTrial(song.user_id)
-    else if (song.video_cover_charge === 'credit') await refundCredits(song.user_id, VIDEO_TIERS[tier].credits)
+    else if (song.video_cover_charge === 'credit') {
+      await refundCredits(song.user_id, VIDEO_TIERS[tier].credits)
+      await recordCreditTx(song.user_id, { category: 'usage', kind: 'refund', amount: VIDEO_TIERS[tier].credits, source: 'video', refId: song.id, title: '영상 커버 생성 실패 환불' })
+    }
   }
   const markFailed = async () => {
     await refund()

@@ -4,7 +4,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createUserClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
-import { consumeVideoTrial, refundVideoTrial, tryConsumeCredits, refundCredits, type ConsumedBreakdown } from '@/services/credit.service'
+import { consumeVideoTrial, refundVideoTrial, tryConsumeCredits, refundCredits, recordCreditTx, type ConsumedBreakdown } from '@/services/credit.service'
 import { createVideoTask, VIDEO_TIERS } from '@/services/video.service'
 import { uploadFromUrl } from '@/services/storage.service'
 import type { VideoCoverMode, VideoCoverTier } from '@mono/shared'
@@ -84,10 +84,21 @@ export async function POST(req: NextRequest, { params }: { params: Promise<Param
     })
   } catch (e) {
     if (charge === 'trial') await refundVideoTrial(uid)
-    else await refundCredits(uid, VIDEO_TIERS[tier].credits, creditConsumed)
+    else {
+      await refundCredits(uid, VIDEO_TIERS[tier].credits, creditConsumed)
+      await recordCreditTx(uid, { category: 'usage', kind: 'refund', amount: VIDEO_TIERS[tier].credits, source: 'video', refId: songId, title: '영상 커버 생성 실패 환불' })
+    }
     if ((e as { code?: string }).code === 'RATE_LIMITED') return NextResponse.json({ error: 'rate_limited' }, { status: 429 })
     console.error('[generate-video] createTask:', e)
     return NextResponse.json({ error: 'minimax_failed', message: (e as Error).message }, { status: 502 })
+  }
+
+  // 원장: 크레딧 결제분만 사용 기록(체험권은 무상이라 제외)
+  if (charge === 'credit') {
+    await recordCreditTx(uid, {
+      category: 'usage', kind: 'use', amount: -VIDEO_TIERS[tier].credits, source: 'video', refId: songId,
+      title: `영상 커버 생성 · ${VIDEO_TIERS[tier].resolution}`,
+    })
   }
 
   const patch: Record<string, unknown> = {

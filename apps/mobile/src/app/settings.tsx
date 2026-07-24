@@ -154,6 +154,12 @@ export default function SettingsScreen() {
             <InfoRow label="충전(유상)" value={credits ? `${credits.paid}` : '-'} />
             <View style={styles.divider} />
             <InfoRow label="사용 가능 총량" value={credits ? `${credits.total}` : '-'} strong />
+            <View style={styles.divider} />
+            {/* 크레딧 내역(충전·사용) 대시보드 진입 */}
+            <Pressable style={styles.cell} onPress={() => router.push('/credit-history')}>
+              <Text style={styles.cellText}>크레딧 내역 보기</Text>
+              <Text style={styles.chevron}>›</Text>
+            </Pressable>
           </View>
 
           {/* 크레딧 충전 · 플랜 업그레이드 — 결제(IAP) 도입 전까지 준비중 안내 */}

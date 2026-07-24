@@ -8,6 +8,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { SignedDataVerifier, Environment } from '@apple/app-store-server-library'
 import { createUserClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
+import { recordCreditTx } from '@/services/credit.service'
 import { iapCredits } from '@mono/shared'
 
 interface VerifiedTx { transactionId: string; productId: string; store: string }
@@ -77,5 +78,10 @@ export async function POST(req: NextRequest) {
   }
   const { error: rpcErr } = await admin.rpc('add_paid_credits', { p_user: user.id, p_delta: credits })
   if (rpcErr) { console.error('[iap/verify] grant', rpcErr.message); return NextResponse.json({ error: 'grant_failed' }, { status: 500 }) }
+  // 원장: 충전 기록 (iap_purchases UNIQUE 멱등이라 중복 지급 시 위에서 return → 여기 도달 = 신규 지급)
+  await recordCreditTx(user.id, {
+    category: 'charge', kind: 'charge', amount: credits, source: 'iap', refId: tx.transactionId,
+    title: `크레딧 충전 ${credits}cr`,
+  })
   return NextResponse.json({ ok: true, granted: credits })
 }

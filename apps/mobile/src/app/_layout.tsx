@@ -111,6 +111,7 @@ export default function RootLayout() {
         <Stack.Screen name="profile-edit" options={{ presentation: 'modal' }} />
         <Stack.Screen name="settings" options={{ presentation: 'modal' }} />
         <Stack.Screen name="notification-settings" options={{ presentation: 'modal' }} />
+        <Stack.Screen name="credit-history" options={{ presentation: 'modal' }} />
         <Stack.Screen name="oss-licenses" options={{ presentation: 'modal' }} />
         <Stack.Screen name="blocked-users" options={{ presentation: 'modal' }} />
         <Stack.Screen name="video-create" options={{ presentation: 'modal' }} />

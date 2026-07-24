@@ -4,7 +4,7 @@ import { estimateMp3Duration, uploadFromUrl } from '@/services/storage.service'
 import { createUserClient } from '@/lib/supabase/server'
 import { requireActiveUser } from '@/lib/auth/active-user'
 import { createAdminClient } from '@/lib/supabase/admin'
-import { tryConsumeCredits, refundCredits } from '@/services/credit.service'
+import { tryConsumeCredits, refundCredits, recordCreditTx } from '@/services/credit.service'
 import { generateLyrics } from '@/services/lyrics.service'
 import { inferTags } from '@/utils/extractTags'
 import { sendPushToUser } from '@/services/push.service'
@@ -131,6 +131,12 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: '곡 row 생성 실패' }, { status: 500 })
   }
 
+  // 원장: 사용 기록 (곡 생성). ref=songId, title=모델 라벨
+  await recordCreditTx(user.id, {
+    category: 'usage', kind: 'use', amount: -cost, source: 'song', refId: songId,
+    title: `곡 생성 · ${modelDef.label}`,
+  })
+
   // ── 5) 백그라운드: MiniMax + Storage + UPDATE → status=done. 실패 시 status=failed + 환불
   after(async () => {
     try {
@@ -217,6 +223,11 @@ export async function POST(req: NextRequest) {
       console.error('[generate bg] 실패:', e instanceof Error ? e.message : e)
       await admin.from('songs').update({ status: 'failed' }).eq('id', songId)
       await refundCredits(user.id, cost, consume.consumed)
+      // 원장: 생성 실패 환불 기록 (사용 탭에 +복원으로 표시)
+      await recordCreditTx(user.id, {
+        category: 'usage', kind: 'refund', amount: cost, source: 'song', refId: songId,
+        title: '곡 생성 실패 환불',
+      })
     }
   })
 
