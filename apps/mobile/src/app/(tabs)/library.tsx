@@ -13,7 +13,7 @@ import { useAutoHideHeader } from '@/lib/use-auto-hide-header'
 import { SongRow } from '@/components/ui/song-row'
 import { Icon } from '@/components/ui/icon'
 import { NotificationBell } from '@/components/ui/notification-bell'
-import { playSong } from '@/lib/player'
+import { playSong, playPreviewSong } from '@/lib/player'
 import { clearSongNew, deleteSong, downloadSong, setSongPublished } from '@/lib/song-actions'
 import { isInAnyCollection, collections as collectionStore } from '@/lib/collection'
 import { SongMoreSheet } from '@/components/ui/song-more-sheet'
@@ -100,6 +100,8 @@ export default function LibraryScreen() {
 
   // 재생 시 새 곡 배지(빨간점) 해제 — 낙관적 로컬 반영 + 서버 업데이트(웹 clearNew 패리티)
   const playAndClearNew = useCallback((song: Song, list: Song[]) => {
+    // 생성 중 + 부분 오디오 → 미리 듣기(단일 트랙, 끝에 닿으면 자동 이어붙기)
+    if (song.status === 'generating' && song.previewAudioUrl) { playPreviewSong(song); return }
     playSong(song, list)
     if (song.isNew) {
       setSongs((prev) => prev?.map((s) => (s.id === song.id ? { ...s, isNew: false } : s)) ?? prev)

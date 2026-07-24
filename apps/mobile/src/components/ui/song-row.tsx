@@ -22,11 +22,13 @@ function fmtDuration(sec?: number | null): string | null {
 // 곡 한 줄 — 커버(재생시간 오버레이)·제목(모델 배지)·상태·통계(공개 여부). 탭→재생, ⋯→액션(onMore).
 export function SongRow({ song, onPress, onMore }: { song: Song; onPress?: () => void; onMore?: () => void }) {
   const generating = song.status === 'generating'
+  // 생성 중 미리 듣기 — 부분 오디오가 올라오면 탭해서 재생 가능
+  const canPreview = generating && !!song.previewAudioUrl
   const isNew = !!song.isNew && !generating
   // 현재 재생 중인 곡이면 커버에 사운드 웨이브 표시
   const activeTrack = useActiveTrack()
   const playback = usePlaybackState()
-  const isActive = !generating && !!activeTrack && activeTrack.id === song.id
+  const isActive = (!generating || canPreview) && !!activeTrack && activeTrack.id === song.id
   const isPlaying = isActive && (playback.state === State.Playing || playback.state === State.Buffering)
   // 웹 파리티 커버 기본색 — coverHue 없으면 id 해시. 대각선 그라데이션(hue → hue+55).
   const hue = song.coverHue ?? ((song.id.split('').reduce((a, c) => a + c.charCodeAt(0), 0) * 137) % 360)
@@ -34,8 +36,8 @@ export function SongRow({ song, onPress, onMore }: { song: Song; onPress?: () =>
   const duration = !generating ? fmtDuration(song.duration) : null
   return (
     <Pressable
-      onPress={generating ? undefined : onPress}
-      style={({ pressed }) => [styles.row, pressed && !generating && styles.pressed]}
+      onPress={generating && !canPreview ? undefined : onPress}
+      style={({ pressed }) => [styles.row, pressed && (!generating || canPreview) && styles.pressed]}
     >
       <View style={styles.cover}>
         <Svg style={StyleSheet.absoluteFill} pointerEvents="none">
@@ -54,6 +56,10 @@ export function SongRow({ song, onPress, onMore }: { song: Song; onPress?: () =>
         {isPlaying ? (
           <View style={styles.playingOverlay}>
             <PlayingBars playing color="#ffffff" size={22} />
+          </View>
+        ) : canPreview ? (
+          <View style={styles.playingOverlay}>
+            <Icon name="play.fill" size={16} color="#ffffff" />
           </View>
         ) : null}
         {isNew ? <View style={styles.newDot} /> : null}
@@ -78,7 +84,9 @@ export function SongRow({ song, onPress, onMore }: { song: Song; onPress?: () =>
           {(() => { const b = modelBadge(song.model); return b ? <Text style={[styles.modelBadge, { color: b.color, backgroundColor: b.bg }]}>{b.label}</Text> : null })()}
         </View>
         {generating ? (
-          <GeneratingPhrase startedAt={song.createdAt} style={styles.sub} />
+          canPreview
+            ? <Text style={[styles.sub, { color: mono.color.accentLight }]} numberOfLines={1}>만드는 중이에요 · 지금 미리 들어볼 수 있어요</Text>
+            : <GeneratingPhrase startedAt={song.createdAt} style={styles.sub} />
         ) : (
           <Text style={styles.sub} numberOfLines={1}>
             {[song.genre, song.mood].filter(Boolean).join(' · ') || song.prompt?.trim() || '스타일 미지정'}
