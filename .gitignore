@@ -15,6 +15,10 @@ node_modules/
 
 # next.js (monorepo: match at any depth, e.g. apps/web/.next)
 .next/
+# 심링크(.next → .next.nosync, iCloud 우회)도 무시 — 디렉토리 전용 .next/ 로는 심링크가 안 걸림
+.next
+# 어느 깊이든(apps/web/.next.nosync). 루트고정 /.next.nosync/ 로는 안 걸렸음
+.next.nosync/
 out/
 
 # 에디터 임시/스왑 파일
