@@ -13,7 +13,7 @@ interface PageProps { params: Promise<{ id: string }> }
 export async function generateMetadata({ params }: PageProps) {
   const { id } = await params
   const a = await getPublishedAnnouncement(id)
-  return { title: a ? `${a.title} — MONO` : "What's New — MONO" }
+  return { title: a ? `${a.title} — MONO` : '공지사항 — MONO' }
 }
 
 function fmtDate(iso: string): string {
@@ -44,7 +44,7 @@ export default async function AnnouncementDetailPage({ params }: PageProps) {
             <path d="M7 1L1 6.5 7 12" />
           </svg>
         </Link>
-        <p className="text-sm font-semibold text-white">What&apos;s New</p>
+        <p className="text-sm font-semibold text-white">공지사항</p>
       </div>
 
       <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain">

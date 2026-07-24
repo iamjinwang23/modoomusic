@@ -13,7 +13,7 @@ import { toast } from '@/components/toast/toast'
 
 // 더보기(푸터) 항목 — 모바일에서 접근 경로 확보 위해 내 계정에도 노출
 const INFO_LINKS: { href: string; label: string; icon: string; external?: boolean; mail?: boolean }[] = [
-  { href: '/announcements', label: "What's New", icon: '/Sparkles.svg' },
+  { href: '/announcements', label: '공지사항', icon: '/Sparkles.svg' },
   { href: '/terms', label: '이용약관', icon: '/terms.png', external: true },
   { href: '/privacy', label: '개인정보처리방침', icon: '/security-policy.png', external: true },
   { href: '/policy', label: '운영정책', icon: '/policy.png', external: true },

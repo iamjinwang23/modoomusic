@@ -70,7 +70,7 @@ export default function AdminAnnouncementsPage() {
       <header className="flex items-center justify-between">
         <div>
           <h1 className="text-xl font-semibold text-zinc-900">공지</h1>
-          <p className="text-sm text-zinc-500 mt-1">What&apos;s New 페이지에 게시되는 공지·프로모션 관리</p>
+          <p className="text-sm text-zinc-500 mt-1">공지사항 페이지에 게시되는 공지·프로모션 관리</p>
         </div>
         <button
           onClick={() => setEditor({ mode: 'new' })}
@@ -158,7 +158,7 @@ export default function AdminAnnouncementsPage() {
           confirm
             ? confirm.kind === 'notify'
               ? `“${confirm.item.title}” — 탈퇴하지 않은 전체 사용자에게 알림을 보냅니다.${confirm.item.notifiedAt ? ' 이미 받은 사용자는 제외돼요.' : ''}`
-              : `“${confirm.item.title}” ${confirm.kind === 'delete' ? '— 삭제하면 복구할 수 없어요' : confirm.kind === 'hide' ? '— What’s New에서 숨깁니다' : '— What’s New에 다시 게시합니다'}`
+              : `“${confirm.item.title}” ${confirm.kind === 'delete' ? '— 삭제하면 복구할 수 없어요' : confirm.kind === 'hide' ? '— 공지사항에서 숨깁니다' : '— 공지사항에 다시 게시합니다'}`
             : ''
         }
         confirmLabel={confirm?.kind === 'delete' ? '삭제' : confirm?.kind === 'hide' ? '숨김' : confirm?.kind === 'notify' ? '알림 발송' : '공개'}

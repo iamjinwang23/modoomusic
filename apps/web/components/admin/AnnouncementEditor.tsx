@@ -219,7 +219,7 @@ export function AnnouncementEditor({ mode, initial, onClose, onSaved }: Props) {
             </div>
             {scheduledFuture && (
               <p className="mt-1.5 text-[11px] text-[#0761d1]">
-                예약됨 — {new Date(publishAt).toLocaleString('ko-KR')}에 What&apos;s New에 공개됩니다.
+                예약됨 — {new Date(publishAt).toLocaleString('ko-KR')}에 공지사항에 공개됩니다.
               </p>
             )}
           </div>

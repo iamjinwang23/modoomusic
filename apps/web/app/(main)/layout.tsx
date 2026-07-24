@@ -381,7 +381,7 @@ export default function MainShellLayout({ children }: { children: React.ReactNod
                       className="flex items-center gap-2.5 px-4 py-3 text-sm text-zinc-300 hover:text-white hover:bg-white/[0.04] transition-colors border-b border-white/[0.06]"
                     >
                       <Image src="/Sparkles.svg" alt="" width={16} height={16} style={{ filter: 'invert(1) brightness(0.85)' }} />
-                      What&apos;s New
+                      공지사항
                     </Link>
                     {[
                       { href: '/terms', label: '이용약관', icon: '/terms.png' },

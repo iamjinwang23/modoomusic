@@ -59,7 +59,8 @@
     "android": "expo run:android",
     "ios": "expo run:ios",
     "web": "expo start --web",
-    "lint": "expo lint"
+    "lint": "expo lint",
+    "gen-licenses": "node scripts/gen-oss-licenses.js"
   },
   "private": true
 }

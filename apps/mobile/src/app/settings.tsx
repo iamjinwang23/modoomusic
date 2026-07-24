@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
-import { ActivityIndicator, Alert, Linking, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native'
+import { ActivityIndicator, Alert, Linking, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { router } from 'expo-router'
 import * as WebBrowser from 'expo-web-browser'
@@ -25,7 +25,7 @@ const PROVIDER_LABEL: Record<string, string> = {
 
 // 이용 안내·지원 — 웹 더보기/내 계정과 동일 항목. 대부분 웹 페이지라 인앱 브라우저로 연다.
 const INFO_LINKS: { key: string; label: string; icon: IconName; url: string; external: boolean; mail?: boolean }[] = [
-  { key: 'whatsnew', label: "What's New", icon: 'sparkle', url: `${WEB_BASE}/announcements`, external: false },
+  { key: 'whatsnew', label: '공지사항', icon: 'sparkle', url: `${WEB_BASE}/announcements`, external: true },
   { key: 'terms', label: '이용약관', icon: 'document', url: `${WEB_BASE}/terms`, external: true },
   { key: 'privacy', label: '개인정보처리방침', icon: 'document', url: `${WEB_BASE}/privacy`, external: true },
   { key: 'policy', label: '운영정책', icon: 'document', url: `${WEB_BASE}/policy`, external: true },
@@ -37,6 +37,21 @@ const INFO_LINKS: { key: string; label: string; icon: IconName; url: string; ext
 function fmtDate(iso: string): string {
   const d = new Date(iso)
   return `${d.getFullYear()}.${String(d.getMonth() + 1).padStart(2, '0')}.${String(d.getDate()).padStart(2, '0')}`
+}
+
+// App Store 최신 버전 확인용 — 숫자 App Store ID(= ascAppId / appAppleId) + 번들 ID.
+const APP_STORE_ID = '6790648491'
+const IOS_BUNDLE_ID = 'com.modoomusic.app'
+
+// semver 비교: a<b → -1, a==b → 0, a>b → 1. (마케팅 버전 x.y.z 기준)
+function compareVersions(a: string, b: string): number {
+  const pa = a.split('.').map((n) => parseInt(n, 10) || 0)
+  const pb = b.split('.').map((n) => parseInt(n, 10) || 0)
+  for (let i = 0; i < Math.max(pa.length, pb.length); i++) {
+    const d = (pa[i] || 0) - (pb[i] || 0)
+    if (d !== 0) return d < 0 ? -1 : 1
+  }
+  return 0
 }
 
 // 설정 — 계정정보 + 크레딧 + 알림 토글 + 이용안내 + 로그아웃 + 회원 탈퇴. 프로필 탭의 톱니에서 진입.
@@ -67,6 +82,30 @@ export default function SettingsScreen() {
     setLoading(false)
   }, [])
   useEffect(() => { load() }, [load])
+
+  // 버전 — App Store 최신 버전과 비교(iOS만). checking→불명 시 우측 텍스트 숨김.
+  const version = Constants.expoConfig?.version ?? '—'
+  const [updateStatus, setUpdateStatus] = useState<'checking' | 'latest' | 'update' | 'unknown'>('checking')
+  const [storeUrl, setStoreUrl] = useState<string | null>(null)
+  useEffect(() => {
+    if (Platform.OS !== 'ios' || version === '—') { setUpdateStatus('unknown'); return }
+    let cancelled = false
+    ;(async () => {
+      try {
+        const res = await fetch(`https://itunes.apple.com/lookup?bundleId=${IOS_BUNDLE_ID}&country=kr`)
+        const j = (await res.json()) as { results?: { version?: string; trackViewUrl?: string }[] }
+        const app = j.results?.[0]
+        if (cancelled) return
+        if (!app?.version) { setUpdateStatus('unknown'); return }
+        setStoreUrl(app.trackViewUrl ?? `https://apps.apple.com/app/id${APP_STORE_ID}`)
+        setUpdateStatus(compareVersions(version, app.version) < 0 ? 'update' : 'latest')
+      } catch { if (!cancelled) setUpdateStatus('unknown') }
+    })()
+    return () => { cancelled = true }
+  }, [version])
+  const openAppStore = () => {
+    Linking.openURL(storeUrl ?? `https://apps.apple.com/app/id${APP_STORE_ID}`).catch(() => {})
+  }
 
   const openLink = (it: (typeof INFO_LINKS)[number]) => {
     if (it.mail) { Linking.openURL(it.url).catch(() => {}); return }
@@ -141,8 +180,8 @@ export default function SettingsScreen() {
             </Pressable>
           </View>
 
-          {/* 안전 — 차단 관리 */}
-          <Text style={styles.section}>안전</Text>
+          {/* 신고·차단 — 차단 관리 */}
+          <Text style={styles.section}>신고·차단</Text>
           <View style={styles.group}>
             <Pressable style={styles.cell} onPress={() => router.push('/blocked-users')}>
               <Text style={styles.cellText}>차단 목록</Text>
@@ -165,10 +204,31 @@ export default function SettingsScreen() {
                 {i < INFO_LINKS.length - 1 && <View style={styles.divider} />}
               </View>
             ))}
+            <View style={styles.divider} />
+            {/* 오픈소스 라이선스 — 인앱 뎁스 화면 */}
+            <Pressable style={styles.cell} onPress={() => router.push('/oss-licenses')}>
+              <View style={styles.linkLeft}>
+                <Icon name="document" size={18} color={mono.color.textSecondary} />
+                <Text style={styles.cellText}>오픈소스 라이선스</Text>
+              </View>
+              <Text style={styles.chevron}>›</Text>
+            </Pressable>
           </View>
 
-          {/* 버전 정보 — 문의하기 아래(지원 시 버전 확인용) */}
-          <Text style={styles.version}>버전 {Constants.expoConfig?.version ?? '—'}</Text>
+          {/* 버전 정보 — 좌: 현재 버전(v prefix), 우: 최신 버전 / 업데이트(탭 시 앱스토어) */}
+          <Text style={styles.section}>버전 정보</Text>
+          <View style={styles.group}>
+            <View style={styles.cell}>
+              <Text style={styles.cellText}>{version === '—' ? version : `v${version}`}</Text>
+              {updateStatus === 'update' ? (
+                <Pressable onPress={openAppStore} hitSlop={10}>
+                  <Text style={styles.updateText}>업데이트</Text>
+                </Pressable>
+              ) : updateStatus === 'latest' ? (
+                <Text style={styles.latestText}>최신 버전</Text>
+              ) : null}
+            </View>
+          </View>
 
           {/* 로그아웃 · 회원 탈퇴 — 동일 셀 높이 */}
           <View style={[styles.group, { marginTop: 28 }]}>
@@ -222,7 +282,8 @@ const styles = StyleSheet.create({
   divider: { height: 1, backgroundColor: mono.color.borderSoft },
   // 로그아웃 = 위험 빨강(자주 쓰는 액션 강조), 회원 탈퇴 = 비활성 흐린색(실수 방지)
   logoutText: { color: mono.color.danger, fontSize: mono.font.body, fontWeight: '600' },
-  version: { color: mono.color.textTertiary, fontSize: mono.font.small, textAlign: 'center', marginTop: 16, marginBottom: 2 },
+  updateText: { color: mono.color.accentLight, fontSize: mono.font.body, fontWeight: '700' },
+  latestText: { color: mono.color.textTertiary, fontSize: mono.font.body },
   deleteText: { color: mono.color.textTertiary, fontSize: mono.font.body, fontWeight: '500' },
   // 크레딧 CTA — 웹 사이드바 파리티(흰색 충전 / 바이올렛 업그레이드)
   ctaWhite: { marginTop: 10, height: 50, borderRadius: mono.radius.md, alignItems: 'center', justifyContent: 'center', backgroundColor: '#ffffff' },

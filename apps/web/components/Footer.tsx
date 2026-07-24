@@ -7,7 +7,7 @@ const SITEMAP: { href: string; label: string }[] = [
   { href: '/', label: '둘러보기' },
   { href: '/create', label: '음악 만들기' },
   { href: '/library', label: '라이브러리' },
-  { href: '/announcements', label: "What's New" },
+  { href: '/announcements', label: '공지사항' },
 ]
 
 const POLICIES: { href: string; label: string; strong?: boolean }[] = [

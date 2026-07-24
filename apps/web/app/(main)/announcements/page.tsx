@@ -2,7 +2,7 @@
 import { listPublishedAnnouncements } from '@/services/announcement.service'
 import { AnnouncementList } from '@/components/AnnouncementList'
 
-export const metadata = { title: "What's New — MONO" }
+export const metadata = { title: '공지사항 — MONO' }
 export const revalidate = 60 // ISR 1분
 
 export default async function AnnouncementsPage() {
