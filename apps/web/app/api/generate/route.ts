@@ -207,11 +207,18 @@ export async function POST(req: NextRequest) {
         : generateSong({ prompt: genPrompt, genre, mood, customLyrics: genLyrics, instrumental, model, audioBase64 })
             .then((r) => ({ ...r, uploaded: false }))
 
-      const [songResult, coverUrl] = await Promise.all([
+      const [songResult, coverUrlFirst] = await Promise.all([
         songPromise,
         craftCoverPrompt({ genre, mood, title: title || autoTitle || undefined, lyrics: genLyrics })
           .then((crafted) => generateCoverImage(crafted || fallbackCoverPrompt)),
       ])
+
+      // 커버 조용한 실패(null) 완화 — 1회 재시도. 음악 생성이 끝난 시점이라 API 경합도 해소됨.
+      let coverUrl = coverUrlFirst
+      if (!coverUrl && !MOCK_MODE) {
+        coverUrl = await generateCoverImage(fallbackCoverPrompt)
+        if (!coverUrl) console.warn('[generate bg] 커버 생성 재시도도 실패 — cover_image null로 저장')
+      }
 
       let finalAudioUrl: string | null = songResult.audioUrl
       let finalCoverUrl: string | null = coverUrl

@@ -589,6 +589,10 @@ function SongWorkItem({ song, onOpen, onEdit, onDelete, onCollect, onPublish, on
                 ) : (
                   <div className="w-4 h-4 md:w-5 md:h-5 border-2 border-white/30 border-t-white rounded-full animate-spin relative z-10" />
                 )}
+                {/* 미리 듣기 중에도 '아직 만드는 중' 신호 유지 — 스피너를 우하단으로 작게 이동 */}
+                {canPreview && (
+                  <div className="absolute bottom-1.5 right-1.5 w-3 h-3 border-[1.5px] border-white/30 border-t-white rounded-full animate-spin pointer-events-none z-10" />
+                )}
                 <div className="absolute bottom-2 left-1.5 w-2 h-2 rounded-full bg-violet-400 animate-pulse pointer-events-none z-10" />
               </>
             ) : isFailed ? (

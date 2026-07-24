@@ -1,5 +1,5 @@
 import { Image } from 'expo-image'
-import { Pressable, StyleSheet, Text, View } from 'react-native'
+import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native'
 import Svg, { Defs, LinearGradient, Rect, Stop } from 'react-native-svg'
 import { State, useActiveTrack, usePlaybackState } from 'react-native-track-player'
 import type { Song } from '@mono/shared'
@@ -60,7 +60,12 @@ export function SongRow({ song, onPress, onMore }: { song: Song; onPress?: () =>
         ) : canPreview ? (
           <View style={styles.playingOverlay}>
             <Icon name="play.fill" size={16} color="#ffffff" />
+            {/* 아직 만드는 중 신호 유지 — 우하단 소형 스피너 */}
+            <ActivityIndicator size="small" color="#ffffff" style={styles.previewSpinner} />
           </View>
+        ) : null}
+        {canPreview && isPlaying ? (
+          <ActivityIndicator size="small" color="#ffffff" style={styles.previewSpinner} />
         ) : null}
         {isNew ? <View style={styles.newDot} /> : null}
         {duration ? (
@@ -122,6 +127,8 @@ const styles = StyleSheet.create({
   newDot: { position: 'absolute', bottom: 4, left: 4, width: 8, height: 8, borderRadius: 4, backgroundColor: '#ef4444' },
   // 재생 중 — 커버 전체 딤 + 중앙 사운드 웨이브
   playingOverlay: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(0,0,0,0.4)' },
+  // 미리 듣기 중 '만드는 중' 신호 — 우하단 소형 스피너
+  previewSpinner: { position: 'absolute', bottom: 2, right: 2, transform: [{ scale: 0.55 }] },
   coverScrim: { position: 'absolute', left: 0, right: 0, bottom: 0, height: '55%' },
   duration: { position: 'absolute', right: 4, bottom: 3, color: mono.color.onMedia, fontSize: 10, fontWeight: '600' },
   meta: { flex: 1, minWidth: 0 },
