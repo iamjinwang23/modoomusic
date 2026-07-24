@@ -27,7 +27,11 @@ function isMeaningful(s: string, minLen: number): boolean {
   return uniqueChars >= 3
 }
 
+// 스트리밍 생성이 곡 길이만큼 함수를 잡음(워밍업+곡길이+업로드) — 한도 명시 + 250s salvage 데드라인과 세트
+export const maxDuration = 300
+
 export async function POST(req: NextRequest) {
+  const invokedAtMs = Date.now()
   const { prompt, genre, mood, title, customLyrics, instrumental, model, audioBase64, autoLyrics } = await req.json()
 
   if (!prompt?.trim()) {
@@ -187,6 +191,7 @@ export async function POST(req: NextRequest) {
                   .eq('id', songId).eq('status', 'generating')
               }
             },
+            invokedAtMs + 250_000,  // 300s 한도 前 수신분 조기 확정(뒷부분 잘림 > 통유실)
           ).then(async (r) => {
             const url = await uploadAudioBuffer(r.audioBuffer, 'songs-audio', `${storageId}.mp3`)
             if (!url) throw new Error('오디오 업로드 실패')

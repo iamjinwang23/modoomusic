@@ -31,7 +31,7 @@ export async function cleanupGeneratingZombies(): Promise<CleanupResult> {
 
   const { error: updErr } = await admin
     .from('songs')
-    .update({ status: 'failed' })
+    .update({ status: 'failed', preview_audio_url: null })  // 미리 듣기 URL도 정리 (mig 065)
     .in('id', zombies.map((z) => z.id))
   if (updErr) {
     console.error('[cleanup-generating] UPDATE', updErr.message)

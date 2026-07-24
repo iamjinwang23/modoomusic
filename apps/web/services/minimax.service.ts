@@ -145,6 +145,9 @@ export class StreamRejectedError extends Error {
 export async function generateSongStream(
   params: GenerateParams,
   onPartial: (partial: Buffer, approxSeconds: number) => Promise<void>,
+  // epoch ms — 도달 시 스트림을 끊고 수신분으로 조기 확정(곡 뒷부분 잘림). Vercel 함수
+  // 타임아웃(300s)으로 통째 유실되는 것 방지. 미도달이 정상 경로.
+  deadlineAt?: number,
 ): Promise<StreamGenerateResult> {
   const { prompt, genre, mood, customLyrics, instrumental = false, model = 'music-3.0' } = params
   const hasLyrics = !!customLyrics?.trim()
@@ -187,6 +190,16 @@ export async function generateSongStream(
   }
 
   const reader = res.body.getReader()
+  // 데드라인 킬러 — 워밍업 중엔 read()가 수 분 블록될 수 있어 루프 내 체크로는 부족.
+  // cancel()이 pending read()를 done으로 풀어 루프가 빠져나오고 수신분 salvage로 이어짐.
+  let timedOut = false
+  const killer = deadlineAt
+    ? setTimeout(() => {
+        timedOut = true
+        console.warn('[minimax stream] deadline 도달 — 수신분으로 조기 확정')
+        reader.cancel().catch(() => {})
+      }, Math.max(0, deadlineAt - Date.now()))
+    : null
   const dec = new TextDecoder()
   let buf = ''
   const chunks: Buffer[] = []
@@ -237,12 +250,14 @@ export async function generateSongStream(
       }
     }
   }
+  if (killer) clearTimeout(killer)
   if (buf.trim().startsWith('data:')) await handleEvent(buf.trim().slice(5).trim())
 
-  // 최종 이벤트가 없으면 스트림 청크 합본으로 폴백(실측상 합계 == 최종본)
+  // 최종 이벤트가 없으면 스트림 청크 합본으로 폴백(실측상 합계 == 최종본).
+  // deadline salvage의 경우 합본 = 잘린 곡이지만 통유실보단 낫다.
   const audioBuffer = finalBuffer ?? (chunks.length ? Buffer.concat(chunks) : null)
   if (!audioBuffer || audioBuffer.length === 0) {
-    throw new Error('곡 생성에 실패했어요')
+    throw new Error(timedOut ? '곡 생성 시간이 초과됐어요' : '곡 생성에 실패했어요')
   }
   const duration = durationMs ? Math.round(durationMs / 1000) : Math.round(audioBuffer.length / 32000)
 
