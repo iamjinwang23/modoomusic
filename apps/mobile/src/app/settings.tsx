@@ -7,6 +7,7 @@ import { PUSH_CATEGORIES, PUSH_CATEGORY_LABELS, type PushCategory } from '@mono/
 import { api } from '@/lib/api'
 import { supabase } from '@/lib/supabase'
 import { toast } from '@/lib/toast'
+import Constants from 'expo-constants'
 import { Icon, type IconName } from '@/components/ui/icon'
 import { AccountDeletionSheet } from '@/components/ui/account-deletion-sheet'
 import { mono } from '@/theme/mono'
@@ -195,6 +196,9 @@ export default function SettingsScreen() {
             ))}
           </View>
 
+          {/* 버전 정보 — 문의하기 아래(지원 시 버전 확인용) */}
+          <Text style={styles.version}>버전 {Constants.expoConfig?.version ?? '—'}</Text>
+
           {/* 로그아웃 · 회원 탈퇴 — 동일 셀 높이 */}
           <View style={[styles.group, { marginTop: 28 }]}>
             <Pressable style={styles.cell} onPress={logout}>
@@ -248,6 +252,7 @@ const styles = StyleSheet.create({
   divider: { height: 1, backgroundColor: mono.color.borderSoft },
   // 로그아웃 = 위험 빨강(자주 쓰는 액션 강조), 회원 탈퇴 = 비활성 흐린색(실수 방지)
   logoutText: { color: mono.color.danger, fontSize: mono.font.body, fontWeight: '600' },
+  version: { color: mono.color.textTertiary, fontSize: mono.font.small, textAlign: 'center', marginTop: 16, marginBottom: 2 },
   deleteText: { color: mono.color.textTertiary, fontSize: mono.font.body, fontWeight: '500' },
   // 크레딧 CTA — 웹 사이드바 파리티(흰색 충전 / 바이올렛 업그레이드)
   ctaWhite: { marginTop: 10, height: 50, borderRadius: mono.radius.md, alignItems: 'center', justifyContent: 'center', backgroundColor: '#ffffff' },
