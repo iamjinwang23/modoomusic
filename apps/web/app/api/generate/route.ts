@@ -178,7 +178,10 @@ export async function POST(req: NextRequest) {
 
       // 스트리밍 생성(생성 중 미리 듣기) — 3.0/2.6 & 비커버 & 비목. 부분 MP3를 주기 업로드해
       // preview_audio_url 갱신(?v= 캐시버스트). HTTP 레벨 거절 시에만 non-stream 폴백(이중 과금 없음).
-      const canStream = !MOCK_MODE && !audioBase64 && STREAMABLE_MODELS.includes(model as MusicModelId)
+      // ⚠️ 스트리밍은 실시간 페이스라 3.5분+ 곡이 Vercel 300s(Hobby) 한도를 넘어 잘림 →
+      // env 플래그로 게이팅. Pro(maxDuration 800s) 전환 후 'on' + maxDuration 상향해 재활성.
+      const canStream = process.env.MUSIC_STREAM_PREVIEW === 'on'
+        && !MOCK_MODE && !audioBase64 && STREAMABLE_MODELS.includes(model as MusicModelId)
 
       const songPromise: Promise<{ audioUrl: string; lyrics: string; duration: number | null; uploaded: boolean }> = canStream
         ? generateSongStream(
