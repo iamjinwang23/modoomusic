@@ -5,6 +5,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { requireAdminApi } from '@/lib/admin/guard'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { withAudit, AuditError } from '@/services/admin.service'
+import { recordCreditTx } from '@/services/credit.service'
 
 const DAILY_LIMIT = parseInt(process.env.ADMIN_DAILY_GRANT_LIMIT_CR ?? '1000', 10)
 const PER_REQUEST_LIMIT = 1000  // 단일 요청 최대 ±1000cr
@@ -100,6 +101,18 @@ export async function POST(req: NextRequest) {
     }
     console.error('[grant-credit] mutation:', e)
     return NextResponse.json({ error: 'internal' }, { status: 500 })
+  }
+
+  // 원장: 관리자 지급/조정 기록 (충전 탭). 실제 반영분(after-before) 기준.
+  const delta = after - before
+  if (delta !== 0) {
+    await recordCreditTx(target.id, {
+      category: 'charge',
+      kind: delta > 0 ? 'charge' : 'refund',
+      amount: delta,
+      source: 'admin',
+      title: delta > 0 ? '관리자 크레딧 지급' : '관리자 크레딧 조정',
+    })
   }
 
   return NextResponse.json({

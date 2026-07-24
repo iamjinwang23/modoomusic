@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react'
 import { ActivityIndicator, FlatList, Pressable, StyleSheet, Text, View } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { router } from 'expo-router'
+import Svg, { Defs, RadialGradient, Rect, Stop } from 'react-native-svg'
 import { api } from '@/lib/api'
 import { Icon } from '@/components/ui/icon'
 import { mono } from '@/theme/mono'
@@ -64,8 +65,26 @@ export default function CreditHistoryScreen() {
   }, [loadingMore, loading, hasMore, load, tab, offset])
 
   return (
-    <View style={[styles.container, { paddingTop: insets.top + 8 }]}>
-      <View style={styles.header}>
+    <View style={styles.container}>
+      {/* 상단 오로라 그라데이션 — 충전 페이지 파리티(네이티브 SVG) */}
+      <View style={styles.aurora} pointerEvents="none">
+        <Svg width="100%" height="100%">
+          <Defs>
+            <RadialGradient id="chg1" cx="26%" cy="0%" rx="74%" ry="64%">
+              <Stop offset="0" stopColor="#7c3aed" stopOpacity="0.32" />
+              <Stop offset="1" stopColor="#7c3aed" stopOpacity="0" />
+            </RadialGradient>
+            <RadialGradient id="chg2" cx="88%" cy="4%" rx="62%" ry="52%">
+              <Stop offset="0" stopColor="#5b8def" stopOpacity="0.2" />
+              <Stop offset="1" stopColor="#5b8def" stopOpacity="0" />
+            </RadialGradient>
+          </Defs>
+          <Rect width="100%" height="100%" fill="url(#chg1)" />
+          <Rect width="100%" height="100%" fill="url(#chg2)" />
+        </Svg>
+      </View>
+
+      <View style={[styles.header, { paddingTop: insets.top + 8 }]}>
         <Pressable onPress={() => router.back()} hitSlop={12}><Icon name="close" size={20} color={mono.color.text} /></Pressable>
         <Text style={styles.h1}>크레딧 내역</Text>
         <View style={{ width: 22 }} />
@@ -74,7 +93,7 @@ export default function CreditHistoryScreen() {
       <FlatList
         data={items}
         keyExtractor={(t) => t.id}
-        contentContainerStyle={{ paddingBottom: insets.bottom + 24 }}
+        contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: insets.bottom + 24 }}
         showsVerticalScrollIndicator={false}
         onEndReached={loadMore}
         onEndReachedThreshold={0.5}
@@ -82,15 +101,11 @@ export default function CreditHistoryScreen() {
           <View>
             {/* 대시보드 */}
             <View style={styles.hero}>
-              <Text style={styles.heroLabel}>사용 가능 크레딧</Text>
-              <Text style={styles.heroValue}>{credits ? credits.total : '—'}</Text>
-              <View style={styles.breakdown}>
-                <Stat label="오늘 남은" value={credits ? `${credits.remaining}` : '—'} />
-                <View style={styles.vline} />
-                <Stat label="보너스" value={credits ? `${credits.bonus}` : '—'} />
-                <View style={styles.vline} />
-                <Stat label="충전" value={credits ? `${credits.paid}` : '—'} />
+              <View style={styles.heroCapRow}>
+                <Icon name="sparkle" size={15} color={mono.color.textSecondary} />
+                <Text style={styles.heroLabel}>사용 가능 크레딧</Text>
               </View>
+              <Text style={styles.heroValue}>{credits ? credits.total.toLocaleString() : '—'}</Text>
             </View>
 
             {/* 세그먼트 탭 */}
@@ -128,30 +143,16 @@ export default function CreditHistoryScreen() {
   )
 }
 
-function Stat({ label, value }: { label: string; value: string }) {
-  return (
-    <View style={styles.stat}>
-      <Text style={styles.statValue}>{value}</Text>
-      <Text style={styles.statLabel}>{label}</Text>
-    </View>
-  )
-}
-
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: mono.color.bg, paddingHorizontal: 20 },
-  header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 },
+  container: { flex: 1, backgroundColor: mono.color.bg },
+  aurora: { position: 'absolute', top: 0, left: 0, right: 0, height: 280 },
+  header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12, paddingHorizontal: 20 },
   h1: { color: mono.color.text, fontSize: mono.font.h2, fontWeight: '700' },
-  hero: {
-    backgroundColor: mono.color.surface, borderRadius: mono.radius.lg, borderWidth: 1, borderColor: mono.color.borderSoft,
-    paddingVertical: 22, paddingHorizontal: 20, alignItems: 'center', marginTop: 8,
-  },
-  heroLabel: { color: mono.color.textSecondary, fontSize: mono.font.small },
-  heroValue: { color: mono.color.text, fontSize: 44, fontWeight: '800', marginTop: 4, marginBottom: 18 },
-  breakdown: { flexDirection: 'row', alignItems: 'center', alignSelf: 'stretch', justifyContent: 'space-between' },
-  stat: { flex: 1, alignItems: 'center' },
-  statValue: { color: mono.color.text, fontSize: mono.font.h2, fontWeight: '700' },
-  statLabel: { color: mono.color.textTertiary, fontSize: mono.font.tiny, marginTop: 3 },
-  vline: { width: 1, height: 30, backgroundColor: mono.color.borderSoft },
+  // 보유 크레딧 — 충전 페이지 파리티. 박스 없이 캡션(아이콘+텍스트)+큰 숫자만 가운데.
+  hero: { alignItems: 'center', paddingTop: 40, paddingBottom: 24 },
+  heroCapRow: { flexDirection: 'row', alignItems: 'center', gap: 5, marginBottom: 8 },
+  heroLabel: { color: mono.color.textSecondary, fontSize: mono.font.body, fontWeight: '600' },
+  heroValue: { color: mono.color.text, fontSize: 52, fontWeight: '800', letterSpacing: -1, textAlign: 'center' },
   tabs: { flexDirection: 'row', backgroundColor: mono.color.fill, borderRadius: mono.radius.md, padding: 4, marginTop: 20, marginBottom: 6 },
   tab: { flex: 1, paddingVertical: 9, borderRadius: mono.radius.sm, alignItems: 'center' },
   tabActive: { backgroundColor: mono.color.surface2 },
@@ -167,5 +168,5 @@ const styles = StyleSheet.create({
   rowWhen: { color: mono.color.textTertiary, fontSize: mono.font.tiny, marginTop: 3 },
   amount: { fontSize: mono.font.body, fontWeight: '700' },
   amountPos: { color: POSITIVE },
-  amountNeg: { color: mono.color.text },
+  amountNeg: { color: mono.color.danger },
 })

@@ -3,6 +3,10 @@
 
 import { createUserClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
+import { recordCreditTx } from '@/services/credit.service'
+
+// 초대 보상 금액 — mig 023 redeem_referral과 일치(초대받은 사람 +10, 초대한 사람 +10)
+const OWNER_REFERRAL_BONUS = 10
 
 export type RedeemErrorCode =
   | 'invalid_code'
@@ -51,11 +55,22 @@ export async function redeemReferral(
       reason: r.reason as 'same_provider' | 'ip_quota' | undefined,
     }
   }
-  return {
-    ownerUsername: r.owner_username as string,
-    bonusCredits: r.bonus_credits as number,
-    ownerBonusAdded: r.owner_bonus_added as boolean,
+  const bonusCredits = r.bonus_credits as number
+  const ownerBonusAdded = r.owner_bonus_added as boolean
+  const ownerUsername = r.owner_username as string
+
+  // 원장: 보너스 지급 기록 (충전 탭). 초대받은 사람 + (상한 미만이면)초대한 사람.
+  if (bonusCredits > 0) {
+    await recordCreditTx(inviteeId, { category: 'charge', kind: 'charge', amount: bonusCredits, source: 'referral', title: '친구 초대 보너스' })
   }
+  if (ownerBonusAdded) {
+    const { data: owner } = await admin.from('profiles').select('id').eq('username', ownerUsername).maybeSingle()
+    if (owner?.id) {
+      await recordCreditTx(owner.id as string, { category: 'charge', kind: 'charge', amount: OWNER_REFERRAL_BONUS, source: 'referral', title: '친구 초대 보상' })
+    }
+  }
+
+  return { ownerUsername, bonusCredits, ownerBonusAdded }
 }
 
 // 내 referral 정보 (모달 표시용)

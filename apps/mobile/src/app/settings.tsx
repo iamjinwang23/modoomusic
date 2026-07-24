@@ -3,7 +3,6 @@ import { ActivityIndicator, Alert, Linking, Platform, Pressable, ScrollView, Sty
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { router } from 'expo-router'
 import * as WebBrowser from 'expo-web-browser'
-import { api } from '@/lib/api'
 import { supabase } from '@/lib/supabase'
 import { toast } from '@/lib/toast'
 import Constants from 'expo-constants'
@@ -11,7 +10,6 @@ import { Icon, type IconName } from '@/components/ui/icon'
 import { AccountDeletionSheet } from '@/components/ui/account-deletion-sheet'
 import { mono } from '@/theme/mono'
 
-interface CreditState { used: number; limit: number; remaining: number; bonus: number; paid: number; total: number }
 interface AccountInfo { nickname: string; email: string; provider: string; joinedAt: string }
 
 // 모든 설정 셀의 공통 높이 — '프로필 편집'과 동일하게 통일.
@@ -59,16 +57,11 @@ function compareVersions(a: string, b: string): number {
 export default function SettingsScreen() {
   const insets = useSafeAreaInsets()
   const [account, setAccount] = useState<AccountInfo | null>(null)
-  const [credits, setCredits] = useState<CreditState | null>(null)
   const [loading, setLoading] = useState(true)
   const [deletionOpen, setDeletionOpen] = useState(false)
 
   const load = useCallback(async () => {
-    const [c, { data: { user } }] = await Promise.all([
-      api.get('/api/credits/me').catch(() => null) as Promise<CreditState | null>,
-      supabase.auth.getUser(),
-    ])
-    setCredits(c)
+    const { data: { user } } = await supabase.auth.getUser()
     if (user) {
       const { data: prof } = await supabase.from('profiles').select('display_name').eq('id', user.id).maybeSingle()
       const provider = (user.app_metadata?.provider as string) || 'email'
@@ -145,17 +138,9 @@ export default function SettingsScreen() {
             </>
           )}
 
+          {/* 크레딧 — 상세(잔여·보너스·충전·총량)는 내역 화면 대시보드에서. 여기선 진입만. */}
           <Text style={styles.section}>크레딧</Text>
           <View style={styles.group}>
-            <InfoRow label="오늘 남은 크레딧" value={credits ? `${credits.remaining} / ${credits.limit}` : '-'} strong />
-            <View style={styles.divider} />
-            <InfoRow label="보너스" value={credits ? `${credits.bonus}` : '-'} />
-            <View style={styles.divider} />
-            <InfoRow label="충전(유상)" value={credits ? `${credits.paid}` : '-'} />
-            <View style={styles.divider} />
-            <InfoRow label="사용 가능 총량" value={credits ? `${credits.total}` : '-'} strong />
-            <View style={styles.divider} />
-            {/* 크레딧 내역(충전·사용) 대시보드 진입 */}
             <Pressable style={styles.cell} onPress={() => router.push('/credit-history')}>
               <Text style={styles.cellText}>크레딧 내역 보기</Text>
               <Text style={styles.chevron}>›</Text>

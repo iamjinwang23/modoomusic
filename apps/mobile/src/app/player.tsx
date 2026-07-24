@@ -183,6 +183,10 @@ export default function PlayerScreen() {
   const [captionExpanded, setCaptionExpanded] = useState(false)
   const [captionOverflow, setCaptionOverflow] = useState(false)
   const captionMeasured = useRef(false)
+  // 스타일 더보기/접기 — 5줄 초과 시 토글 노출
+  const [styleExpanded, setStyleExpanded] = useState(false)
+  const [styleOverflow, setStyleOverflow] = useState(false)
+  const styleMeasured = useRef(false)
 
   useEffect(() => {
     if (!song?.id) { setMeta(null); setSongStyle(null); setSongModel(null); setEditData(null); return }
@@ -207,10 +211,13 @@ export default function PlayerScreen() {
     likeTouchedRef.current = false
     setLiked(!!song?.liked)
     setPublished(!!song?.published)
-    // 캡션 더보기 상태 리셋(곡마다 다시 측정)
+    // 캡션·스타일 더보기 상태 리셋(곡마다 다시 측정)
     captionMeasured.current = false
     setCaptionExpanded(false)
     setCaptionOverflow(false)
+    styleMeasured.current = false
+    setStyleExpanded(false)
+    setStyleOverflow(false)
   }, [song?.id]) // eslint-disable-line react-hooks/exhaustive-deps
   // 곡 주인(공개곡) 프로필 — 아바타·팔로우 (내 곡=username 없음이라 미노출)
   const [owner, setOwner] = useState<{ userId: string; avatarImage?: string; avatarHue: number; displayName: string } | null>(null)
@@ -596,14 +603,28 @@ export default function PlayerScreen() {
 
       </View>
 
-      {/* 스타일 */}
+      {/* 스타일 — 5줄 초과 시 더보기/접기 */}
       {songStyle ? (
         <View style={styles.section}>
           <View style={styles.sectionHead}>
             <Text style={styles.sectionLabel}>스타일</Text>
             <CopyBtn text={songStyle} />
           </View>
-          <Text style={styles.sectionBody}>{songStyle}</Text>
+          <Pressable onPress={() => styleOverflow && setStyleExpanded((v) => !v)}>
+            {/* 숨겨진 측정용 — numberOfLines 없이 실제 줄 수 측정 */}
+            {!styleMeasured.current ? (
+              <Text
+                style={[styles.sectionBody, styles.captionMeasure]}
+                onTextLayout={(e) => { styleMeasured.current = true; setStyleOverflow(e.nativeEvent.lines.length > 5) }}
+              >
+                {songStyle}
+              </Text>
+            ) : null}
+            <Text style={styles.sectionBody} numberOfLines={styleExpanded ? undefined : 5}>{songStyle}</Text>
+            {styleOverflow ? (
+              <Text style={styles.captionMore}>{styleExpanded ? '접기' : '더보기'}</Text>
+            ) : null}
+          </Pressable>
         </View>
       ) : null}
 
