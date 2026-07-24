@@ -3,6 +3,7 @@
 import { createContext, useContext, useReducer, useRef, useState, useEffect, useCallback } from 'react'
 import { songService } from '@/services/song.service'
 import { track, EVENTS } from '@/utils/analytics'
+import { useAuth } from '@/components/AuthProvider'
 import type { Song } from '@mono/shared'
 
 interface State {
@@ -29,14 +30,24 @@ type Action =
 
 const INIT: State = { feed: [], idx: 0, isOwner: false, ownerUserId: null, ownerAvatarUrl: null, ownerAvatarHue: null, ownerName: null, isPlaying: false, currentTime: 0, duration: 0 }
 
+// 곡 전환(NEXT/PREV) 시 새 곡의 크리에이터로 owner 메타 갱신. 공개곡(PublicSong)은 크리에이터 필드 보유 →
+// 그걸로 갱신. 내 곡 피드처럼 필드가 없으면 기존 owner 유지(모두 내 곡이라 owner 불변).
+function ownerFromSong(song: Song | undefined, s: State): Pick<State, 'ownerUserId' | 'ownerName' | 'ownerAvatarUrl' | 'ownerAvatarHue'> {
+  const u = song as Partial<{ userId: string; username: string; displayName: string; avatarUrl: string | null; avatarHue: number | null }> | undefined
+  if (u && (u.userId || u.username || u.displayName)) {
+    return { ownerUserId: u.userId ?? null, ownerName: u.displayName ?? u.username ?? null, ownerAvatarUrl: u.avatarUrl ?? null, ownerAvatarHue: u.avatarHue ?? null }
+  }
+  return { ownerUserId: s.ownerUserId, ownerName: s.ownerName, ownerAvatarUrl: s.ownerAvatarUrl, ownerAvatarHue: s.ownerAvatarHue }
+}
+
 function reducer(s: State, a: Action): State {
   switch (a.type) {
     case 'LOAD':    return { ...s, feed: a.feed, idx: a.idx, isOwner: a.isOwner, ownerUserId: a.ownerUserId ?? null, ownerAvatarUrl: a.ownerAvatarUrl ?? null, ownerAvatarHue: a.ownerAvatarHue ?? null, ownerName: a.ownerName ?? null, currentTime: 0, duration: 0 }
     case 'PLAYING': return { ...s, isPlaying: a.v }
     case 'TIME':    return { ...s, currentTime: a.t }
     case 'DURATION':return { ...s, duration: a.d }
-    case 'NEXT':    return s.idx < s.feed.length - 1 ? { ...s, idx: s.idx + 1, currentTime: 0 } : s
-    case 'PREV':    return s.idx > 0 ? { ...s, idx: s.idx - 1, currentTime: 0 } : s
+    case 'NEXT':    return s.idx < s.feed.length - 1 ? { ...s, idx: s.idx + 1, currentTime: 0, ...ownerFromSong(s.feed[s.idx + 1], s) } : s
+    case 'PREV':    return s.idx > 0 ? { ...s, idx: s.idx - 1, currentTime: 0, ...ownerFromSong(s.feed[s.idx - 1], s) } : s
     case 'PATCH':   return { ...s, feed: s.feed.map((song, i) => i === s.idx ? { ...song, ...a.patch } : song) }
     default: return s
   }
@@ -75,8 +86,11 @@ export function GlobalPlayerProvider({ children }: { children: React.ReactNode }
   stateRef.current = state
   // 같은 세션 안에서 같은 곡 중복 카운트 방지 (pause/resume 시 재증가 X)
   const countedRef = useRef<Set<string>>(new Set())
+  const { user } = useAuth()
 
   const song = state.feed[state.idx] ?? null
+  // isOwner는 현재 ownerUserId(곡 전환 시 갱신됨) 기준으로 매번 재계산 → 곡 넘겨도 정확
+  const isOwner = !!user && !!state.ownerUserId && state.ownerUserId === user.id
 
   useEffect(() => {
     const audio = audioRef.current
@@ -254,7 +268,7 @@ export function GlobalPlayerProvider({ children }: { children: React.ReactNode }
 
   return (
     <Ctx.Provider value={{
-      song, feed: state.feed, idx: state.idx, isOwner: state.isOwner, ownerUserId: state.ownerUserId, ownerAvatarUrl: state.ownerAvatarUrl, ownerAvatarHue: state.ownerAvatarHue, ownerName: state.ownerName,
+      song, feed: state.feed, idx: state.idx, isOwner, ownerUserId: state.ownerUserId, ownerAvatarUrl: state.ownerAvatarUrl, ownerAvatarHue: state.ownerAvatarHue, ownerName: state.ownerName,
       hasPrev: state.idx > 0, hasNext: state.idx < state.feed.length - 1,
       isPlaying: state.isPlaying, currentTime: state.currentTime, duration: state.duration,
       togglePlay, next, prev, seekTo, patchSong,
