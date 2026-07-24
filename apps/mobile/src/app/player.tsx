@@ -183,10 +183,9 @@ export default function PlayerScreen() {
   const [captionExpanded, setCaptionExpanded] = useState(false)
   const [captionOverflow, setCaptionOverflow] = useState(false)
   const captionMeasured = useRef(false)
-  // 스타일 더보기/접기 — 5줄 초과 시 토글 노출
+  // 스타일 더보기/접기 — 줄수/글자수 기준(측정 불안정 회피, 결정적)
   const [styleExpanded, setStyleExpanded] = useState(false)
-  const [styleOverflow, setStyleOverflow] = useState(false)
-  const styleMeasured = useRef(false)
+  const styleOverflow = !!songStyle && (songStyle.split('\n').length > 5 || songStyle.length > 140)
 
   useEffect(() => {
     if (!song?.id) { setMeta(null); setSongStyle(null); setSongModel(null); setEditData(null); return }
@@ -211,13 +210,11 @@ export default function PlayerScreen() {
     likeTouchedRef.current = false
     setLiked(!!song?.liked)
     setPublished(!!song?.published)
-    // 캡션·스타일 더보기 상태 리셋(곡마다 다시 측정)
+    // 캡션 더보기 상태 리셋(곡마다 다시 측정), 스타일 접기 초기화
     captionMeasured.current = false
     setCaptionExpanded(false)
     setCaptionOverflow(false)
-    styleMeasured.current = false
     setStyleExpanded(false)
-    setStyleOverflow(false)
   }, [song?.id]) // eslint-disable-line react-hooks/exhaustive-deps
   // 곡 주인(공개곡) 프로필 — 아바타·팔로우 (내 곡=username 없음이라 미노출)
   const [owner, setOwner] = useState<{ userId: string; avatarImage?: string; avatarHue: number; displayName: string } | null>(null)
@@ -611,18 +608,9 @@ export default function PlayerScreen() {
             <CopyBtn text={songStyle} />
           </View>
           <Pressable onPress={() => styleOverflow && setStyleExpanded((v) => !v)}>
-            {/* 숨겨진 측정용 — numberOfLines 없이 실제 줄 수 측정 */}
-            {!styleMeasured.current ? (
-              <Text
-                style={[styles.sectionBody, styles.captionMeasure]}
-                onTextLayout={(e) => { styleMeasured.current = true; setStyleOverflow(e.nativeEvent.lines.length > 5) }}
-              >
-                {songStyle}
-              </Text>
-            ) : null}
             <Text style={styles.sectionBody} numberOfLines={styleExpanded ? undefined : 5}>{songStyle}</Text>
             {styleOverflow ? (
-              <Text style={styles.captionMore}>{styleExpanded ? '접기' : '더보기'}</Text>
+              <Text style={styles.styleMore}>{styleExpanded ? '접기' : '더보기'}</Text>
             ) : null}
           </Pressable>
         </View>
@@ -787,6 +775,7 @@ const styles = StyleSheet.create({
   // 공개 코멘트 캡션(릴스식) — 프로필 하단
   caption: { color: mono.color.text, fontSize: mono.font.body, lineHeight: 26 },
   captionMore: { color: mono.color.textSecondary, fontSize: mono.font.small, fontWeight: '700', marginTop: 3 },
+  styleMore: { color: mono.color.text, fontSize: mono.font.small, fontWeight: '700', marginTop: 3 },
   // 측정 전용 — 실제 줄 수만 재고 화면엔 안 보이게(absolute+투명)
   captionMeasure: { position: 'absolute', opacity: 0, left: 0, right: 0 },
   // 곡 주인 행 — 아바타 + 이름 + 팔로우(이름 바로 옆)

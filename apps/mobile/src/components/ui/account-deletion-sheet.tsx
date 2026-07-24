@@ -101,7 +101,7 @@ export function AccountDeletionSheet({ open, onClose }: { open: boolean; onClose
 }
 
 const styles = StyleSheet.create({
-  wrap: { paddingHorizontal: 20, paddingBottom: 32, paddingTop: 4 },
+  wrap: { paddingHorizontal: 20, paddingBottom: 32, paddingTop: 20 },
   title: { color: mono.color.text, fontSize: mono.font.h2, fontWeight: '800', marginBottom: 10 },
   body: { color: mono.color.textSecondary, fontSize: mono.font.body, lineHeight: 22 },
   strong: { color: mono.color.text, fontWeight: '700' },
