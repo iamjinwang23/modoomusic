@@ -1,10 +1,19 @@
 import TrackPlayer, { AppKilledPlaybackBehavior, Capability, Event } from 'react-native-track-player'
 import { setNowPlaying, type NowPlaying } from './now-playing'
 import { myDisplayName } from './me'
+import { api } from './api'
 
 let ready = false
 // 현재 큐의 곡별 도메인 데이터(가사·좋아요 등) — 활성 트랙 변경 시 now-playing 복원용
 const queueMap = new Map<string, NowPlaying>()
+
+// 재생수 — 세션 내 곡당 1회만(웹 GlobalPlayerContext.countedRef 파리티). 서버 RPC는 dedup 없어 클라가 게이트.
+const countedPlays = new Set<string>()
+function countPlay(id: string) {
+  if (countedPlays.has(id)) return
+  countedPlays.add(id)
+  api.post(`/api/songs/${id}/play`).catch(() => {}) // fire-and-forget
+}
 
 function toTrack(s: NowPlaying, myName: string | null) {
   return {
@@ -30,10 +39,14 @@ export async function setupPlayer() {
     capabilities: [Capability.Play, Capability.Pause, Capability.SkipToNext, Capability.SkipToPrevious, Capability.Stop],
     compactCapabilities: [Capability.Play, Capability.Pause],
   })
-  // 이전/다음 곡 이동(락스크린·앱 내 버튼)으로 활성 트랙이 바뀌면 now-playing 화면 동기화
+  // 이전/다음 곡 이동(락스크린·앱 내 버튼)으로 활성 트랙이 바뀌면 now-playing 화면 동기화 + 재생수 집계.
+  // ActiveTrackChanged는 초기 재생·스킵 모두 발화 → 여기서 세션당 곡1회 카운트.
   TrackPlayer.addEventListener(Event.PlaybackActiveTrackChanged, (e) => {
     const id = (e?.track as { id?: string } | undefined)?.id
-    if (id && queueMap.has(id)) setNowPlaying(queueMap.get(id)!)
+    if (id && queueMap.has(id)) {
+      setNowPlaying(queueMap.get(id)!)
+      countPlay(id)
+    }
   })
   ready = true
 }
