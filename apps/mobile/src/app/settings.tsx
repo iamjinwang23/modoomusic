@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
-import { ActivityIndicator, Alert, Linking, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native'
+import { ActivityIndicator, Linking, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { router } from 'expo-router'
 import * as WebBrowser from 'expo-web-browser'
@@ -147,20 +147,14 @@ export default function SettingsScreen() {
             </Pressable>
           </View>
 
-          {/* 크레딧 충전 · 플랜 업그레이드 — 결제(IAP) 도입 전까지 준비중 안내 */}
+          {/* 크레딧 충전 */}
           <Pressable
-            style={({ pressed }) => [styles.ctaWhite, pressed && styles.pressed]}
+            style={({ pressed }) => [styles.ctaCharge, pressed && styles.pressed]}
             onPress={() => router.push('/credit-purchase')}
           >
-            <Text style={styles.ctaWhiteText}>크레딧 충전하기</Text>
+            <Icon name="sparkle" size={16} color="#ffffff" />
+            <Text style={styles.ctaChargeText}>크레딧 충전하기</Text>
           </Pressable>
-          <Pressable
-            style={({ pressed }) => [styles.ctaViolet, pressed && styles.pressed]}
-            onPress={() => Alert.alert('플랜 업그레이드', '곧 만나요! 업그레이드 시 추가 크레딧을 제공할 예정이에요.')}
-          >
-            <Text style={styles.ctaVioletText}>플랜 업그레이드</Text>
-          </Pressable>
-          <Text style={styles.ctaHint}>업그레이드 시 추가 크레딧 제공</Text>
 
           {/* 알림 — 뎁스 진입(차단 목록 패턴). 마스터 + 항목별 토글은 하위 화면에서. */}
           <Text style={styles.section}>알림</Text>
@@ -221,15 +215,14 @@ export default function SettingsScreen() {
             </View>
           </View>
 
-          {/* 로그아웃 · 회원 탈퇴 — 동일 셀 높이 */}
-          <View style={[styles.group, { marginTop: 28 }]}>
-            <Pressable style={styles.cell} onPress={logout}>
-              <Text style={styles.logoutText}>로그아웃</Text>
-            </Pressable>
-          </View>
-          <View style={[styles.group, { marginTop: 10 }]}>
-            <Pressable style={styles.cell} onPress={() => setDeletionOpen(true)}>
+          {/* 로그아웃 · 회원 탈퇴 — 박스 없이 가운데 한 줄(좌: 회원 탈퇴 │ 우: 로그아웃) */}
+          <View style={styles.authRow}>
+            <Pressable onPress={() => setDeletionOpen(true)} hitSlop={10}>
               <Text style={styles.deleteText}>회원 탈퇴</Text>
+            </Pressable>
+            <View style={styles.authDivider} />
+            <Pressable onPress={logout} hitSlop={10}>
+              <Text style={styles.logoutText}>로그아웃</Text>
             </Pressable>
           </View>
         </ScrollView>
@@ -272,15 +265,15 @@ const styles = StyleSheet.create({
   infoStrong: { color: mono.color.text, fontWeight: '800' },
   divider: { height: 1, backgroundColor: mono.color.borderSoft },
   // 로그아웃 = 위험 빨강(자주 쓰는 액션 강조), 회원 탈퇴 = 비활성 흐린색(실수 방지)
-  logoutText: { color: mono.color.danger, fontSize: mono.font.body, fontWeight: '600' },
+  authRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 16, marginTop: 32 },
+  authDivider: { width: 1, height: 12, backgroundColor: mono.color.border },
+  logoutText: { color: mono.color.textSecondary, fontSize: mono.font.small, fontWeight: '600' },
   updateText: { color: mono.color.accentLight, fontSize: mono.font.body, fontWeight: '700' },
   latestText: { color: mono.color.textTertiary, fontSize: mono.font.body },
-  deleteText: { color: mono.color.textTertiary, fontSize: mono.font.body, fontWeight: '500' },
+  deleteText: { color: mono.color.textTertiary, fontSize: mono.font.small, fontWeight: '500' },
   // 크레딧 CTA — 웹 사이드바 파리티(흰색 충전 / 바이올렛 업그레이드)
-  ctaWhite: { marginTop: 10, height: 50, borderRadius: mono.radius.md, alignItems: 'center', justifyContent: 'center', backgroundColor: '#ffffff' },
-  ctaWhiteText: { color: '#18181b', fontSize: mono.font.body, fontWeight: '700' },
-  ctaViolet: { marginTop: 8, height: 50, borderRadius: mono.radius.md, alignItems: 'center', justifyContent: 'center', backgroundColor: mono.color.accent },
-  ctaVioletText: { color: '#ffffff', fontSize: mono.font.body, fontWeight: '700' },
-  ctaHint: { color: mono.color.textTertiary, fontSize: mono.font.tiny, textAlign: 'center', marginTop: 8 },
+  // 크레딧 충전 CTA — pill 라운드(설정 카드와 구분) + 보라색 강조
+  ctaCharge: { marginTop: 10, height: 50, borderRadius: mono.radius.pill, flexDirection: 'row', gap: 6, alignItems: 'center', justifyContent: 'center', backgroundColor: mono.color.accent },
+  ctaChargeText: { color: '#ffffff', fontSize: mono.font.body, fontWeight: '700' },
   pressed: { opacity: 0.85 },
 })
