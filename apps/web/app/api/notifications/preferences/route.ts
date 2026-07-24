@@ -17,7 +17,9 @@ export async function GET() {
   const { data } = await admin.from('notification_preferences').select('*').eq('user_id', user.id).maybeSingle()
   const prefs = defaults()
   if (data) for (const c of PUSH_CATEGORIES) prefs[c] = (data as Record<string, boolean>)[c] !== false
-  return NextResponse.json({ preferences: prefs })
+  // 전체 알림 마스터 — 행 없으면 기본 ON
+  const pushEnabled = data ? (data as Record<string, boolean>).push_enabled !== false : true
+  return NextResponse.json({ preferences: prefs, pushEnabled })
 }
 
 export async function POST(req: NextRequest) {
@@ -27,15 +29,17 @@ export async function POST(req: NextRequest) {
 
   let body: { category?: unknown; enabled?: unknown }
   try { body = await req.json() } catch { return NextResponse.json({ error: 'invalid_input' }, { status: 400 }) }
-  const category = body.category as PushCategory
-  if (!PUSH_CATEGORIES.includes(category) || typeof body.enabled !== 'boolean') {
+  const key = body.category as string
+  // 개별 카테고리 + 전체 알림 마스터('push_enabled') 허용
+  const validKeys: string[] = [...PUSH_CATEGORIES, 'push_enabled']
+  if (!validKeys.includes(key) || typeof body.enabled !== 'boolean') {
     return NextResponse.json({ error: 'invalid_input' }, { status: 400 })
   }
 
   const admin = createAdminClient()
   const { error } = await admin
     .from('notification_preferences')
-    .upsert({ user_id: user.id, [category]: body.enabled, updated_at: new Date().toISOString() }, { onConflict: 'user_id' })
+    .upsert({ user_id: user.id, [key]: body.enabled, updated_at: new Date().toISOString() }, { onConflict: 'user_id' })
   if (error) { console.error('[notif.prefs.post]', error.message); return NextResponse.json({ error: 'internal' }, { status: 500 }) }
   return NextResponse.json({ ok: true })
 }

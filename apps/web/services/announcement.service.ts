@@ -89,8 +89,8 @@ export async function broadcastAnnouncementNotification(
     sent += chunk.length
   }
 
-  // 전체 구독자에게 웹 푸시 (앱 닫혀 있어도 새 공지 알림)
-  await sendPushToAll({ title: ann.title, body: toNotificationBody(ann.content), url, tag: `announcement-${ann.id}` })
+  // 전체 구독자에게 웹 푸시 (앱 닫혀 있어도 새 공지 알림). 공지 카테고리로 게이팅(끈 유저는 제외).
+  await sendPushToAll({ title: ann.title, body: toNotificationBody(ann.content), url, tag: `announcement-${ann.id}` }, 'announcement')
 
   return { sent }
 }

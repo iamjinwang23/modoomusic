@@ -117,11 +117,11 @@ export interface UserProfile {
 // Design Ref: notifications §3.2 — 알림 5종 + 행위자·곡 join 메타
 export type NotificationType = 'like' | 'song_complete' | 'system' | 'follow' | 'comment' | 'credit_charged' | 'community_like' | 'community_comment' | 'community_closing' | 'community_join_request' | 'community_join_approved' | 'community_join_rejected'
 
-// 푸시 알림 카테고리 — 설정 화면 토글 단위. system(공지)은 토글 대상 아님.
-export type PushCategory = 'song_complete' | 'likes' | 'comments' | 'follow' | 'community' | 'credit'
+// 푸시 알림 카테고리 — 설정 화면 토글 단위. announcement(공지)도 토글 가능(전체 알림 마스터 push_enabled로 일괄 차단).
+export type PushCategory = 'song_complete' | 'likes' | 'comments' | 'follow' | 'community' | 'credit' | 'announcement'
 
 export const PUSH_CATEGORIES: readonly PushCategory[] = [
-  'song_complete', 'likes', 'comments', 'follow', 'community', 'credit',
+  'song_complete', 'likes', 'comments', 'follow', 'community', 'credit', 'announcement',
 ]
 
 export const PUSH_CATEGORY_LABELS: Record<PushCategory, string> = {
@@ -131,6 +131,7 @@ export const PUSH_CATEGORY_LABELS: Record<PushCategory, string> = {
   follow: '팔로우',
   community: '커뮤니티',
   credit: '크레딧 충전',
+  announcement: '공지',
 }
 
 export function notificationTypeToCategory(type: NotificationType): PushCategory | null {
@@ -146,7 +147,8 @@ export function notificationTypeToCategory(type: NotificationType): PushCategory
     case 'community_join_approved':
     case 'community_join_rejected': return 'community'
     case 'credit_charged': return 'credit'
-    default: return null // 'system'
+    case 'system': return 'announcement' // 공지·운영 알림
+    default: return null
   }
 }
 

@@ -79,14 +79,19 @@ export async function sendPushToUser(userId: string, payload: PushPayload, categ
   // ensureConfigured()는 web-push(VAPID) 전용 — expo 채널은 VAPID 불필요하므로 여기서 조기 return 안 함.
   const admin = createAdminClient()
 
-  // 카테고리 게이팅: 프리퍼런스 행이 있고 해당 컬럼이 false면 발송 skip (opt-out)
-  if (category) {
+  // 전체 알림 마스터(push_enabled) + 카테고리 게이팅. 프리퍼런스 행이 있고 false면 skip(opt-out).
+  {
+    const cols = category ? `push_enabled, ${category}` : 'push_enabled'
     const { data: pref } = await admin
       .from('notification_preferences')
-      .select(category)
+      .select(cols)
       .eq('user_id', userId)
       .maybeSingle()
-    if (pref && (pref as Record<string, boolean>)[category] === false) return
+    if (pref) {
+      const p = pref as unknown as Record<string, boolean>
+      if (p.push_enabled === false) return  // 마스터 off → 전체 차단
+      if (category && p[category] === false) return
+    }
   }
 
   const { data } = await admin
@@ -103,12 +108,20 @@ export async function sendPushToUser(userId: string, payload: PushPayload, categ
 }
 
 // 전체 구독자에게 푸시 (공지 발행 등). 청크로 나눠 발송. web/expo 채널 병행.
-export async function sendPushToAll(payload: PushPayload): Promise<void> {
+// category 지정 시 마스터(push_enabled) off 또는 해당 카테고리 off인 유저는 제외(프리퍼런스 행 없으면 기본 수신).
+export async function sendPushToAll(payload: PushPayload, category?: PushCategory): Promise<void> {
   const admin = createAdminClient()
-  const { data } = await admin.from('push_subscriptions').select('endpoint, p256dh, auth, platform').limit(100000)
+  const { data } = await admin.from('push_subscriptions').select('endpoint, p256dh, auth, platform, user_id').limit(100000)
   if (!data || !data.length) return
-  const webSubs = data.filter((s) => s.platform !== 'expo' && s.p256dh && s.auth) as Sub[]
-  const expoTokens = data.filter((s) => s.platform === 'expo').map((s) => s.endpoint as string)
+  const excluded = new Set<string>()
+  {
+    const filter = category ? `push_enabled.eq.false,${category}.eq.false` : 'push_enabled.eq.false'
+    const { data: prefs } = await admin.from('notification_preferences').select('user_id').or(filter)
+    for (const p of prefs ?? []) excluded.add((p as { user_id: string }).user_id)
+  }
+  const active = data.filter((s) => !excluded.has((s as { user_id: string | null }).user_id ?? ''))
+  const webSubs = active.filter((s) => s.platform !== 'expo' && s.p256dh && s.auth) as Sub[]
+  const expoTokens = active.filter((s) => s.platform === 'expo').map((s) => s.endpoint as string)
   if (ensureConfigured()) {
     for (let i = 0; i < webSubs.length; i += 500) await sendToSubs(webSubs.slice(i, i + 500), payload)
   }

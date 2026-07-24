@@ -1,9 +1,8 @@
 import { useCallback, useEffect, useState } from 'react'
-import { ActivityIndicator, Alert, Linking, Pressable, ScrollView, StyleSheet, Switch, Text, View } from 'react-native'
+import { ActivityIndicator, Alert, Linking, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { router } from 'expo-router'
 import * as WebBrowser from 'expo-web-browser'
-import { PUSH_CATEGORIES, PUSH_CATEGORY_LABELS, type PushCategory } from '@mono/shared'
 import { api } from '@/lib/api'
 import { supabase } from '@/lib/supabase'
 import { toast } from '@/lib/toast'
@@ -47,7 +46,6 @@ export default function SettingsScreen() {
   const [account, setAccount] = useState<AccountInfo | null>(null)
   const [credits, setCredits] = useState<CreditState | null>(null)
   const [loading, setLoading] = useState(true)
-  const [prefs, setPrefs] = useState<Record<PushCategory, boolean> | null>(null)
   const [deletionOpen, setDeletionOpen] = useState(false)
 
   const load = useCallback(async () => {
@@ -69,18 +67,6 @@ export default function SettingsScreen() {
     setLoading(false)
   }, [])
   useEffect(() => { load() }, [load])
-
-  useEffect(() => {
-    api.get('/api/notifications/preferences')
-      .then((j) => setPrefs((j as { preferences: Record<PushCategory, boolean> }).preferences))
-      .catch(() => setPrefs(null))
-  }, [])
-
-  const toggle = async (c: PushCategory, v: boolean) => {
-    setPrefs((p) => (p ? { ...p, [c]: v } : p))            // 낙관적
-    try { await api.post('/api/notifications/preferences', { category: c, enabled: v }) }
-    catch { setPrefs((p) => (p ? { ...p, [c]: !v } : p)) }  // 롤백
-  }
 
   const openLink = (it: (typeof INFO_LINKS)[number]) => {
     if (it.mail) { Linking.openURL(it.url).catch(() => {}); return }
@@ -146,29 +132,14 @@ export default function SettingsScreen() {
           </Pressable>
           <Text style={styles.ctaHint}>업그레이드 시 추가 크레딧 제공</Text>
 
-          {prefs && (
-            <>
-              <Text style={styles.section}>알림</Text>
-              <View style={styles.group}>
-                {PUSH_CATEGORIES.map((c, i) => (
-                  <View key={c}>
-                    <View style={styles.cell}>
-                      <Text style={styles.cellText}>{PUSH_CATEGORY_LABELS[c]}</Text>
-                      <Switch
-                        style={styles.cellSwitch}
-                        value={prefs[c]}
-                        onValueChange={(v) => toggle(c, v)}
-                        trackColor={{ false: mono.color.fillStrong, true: mono.color.accent }}
-                        ios_backgroundColor={mono.color.fillStrong}
-                        thumbColor="#ffffff"
-                      />
-                    </View>
-                    {i < PUSH_CATEGORIES.length - 1 && <View style={styles.divider} />}
-                  </View>
-                ))}
-              </View>
-            </>
-          )}
+          {/* 알림 — 뎁스 진입(차단 목록 패턴). 마스터 + 항목별 토글은 하위 화면에서. */}
+          <Text style={styles.section}>알림</Text>
+          <View style={styles.group}>
+            <Pressable style={styles.cell} onPress={() => router.push('/notification-settings')}>
+              <Text style={styles.cellText}>알림 설정</Text>
+              <Text style={styles.chevron}>›</Text>
+            </Pressable>
+          </View>
 
           {/* 안전 — 차단 관리 */}
           <Text style={styles.section}>안전</Text>
@@ -243,7 +214,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
   },
   cellText: { color: mono.color.text, fontSize: mono.font.body, fontWeight: '500' },
-  cellSwitch: { alignSelf: 'center' },
   chevron: { color: mono.color.textTertiary, fontSize: 22 },
   linkLeft: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   infoLabel: { color: mono.color.textSecondary, fontSize: mono.font.body },
