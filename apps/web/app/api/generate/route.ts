@@ -216,12 +216,15 @@ export async function POST(req: NextRequest) {
           .then((crafted) => generateCoverImage(crafted || fallbackCoverPrompt)),
       ])
 
-      // 커버 조용한 실패(null) 완화 — 1회 재시도. 음악 생성이 끝난 시점이라 API 경합도 해소됨.
+      // 커버 조용한 실패(null) 완화 — 최대 2회 재시도. 이미지 API 과부하 시 응답이 80s+ 걸릴 수 있어
+      // 경과 190s 미만일 때만 시도(300s 함수 한도 보호). 그래도 null이면 backfill-covers로 사후 복구.
       let coverUrl = coverUrlFirst
-      if (!coverUrl && !MOCK_MODE) {
-        coverUrl = await generateCoverImage(fallbackCoverPrompt)
-        if (!coverUrl) console.warn('[generate bg] 커버 생성 재시도도 실패 — cover_image null로 저장')
+      for (let i = 0; !coverUrl && !MOCK_MODE && i < 2 && Date.now() - invokedAtMs < 190_000; i++) {
+        coverUrl = await generateCoverImage(
+          i === 0 ? fallbackCoverPrompt : ([genre, mood].filter(Boolean).join(', ') || 'abstract emotional album cover'),
+        )
       }
+      if (!coverUrl && !MOCK_MODE) console.warn('[generate bg] 커버 생성 실패 — cover_image null (backfill-covers로 복구 가능)')
 
       let finalAudioUrl: string | null = songResult.audioUrl
       let finalCoverUrl: string | null = coverUrl

@@ -294,9 +294,13 @@ export async function generateCoverImage(stylePrompt: string): Promise<string | 
     }),
   })
 
-  if (!res.ok) return null
+  if (!res.ok) { console.error('[cover] HTTP', res.status); return null }
   const data = await res.json()
-  if (data.base_resp?.status_code !== 0) return null
+  if (data.base_resp?.status_code !== 0) {
+    // 실측(2026-07-24): API 과부하 시 80s 후 1033 "system error" 빈발 — 관측용 로그
+    console.error('[cover] base_resp', data.base_resp?.status_code, data.base_resp?.status_msg)
+    return null
+  }
   return data.data?.image_urls?.[0] ?? null
 }
 
