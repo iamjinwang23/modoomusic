@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse, after } from 'next/server'
-import { generateSong, generateCoverImage, craftCoverPrompt, MOCK_MODE, MODELS, creditsForModel, type MusicModelId } from '@/services/minimax.service'
-import { estimateMp3Duration, uploadFromUrl } from '@/services/storage.service'
+import { generateSong, generateSongStream, generateCoverImage, craftCoverPrompt, MOCK_MODE, MODELS, STREAMABLE_MODELS, StreamRejectedError, creditsForModel, type MusicModelId } from '@/services/minimax.service'
+import { estimateMp3Duration, uploadFromUrl, uploadAudioBuffer, deleteStorageFile } from '@/services/storage.service'
 import { createUserClient } from '@/lib/supabase/server'
 import { requireActiveUser } from '@/lib/auth/active-user'
 import { createAdminClient } from '@/lib/supabase/admin'
@@ -138,6 +138,10 @@ export async function POST(req: NextRequest) {
   })
 
   // ── 5) 백그라운드: MiniMax + Storage + UPDATE → status=done. 실패 시 status=failed + 환불
+  // 스트리밍 프리뷰 경로 식별자 — catch(실패 정리)에서도 접근해야 해서 try 밖 선언
+  const storageId = crypto.randomUUID()
+  let previewSeq = 0
+
   after(async () => {
     try {
       // 심플 모드 자동작사: 설명(prompt)으로 가사·스타일·제목 생성 후 음악 생성에 반영
@@ -167,8 +171,39 @@ export async function POST(req: NextRequest) {
       // 커버 프롬프트: LLM 아트디렉터로 곡 맥락을 시각 프롬프트로 번역(우선). 실패 시 기존 로직으로 폴백.
       const imagePromptInput = pickImagePrompt({ customLyrics: genLyrics, title, prompt })
       const fallbackCoverPrompt = [genre, mood, imagePromptInput].filter(Boolean).join(', ')
+
+      // 스트리밍 생성(생성 중 미리 듣기) — 3.0/2.6 & 비커버 & 비목. 부분 MP3를 주기 업로드해
+      // preview_audio_url 갱신(?v= 캐시버스트). HTTP 레벨 거절 시에만 non-stream 폴백(이중 과금 없음).
+      const canStream = !MOCK_MODE && !audioBase64 && STREAMABLE_MODELS.includes(model as MusicModelId)
+
+      const songPromise: Promise<{ audioUrl: string; lyrics: string; duration: number | null; uploaded: boolean }> = canStream
+        ? generateSongStream(
+            { prompt: genPrompt, genre, mood, customLyrics: genLyrics, instrumental, model },
+            async (partial) => {
+              const url = await uploadAudioBuffer(partial, 'songs-audio', `${storageId}-preview.mp3`, { mutable: true })
+              if (url) {
+                await admin.from('songs')
+                  .update({ preview_audio_url: `${url}?v=${++previewSeq}` })
+                  .eq('id', songId).eq('status', 'generating')
+              }
+            },
+          ).then(async (r) => {
+            const url = await uploadAudioBuffer(r.audioBuffer, 'songs-audio', `${storageId}.mp3`)
+            if (!url) throw new Error('오디오 업로드 실패')
+            return { audioUrl: url, lyrics: r.lyrics, duration: r.duration, uploaded: true }
+          }).catch(async (e) => {
+            if (e instanceof StreamRejectedError) {
+              console.warn('[generate bg] 스트림 거절 → non-stream 폴백:', e.message)
+              const r = await generateSong({ prompt: genPrompt, genre, mood, customLyrics: genLyrics, instrumental, model, audioBase64 })
+              return { ...r, uploaded: false }
+            }
+            throw e
+          })
+        : generateSong({ prompt: genPrompt, genre, mood, customLyrics: genLyrics, instrumental, model, audioBase64 })
+            .then((r) => ({ ...r, uploaded: false }))
+
       const [songResult, coverUrl] = await Promise.all([
-        generateSong({ prompt: genPrompt, genre, mood, customLyrics: genLyrics, instrumental, model, audioBase64 }),
+        songPromise,
         craftCoverPrompt({ genre, mood, title: title || autoTitle || undefined, lyrics: genLyrics })
           .then((crafted) => generateCoverImage(crafted || fallbackCoverPrompt)),
       ])
@@ -176,9 +211,8 @@ export async function POST(req: NextRequest) {
       let finalAudioUrl: string | null = songResult.audioUrl
       let finalCoverUrl: string | null = coverUrl
       if (!MOCK_MODE) {
-        const storageId = crypto.randomUUID()
         const [permAudio, permCover] = await Promise.all([
-          uploadFromUrl(songResult.audioUrl, 'songs-audio', `${storageId}.mp3`),
+          songResult.uploaded ? Promise.resolve(songResult.audioUrl) : uploadFromUrl(songResult.audioUrl, 'songs-audio', `${storageId}.mp3`),
           coverUrl ? uploadFromUrl(coverUrl, 'songs-covers', `${storageId}.webp`, { toWebp: { maxPx: 800, quality: 85 } }) : Promise.resolve(null),
         ])
         if (permAudio) finalAudioUrl = permAudio
@@ -193,6 +227,7 @@ export async function POST(req: NextRequest) {
         audio_url: finalAudioUrl,
         cover_image: finalCoverUrl,
         duration: finalDuration,
+        preview_audio_url: null,  // 미리 듣기 종료 — 완곡으로 전환
         // 우리가 보낸 가사(커스텀/AI) 우선 — MiniMax는 모델·모드에 따라 lyrics를 응답에 안 돌려줘서
         // songResult.lyrics만 쓰면 일부 곡 가사가 null로 저장돼 상세에서 안 보임.
         lyrics: genLyrics?.trim() || songResult.lyrics?.trim() || null,
@@ -212,6 +247,9 @@ export async function POST(req: NextRequest) {
         return
       }
 
+      // 프리뷰 파일 정리(베스트 에포트) — 완곡 전환 후 부분 파일은 불필요
+      if (previewSeq > 0) await deleteStorageFile('songs-audio', `${storageId}-preview.mp3`)
+
       // song_complete 알림 + 웹 푸시(앱 닫혀 있어도 — 생성 중 이탈 잦음)
       const { error: notifErr } = await admin
         .from('notifications')
@@ -221,7 +259,8 @@ export async function POST(req: NextRequest) {
       await sendPushToUser(user.id, { title: '곡이 완성됐어요', body: `'${doneTitle}' 곡을 지금 들어보세요.`, url: '/library', tag: `song-${songId}`, data: { route: '/(tabs)', songId } }, 'song_complete')
     } catch (e) {
       console.error('[generate bg] 실패:', e instanceof Error ? e.message : e)
-      await admin.from('songs').update({ status: 'failed' }).eq('id', songId)
+      await admin.from('songs').update({ status: 'failed', preview_audio_url: null }).eq('id', songId)
+      await deleteStorageFile('songs-audio', `${storageId}-preview.mp3`).catch(() => {})
       await refundCredits(user.id, cost, consume.consumed)
       // 원장: 생성 실패 환불 기록 (사용 탭에 +복원으로 표시)
       await recordCreditTx(user.id, {

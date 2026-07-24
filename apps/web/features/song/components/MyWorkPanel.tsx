@@ -482,6 +482,8 @@ function SongWorkItem({ song, onOpen, onEdit, onDelete, onCollect, onPublish, on
   const [inCollection, setInCollection] = useState(false)
   const isGenerating = song.status === 'generating'
   const isFailed = song.status === 'failed'
+  // 생성 중 미리 듣기 — 부분 오디오가 올라오면 스피너 대신 재생 가능 (완곡되면 자동 전환)
+  const canPreview = isGenerating && !!song.previewAudioUrl
 
   useEffect(() => {
     function handler() { collectionService.getSongCollectionIds(song.id).then((ids) => setInCollection(ids.length > 0)) }
@@ -504,7 +506,7 @@ function SongWorkItem({ song, onOpen, onEdit, onDelete, onCollect, onPublish, on
 
   function handleThumbClick(e: React.MouseEvent<HTMLDivElement>) {
     e.stopPropagation()
-    if (isGenerating || isFailed) return  // 생성 중·실패 곡은 재생 불가
+    if ((isGenerating && !canPreview) || isFailed) return  // 생성 중(프리뷰 전)·실패 곡은 재생 불가
     clearNew()
     if (isCurrentSong) {
       player.togglePlay()
@@ -557,7 +559,7 @@ function SongWorkItem({ song, onOpen, onEdit, onDelete, onCollect, onPublish, on
         {/* 썸네일 — 2:3 비율 고정 (self-start로 stretch 방지) */}
         <div
           onClick={handleThumbClick}
-          className={`w-14 md:w-16 aspect-[2/3] rounded-lg shrink-0 self-start overflow-hidden relative ${isGenerating || isFailed ? 'cursor-default' : 'cursor-pointer'}`}
+          className={`w-14 md:w-16 aspect-[2/3] rounded-lg shrink-0 self-start overflow-hidden relative ${(isGenerating && !canPreview) || isFailed ? 'cursor-default' : 'cursor-pointer'}`}
         >
           {/* 신규 인디케이터 — 썸네일 좌하단 (시간과 같은 라인) */}
           <div
@@ -576,7 +578,17 @@ function SongWorkItem({ song, onOpen, onEdit, onDelete, onCollect, onPublish, on
             {isGenerating ? (
               <>
                 <div className="absolute inset-0 bg-black/25 pointer-events-none" />
-                <div className="w-4 h-4 md:w-5 md:h-5 border-2 border-white/30 border-t-white rounded-full animate-spin relative z-10" />
+                {canPreview && playing ? (
+                  <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-10">
+                    <SoundWaveIcon size={16} />
+                  </div>
+                ) : canPreview ? (
+                  <div className="absolute inset-0 flex items-center justify-center z-10">
+                    <Image src="/Play.svg" alt="미리 듣기" width={18} height={18} className="w-4 h-4 md:w-[18px] md:h-[18px] opacity-90" style={{ filter: 'invert(1)' }} />
+                  </div>
+                ) : (
+                  <div className="w-4 h-4 md:w-5 md:h-5 border-2 border-white/30 border-t-white rounded-full animate-spin relative z-10" />
+                )}
                 <div className="absolute bottom-2 left-1.5 w-2 h-2 rounded-full bg-violet-400 animate-pulse pointer-events-none z-10" />
               </>
             ) : isFailed ? (
@@ -641,7 +653,11 @@ function SongWorkItem({ song, onOpen, onEdit, onDelete, onCollect, onPublish, on
                 )}
               </div>
               <p className="text-xs text-zinc-400 mt-1 truncate">
-                {isGenerating ? <GeneratingPhrase startedAt={song.createdAt} /> : isFailed ? '생성에 실패했어요' : song.prompt}
+                {isGenerating
+                  ? (canPreview
+                      ? <span className="text-violet-300">만드는 중이에요 · 지금 미리 들어볼 수 있어요</span>
+                      : <GeneratingPhrase startedAt={song.createdAt} />)
+                  : isFailed ? '생성에 실패했어요' : song.prompt}
               </p>
             </button>
             {/* generating일 땐 편집·컬렉션 메뉴 숨기고 삭제만 가능하게. 미공개 곡은 '공개하기'를 더보기 안으로 */}

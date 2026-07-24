@@ -29,6 +29,8 @@ export interface Song {
   likeCount?: number
   commentCount?: number
   status?: SongStatus
+  // 생성 중 미리 듣기 — MiniMax stream 부분 MP3 URL(?v= 캐시버스트, mig 065). 완곡 완성 시 null
+  previewAudioUrl?: string | null
   model?: string | null  // 'music-3.0' | 'music-2.6' | 'music-2.0' (mig 029). 과거 곡은 'music-2.5+'도 존재
   // 비디오 커버 (mig 035)
   videoCoverUrl?: string

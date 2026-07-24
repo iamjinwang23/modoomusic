@@ -44,6 +44,41 @@ export async function uploadImageBuffer(
   }
 }
 
+// 오디오 버퍼 직접 업로드 — 스트리밍 생성(부분 프리뷰·최종본)용.
+// mutable=true(프리뷰): 같은 경로 덮어쓰기 반복이라 캐시 금지(클라는 ?v=로 버스트).
+// mutable=false(최종본): UUID 경로 불변 파일 — 1년 immutable 캐시.
+export async function uploadAudioBuffer(
+  buffer: Buffer,
+  bucket: string,
+  path: string,
+  opts: { mutable?: boolean } = {},
+): Promise<string | null> {
+  try {
+    const supabase = getAdminClient()
+    const { error } = await supabase.storage.from(bucket).upload(path, buffer, {
+      contentType: 'audio/mpeg',
+      upsert: true,
+      cacheControl: opts.mutable ? '0' : '31536000, immutable',
+    })
+    if (error) { console.error('[storage] uploadAudioBuffer:', error.message); return null }
+    const { data } = supabase.storage.from(bucket).getPublicUrl(path)
+    return data.publicUrl
+  } catch (e) {
+    console.error('[storage] uploadAudioBuffer failed:', e)
+    return null
+  }
+}
+
+// 파일 삭제(베스트 에포트) — 프리뷰 정리용. 실패해도 흐름 안 막음.
+export async function deleteStorageFile(bucket: string, path: string): Promise<void> {
+  try {
+    const supabase = getAdminClient()
+    await supabase.storage.from(bucket).remove([path])
+  } catch (e) {
+    console.error('[storage] deleteStorageFile failed:', e)
+  }
+}
+
 // MP3 재생 길이 추정 — 곡 생성은 256kbps CBR(=32000 B/s)로 고정 출력하므로
 // Content-Length ÷ 32000 ≈ 초. MiniMax가 audio_length를 안 줄 때의 폴백.
 const MP3_BYTES_PER_SEC = 256_000 / 8

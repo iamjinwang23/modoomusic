@@ -23,6 +23,7 @@ interface SongRow {
   prompt: string | null
   video_cover_status?: 'generating' | 'done' | 'failed' | null
   video_cover_url?: string | null
+  preview_audio_url?: string | null  // 생성 중 미리 듣기 (mig 065)
 }
 
 function rowToPatch(r: SongRow): Partial<Song> {
@@ -39,6 +40,8 @@ function rowToPatch(r: SongRow): Partial<Song> {
   // 비디오 커버 상태/URL
   if (r.video_cover_status !== undefined) patch.videoCoverStatus = r.video_cover_status ?? undefined
   if (r.video_cover_url !== undefined) patch.videoCoverUrl = r.video_cover_url ?? undefined
+  // 생성 중 미리 듣기 URL — 부분 업로드마다 갱신, 완곡 완성 시 null
+  if (r.preview_audio_url !== undefined) patch.previewAudioUrl = r.preview_audio_url
   return patch
 }
 

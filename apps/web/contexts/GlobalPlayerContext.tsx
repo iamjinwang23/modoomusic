@@ -87,10 +87,67 @@ export function GlobalPlayerProvider({ children }: { children: React.ReactNode }
   // 같은 세션 안에서 같은 곡 중복 카운트 방지 (pause/resume 시 재증가 X)
   const countedRef = useRef<Set<string>>(new Set())
   const { user } = useAuth()
+  // 생성 중 미리 듣기 — 현재 로드된 프리뷰 URL(null=일반 재생). 프리뷰 끝에서 최신 부분/완곡으로 체이스.
+  const previewRef = useRef<string | null>(null)
+  const chaseTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   const song = state.feed[state.idx] ?? null
   // isOwner는 현재 ownerUserId(곡 전환 시 갱신됨) 기준으로 매번 재계산 → 곡 넘겨도 정확
   const isOwner = !!user && !!state.ownerUserId && state.ownerUserId === user.id
+
+  // 곡을 audio에 로드 — 완곡 없고 생성 중이면 프리뷰 URL 사용
+  const loadIntoAudio = useCallback((audio: HTMLAudioElement, s: Song) => {
+    if (chaseTimerRef.current) { clearTimeout(chaseTimerRef.current); chaseTimerRef.current = null }
+    const usePreview = !s.audioUrl && s.status === 'generating' && !!s.previewAudioUrl
+    previewRef.current = usePreview ? (s.previewAudioUrl as string) : null
+    audio.src = usePreview ? (s.previewAudioUrl as string) : s.audioUrl
+    audio.play().catch(() => {})
+  }, [])
+
+  // 프리뷰 끝 도달 시 — 캐시 최신값으로 다음 소스 결정(더 긴 프리뷰/완곡). 새 부분이 아직 없으면 3초 후 재시도.
+  const chasePreview = useCallback((): boolean => {
+    const a = audioRef.current
+    if (!a || !previewRef.current) return false
+    const cur = stateRef.current.feed[stateRef.current.idx]
+    if (!cur) return false
+    const fresh = songService.getById(cur.id)
+    if (!fresh) return false
+    const resumeAt = a.currentTime
+
+    const swapTo = (url: string) => {
+      a.src = url
+      a.addEventListener('loadedmetadata', () => {
+        a.currentTime = Math.min(resumeAt, Math.max(0, a.duration - 0.05))
+        a.play().catch(() => {})
+      }, { once: true })
+    }
+
+    if (fresh.status === 'done' && fresh.audioUrl) {
+      previewRef.current = null
+      dispatch({ type: 'PATCH', patch: {
+        audioUrl: fresh.audioUrl, status: 'done',
+        duration: fresh.duration ?? cur.duration,
+        title: fresh.title ?? cur.title,
+        coverImage: fresh.coverImage ?? cur.coverImage,
+        lyrics: fresh.lyrics ?? cur.lyrics,
+        prompt: fresh.prompt ?? cur.prompt,
+      } })
+      swapTo(fresh.audioUrl)
+      return true
+    }
+    if (fresh.status === 'generating' && fresh.previewAudioUrl && fresh.previewAudioUrl !== previewRef.current) {
+      previewRef.current = fresh.previewAudioUrl
+      swapTo(fresh.previewAudioUrl)
+      return true
+    }
+    if (fresh.status === 'generating') {
+      // 다음 부분이 아직 안 옴 — 잠시 후 재시도(생성 페이스가 재생을 못 따라온 경우)
+      chaseTimerRef.current = setTimeout(() => { chasePreview() }, 3000)
+      return true
+    }
+    previewRef.current = null  // failed 등 — 일반 흐름으로
+    return false
+  }, [])
 
   useEffect(() => {
     const audio = audioRef.current
@@ -99,8 +156,7 @@ export function GlobalPlayerProvider({ children }: { children: React.ReactNode }
     const loadedId = audio.getAttribute('data-song-id')
     if (loadedId === song.id) return
     audio.setAttribute('data-song-id', song.id)
-    audio.src = song.audioUrl
-    audio.play().catch(() => {})
+    loadIntoAudio(audio, song)
   }, [song?.id])
 
   useEffect(() => {
@@ -172,8 +228,7 @@ export function GlobalPlayerProvider({ children }: { children: React.ReactNode }
     const loadedId = audio.getAttribute('data-song-id')
     if (loadedId === newSong.id) return
     audio.setAttribute('data-song-id', newSong.id)
-    audio.src = newSong.audioUrl
-    audio.play().catch(() => {})
+    loadIntoAudio(audio, newSong)
   }, [state.idx])
 
   // 모바일 잠금화면 / 제어센터 / Bluetooth / CarPlay 메타데이터 (Media Session API)
@@ -254,6 +309,9 @@ export function GlobalPlayerProvider({ children }: { children: React.ReactNode }
     navigator.mediaSession.playbackState = state.isPlaying ? 'playing' : 'paused'
   }, [state.isPlaying])
 
+  // 체이스 타이머 언마운트 정리
+  useEffect(() => () => { if (chaseTimerRef.current) clearTimeout(chaseTimerRef.current) }, [])
+
   const togglePlay = useCallback(() => {
     const a = audioRef.current
     if (!a) return
@@ -282,9 +340,9 @@ export function GlobalPlayerProvider({ children }: { children: React.ReactNode }
           dispatch({ type: 'PLAYING', v: true })
           // 인라인 카드들에게 정지 신호
           window.dispatchEvent(new CustomEvent('audio-play', { detail: '__global__' }))
-          // 재생수 증가 — 세션 내 곡당 1회만
+          // 재생수 증가 — 세션 내 곡당 1회만 (프리뷰는 미완성 재생이라 제외)
           const cur = stateRef.current.feed[stateRef.current.idx]
-          if (cur && !countedRef.current.has(cur.id)) {
+          if (cur && !previewRef.current && !countedRef.current.has(cur.id)) {
             countedRef.current.add(cur.id)
             fetch(`/api/songs/${cur.id}/play`, { method: 'POST' }).catch(() => {})
           }
@@ -294,6 +352,8 @@ export function GlobalPlayerProvider({ children }: { children: React.ReactNode }
         onLoadedMetadata={e => {
           const realDuration = e.currentTarget.duration
           dispatch({ type: 'DURATION', d: realDuration })
+          // 프리뷰(부분 파일)는 실제 곡 길이가 아니므로 duration 저장 스킵
+          if (previewRef.current) return
           const cur = stateRef.current.feed[stateRef.current.idx]
           if (cur && Math.round(realDuration) !== cur.duration) {
             songService.update(cur.id, { duration: Math.round(realDuration) })
@@ -301,6 +361,8 @@ export function GlobalPlayerProvider({ children }: { children: React.ReactNode }
           }
         }}
         onEnded={() => {
+          // 프리뷰 끝 — 최신 부분/완곡으로 이어서(체이스). 처리됐으면 일반 종료 로직 스킵
+          if (chasePreview()) return
           const s = stateRef.current
           s.idx < s.feed.length - 1 ? dispatch({ type: 'NEXT' }) : dispatch({ type: 'PLAYING', v: false })
         }}

@@ -26,6 +26,7 @@ export interface DbSong {
   like_count: number
   comment_count: number
   status: SongStatus | null
+  preview_audio_url?: string | null  // 생성 중 미리 듣기 (mig 065)
   model: string | null
   video_cover_url: string | null
   video_cover_status: string | null
@@ -58,6 +59,7 @@ export function rowToSong(r: DbSong): Song {
     likeCount: r.like_count ?? 0,
     commentCount: r.comment_count ?? 0,
     status: r.status ?? 'done',
+    previewAudioUrl: r.preview_audio_url ?? null,
     model: r.model ?? null,
     videoCoverUrl: r.video_cover_url ?? undefined,
     videoCoverStatus: (r.video_cover_status as Song['videoCoverStatus']) ?? undefined,

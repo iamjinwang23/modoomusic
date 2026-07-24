@@ -121,6 +121,134 @@ export async function generateSong(params: GenerateParams): Promise<GenerateResu
   return { audioUrl: data.data.audio, lyrics: isInstrumental ? '' : (customLyrics || ''), duration }
 }
 
+// ── 스트리밍 생성 (생성 중 미리 듣기) ──────────────────────────────────────
+// stream:true + output_format:hex — SSE로 오디오 청크가 생성 진행에 맞춰 점진 도착(실측: 첫 청크 ~29s,
+// 이후 재생 속도와 1:1 페이스). status=1 청크를 모아 부분 MP3 콜백, status=2 최종 이벤트가 완곡 전체를
+// 재전송하므로 그것을 확정본으로 반환. MP3는 프레임 단위라 잘린 부분 파일도 그대로 재생 가능.
+export const STREAMABLE_MODELS: MusicModelId[] = ['music-3.0', 'music-2.6']
+
+// 부분 콜백 발화 기준 — 256kbps CBR = 32KB/s. 첫 발화 ~8초(빠른 첫 재생), 이후 ~15초 간격.
+const FIRST_PARTIAL_BYTES = 8 * 32000
+const PARTIAL_STEP_BYTES = 15 * 32000
+
+export interface StreamGenerateResult {
+  audioBuffer: Buffer   // 완곡 전체(MiniMax 최종 이벤트 페이로드)
+  lyrics: string
+  duration: number | null
+}
+
+export class StreamRejectedError extends Error {
+  // HTTP 레벨 거절(헤더 단계) — 생성이 시작되지 않았으므로 non-stream 폴백 안전
+  constructor(msg: string) { super(msg); this.name = 'StreamRejectedError' }
+}
+
+export async function generateSongStream(
+  params: GenerateParams,
+  onPartial: (partial: Buffer, approxSeconds: number) => Promise<void>,
+): Promise<StreamGenerateResult> {
+  const { prompt, genre, mood, customLyrics, instrumental = false, model = 'music-3.0' } = params
+  const hasLyrics = !!customLyrics?.trim()
+  const isInstrumental = instrumental || !hasLyrics
+
+  const styleTag = [genre, mood].filter(Boolean).join(', ')
+  const fullPrompt = styleTag ? `${styleTag}. ${prompt}` : prompt
+
+  const body: Record<string, unknown> = {
+    model,
+    prompt: fullPrompt,
+    stream: true,
+    output_format: 'hex',
+    is_instrumental: isInstrumental,
+    audio_setting: { sample_rate: 44100, bitrate: 256000, format: 'mp3' },
+  }
+  if (!isInstrumental && hasLyrics) body.lyrics = customLyrics!.trim()
+
+  const res = await fetch('https://api.minimax.io/v1/music_generation', {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${process.env.MINIMAX_API_KEY}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(body),
+  })
+
+  if (res.status === 429) {
+    const err: Error & { code?: string } = new Error('지금 너무 많은 사람이 만들고 있어요. 잠시 후 다시 시도해 주세요')
+    err.code = 'RATE_LIMITED'
+    throw err
+  }
+  if (!res.ok || !res.body) {
+    throw new StreamRejectedError(`stream rejected: HTTP ${res.status}`)
+  }
+  const ct = res.headers.get('content-type') ?? ''
+  if (!ct.includes('event-stream')) {
+    // 스트림 미지원 응답(통 JSON 등) — 본문에 에러가 있을 수 있으니 헤더 단계 거절로 취급
+    throw new StreamRejectedError(`stream rejected: content-type ${ct}`)
+  }
+
+  const reader = res.body.getReader()
+  const dec = new TextDecoder()
+  let buf = ''
+  const chunks: Buffer[] = []
+  let accBytes = 0
+  let nextPartialAt = FIRST_PARTIAL_BYTES
+  let finalBuffer: Buffer | null = null
+  let durationMs: number | null = null
+
+  const handleEvent = async (raw: string) => {
+    let j: Record<string, unknown>
+    try { j = JSON.parse(raw) } catch { return }
+    const base = j.base_resp as { status_code?: number; status_msg?: string } | undefined
+    if (base && base.status_code !== 0 && base.status_code !== undefined) {
+      throw new Error(translateMinimaxError(base.status_msg))
+    }
+    const d = j.data as { audio?: string; status?: number } | undefined
+    const extra = j.extra_info as { audio_length?: number } | undefined
+    if (typeof extra?.audio_length === 'number' && extra.audio_length > 0) durationMs = extra.audio_length
+    if (!d?.audio) return
+    if (d.status === 2) {
+      // 최종 이벤트 — 완곡 전체 재전송(확정본)
+      finalBuffer = Buffer.from(d.audio, 'hex')
+      return
+    }
+    const chunk = Buffer.from(d.audio, 'hex')
+    chunks.push(chunk)
+    accBytes += chunk.length
+    if (accBytes >= nextPartialAt) {
+      nextPartialAt = accBytes + PARTIAL_STEP_BYTES
+      try {
+        await onPartial(Buffer.concat(chunks), Math.round(accBytes / 32000))
+      } catch (e) {
+        console.error('[minimax stream] onPartial 실패(계속 진행):', (e as Error).message)
+      }
+    }
+  }
+
+  while (true) {
+    const { done, value } = await reader.read()
+    if (done) break
+    buf += dec.decode(value, { stream: true })
+    let idx
+    while ((idx = buf.indexOf('\n\n')) !== -1) {
+      const frame = buf.slice(0, idx)
+      buf = buf.slice(idx + 2)
+      for (const line of frame.split('\n')) {
+        if (line.startsWith('data:')) await handleEvent(line.slice(5).trim())
+      }
+    }
+  }
+  if (buf.trim().startsWith('data:')) await handleEvent(buf.trim().slice(5).trim())
+
+  // 최종 이벤트가 없으면 스트림 청크 합본으로 폴백(실측상 합계 == 최종본)
+  const audioBuffer = finalBuffer ?? (chunks.length ? Buffer.concat(chunks) : null)
+  if (!audioBuffer || audioBuffer.length === 0) {
+    throw new Error('곡 생성에 실패했어요')
+  }
+  const duration = durationMs ? Math.round(durationMs / 1000) : Math.round(audioBuffer.length / 32000)
+
+  return { audioBuffer, lyrics: isInstrumental ? '' : (customLyrics || ''), duration }
+}
+
 const MOCK_COVER_URL = 'https://picsum.photos/seed/minimax/512/512'
 
 export async function generateCoverImage(stylePrompt: string): Promise<string | null> {
