@@ -99,6 +99,12 @@ function toSong(pub: PublicSong): Song {
     model: pub.model,
     videoCoverUrl: pub.videoCoverUrl,
     videoCoverStatus: pub.videoCoverStatus,
+    // 크리에이터 필드 — 곡 넘길 때 owner 갱신에 필요(GlobalPlayerContext.ownerFromSong)
+    username: pub.username,
+    displayName: pub.displayName,
+    userId: pub.userId,
+    avatarHue: pub.avatarHue,
+    avatarUrl: pub.avatarUrl,
   }
 }
 

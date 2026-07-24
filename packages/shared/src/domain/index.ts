@@ -35,6 +35,12 @@ export interface Song {
   videoCoverStatus?: VideoCoverStatus
   videoCoverMode?: VideoCoverMode
   videoCoverGeneratedAt?: string
+  // 크리에이터(공개곡 피드에서 곡 전환 시 owner 갱신용 — PublicSong→Song 변환 시 채움. 내 곡 피드엔 없음)
+  username?: string
+  displayName?: string
+  userId?: string
+  avatarHue?: number
+  avatarUrl?: string | null
 }
 
 export type Genre = '발라드' | '팝' | 'R&B' | '포크' | '힙합' | '재즈'
